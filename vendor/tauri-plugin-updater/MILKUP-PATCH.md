@@ -46,3 +46,15 @@ unimplemented describe the preceding checkpoint; the current scope and remaining
 limits are in the [updated protocol](../../docs/v2-update-manifest-protocol.md).
 The PE resource gate does **not** prove the embedded NSIS application version,
 health confirmation or application rollback. Those remain release blockers.
+
+## Raw signed handoff / offline restart verification
+
+The native-only extension retains the exact authenticated envelope bytes in
+Update and exposes them only while verified_release's complete binding holds.
+verify_signed_manifest reuses the same minisign decoder with a 256 KiB envelope
+bound and required product/channel scope. Its immutable VerifiedManifest carries
+only raw bytes and release data: it has no download/install methods and does not
+apply or bypass an install-version comparator. Freshness and current high-water
+reauthorization remain mandatory host checks, including same-version restart
+observations. No IPC command, JavaScript API, dependency, key, endpoint, NSIS
+argument or launch behavior changes. See the native handoff checkpoint report.

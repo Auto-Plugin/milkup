@@ -25,6 +25,10 @@ mod transaction;
 #[path = "update_identity.rs"]
 mod identity;
 
+#[allow(dead_code)]
+#[path = "update_handoff.rs"]
+mod handoff;
+
 #[cfg(test)]
 #[path = "updates_tests.rs"]
 mod tests;

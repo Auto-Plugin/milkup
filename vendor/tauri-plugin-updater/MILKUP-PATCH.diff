@@ -11,7 +11,7 @@
  pub use error::{Error, Result};
 --- a/src/updater.rs
 +++ b/src/updater.rs
-@@ -42,6 +42,82 @@
+@@ -42,6 +42,116 @@
  };
  
  const UPDATER_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -32,6 +32,40 @@
 +    product: String,
 +    channel: String,
 +    release: serde_json::Value,
++}
++
++/// Immutable signed data only. Deliberately has no download/install operations.
++/// Native hosts must separately enforce freshness, scope policy and replay state.
++pub struct VerifiedManifest {
++    envelope: Vec<u8>,
++    release: serde_json::Value,
++}
++
++impl VerifiedManifest {
++    pub fn envelope(&self) -> &[u8] {
++        &self.envelope
++    }
++    pub fn release(&self) -> &serde_json::Value {
++        &self.release
++    }
++}
++
++/// Reverify exact retained bytes offline, including same-version declarations.
++/// This creates no Update and does not override any installation version gate.
++pub fn verify_signed_manifest(
++    bytes: &[u8],
++    public_key: &str,
++    product: &str,
++    channel: &str,
++) -> Result<VerifiedManifest> {
++    if bytes.is_empty() || bytes.len() > MAX_MANIFEST_BYTES {
++        return Err(Error::Network("Invalid signed envelope size".into()));
++    }
++    let release = decode_manifest(bytes, Some(&(product.into(), channel.into())), public_key)?;
++    Ok(VerifiedManifest {
++        envelope: bytes.to_vec(),
++        release,
++    })
 +}
 +
 +// Bound the accumulated body before parsing or allocating the next chunk into it.
@@ -94,7 +128,7 @@
  
  #[derive(Copy, Clone)]
  pub enum Installer {
-@@ -151,6 +227,7 @@
+@@ -151,6 +261,7 @@
      current_exe_args: Vec<OsString>,
      on_before_exit: Option<OnBeforeExit>,
      configure_client: Option<OnBeforeRequest>,
@@ -102,7 +136,7 @@
  }
  
  impl UpdaterBuilder {
-@@ -178,6 +255,7 @@
+@@ -178,6 +289,7 @@
              no_proxy: false,
              on_before_exit: None,
              configure_client: None,
@@ -110,7 +144,7 @@
          }
      }
  
-@@ -186,6 +264,14 @@
+@@ -186,6 +298,14 @@
          f: F,
      ) -> Self {
          self.version_comparator = Some(Arc::new(f));
@@ -125,7 +159,7 @@
          self
      }
  
-@@ -285,7 +371,8 @@
+@@ -285,7 +405,8 @@
          self
      }
  
@@ -135,7 +169,7 @@
      pub fn on_before_exit<F: Fn() + Send + Sync + 'static>(mut self, f: F) -> Self {
          self.on_before_exit.replace(Arc::new(f));
          self
-@@ -341,6 +428,7 @@
+@@ -341,6 +462,7 @@
              extract_path,
              on_before_exit: self.on_before_exit,
              configure_client: self.configure_client,
@@ -143,7 +177,7 @@
          })
      }
  }
-@@ -376,6 +464,7 @@
+@@ -376,6 +498,7 @@
      extract_path: PathBuf,
      on_before_exit: Option<OnBeforeExit>,
      configure_client: Option<OnBeforeRequest>,
@@ -151,7 +185,15 @@
      #[allow(unused)]
      installer_args: Vec<OsString>,
      #[allow(unused)]
-@@ -470,6 +559,9 @@
+@@ -408,6 +531,7 @@
+ 
+         let mut remote_release: Option<RemoteRelease> = None;
+         let mut raw_json: Option<serde_json::Value> = None;
++        let mut authenticated_envelope = None;
+         let mut last_error: Option<Error> = None;
+         for url in &self.endpoints {
+             // replace {{current_version}}, {{target}}, {{arch}} and {{bundle_type}} in the provided URL
+@@ -470,6 +594,9 @@
              if let Some(ref configure_client) = self.configure_client {
                  request = configure_client(request);
              }
@@ -161,7 +203,7 @@
  
              let response = request
                  .build()?
-@@ -480,14 +572,19 @@
+@@ -480,20 +607,27 @@
  
              match response {
                  Ok(res) => {
@@ -183,7 +225,15 @@
                          log::debug!("update response: {update_response:?}");
                          raw_json = Some(update_response.clone());
                          match serde_json::from_value::<RemoteRelease>(update_response)
-@@ -506,6 +603,10 @@
+                             .map_err(Into::into)
+                         {
+                             Ok(release) => {
++                                authenticated_envelope =
++                                    self.signed_manifest.as_ref().map(|_| bytes);
+                                 log::debug!("parsed release response {release:?}");
+                                 last_error = None;
+                                 remote_release = Some(release);
+@@ -506,6 +640,10 @@
                              }
                          }
                      } else {
@@ -194,7 +244,7 @@
                          log::error!(
                              "update endpoint did not respond with a successful status code"
                          );
-@@ -536,6 +637,14 @@
+@@ -536,6 +674,14 @@
          let (download_url, signature) = self.get_urls(&release, &installer)?;
  
          let update = if should_update {
@@ -209,15 +259,16 @@
              Some(Update {
                  run_on_main_thread: self.run_on_main_thread.clone(),
                  config: self.config.clone(),
-@@ -549,6 +658,7 @@
+@@ -549,6 +695,8 @@
                  download_url: download_url.clone(),
                  signature: signature.to_owned(),
                  body: release.notes,
 +                authenticated_release: self.signed_manifest.as_ref().and(raw_json.clone()),
++                authenticated_envelope,
                  raw_json: raw_json.unwrap(),
                  timeout: None,
                  proxy: self.proxy.clone(),
-@@ -557,6 +667,7 @@
+@@ -557,6 +705,7 @@
                  installer_args: self.installer_args.clone(),
                  current_exe_args: self.current_exe_args.clone(),
                  configure_client: self.configure_client.clone(),
@@ -225,7 +276,7 @@
              })
          } else {
              None
-@@ -641,11 +752,35 @@
+@@ -641,11 +790,42 @@
      #[allow(unused)]
      current_exe_args: Vec<OsString>,
      configure_client: Option<OnBeforeRequest>,
@@ -233,11 +284,18 @@
 +    // public upstream fields cannot relabel a valid old package.
 +    verified_binding: Option<(String, String, Url, String)>,
 +    authenticated_release: Option<serde_json::Value>,
++    authenticated_envelope: Option<Vec<u8>>,
  }
  
  impl Resource for Update {}
  
  impl Update {
++    /// Exact original signed response, available only while selection is intact.
++    pub fn verified_envelope(&self) -> Option<&[u8]> {
++        self.verified_release()?;
++        self.authenticated_envelope.as_deref()
++    }
++
 +    pub fn has_verified_manifest(&self) -> bool {
 +        self.verified_binding
 +            .as_ref()
@@ -261,7 +319,7 @@
      /// Downloads the updater package, verifies it then return it as bytes.
      ///
      /// Use [`Update::install`] to install it
-@@ -654,6 +789,11 @@
+@@ -654,6 +834,11 @@
          mut on_chunk: C,
          on_download_finish: D,
      ) -> Result<Vec<u8>> {
@@ -273,7 +331,7 @@
          // set our headers
          let mut headers = self.headers.clone();
          if !headers.contains_key(ACCEPT) {
-@@ -679,6 +819,7 @@
+@@ -679,6 +864,7 @@
          if let Some(ref configure_client) = self.configure_client {
              request = configure_client(request);
          }
@@ -281,7 +339,7 @@
          let response = request
              .build()?
              .get(self.download_url.clone())
-@@ -686,27 +827,14 @@
+@@ -686,27 +872,14 @@
              .send()
              .await?;
  
@@ -311,7 +369,7 @@
          on_download_finish();
  
          verify_signature(&buffer, &self.signature, &self.config.pubkey)?;
-@@ -716,6 +844,12 @@
+@@ -716,6 +889,12 @@
  
      /// Installs the updater package downloaded by [`Update::download`]
      pub fn install(&self, bytes: impl AsRef<[u8]>) -> Result<()> {
@@ -324,7 +382,7 @@
          self.install_inner(bytes.as_ref())
      }
  
-@@ -786,10 +920,6 @@
+@@ -786,10 +965,6 @@
      /// └── ...
      fn install_inner(&self, bytes: &[u8]) -> Result<()> {
          use std::iter::once;
@@ -335,7 +393,7 @@
  
          let updater_type = self.extract(bytes)?;
  
-@@ -834,11 +964,6 @@
+@@ -834,11 +1009,6 @@
              }
          };
  
@@ -347,7 +405,7 @@
          let file = match &updater_type {
              WindowsUpdaterType::Nsis { path, .. } => path.as_os_str().to_os_string(),
              WindowsUpdaterType::Msi { .. } => std::env::var("SYSTEMROOT").as_ref().map_or_else(
-@@ -851,18 +976,18 @@
+@@ -851,18 +1021,18 @@
          let parameters = installer_args.join(OsStr::new(" "));
          let parameters = encode_wide(parameters);
  
@@ -378,7 +436,7 @@
      }
  
      fn installer_args(&self) -> Vec<&OsStr> {
---- /dev/null
+--- a/src/windows_install.rs
 +++ b/src/windows_install.rs
 @@ -0,0 +1,104 @@
 +// Copyright 2019-2023 Tauri Programme within The Commons Conservancy

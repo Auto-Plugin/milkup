@@ -15,6 +15,15 @@ enum Fault {
 }
 thread_local! { static FAULT: RefCell<Option<Fault>> = const { RefCell::new(None) }; }
 
+pub(super) fn pause_commit(after: bool, ready: PathBuf) {
+    let point = if after {
+        Point::AfterReplace
+    } else {
+        Point::BeforeReplace
+    };
+    FAULT.with(|fault| *fault.borrow_mut() = Some(Fault::Pause(point, ready)));
+}
+
 pub(super) fn before_create(path: &Path) -> std::result::Result<(), String> {
     FAULT.with(|fault| {
         if matches!(*fault.borrow(), Some(Fault::Collision)) {

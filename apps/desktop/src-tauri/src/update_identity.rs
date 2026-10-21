@@ -13,7 +13,7 @@ type Result<T> = std::result::Result<T, String>;
 
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct Declaration {
+pub(super) struct Declaration {
     schema: u32,
     version: String,
     platform: String,
@@ -22,7 +22,7 @@ struct Declaration {
     installer_sha256: String,
 }
 
-fn host_platform() -> Result<String> {
+pub(super) fn host_platform() -> Result<String> {
     let os = match std::env::consts::OS {
         "linux" => "linux",
         "windows" => "windows",
@@ -36,7 +36,7 @@ fn host_platform() -> Result<String> {
 }
 
 impl Declaration {
-    fn from_update(update: &Update, platform: &str) -> Result<Self> {
+    pub(super) fn selection(update: &Update) -> Result<String> {
         let release = update.verified_release().ok_or("应用身份的签名绑定失效")?;
         let platforms = release["platforms"].as_object().ok_or("缺少签名平台项")?;
         // The upstream target field is sometimes only the OS. Recover selection
@@ -52,7 +52,30 @@ impl Declaration {
         if matches.len() != 1 {
             return Err("无法唯一绑定已签名的应用平台项".into());
         }
-        let (selected, entry) = matches[0];
+        Ok(matches[0].0.clone())
+    }
+
+    fn from_update(update: &Update, platform: &str) -> Result<Self> {
+        let selected = Self::selection(update)?;
+        let os = platform.split('-').next().ok_or("无效平台")?;
+        if update.target != os && update.target != selected {
+            return Err("应用映像平台与当前宿主不符".into());
+        }
+        Self::parse(
+            update.verified_release().ok_or("签名绑定失效")?,
+            &selected,
+            platform,
+        )
+    }
+
+    pub(super) fn from_manifest(
+        manifest: &tauri_plugin_updater::VerifiedManifest,
+        selected: &str,
+    ) -> Result<Self> {
+        Self::parse(manifest.release(), selected, &host_platform()?)
+    }
+
+    fn parse(release: &serde_json::Value, selected: &str, platform: &str) -> Result<Self> {
         let os = platform.split('-').next().ok_or("无效平台")?;
         let kinds: &[&str] = match os {
             "linux" => &["appimage", "deb", "rpm"],
@@ -63,19 +86,20 @@ impl Declaration {
         let valid_target = selected == platform
             || kinds
                 .iter()
-                .any(|kind| selected == &format!("{platform}-{kind}"));
-        if !valid_target || (update.target != os && update.target != *selected) {
+                .any(|kind| selected == format!("{platform}-{kind}"));
+        if !valid_target {
             return Err("应用映像平台与当前宿主不符".into());
         }
-        let declaration: Self = serde_json::from_value(entry["application"].clone())
-            .map_err(|_| "清单没有受支持的签名应用身份证明")?;
+        let declaration: Self =
+            serde_json::from_value(release["platforms"][selected]["application"].clone())
+                .map_err(|_| "清单没有受支持的签名应用身份证明")?;
         let digest = |s: &str| {
             s.len() == 64
                 && s.bytes()
                     .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
         };
         if declaration.schema != 1
-            || declaration.version != update.version
+            || Some(declaration.version.as_str()) != release["version"].as_str()
             || declaration.platform != platform
             || !digest(&declaration.sha256)
             || !digest(&declaration.installer_sha256)
@@ -85,6 +109,22 @@ impl Declaration {
             return Err("签名应用身份的版本、平台、摘要或大小无效".into());
         }
         Ok(declaration)
+    }
+
+    pub(super) fn matches_intent(&self, intent: &transaction::Intent) -> bool {
+        intent.expected_version == self.version && intent.installer_sha256 == self.installer_sha256
+    }
+
+    pub(super) fn check_image(&self, image: &CurrentImage) -> Result<()> {
+        if image.version != self.version
+            || image.platform != self.platform
+            || image.sha256 != self.sha256
+            || image.size != self.size
+            || image.process != std::process::id()
+        {
+            return Err("当前应用映像与签名声明不一致".into());
+        }
+        Ok(())
     }
 }
 
@@ -241,14 +281,7 @@ fn verify_with(
     check_transaction(&record)?;
     trust.authorize_existing(&observation, clock()?)?;
     let image = observe()?;
-    if image.version != declaration.version
-        || image.platform != declaration.platform
-        || image.sha256 != declaration.sha256
-        || image.size != declaration.size
-        || image.process != std::process::id()
-    {
-        return Err("当前应用映像与签名声明不一致".into());
-    }
+    declaration.check_image(&image)?;
     // Recheck expiry/replay after I/O. Never advance the policy water mark or
     // persist health, and do not return a reusable install authorization.
     trust.authorize_existing(&observation, clock()?)?;
@@ -269,3 +302,21 @@ fn verify_with(
 #[cfg(test)]
 #[path = "update_identity_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+pub(super) fn inert_fixture_image(path: &std::path::Path, version: &str) -> Result<CurrentImage> {
+    #[cfg(target_os = "linux")]
+    let (sha256, size) = read_image(File::open(path).map_err(|e| e.to_string())?)?;
+    #[cfg(not(target_os = "linux"))]
+    let (sha256, size) = {
+        let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+        (format!("{:x}", Sha256::digest(&bytes)), bytes.len() as u64)
+    };
+    Ok(CurrentImage {
+        version: version.into(),
+        platform: host_platform()?,
+        sha256,
+        size,
+        process: std::process::id(),
+    })
+}

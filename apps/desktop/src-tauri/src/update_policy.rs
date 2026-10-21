@@ -37,11 +37,22 @@ pub(super) struct Observation {
 impl Observation {
     pub(super) fn from_update(update: &Update) -> Result<Self, String> {
         let release = update.verified_release().ok_or("更新元数据签名绑定失效")?;
+        Self::from_release(release, &update.version)
+    }
+
+    pub(super) fn from_manifest(
+        manifest: &tauri_plugin_updater::VerifiedManifest,
+    ) -> Result<Self, String> {
+        let release = manifest.release();
+        Self::from_release(release, release["version"].as_str().ok_or("缺少签名版本")?)
+    }
+
+    fn from_release(release: &serde_json::Value, version: &str) -> Result<Self, String> {
         let freshness: Freshness = serde_json::from_value(release["milkup"].clone())
             .map_err(|_| "签名更新清单缺少有效期或序号，请等待发布方更新清单")?;
         let statement = serde_json::to_vec(release).map_err(|error| error.to_string())?;
         Ok(Self {
-            version: update.version.clone(),
+            version: version.to_owned(),
             freshness,
             statement_hash: format!("{:x}", Sha256::digest(statement)),
         })

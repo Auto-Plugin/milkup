@@ -61,6 +61,40 @@ struct SignedManifest {
     release: serde_json::Value,
 }
 
+/// Immutable signed data only. Deliberately has no download/install operations.
+/// Native hosts must separately enforce freshness, scope policy and replay state.
+pub struct VerifiedManifest {
+    envelope: Vec<u8>,
+    release: serde_json::Value,
+}
+
+impl VerifiedManifest {
+    pub fn envelope(&self) -> &[u8] {
+        &self.envelope
+    }
+    pub fn release(&self) -> &serde_json::Value {
+        &self.release
+    }
+}
+
+/// Reverify exact retained bytes offline, including same-version declarations.
+/// This creates no Update and does not override any installation version gate.
+pub fn verify_signed_manifest(
+    bytes: &[u8],
+    public_key: &str,
+    product: &str,
+    channel: &str,
+) -> Result<VerifiedManifest> {
+    if bytes.is_empty() || bytes.len() > MAX_MANIFEST_BYTES {
+        return Err(Error::Network("Invalid signed envelope size".into()));
+    }
+    let release = decode_manifest(bytes, Some(&(product.into(), channel.into())), public_key)?;
+    Ok(VerifiedManifest {
+        envelope: bytes.to_vec(),
+        release,
+    })
+}
+
 // Bound the accumulated body before parsing or allocating the next chunk into it.
 // The HTTP stack may hold its own transport chunk; this is not a process RSS limit.
 async fn bounded_response(
@@ -497,6 +531,7 @@ impl Updater {
 
         let mut remote_release: Option<RemoteRelease> = None;
         let mut raw_json: Option<serde_json::Value> = None;
+        let mut authenticated_envelope = None;
         let mut last_error: Option<Error> = None;
         for url in &self.endpoints {
             // replace {{current_version}}, {{target}}, {{arch}} and {{bundle_type}} in the provided URL
@@ -591,6 +626,8 @@ impl Updater {
                             .map_err(Into::into)
                         {
                             Ok(release) => {
+                                authenticated_envelope =
+                                    self.signed_manifest.as_ref().map(|_| bytes);
                                 log::debug!("parsed release response {release:?}");
                                 last_error = None;
                                 remote_release = Some(release);
@@ -659,6 +696,7 @@ impl Updater {
                 signature: signature.to_owned(),
                 body: release.notes,
                 authenticated_release: self.signed_manifest.as_ref().and(raw_json.clone()),
+                authenticated_envelope,
                 raw_json: raw_json.unwrap(),
                 timeout: None,
                 proxy: self.proxy.clone(),
@@ -756,11 +794,18 @@ pub struct Update {
     // public upstream fields cannot relabel a valid old package.
     verified_binding: Option<(String, String, Url, String)>,
     authenticated_release: Option<serde_json::Value>,
+    authenticated_envelope: Option<Vec<u8>>,
 }
 
 impl Resource for Update {}
 
 impl Update {
+    /// Exact original signed response, available only while selection is intact.
+    pub fn verified_envelope(&self) -> Option<&[u8]> {
+        self.verified_release()?;
+        self.authenticated_envelope.as_deref()
+    }
+
     pub fn has_verified_manifest(&self) -> bool {
         self.verified_binding
             .as_ref()

@@ -12,6 +12,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const LIMIT: usize = 4096;
+const PACKET_LIMIT: usize = 2 * 1024 * 1024;
+pub(super) const ENVELOPE_LIMIT: usize = 256 * 1024;
 const FORMAT: &str = "milkup-update-observation";
 
 #[derive(Debug, PartialEq, Eq)]
@@ -70,6 +72,22 @@ pub(super) struct Record {
     created_at: u64,
     updated_at: u64,
     phase: Phase,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    handoff: Option<Handoff>,
+}
+
+// Local binding metadata is not itself a signature or a cached verified flag.
+// The original UTF-8 envelope bytes are retained losslessly and always reverified.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct Handoff {
+    pub transaction: String,
+    pub revision: u64,
+    pub release_sha256: String,
+    pub platform: String,
+    pub selection: String,
+    pub installer_sha256: String,
+    pub envelope: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -88,6 +106,9 @@ pub(super) enum Event {
 }
 
 impl Record {
+    pub(super) fn handoff(&self) -> Option<&Handoff> {
+        self.handoff.as_ref()
+    }
     pub(super) fn intent(&self) -> &Intent {
         &self.intent
     }
@@ -122,7 +143,10 @@ impl Record {
             Ok(v)
         };
         if self.format != FORMAT
-            || self.schema != 1
+            || !matches!(
+                (self.schema, self.handoff.is_some()),
+                (1, false) | (2, true)
+            )
             || !hex(&self.intent.transaction, 32)
             || !hex(&self.intent.installer_sha256, 64)
             || !version(&self.intent.expected_version)?
@@ -137,6 +161,27 @@ impl Record {
             ) && self.revision < 2)
         {
             return Err(Error::Invalid("transaction shape"));
+        }
+        if let Some(packet) = &self.handoff {
+            if packet.transaction != self.intent.transaction
+                || packet.revision != self.revision
+                || packet.installer_sha256 != self.intent.installer_sha256
+                || !hex(&packet.release_sha256, 64)
+                || packet.platform.is_empty()
+                || packet.platform.len() > 64
+                || packet.selection.is_empty()
+                || packet.selection.len() > 80
+                || packet.envelope.is_empty()
+                || packet.envelope.len() > ENVELOPE_LIMIT
+                || self.revision == 0
+                || (self.phase == Phase::HandoffPending && self.revision < 2)
+                || (matches!(
+                    self.phase,
+                    Phase::AwaitingCompletion | Phase::LaunchRejected
+                ) && self.revision < 3)
+            {
+                return Err(Error::Invalid("handoff binding"));
+            }
         }
         Ok(())
     }
@@ -155,7 +200,7 @@ impl Record {
             (phase, Event::RequireReview) if phase.pending() => Phase::NeedsReview,
             _ => return Err(Error::Invalid("transition")),
         };
-        let next = Self {
+        let mut next = Self {
             phase,
             revision: self
                 .revision
@@ -164,6 +209,9 @@ impl Record {
             updated_at: now,
             ..self.clone()
         };
+        if let Some(packet) = &mut next.handoff {
+            packet.revision = next.revision;
+        }
         next.validate()?;
         Ok(next)
     }
@@ -174,6 +222,14 @@ pub(super) struct Store {
     _lease: File,
     transaction: String,
     reload_required: bool,
+}
+
+// Shared lease, no creation, sync, stage transition or mutation methods.
+pub(super) struct Inspection(Store);
+impl Inspection {
+    pub(super) fn snapshot(&self) -> Result<Record> {
+        self.0.read()
+    }
 }
 
 impl Store {
@@ -189,6 +245,7 @@ impl Store {
             created_at: now,
             updated_at: now,
             phase: Phase::Prepared,
+            handoff: None,
         };
         record.validate()?;
         let mut builder = fs::DirBuilder::new();
@@ -233,6 +290,59 @@ impl Store {
         Ok(store)
     }
 
+    pub(super) fn inspect(directory: PathBuf) -> Result<Inspection> {
+        check_private_directory(&directory).map_err(Error::Io)?;
+        let lease =
+            open_regular(&directory.join("transaction.lock"), false, false).map_err(Error::Io)?;
+        FileExt::try_lock_shared(&lease).map_err(|_| Error::Busy)?;
+        let mut store = Self {
+            directory,
+            _lease: lease,
+            transaction: String::new(),
+            reload_required: false,
+        };
+        let record = store.read()?;
+        store.transaction = record.intent.transaction.clone();
+        Ok(Inspection(store))
+    }
+
+    pub(super) fn attach(
+        &mut self,
+        expected: &Token,
+        mut packet: Handoff,
+        now: u64,
+    ) -> Result<Record> {
+        if self.reload_required {
+            return Err(Error::ReloadRequired("reread before attach".into()));
+        }
+        let mut record = self.read()?;
+        if record.token() != *expected {
+            return Err(Error::Conflict);
+        }
+        if record.phase != Phase::Prepared || now < record.updated_at {
+            return Err(Error::Invalid("handoff attachment phase/time"));
+        }
+        record.revision = record
+            .revision
+            .checked_add(1)
+            .ok_or(Error::Invalid("revision overflow"))?;
+        record.schema = 2;
+        record.updated_at = now;
+        // Caller must bind the pre-commit revision. Store advances it atomically.
+        if packet.transaction != expected.transaction || packet.revision != expected.revision {
+            return Err(Error::Conflict);
+        }
+        packet.revision = record.revision;
+        record.handoff = Some(packet);
+        self.persist(&record)?;
+        Ok(record)
+    }
+
+    #[cfg(test)]
+    pub(super) fn pause_commit_for_test(after: bool, ready: PathBuf) {
+        tests::pause_commit(after, ready);
+    }
+
     fn lease(directory: &Path) -> Result<File> {
         check_private_directory(directory).map_err(Error::Io)?;
         let file =
@@ -248,14 +358,19 @@ impl Store {
         let mut bytes = Vec::new();
         open_regular(&self.directory.join("transaction.json"), false, false)
             .map_err(Error::Corrupt)?
-            .take((LIMIT + 1) as u64)
+            .take((PACKET_LIMIT + 1) as u64)
             .read_to_end(&mut bytes)
             .map_err(|e| Error::Io(e.to_string()))?;
-        if bytes.len() > LIMIT {
+        if bytes.len() > PACKET_LIMIT {
             return Err(Error::Corrupt("record exceeds limit; preserved".into()));
         }
         let record: Record =
             serde_json::from_slice(&bytes).map_err(|e| Error::Corrupt(e.to_string()))?;
+        if record.schema == 1 && bytes.len() > LIMIT {
+            return Err(Error::Corrupt(
+                "legacy record exceeds limit; preserved".into(),
+            ));
+        }
         record
             .validate()
             .map_err(|e| Error::Corrupt(format!("{e:?}; preserved")))?;
@@ -294,7 +409,13 @@ impl Store {
     fn persist(&mut self, record: &Record) -> Result<()> {
         record.validate()?;
         let bytes = serde_json::to_vec(record).map_err(|e| Error::Io(e.to_string()))?;
-        if bytes.len() > LIMIT {
+        if bytes.len()
+            > if record.schema == 1 {
+                LIMIT
+            } else {
+                PACKET_LIMIT
+            }
+        {
             return Err(Error::Invalid("record size"));
         }
         static SERIAL: AtomicU64 = AtomicU64::new(0);
