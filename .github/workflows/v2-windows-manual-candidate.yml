@@ -19,7 +19,7 @@ jobs:
       github.run_attempt == 1 &&
       contains(github.event.head_commit.message, '[windows-manual-beta2]')
     runs-on: windows-2025
-    timeout-minutes: 32
+    timeout-minutes: 60
     defaults:
       run:
         shell: pwsh
@@ -68,8 +68,31 @@ jobs:
           'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
           npm install --global pnpm@11.7.0 --ignore-scripts
           if ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }
+      - name: Verify packaging prerequisites before expensive compilation
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in @('check-windows-desktop-source.ps1','build-windows-manual-candidate.ps1','verify-windows-app-manifest.ps1','test-windows-rust-library.ps1')) {
+            $tokens = $null
+            $parseErrors = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD "scripts/ci/$file"), [ref]$tokens, [ref]$parseErrors)
+            if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+          }
+          $command = Get-Command ./scripts/ci/verify-windows-app-manifest.ps1
+          $allowed = @($command.Parameters['EvidenceName'].Attributes | Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] })
+          if ($allowed.Count -ne 1 -or $allowed[0].ValidValues -cnotcontains 'packaged-production-binary') { throw 'Packaged manifest evidence name rejected' }
+          $sevenZip = Get-Command 7z -ErrorAction Stop
+          Write-Host "Archive inspection tool: $($sevenZip.Source)"
+          & $sevenZip.Source i
+          if ($LASTEXITCODE -ne 0) { throw 'Existing archive inspection tool unavailable' }
+          $mt = @(Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/mt.exe" -File)
+          if ($mt.Count -eq 0) { throw 'Windows SDK manifest tool unavailable' }
+          $mt.FullName | Write-Host
+          node --check scripts/ci/prepare-manual-trial-payload.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Delivery payload script syntax invalid' }
+          node --test tests/windows/verify-build-tree.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Source-state gate regressions failed' }
       - name: Full Windows source and independent plugin checks
-        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source"
+        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -FailFast
       - name: Build and inspect unsigned NSIS without installation
         run: ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta2-deliverable"
       - name: Record source checks and delivery boundary

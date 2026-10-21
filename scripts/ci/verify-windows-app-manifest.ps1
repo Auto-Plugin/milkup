@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory)][string]$Executable,
     [Parameter(Mandatory)][string]$EvidenceDirectory,
-    [Parameter(Mandatory)][ValidateSet('rust-harness', 'production-binary')][string]$EvidenceName
+    [Parameter(Mandatory)][ValidateSet('rust-harness', 'production-binary', 'packaged-production-binary')][string]$EvidenceName
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

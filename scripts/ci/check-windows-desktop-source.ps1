@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$EvidenceDirectory)
+param([Parameter(Mandatory)][string]$EvidenceDirectory, [switch]$FailFast)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 # PowerShell must let us record native exit codes, including expected failures.
@@ -88,6 +88,7 @@ function Invoke-Phase([string]$Name, [scriptblock]$Action) {
         Write-Host ($record | ConvertTo-Json -Depth 12 -Compress)
         Write-Host '::endgroup::'
     }
+    if ($FailFast -and -not $passed) { throw "Delivery precondition failed at $Name; evidence preserved" }
     return $passed
 }
 $npmRoot = (& npm root --global).Trim()
@@ -140,8 +141,8 @@ if ($pluginsBuilt) {
         Invoke-Checked node @('scripts/ci/stage-public-plugin-check.mjs', $publicDirectory)
     }
 }
-# Test failures do not hide independent compiler/linker evidence; every failed
-# phase still fails the overall job. No test retry or changed deadline here.
+# Diagnostic runs continue to collect independent compiler/linker evidence.
+# Delivery runs opt into FailFast after saving the failed phase; no test retry.
 $null = Invoke-Phase 'workspace-tests' { Invoke-Checked node @($pnpm, 'test') }
 $null = Invoke-Phase 'workspace-types' { Invoke-Checked node @($pnpm, 'typecheck') }
 $frontendBuilt = $false
