@@ -17,6 +17,13 @@ plugins/diagrams/pnpm-lock.yaml text eol=lf
 plugins/diagrams/build-dependencies.json text eol=lf
 plugins/diagrams/THIRD-PARTY-NOTICES.txt text eol=lf
 
+# These extracted official parsers are audited against exact upstream source bytes.
+plugins/diagrams-worker/src/vendor/flow-parser.mjs -text
+plugins/diagrams-worker/src/vendor/sequence-parser.mjs -text
+# Preserve the raw resources embedded in the platform-specific Worker archive.
+plugins/diagrams-worker/dependency-provenance.json text eol=lf
+plugins/diagrams-worker/THIRD-PARTY-NOTICES.txt text eol=lf
+
 # The same-version updater patch is audited against exact upstream source bytes.
 vendor/tauri-plugin-updater/** -text
 
