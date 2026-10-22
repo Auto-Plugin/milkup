@@ -181,7 +181,11 @@ function createOwnedPresentationNode(
               String(value),
             )
         }
-        if (primitive.type !== 'text' && !('fill' in primitive))
+        // SVG defaults text fill to black instead of inheriting the host's text
+        // color. An omitted tone must remain legible when the host theme changes.
+        if (primitive.type === 'text' && !('tone' in primitive))
+          element.setAttribute('fill', tones.foreground)
+        else if (primitive.type !== 'text' && !('fill' in primitive))
           element.setAttribute('fill', 'none')
         svg.append(element)
       }

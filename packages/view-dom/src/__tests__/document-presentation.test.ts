@@ -13,6 +13,24 @@ import {
   type DocumentPresentationConfig,
 } from '../index'
 const views: Array<EditorView | SourceDocumentView> = []
+it('uses the host foreground for untoned vector text and preserves explicit tones', () => {
+  const svg = createDocumentPresentationNode(document, {
+    type: 'vector',
+    width: 100,
+    height: 80,
+    children: [
+      { type: 'text', x: 1, y: 20, text: 'Default' },
+      { type: 'text', x: 1, y: 40, text: 'Muted', tone: 'muted' },
+      { type: 'text', x: 1, y: 60, text: 'Accent', tone: 'accent' },
+    ],
+  }) as SVGElement
+  const labels = Array.from(svg.querySelectorAll('text'))
+  expect(labels.map((label) => label.getAttribute('fill'))).toEqual([
+    'currentColor',
+    'var(--milkup-presentation-muted, currentColor)',
+    'var(--milkup-presentation-accent, currentColor)',
+  ])
+})
 afterEach(() => {
   for (const view of views.splice(0)) view.destroy()
   document.body.replaceChildren()

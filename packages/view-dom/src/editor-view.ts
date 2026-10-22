@@ -7,6 +7,7 @@ import {
   codeLanguageEdit,
 } from './code-presentation'
 import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
+import { mapLineSourceRanges } from './source-range-mapping'
 import { createControlledRendererNodes } from './controlled-renderer'
 import { ImagePasteSession, ImagePresentation } from './image-presentation'
 import {
@@ -758,6 +759,9 @@ export class EditorView {
     let lineNumbers = changedDocumentLineNumbers(previousState, state, transactions)
     if (!lineNumbers) return false
 
+    // Restore cached source children before remapping them. A later selection
+    // refresh must not reinstall preview-owned nodes with old source offsets.
+    this.documentPresentation.selectionChanged()
     const changedNumber = lineNumbers[0]!
     const oldLine = previousState.doc.line(changedNumber)
     const nextLine = state.doc.line(changedNumber)
@@ -816,41 +820,16 @@ export class EditorView {
       })
     }
     const replace = () => {
-      for (const { previous, next, scrollLeft } of replacements) {
-        previous.replaceWith(next)
-        next.scrollLeft = scrollLeft
-      }
-      const delta = state.doc.length - previousState.doc.length
-      if (codeInfoChanged && delta !== 0) {
-        // Reuse unrelated row/token nodes, but move their absolute source ranges
-        // after the fence edit (including later code pickers and preview ranges).
-        const last = lineNumbers.at(-1)!
+      if (state.doc.length !== previousState.doc.length) {
         for (const line of Array.from(
           this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'),
         )) {
-          if (Number(line.dataset.line) <= last) continue
-          for (const element of [
-            line,
-            ...Array.from(
-              line.querySelectorAll<HTMLElement>(
-                '[data-from], [data-to], [data-code-from], [data-presentation-from], [data-presentation-to], [data-presentation-block-from], [data-presentation-block-to]',
-              ),
-            ),
-          ]) {
-            for (const key of [
-              'from',
-              'to',
-              'codeFrom',
-              'presentationBlockFrom',
-              'presentationBlockTo',
-              'presentationFrom',
-              'presentationTo',
-            ]) {
-              const value = element.dataset[key]
-              if (value !== undefined) element.dataset[key] = String(Number(value) + delta)
-            }
-          }
+          mapLineSourceRanges(line, transactions[0]!.changes!)
         }
+      }
+      for (const { previous, next, scrollLeft } of replacements) {
+        previous.replaceWith(next)
+        next.scrollLeft = scrollLeft
       }
     }
     if (codeInfoChanged) this.documentPresentation.updateContent(replace)

@@ -6,6 +6,7 @@ import {
   codeLanguageEdit,
 } from './code-presentation'
 import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
+import { mapLineSourceRanges } from './source-range-mapping'
 import {
   applyPresentation,
   validatePresentation,
@@ -2355,6 +2356,8 @@ export class SourceDocumentView {
     const selectionBefore = this.currentSelection()
     this.cursorPosition = selectionAfter.main.head
     this.selectionAnchor = selectionAfter.main.anchor
+    // Return preview-owned source nodes before changing their text or ranges.
+    this.documentPresentation.selectionChanged()
     const { text: deletedText, lineNumber } = await this.readVisibleEditRange(from, to)
     const edit: SourceDocumentEdit = {
       from,
@@ -2405,7 +2408,8 @@ export class SourceDocumentView {
             }),
           )
       } else this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
-      this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
+      if (delta !== 0)
+        this.mapRenderedLinePositions(editedLine.number, ChangeSet.replace(from, to, insert))
       if (liveTableEdit) this.measureTableRows()
       this.revealHorizontalCursor()
       this.renderSelection()
@@ -3563,45 +3567,13 @@ export class SourceDocumentView {
       : undefined
   }
 
-  private shiftRenderedLinePositionsAfter(lineNumber: number, delta: number): void {
-    if (delta === 0) {
-      return
-    }
-
-    for (const lineDOM of Array.from(
-      this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'),
-    )) {
-      const renderedLineNumber = Number(lineDOM.dataset.line)
-
-      if (!Number.isInteger(renderedLineNumber) || renderedLineNumber <= lineNumber) {
-        continue
-      }
-
-      const from = Number(lineDOM.dataset.from)
-      const to = Number(lineDOM.dataset.to)
-
-      if (Number.isInteger(from)) {
-        lineDOM.dataset.from = String(from + delta)
-      }
-
-      if (Number.isInteger(to)) {
-        lineDOM.dataset.to = String(to + delta)
-      }
-
-      for (const mapped of Array.from(
-        lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'),
-      )) {
-        const mappedFrom = Number(mapped.dataset.from)
-        const mappedTo = Number(mapped.dataset.to)
-
-        if (Number.isInteger(mappedFrom)) {
-          mapped.dataset.from = String(mappedFrom + delta)
-        }
-
-        if (Number.isInteger(mappedTo)) {
-          mapped.dataset.to = String(mappedTo + delta)
-        }
-      }
+  private mapRenderedLinePositions(lineNumber: number, changes: ChangeSet): void {
+    for (const line of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
+      // The optimistic edit already updates its row's content ranges. Block
+      // bounds on that row, and every retained row, still use old coordinates.
+      mapLineSourceRanges(line, changes, {
+        skipContentRanges: Number(line.dataset.line) === lineNumber,
+      })
     }
   }
 }
