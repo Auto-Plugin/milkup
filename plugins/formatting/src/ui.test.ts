@@ -160,6 +160,97 @@ function lifecycle() {
   return { editing, context, toolbar, activation }
 }
 describe('contextual table toolbar lifecycle', () => {
+  it('keeps the current table snapshot across alternating layout-only viewports', async () => {
+    const { editing, toolbar, context } = lifecycle()
+    const node = {
+      ...context.node,
+      viewMode: 'live',
+      documentEditable: true,
+      saveLocationGeneration: 0,
+      viewport: { fromLine: 1, toLine: 35, activeLine: 27 },
+    }
+    try {
+      toolbar(node)
+      await vi.waitFor(() =>
+        expect(elements(toolbar(node)).find((n) => n.text === '下方加行')?.disabled).toBe(false),
+      )
+      const settled = toolbar(node)
+      const captures = editing.capture.mock.calls.length
+      // Showing the toolbar reduces the editor height; hiding it expands the
+      // viewport again. Neither layout changes the document or its selection.
+      for (const toLine of [33, 35, 33, 35, 33, 35]) {
+        expect(toolbar({ ...node, viewport: { ...node.viewport, toLine } })).toEqual(settled)
+        await Promise.resolve()
+      }
+      expect(editing.capture).toHaveBeenCalledTimes(captures)
+      expect(editing.release).not.toHaveBeenCalled()
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('does not restart a pending table capture when only the viewport changes', async () => {
+    const { editing, toolbar, context } = lifecycle()
+    let complete!: (value: any) => void
+    editing.capture.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve
+        }),
+    )
+    try {
+      const node = { ...context.node, viewport: { fromLine: 1, toLine: 35, activeLine: 27 } }
+      expect(toolbar(node)).toBe('')
+      const signal = editing.capture.mock.calls[0]![1].signal as AbortSignal
+      const resized = { ...node, viewport: { ...node.viewport, toLine: 33 } }
+      expect(toolbar(resized)).toBe('')
+      expect(editing.capture).toHaveBeenCalledTimes(1)
+      expect(signal.aborted).toBe(false)
+      complete(tableSnapshot())
+      await vi.waitFor(() =>
+        expect(elements(toolbar(resized)).find((n) => n.text === '下方加行')?.disabled).toBe(false),
+      )
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('invalidates a table snapshot when its save location changes and rejects late reads', async () => {
+    const { editing, toolbar, context } = lifecycle()
+    try {
+      const initial = { ...context.node, saveLocationGeneration: 0 }
+      toolbar(initial)
+      await vi.waitFor(() =>
+        expect(elements(toolbar(initial)).find((n) => n.text === '下方加行')?.disabled).toBe(false),
+      )
+      const previousAction = elements(toolbar(initial)).find((n) => n.text === '下方加行').action
+      let late!: (value: any) => void
+      editing.capture.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            late = resolve
+          }),
+      )
+      expect(toolbar({ ...initial, saveLocationGeneration: 1 })).toBe('')
+      editing.capture.mockResolvedValue({
+        ...tableSnapshot('relocated'),
+        saveLocationGeneration: 2,
+      })
+      const relocated = { ...initial, saveLocationGeneration: 2 }
+      expect(toolbar(relocated)).toBe('')
+      await vi.waitFor(() =>
+        expect(elements(toolbar(relocated)).find((n) => n.text === '下方加行')?.disabled).toBe(
+          false,
+        ),
+      )
+      late({ ...tableSnapshot('late-location'), saveLocationGeneration: 1 })
+      await vi.waitFor(() => expect(editing.release).toHaveBeenCalledWith('late-location'))
+      expect(elements(toolbar(relocated)).find((n) => n.text === '下方加行')?.disabled).toBe(false)
+      await plugin.commands[previousAction.command]({}, previousAction.input)
+      expect(editing.table).not.toHaveBeenCalled()
+      expect(editing.capture).toHaveBeenCalledTimes(3)
+    } finally {
+      plugin.deactivate()
+    }
+  })
   it('renders no toolbar outside a table or before a capture completes', () => {
     expect(renderToolbar(base())).toBe('')
     const { toolbar } = lifecycle()

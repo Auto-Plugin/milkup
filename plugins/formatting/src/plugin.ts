@@ -148,13 +148,23 @@ export default definePlugin({
         controller?.cancel()
         return ''
       }
+      // Older SDK declarations omit this host snapshot field; older hosts may
+      // omit the value too, so keep their existing identity checks compatible.
+      const saveLocationGeneration =
+        context.node &&
+        'saveLocationGeneration' in context.node &&
+        typeof context.node.saveLocationGeneration === 'number'
+          ? context.node.saveLocationGeneration
+          : undefined
+      // Toolbar height changes the viewport. Only editing context changes may
+      // invalidate its capture, or hiding it while loading feeds another load.
       const signature = JSON.stringify([
         context.node?.documentId,
         context.node?.documentVersion,
-        context.node?.viewport,
         context.node?.viewMode,
         context.node?.selectionRevision,
         context.node?.documentEditable,
+        saveLocationGeneration,
       ])
       if (!modalVisible && signature !== toolbarSignature) {
         toolbarSignature = signature
@@ -169,6 +179,8 @@ export default definePlugin({
           snapshot.documentId === context.node.documentId) &&
         (context.node?.documentVersion === undefined ||
           snapshot.version === context.node.documentVersion) &&
+        (saveLocationGeneration === undefined ||
+          snapshot.saveLocationGeneration === saveLocationGeneration) &&
         (context.node?.selectionRevision === undefined ||
           snapshot.selectionRevision === context.node.selectionRevision)
       return renderToolbar(matches ? state : { ...state, snapshot: undefined })
