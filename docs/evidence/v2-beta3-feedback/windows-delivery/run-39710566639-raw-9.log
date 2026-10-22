@@ -1,0 +1,206 @@
+﻿2026-10-22T02:37:19.2799124Z ##[group]Run ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta3-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta3-deliverable"
+2026-10-22T02:37:19.2801887Z [36;1m./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta3-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta3-deliverable"[0m
+2026-10-22T02:37:19.2907737Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-22T02:37:19.2908365Z env:
+2026-10-22T02:37:19.2908632Z   CARGO_BUILD_JOBS: 2
+2026-10-22T02:37:19.2908961Z   CARGO_INCREMENTAL: 0
+2026-10-22T02:37:19.2909310Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-22T02:37:19.2909696Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-10-22T02:37:19.2910091Z   CARGO_TERM_COLOR: never
+2026-10-22T02:37:19.2910482Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+2026-10-22T02:37:19.2910899Z   GIT_CONFIG_COUNT: 1
+2026-10-22T02:37:19.2911239Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-10-22T02:37:19.2911659Z   GIT_CONFIG_VALUE_0: true
+2026-10-22T02:37:19.2912073Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-10-22T02:37:19.2912422Z ##[endgroup]
+2026-10-22T02:37:19.8855185Z {
+2026-10-22T02:37:19.8855803Z   "actualSha": "f40ff18dba33b42754af160739342faa3b4359a2",
+2026-10-22T02:37:19.8856503Z   "expectedSha": "f40ff18dba33b42754af160739342faa3b4359a2",
+2026-10-22T02:37:19.8857031Z   "gitStatus": [
+2026-10-22T02:37:19.8857487Z     " M apps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-10-22T02:37:19.8857992Z     " M apps/desktop/src-tauri/gen/schemas/windows-schema.json"
+2026-10-22T02:37:19.8858356Z   ]
+2026-10-22T02:37:19.8858525Z }
+2026-10-22T02:37:20.1670055Z warning: in the working copy of 'apps/desktop/src-tauri/gen/schemas/desktop-schema.json', LF will be replaced by CRLF the next time Git touches it
+2026-10-22T02:37:20.1672392Z warning: in the working copy of 'apps/desktop/src-tauri/gen/schemas/windows-schema.json', LF will be replaced by CRLF the next time Git touches it
+2026-10-22T02:37:20.5378715Z {"status":"passed","changed":[],"generatedSchemas":[],"gitStatus":" M apps/desktop/src-tauri/gen/schemas/desktop-schema.json\n M apps/desktop/src-tauri/gen/schemas/windows-schema.json\n"}
+2026-10-22T02:37:22.3564207Z         Info Looking up installed tauri packages to check mismatched versions...
+2026-10-22T02:37:22.9862313Z      Running beforeBuildCommand `pnpm build`
+2026-10-22T02:37:23.4821060Z $ vite build
+2026-10-22T02:37:23.8974016Z [36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+2026-10-22T02:37:24.0052851Z transforming...
+2026-10-22T02:37:28.9241567Z [32m✓[39m 2001 modules transformed.
+2026-10-22T02:37:29.0708467Z rendering chunks...
+2026-10-22T02:37:29.7502459Z computing gzip size...
+2026-10-22T02:37:29.9546193Z [2mdist/[22m[32mindex.html                              [39m[1m[2m    0.69 kB[22m[1m[22m[2m │ gzip:     0.40 kB[22m
+2026-10-22T02:37:29.9547821Z [2mdist/[22m[32massets/large-search-worker-BwuKh3LS.js  [39m[1m[2m    1.32 kB[22m[1m[22m
+2026-10-22T02:37:29.9549396Z [2mdist/[22m[32massets/worker-file-plugin-C6Pu6mbd.js   [39m[1m[2m    2.79 kB[22m[1m[22m
+2026-10-22T02:37:29.9550924Z [2mdist/[22m[32massets/plugin-supervisor-C4yUrx9V.js    [39m[1m[2m   29.53 kB[22m[1m[22m
+2026-10-22T02:37:29.9552705Z [2mdist/[22m[32massets/plugin-worker-CWSXc7ZJ.js        [39m[1m[2m  140.03 kB[22m[1m[22m
+2026-10-22T02:37:29.9554320Z [2mdist/[22m[35massets/index-DuwZc7JZ.css               [39m[1m[2m   41.53 kB[22m[1m[22m[2m │ gzip:     8.71 kB[22m
+2026-10-22T02:37:29.9556022Z [2mdist/[22m[36massets/index-lBcCbJoJ.js                [39m[1m[2m    0.29 kB[22m[1m[22m[2m │ gzip:     0.18 kB[22m
+2026-10-22T02:37:29.9557601Z [2mdist/[22m[36massets/event-BK_86lmQ.js                [39m[1m[2m    1.41 kB[22m[1m[22m[2m │ gzip:     0.68 kB[22m
+2026-10-22T02:37:29.9559127Z [2mdist/[22m[36massets/core-DhEqZVGG.js                 [39m[1m[2m    2.44 kB[22m[1m[22m[2m │ gzip:     0.98 kB[22m
+2026-10-22T02:37:29.9562988Z [2mdist/[22m[36massets/webview-Dd-2IzEi.js              [39m[1m[2m    3.36 kB[22m[1m[22m[2m │ gzip:     1.15 kB[22m
+2026-10-22T02:37:29.9564573Z [2mdist/[22m[36massets/window-6lX1olBp.js               [39m[1m[2m   14.16 kB[22m[1m[22m[2m │ gzip:     3.57 kB[22m
+2026-10-22T02:37:29.9566915Z [2mdist/[22m[36massets/index-NBrA4BKu.js                [39m[1m[33m7,548.98 kB[39m[22m[2m │ gzip: 2,005.74 kB[22m
+2026-10-22T02:37:29.9569189Z [33m
+2026-10-22T02:37:29.9569796Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2026-10-22T02:37:29.9570483Z - Using dynamic import() to code-split the application
+2026-10-22T02:37:29.9571285Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2026-10-22T02:37:29.9572528Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+2026-10-22T02:37:29.9573010Z [32m✓ built in 6.05s[39m
+2026-10-22T02:37:30.9755893Z    Compiling milkup-desktop v2.0.0-beta.3 (D:\a\milkup\milkup\apps\desktop\src-tauri)
+2026-10-22T02:37:32.3841111Z warning: unused import: `offset_of`
+2026-10-22T02:37:32.3842462Z  --> src\output_windows.rs:6:11
+2026-10-22T02:37:32.3844008Z   |
+2026-10-22T02:37:32.3844595Z 6 |     mem::{offset_of, size_of},
+2026-10-22T02:37:32.3845170Z   |           ^^^^^^^^^
+2026-10-22T02:37:32.3845937Z   |
+2026-10-22T02:37:32.3875657Z   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+2026-10-22T02:37:32.3876688Z 
+2026-10-22T02:37:32.3877083Z warning: unused import: `Emitter`
+2026-10-22T02:37:32.3877693Z   --> src\plugin_dom.rs:13:24
+2026-10-22T02:37:32.3878258Z    |
+2026-10-22T02:37:32.3879446Z 13 | use tauri::{AppHandle, Emitter, Manager};
+2026-10-22T02:37:32.3880147Z    |                        ^^^^^^^
+2026-10-22T02:37:32.3880584Z 
+2026-10-22T02:37:44.3714224Z warning: variable does not need to be mutable
+2026-10-22T02:37:44.3715268Z     --> src\workspace.rs:1042:9
+2026-10-22T02:37:44.3716001Z      |
+2026-10-22T02:37:44.3717420Z 1042 |     let mut builder = fs::DirBuilder::new();
+2026-10-22T02:37:44.3718533Z      |         ----^^^^^^^
+2026-10-22T02:37:44.3720801Z      |         |
+2026-10-22T02:37:44.3721758Z      |         help: remove this `mut`
+2026-10-22T02:37:44.3722680Z      |
+2026-10-22T02:37:44.3723879Z      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+2026-10-22T02:37:44.3724838Z 
+2026-10-22T02:37:45.4064738Z warning: variants `Chosen`, `Pdf`, `Printed`, and `Cancelled` are never constructed
+2026-10-22T02:37:45.4066765Z    --> src\output.rs:390:5
+2026-10-22T02:37:45.4068662Z     |
+2026-10-22T02:37:45.4069357Z 389 | enum NativeResult {
+2026-10-22T02:37:45.4070137Z     |      ------------ variants in this enum
+2026-10-22T02:37:45.4071843Z 390 |     Chosen(Target),
+2026-10-22T02:37:45.4072327Z     |     ^^^^^^
+2026-10-22T02:37:45.4073076Z 391 |     Pdf(Vec<u8>, Option<Target>),
+2026-10-22T02:37:45.4075255Z     |     ^^^
+2026-10-22T02:37:45.4077284Z 392 |     Printed,
+2026-10-22T02:37:45.4079349Z     |     ^^^^^^^
+2026-10-22T02:37:45.4080084Z 393 |     Cancelled,
+2026-10-22T02:37:45.4082365Z     |     ^^^^^^^^^
+2026-10-22T02:37:45.4084368Z     |
+2026-10-22T02:37:45.4085146Z     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+2026-10-22T02:37:45.4085763Z 
+2026-10-22T02:37:45.4086182Z warning: constant `MAX_MANIFEST` is never used
+2026-10-22T02:37:45.4087557Z   --> src\plugin_dom.rs:25:7
+2026-10-22T02:37:45.4088527Z    |
+2026-10-22T02:37:45.4089497Z 25 | const MAX_MANIFEST: usize = 1024 * 1024;
+2026-10-22T02:37:45.4090559Z    |       ^^^^^^^^^^^^
+2026-10-22T02:37:45.4092151Z 
+2026-10-22T02:37:45.4093038Z warning: constant `MAX_MODULE` is never used
+2026-10-22T02:37:45.4094131Z   --> src\plugin_dom.rs:26:7
+2026-10-22T02:37:45.4094908Z    |
+2026-10-22T02:37:45.4095879Z 26 | const MAX_MODULE: usize = 8 * 1024 * 1024;
+2026-10-22T02:37:45.4096919Z    |       ^^^^^^^^^^
+2026-10-22T02:37:45.4098037Z 
+2026-10-22T02:37:45.4101713Z warning: constant `INPUT_WIRE_LIMIT` is never used
+2026-10-22T02:37:45.4102856Z   --> src\plugin_dom.rs:30:18
+2026-10-22T02:37:45.4103258Z    |
+2026-10-22T02:37:45.4104029Z 30 | pub(super) const INPUT_WIRE_LIMIT: usize = 1024 * 1024;
+2026-10-22T02:37:45.4105051Z    |                  ^^^^^^^^^^^^^^^^
+2026-10-22T02:37:45.4105518Z 
+2026-10-22T02:37:45.4105994Z warning: constant `OUTPUT_WIRE_LIMIT` is never used
+2026-10-22T02:37:45.4106834Z   --> src\plugin_dom.rs:31:18
+2026-10-22T02:37:45.4107360Z    |
+2026-10-22T02:37:45.4107996Z 31 | pub(super) const OUTPUT_WIRE_LIMIT: usize = 262144 + 4096;
+2026-10-22T02:37:45.4108872Z    |                  ^^^^^^^^^^^^^^^^^
+2026-10-22T02:37:45.4109304Z 
+2026-10-22T02:37:45.4109730Z warning: constant `RENDER_PROTOCOL` is never used
+2026-10-22T02:37:45.4110518Z   --> src\plugin_dom.rs:32:18
+2026-10-22T02:37:45.4111022Z    |
+2026-10-22T02:37:45.4112568Z 32 | pub(super) const RENDER_PROTOCOL: &str = "milkup.plugin.document-render.v1";
+2026-10-22T02:37:45.4113679Z    |                  ^^^^^^^^^^^^^^^
+2026-10-22T02:37:45.4114156Z 
+2026-10-22T02:37:45.4114618Z warning: constant `RPC_PROTOCOL` is never used
+2026-10-22T02:37:45.4115423Z   --> src\plugin_dom.rs:33:18
+2026-10-22T02:37:45.4116098Z    |
+2026-10-22T02:37:45.4117012Z 33 | pub(super) const RPC_PROTOCOL: &str = "milkup.plugin.isolation.rpc.v1";
+2026-10-22T02:37:45.4118059Z    |                  ^^^^^^^^^^^^
+2026-10-22T02:37:45.4138329Z 
+2026-10-22T02:37:45.4138834Z warning: struct `DomEvent` is never constructed
+2026-10-22T02:37:45.4139561Z   --> src\plugin_dom.rs:68:19
+2026-10-22T02:37:45.4140148Z    |
+2026-10-22T02:37:45.4140701Z 68 | pub(super) struct DomEvent {
+2026-10-22T02:37:45.4141321Z    |                   ^^^^^^^^
+2026-10-22T02:37:45.4141769Z 
+2026-10-22T02:37:45.4142822Z warning: type alias `Emit` is never used
+2026-10-22T02:37:45.4143530Z   --> src\plugin_dom.rs:79:17
+2026-10-22T02:37:45.4144100Z    |
+2026-10-22T02:37:45.4144997Z 79 | pub(super) type Emit = Arc<dyn Fn(DomEvent) + Send + Sync>;
+2026-10-22T02:37:45.4145916Z    |                 ^^^^
+2026-10-22T02:37:45.4146336Z 
+2026-10-22T02:37:45.4146649Z warning: function `approved_identity` is never used
+2026-10-22T02:37:45.4147576Z    --> src\plugin_dom.rs:458:4
+2026-10-22T02:37:45.4148135Z     |
+2026-10-22T02:37:45.4148934Z 458 | fn approved_identity(value: &Value) -> Value {
+2026-10-22T02:37:45.4149648Z     |    ^^^^^^^^^^^^^^^^^
+2026-10-22T02:37:45.4150126Z 
+2026-10-22T02:37:45.5495769Z warning: `GetFileInformationByHandle` redeclared with a different signature
+2026-10-22T02:37:45.5597951Z    --> src\workspace.rs:328:9
+2026-10-22T02:37:45.5614780Z     |
+2026-10-22T02:37:45.5615992Z 328 |         fn GetFileInformationByHandle(handle: *mut std::ffi::c_void, info: *mut Info) -> i32;
+2026-10-22T02:37:45.5617782Z     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this signature doesn't match the previous declaration
+2026-10-22T02:37:45.5639039Z     |
+2026-10-22T02:37:45.5639880Z    ::: src\plugin_catalog_windows.rs:162:5
+2026-10-22T02:37:45.5640919Z     |
+2026-10-22T02:37:45.5709900Z 162 |     fn GetFileInformationByHandle(handle: Handle, info: *mut FileInfo) -> i32;
+2026-10-22T02:37:45.5742586Z     |     -------------------------------------------------------------------------- `GetFileInformationByHandle` previously declared here
+2026-10-22T02:37:45.5745400Z     |
+2026-10-22T02:37:45.5746223Z     = note: expected `unsafe extern "system" fn(*mut c_void, *mut FileInfo) -> i32`
+2026-10-22T02:37:45.5747860Z                found `unsafe extern "system" fn(*mut c_void, *mut windows_identity::Info) -> i32`
+2026-10-22T02:37:45.5748985Z     = note: `#[warn(clashing_extern_declarations)]` on by default
+2026-10-22T02:37:45.5749617Z 
+2026-10-22T02:40:04.1057744Z warning: `milkup-desktop` (lib) generated 14 warnings (run `cargo fix --lib -p milkup-desktop` to apply 3 suggestions)
+2026-10-22T02:40:05.3722484Z     Finished `release` profile [optimized] target(s) in 2m 34s
+2026-10-22T02:40:05.4083225Z        Built application at: D:\a\_temp\manual-beta3-source\cargo-target\x86_64-pc-windows-msvc\release\milkup-desktop.exe
+2026-10-22T02:40:05.4360105Z         Info Patching D:\a\_temp\manual-beta3-source\cargo-target\x86_64-pc-windows-msvc\release\milkup-desktop.exe with bundle type information: nsis
+2026-10-22T02:40:05.4693057Z         Info Verifying NSIS package
+2026-10-22T02:40:05.4699428Z  Downloading https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip
+2026-10-22T02:40:05.7677153Z         Info validating hash
+2026-10-22T02:40:05.7694233Z         Info extracting NSIS
+2026-10-22T02:40:06.0411994Z  Downloading https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll
+2026-10-22T02:40:06.1681702Z         Info validating hash
+2026-10-22T02:40:06.1690564Z         Info Target: x64
+2026-10-22T02:40:06.1906586Z      Running makensis to produce D:\a\_temp\manual-beta3-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.3_x64-setup.exe
+2026-10-22T02:40:14.2422848Z     Finished 1 bundle at:
+2026-10-22T02:40:14.2424004Z         D:\a\_temp\manual-beta3-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.3_x64-setup.exe
+2026-10-22T02:40:14.2424849Z 
+2026-10-22T02:40:14.8398036Z 
+2026-10-22T02:40:14.8400982Z 7-Zip 26.04 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-10-05
+2026-10-22T02:40:14.8442061Z 
+2026-10-22T02:40:14.8516036Z Scanning the drive for archives:
+2026-10-22T02:40:14.8698516Z 1 file, 5675531 bytes (5543 KiB)
+2026-10-22T02:40:14.8699229Z 
+2026-10-22T02:40:14.8700415Z Extracting archive: D:\a\_temp\manual-beta3-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.3_x64-setup.exe
+2026-10-22T02:40:15.0693804Z --
+2026-10-22T02:40:15.0696272Z Path = D:\a\_temp\manual-beta3-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.3_x64-setup.exe
+2026-10-22T02:40:15.0697605Z Type = Nsis
+2026-10-22T02:40:15.0698115Z Physical Size = 5675531
+2026-10-22T02:40:15.0698623Z Method = LZMA:23
+2026-10-22T02:40:15.0699356Z Solid = +
+2026-10-22T02:40:15.0699915Z Headers Size = 75902
+2026-10-22T02:40:15.0700404Z Embedded Stub Size = 58368
+2026-10-22T02:40:15.0700947Z SubType = NSIS-3 Unicode
+2026-10-22T02:40:15.0701346Z 
+2026-10-22T02:40:15.0706676Z Everything is Ok
+2026-10-22T02:40:15.0707055Z 
+2026-10-22T02:40:15.0707340Z Files: 9
+2026-10-22T02:40:15.0707814Z Size:       18552572
+2026-10-22T02:40:15.0708334Z Compressed: 5675531
+2026-10-22T02:40:15.2210488Z {"status":"passed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"6340ba1a5367263b4d0c2ac68c90752406f5ec533fa992080c42fe333a374904","expectedNsisSha256":"e5826b75b395bc7c78ab693ad24d4a5e92139d75a2805eb34d31ac46f0e2636c","markerOffset":14592626,"changedBytes":3,"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\milkup-desktop.exe","files":[{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\modern-wizard.bmp","relativePath":"$PLUGINSDIR\\modern-wizard.bmp","bytes":26494,"sha256":"3ad2dc318056d0a2024af1804ea741146cfc18cc404649a44610cbf8b2056cf2","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\nsDialogs.dll","relativePath":"$PLUGINSDIR\\nsDialogs.dll","bytes":9728,"sha256":"b1350f487692057c8ffde75dcc55287a52a3272240d4d4912f24464b27551fc0","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\NSISdl.dll","relativePath":"$PLUGINSDIR\\NSISdl.dll","bytes":15360,"sha256":"ddf40229dd9d6b268902d8dea88c8a04aacf1af218dd29f6dcd35babc54ac08d","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\nsis_tauri_utils.dll","relativePath":"$PLUGINSDIR\\nsis_tauri_utils.dll","bytes":34304,"sha256":"5ba143b5db4a87d32d6e7802e033330aae56cbceabe0d1e3ba41948385ad4709","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\StartMenu.dll","relativePath":"$PLUGINSDIR\\StartMenu.dll","bytes":7680,"sha256":"fe330320459637d8dd2b5d84d07925c38ec264152ffd3b1760a4d44d76536caa","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\System.dll","relativePath":"$PLUGINSDIR\\System.dll","bytes":12288,"sha256":"8b4c47c4cf5e76ec57dd5a050d5acd832a0d532ee875d7b44f6cdaf68f90d37c","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\file.ico","relativePath":"file.ico","bytes":15344,"sha256":"96433563eb8266e76ff0090b63839ee98218249a547edf8ad49cbca2f035e6b1","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\milkup-desktop.exe","relativePath":"milkup-desktop.exe","bytes":18346496,"sha256":"e5826b75b395bc7c78ab693ad24d4a5e92139d75a2805eb34d31ac46f0e2636c","exactMatch":true},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\uninstall.exe","relativePath":"uninstall.exe","bytes":84878,"sha256":"9cc09d1ac14f115b8384e4eebf32110fe443388518dbd6360bf818e12414d939","exactMatch":false}]}
+2026-10-22T02:40:15.8670759Z warning: in the working copy of 'apps/desktop/src-tauri/Cargo.toml', LF will be replaced by CRLF the next time Git touches it
+2026-10-22T02:40:15.8673154Z warning: in the working copy of 'apps/desktop/src-tauri/gen/schemas/desktop-schema.json', LF will be replaced by CRLF the next time Git touches it
+2026-10-22T02:40:15.8675532Z warning: in the working copy of 'apps/desktop/src-tauri/gen/schemas/windows-schema.json', LF will be replaced by CRLF the next time Git touches it
+2026-10-22T02:40:16.2818427Z {"status":"passed","changed":[],"generatedSchemas":[],"gitStatus":" M apps/desktop/src-tauri/Cargo.toml\n M apps/desktop/src-tauri/gen/schemas/desktop-schema.json\n M apps/desktop/src-tauri/gen/schemas/windows-schema.json\n"}
+2026-10-22T02:40:16.4975379Z {"files":[{"name":"FEEDBACK.md","bytes":1989,"sha256":"9b73e4d6808101ef19ffda8d2a91b525b7ab26bc908088ea96889b6f69badc0d"},{"name":"manifest.json","bytes":27240,"sha256":"4a4058262a0c2abeb97bb6e00cf87f398e06f16845751c1e8e8cbd739c766345"},{"name":"milkup-2.0.0-beta.3-windows-x64-f40ff18dba33-setup.exe","bytes":5675531,"sha256":"02fa1bc40400c7ce408cb0ffbc3b22882839c655fc3c548c4bf1514ae51a2e4e"},{"name":"plugins.json","bytes":5308,"sha256":"8e8aeeefd9a4bcc8547178a67fd67ec6518c4d70c3e1b6cc23cb4253059bbe67"},{"name":"plugins/milkup.diagrams-1.1.1.milkup-plugin","bytes":5729700,"sha256":"3940ebef1a4ec1bd2696bb93aec0c88b22029ae3e5d56d65f461ee3ebd722ffe"},{"name":"plugins/milkup.footnotes-1.0.1.milkup-plugin","bytes":16090,"sha256":"72fec07a7879b9c1c3ff513f51a22767d93d276e0389072de26c960f859301e6"},{"name":"plugins/milkup.formatting-1.0.0.milkup-plugin","bytes":44328,"sha256":"e1bc8d8a776d6e90e3579532390f77a1a6ea7cd959658dcb2df8ad4f45023e8d"},{"name":"plugins/milkup.images-1.0.0.milkup-plugin","bytes":19832,"sha256":"e5b05b69cfe294d8592126ad30dfebf621fee09de6e381e2ae9184d733d70804"},{"name":"plugins/milkup.management-1.0.0.milkup-plugin","bytes":14273,"sha256":"4f883a5d4be4c8f51a6d37031a8b47db7caa961fac1d650d53c94f3103c46110"},{"name":"plugins/milkup.math-1.0.0.milkup-plugin","bytes":547964,"sha256":"f69fba187916de543215a49dc49475b32722b4b41c65d18982918636ca1fa60d"},{"name":"plugins/milkup.outline-1.3.3.milkup-plugin","bytes":42799,"sha256":"7e72e7ae7a8f79ade901f426f76b20ffc377b53c60f6272ebbb51d5ca69cc6f9"},{"name":"plugins/milkup.preferences-1.0.0.milkup-plugin","bytes":18895,"sha256":"1f788b16960f5773bc16a90f50bb5654c5aff15277e896af2d0ac67f29316742"},{"name":"plugins/milkup.shortcuts-1.0.0.milkup-plugin","bytes":10637,"sha256":"065bce3dc07ec3679e0bb50d17cdb48c1e04e30e3ed1b68148e08ae1f8d0932d"},{"name":"plugins/milkup.updates-1.0.1.milkup-plugin","bytes":13211,"sha256":"caa5a37ee3ad35f5ccb1bad00fb5e13876cb2c3440a3d9042f75f2c692b0597a"},{"name":"plugins/milkup.workspace-1.0.1.milkup-plugin","bytes":21274,"sha256":"701ba39d0d1b5ece557c4b46dbf6538a9b1eddd5459f3f08e289f768327c4931"},{"name":"README.md","bytes":10740,"sha256":"2f06f3a85e889021b2cd4992e5c0d893e45b8a600fd120e8e24f8633a3edeab4"},{"name":"samples/basic.md","bytes":1546,"sha256":"77354276c1e945186f4f5de140b78b3e12d924f265393bc6dd91253b33d149d5"},{"name":"samples/larger.md","bytes":3420316,"sha256":"c1ab40a56261b7f635d48324ea13416e263d0e89581890db7b390c5721a37acf"}],"totalBytes":15621673,"artifactMaxBytes":52428800,"retentionDays":1}
+2026-10-22T02:40:16.5182039Z MANUAL_DELIVERY_MANIFEST={"status":"built-for-user-manual-trial","commit":"f40ff18dba33b42754af160739342faa3b4359a2","version":"2.0.0-beta.3","platform":"windows-x86_64","baseline":"32b55aa4dfd2806433a649eca2c9d7ad2262d3bc","runId":"39710566639","runUrl":"https://github.com/Auto-Plugin/milkup/actions/runs/39710566639","installer":{"name":"milkup_2.0.0-beta.3_x64-setup.exe","bytes":5675531,"sha256":"02fa1bc40400c7ce408cb0ffbc3b22882839c655fc3c548c4bf1514ae51a2e4e","productVersion":"2.0.0-beta.3","fileVersion":"2.0.0-beta.3","signature":"NotSigned","deliveredName":"milkup-2.0.0-beta.3-windows-x64-f40ff18dba33-setup.exe"},"compiledApplication":{"name":"milkup-desktop.exe","bytes":18346496,"sha256":"6340ba1a5367263b4d0c2ac68c90752406f5ec533fa992080c42fe333a374904","productVersion":"2.0.0-beta.3","fileVersion":"2.0.0-beta.3","signature":"NotSigned"},"application":{"name":"milkup-desktop.exe","bytes":18346496,"sha256":"e5826b75b395bc7c78ab693ad24d4a5e92139d75a2805eb34d31ac46f0e2636c","productVersion":"2.0.0-beta.3","fileVersion":"2.0.0-beta.3","signature":"NotSigned"},"extractedApplication":{"name":"milkup-desktop.exe","bytes":18346496,"sha256":"e5826b75b395bc7c78ab693ad24d4a5e92139d75a2805eb34d31ac46f0e2636c","productVersion":"2.0.0-beta.3","fileVersion":"2.0.0-beta.3","signature":"NotSigned"},"nsisImageVerification":{"status":"passed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"6340ba1a5367263b4d0c2ac68c90752406f5ec533fa992080c42fe333a374904","expectedNsisSha256":"e5826b75b395bc7c78ab693ad24d4a5e92139d75a2805eb34d31ac46f0e2636c","markerOffset":14592626,"changedBytes":3,"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\milkup-desktop.exe","files":[{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\modern-wizard.bmp","relativePath":"$PLUGINSDIR\\modern-wizard.bmp","bytes":26494,"sha256":"3ad2dc318056d0a2024af1804ea741146cfc18cc404649a44610cbf8b2056cf2","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\nsDialogs.dll","relativePath":"$PLUGINSDIR\\nsDialogs.dll","bytes":9728,"sha256":"b1350f487692057c8ffde75dcc55287a52a3272240d4d4912f24464b27551fc0","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\NSISdl.dll","relativePath":"$PLUGINSDIR\\NSISdl.dll","bytes":15360,"sha256":"ddf40229dd9d6b268902d8dea88c8a04aacf1af218dd29f6dcd35babc54ac08d","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\nsis_tauri_utils.dll","relativePath":"$PLUGINSDIR\\nsis_tauri_utils.dll","bytes":34304,"sha256":"5ba143b5db4a87d32d6e7802e033330aae56cbceabe0d1e3ba41948385ad4709","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\StartMenu.dll","relativePath":"$PLUGINSDIR\\StartMenu.dll","bytes":7680,"sha256":"fe330320459637d8dd2b5d84d07925c38ec264152ffd3b1760a4d44d76536caa","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\$PLUGINSDIR\\System.dll","relativePath":"$PLUGINSDIR\\System.dll","bytes":12288,"sha256":"8b4c47c4cf5e76ec57dd5a050d5acd832a0d532ee875d7b44f6cdaf68f90d37c","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\file.ico","relativePath":"file.ico","bytes":15344,"sha256":"96433563eb8266e76ff0090b63839ee98218249a547edf8ad49cbca2f035e6b1","exactMatch":false},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\milkup-desktop.exe","relativePath":"milkup-desktop.exe","bytes":18346496,"sha256":"e5826b75b395bc7c78ab693ad24d4a5e92139d75a2805eb34d31ac46f0e2636c","exactMatch":true},{"path":"D:\\a\\_temp\\manual-beta3-source\\nsis-payload-inspection\\uninstall.exe","relativePath":"uninstall.exe","bytes":84878,"sha256":"9cc09d1ac14f115b8384e4eebf32110fe443388518dbd6360bf818e12414d939","exactMatch":false}]},"payloadImageMatchesCheckedBinary":false,"payloadImageMatchesExpectedNsisImage":true,"installerExecuted":false,"guiImeAccepted":false,"signing":"unsigned","webviewMode":"existing-default-downloadBootstrapper; no full Runtime bundled","windowsDomPdf":"disabled","realUpgradeRollback":"unverified","productionChannel":"unconfigured","artifactRetentionDays":1,"deliveryDestination":"Auto-Plugin/milkup Actions artifact and current conversation only"}

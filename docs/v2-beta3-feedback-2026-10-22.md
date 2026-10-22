@@ -41,6 +41,16 @@ Linux生产构建准备曾遇历史release缓存坏软链；隔离target首次�
 
 仅允许Auto-Plugin/milkup Actions artifact与本对话交付，小包、1天留存、既有50MiB界限。Windows DOM/PDF、真实升级安装/健康确认/自动回滚、系统IME和Windows系统DPI未验收；不以Linux或浏览器结果替代。
 
-## Windows 构建进行中
+## Windows 最终交付
 
-最终产品源码 `f40ff18dba33b42754af160739342faa3b4359a2` 的 [run 39710566639](https://github.com/Auto-Plugin/milkup/actions/runs/39710566639) 已启动，当前未结束。此报告提交仅追加 Linux 证据和关闭菜单前的截图指令，不修改产品运行时代码、不触发新构建。安装器必须等 run 成功后下载回读、核对 ZIP/EXE/插件哈希才能交付。
+最终产品源码 `f40ff18dba33b42754af160739342faa3b4359a2` 的 [run 39710566639](https://github.com/Auto-Plugin/milkup/actions/runs/39710566639) 全部成功；15 个源码检查阶段均通过，包含独立插件、全仓测试/类型/构建、Rust all-targets、Windows updater 回归、完整 Rust 库测试及生产编译。Windows全仓2,624项Vitest通过；Rust库209通过、3忽略，另2项Windows updater启动回归通过。3项忽略为两个由实际协议/所有权测试调用的私有子进程夹具，以及既有显式搜索性能基准，不计为已执行通过。总时长 22分54秒；源码阶段约18分32秒，其中 release 编译链接8分43秒、all-targets 3分14秒；NSIS 打包和静态检查约2分58秒。没有执行安装器。
+
+[下载 Actions artifact 12397429117](https://github.com/Auto-Plugin/milkup/actions/runs/39710566639/artifacts/12397429117)，需 GitHub 登录，2026-10-23 02:40:18 UTC 到期。ZIP 7,532,187字节，SHA-256 `223a9c66e06d7ef0ebc1140ccfc4945fff57d2520feaf77b224afc52656c7d94`。
+
+安装器 `milkup-2.0.0-beta.3-windows-x64-f40ff18dba33-setup.exe`，5,675,531字节，SHA-256 `02fa1bc40400c7ce408cb0ffbc3b22882839c655fc3c548c4bf1514ae51a2e4e`，版本资源为2.0.0-beta.3，未签名。已实际下载回读：19个文件CRC、18项内层SHA、精确run/source、版本/签名状态和11插件manifest全部匹配。NSIS载荷仅允许已验证的唯一3字节标记转换，不把原编译映像与NSIS映像宣称逐字节相同。源码门禁保留预定义生成schema的受限例外，不宣称所有构建文件逐字节未变。
+
+最终Windows与Linux的9个插件归档逐字节相同；diagrams只在dependency-provenance.json换行符不同，math只在LICENSE-KATEX.txt换行符不同，解析内容及其他文件相同。Workspace 1.0.1最终归档与Linux原生受测归档SHA完全一致。随包README、反馈表、两份样本及全部插件均已校验。
+
+首次候选CI主动取消且0 artifacts，最终候选只成功上传这一个artifact，没有额外构建/上传、Release或合并。GitHub关于固定Actions的Node20转Node24警告保留，不隐瞒为零警告。作业进行中一次日志读取返回BlobNotFound 404，终态后日志可读取；它不是源码检查失败。父线程也独立下载验证，确认外层digest、18内层SHA和EXE哈希一致，并已向用户交付。
+
+后续只等Windows手动安装与GUI反馈；Windows IME/系统DPI、实际升级/回滚及Mermaid/PDF仍不能记为验收通过。报告后继提交仅增加证据和关闭菜单前的测试截图指令，不改变受测产品运行时。
