@@ -16,10 +16,11 @@ vi.mock('./plugin-file-broker', async () => {
   }
 })
 import { ActionRegistry } from '@milkup/core'
-import { copyPluginManagementSnapshot } from '@milkup/plugin'
+import { copyPluginManagementSnapshot, parsePluginPackageArchive } from '@milkup/plugin'
 import type { PluginManifest, PluginPackageArchive } from '@milkup/plugin'
 import {
   DesktopPluginManager,
+  ReservedPluginMigrationError,
   createDesktopPluginActions,
   renderDesktopPluginManager,
 } from './desktop-plugin-manager'
@@ -72,9 +73,17 @@ class Catalog implements DesktopPluginCatalog {
     archive: pkg,
     sourcePath,
     expectedRevision,
+    replacePending,
   }: Parameters<DesktopPluginCatalog['prepare']>[0]) {
     const before = this.snapshot.entries.find((x) => x.id === pkg.manifest.id)
     expect(expectedRevision).toBe(before?.revision ?? null)
+    if (replacePending) {
+      expect(before?.pending?.phase).toBe('prepared')
+      expect(before?.pending?.transactionId).toBe(replacePending.transactionId)
+      expect(before?.pending?.generation.id).toBe(replacePending.generationId)
+      expect(before?.pending?.generation.sourcePath).toBe(replacePending.sourcePath)
+      expect(before?.pending?.generation.capabilityFingerprint).toBe(replacePending.fingerprint)
+    }
     const n = ++this.sequence
     const entry: PluginCatalogEntry = {
       id: pkg.manifest.id,
@@ -158,6 +167,7 @@ class Catalog implements DesktopPluginCatalog {
     if (action.type === 'disable') {
       e.enabled = false
       e.startAttempt = null
+      if (e.pending) e.pending.restoreEnabled = false
     }
     if (action.type === 'markFailed') {
       e.enabled = false
@@ -173,9 +183,14 @@ class Catalog implements DesktopPluginCatalog {
     }
     if (action.type === 'revokeApproval') {
       e.enabled = false
-      e.pending = null
       e.startAttempt = null
-      e.active.approvedFingerprint = null
+      if (e.pending) {
+        e.pending.generation.approvedFingerprint = null
+        e.pending.restoreEnabled = false
+        if (e.pending.phase === 'trial') e.pending = null
+      }
+      if (e.active) e.active.approvedFingerprint = null
+      if (e.previous) e.previous.approvedFingerprint = null
     }
     if (action.type === 'approveActive') e.active.approvedFingerprint = action.fingerprint
     if (action.type === 'rollback') {
@@ -913,7 +928,24 @@ describe('P6 trusted manager action wiring', () => {
     const dispatched = [...handler.matchAll(/runDesktopAction\('(plugin\.[^']+)'/g)].map(
       (match) => match[1]!,
     )
-    expect(dispatched.length).toBeGreaterThanOrEqual(9)
+    expect(dispatched).toEqual([
+      'plugin.installLocal',
+      'plugin.reload',
+      'plugin.remove',
+      'plugin.export',
+    ])
+    const toggle = source.slice(
+      source.indexOf('async function toggleDesktopPlugin('),
+      source.indexOf(
+        "appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener",
+      ),
+    )
+    expect(toggle).toContain('await desktopPluginManager.enableFromUserIntent(pluginId)')
+    expect(toggle).toContain('await desktopPluginManager.disable(pluginId)')
+    expect(toggle).not.toContain('desktopPluginManager.approve(')
+    expect(handler).not.toMatch(
+      /runDesktopAction\('plugin\.(?:approve|rejectCandidate|enable|disable)'/,
+    )
     for (const id of dispatched) expect(s.actions.get(id), id + ' must be registered').toBeDefined()
   })
 })
@@ -1041,7 +1073,7 @@ describe('P6 trusted host execution support explanation', () => {
         { selectedPluginId: record.manifest.id },
       )
     const sidecar = { ...record.manifest, host: 'sidecar' as const }
-    expect(detail(sidecar)).toContain('当前插件目录不支持启用 sidecar 插件')
+    expect(detail(sidecar)).toMatch(/当前插件目录不支持(?:启用|运行) sidecar 插件/)
     const dom = {
       ...record.manifest,
       host: 'dom' as const,
@@ -1069,8 +1101,8 @@ describe('P6 trusted host execution support explanation', () => {
       { ...state, catalogEntries: [{ ...entry, pending }] },
       { selectedPluginId: record.manifest.id },
     )
-    expect(candidateHtml.slice(candidateHtml.indexOf('plugin-candidate'))).toContain(
-      '当前插件目录不支持启用 sidecar 插件',
+    expect(candidateHtml.slice(candidateHtml.indexOf('plugin-candidate'))).toMatch(
+      /当前插件目录不支持(?:启用|运行) sidecar 插件/,
     )
     expect(
       renderDesktopPluginManager({ ...state, records: [{ ...record, manifest: sidecar }] }),
@@ -1096,7 +1128,7 @@ describe('beta3 failed candidate recovery', () => {
     expect(s.manager.state().records[0]!.errors.join(' ')).toContain('FIRST_INSTALL_FAILURE')
     expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
     fails = false
-    await s.manager.reload('test.lifecycle')
+    await s.manager.enableFromUserIntent('test.lifecycle')
     expect(s.manager.state().records[0]).toMatchObject({ enabled: true })
   })
 })
@@ -1206,5 +1238,528 @@ describe('beta3 restart and platform execution boundaries', () => {
     expect(manager.state().executionUnavailableReasons?.['test.lifecycle']).toBe(
       'PLATFORM_DOM_UNAVAILABLE',
     )
+  })
+})
+
+describe('beta4 explicit card enable intent', () => {
+  const intent = (manager: DesktopPluginManager) => manager.enableFromUserIntent('test.lifecycle')
+
+  it('approves and activates a newly staged candidate from one explicit intent', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install('1.0.0', ['document:write'])
+    await intent(s.manager)
+    expect(s.catalog.events.slice(-3)).toEqual(['approve', 'beginTrial', 'commit'])
+    expect(s.manager.state().records[0]).toMatchObject({ enabled: true })
+  })
+  it('retries a failed first install without a separate approval or reload action', async () => {
+    let fails = true
+    const s = setup({
+      activate: () => {
+        if (fails) throw Error('TRY_AGAIN')
+      },
+    })
+    await s.manager.ready
+    await s.install()
+    await expect(intent(s.manager)).rejects.toThrow('TRY_AGAIN')
+    expect(s.manager.state().records[0]).toMatchObject({ enabled: false, state: 'failed' })
+    fails = false
+    await intent(s.manager)
+    expect(s.manager.state().records[0]?.enabled).toBe(true)
+  })
+  it('keeps ordinary enable and public app-control action from implicitly approving a candidate', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    for (const action of createDesktopPluginActions(s.manager)) s.actions.register(action)
+    await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('require approval')
+    await expect(
+      s.actions.run(
+        'plugin.enable',
+        { permissions: ['app:control'] },
+        { pluginId: 'test.lifecycle' },
+      ),
+    ).rejects.toThrow('require approval')
+    expect(s.catalog.snapshot.entries[0]!.pending!.generation.approvedFingerprint).toBeNull()
+  })
+  it('rejects reload while disabled without granting approval or changing catalog state', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.approve()
+    const before = structuredClone(s.catalog.snapshot)
+    await expect(s.manager.reload('test.lifecycle')).rejects.toThrow('enabled')
+    expect(s.catalog.snapshot).toEqual(before)
+    expect(s.events).toEqual([])
+  })
+})
+
+describe('beta4 enable intent authority and lifecycle', () => {
+  it('leaves preinstalled bundles dormant until the same explicit card intent approves and starts them', async () => {
+    const catalog = new Catalog(),
+      load = vi.fn(async () => ({
+        module: { runtimeHost: 'isolated' as const, activate: () => ({}) },
+        dispose: () => {},
+      }))
+    const manager = new DesktopPluginManager({
+      catalog,
+      actionRegistry: new ActionRegistry(),
+      permissions: ['document:write'],
+      milkupVersion: '2.0.0',
+      pluginSdkVersion: '0.3.7',
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(archive('1.0.0', ['document:write'])),
+      },
+      bundledPackagePaths: async () => ['/bundled.milkup-plugin'],
+      loadModule: load,
+    })
+    await manager.ready
+    expect(manager.state().records[0]?.enabled).toBe(false)
+    expect(catalog.snapshot.entries[0]!.pending!.generation.approvedFingerprint).toBeNull()
+    expect(load).not.toHaveBeenCalled()
+    await manager.enableFromUserIntent('test.lifecycle')
+    expect(load).toHaveBeenCalledOnce()
+    expect(manager.state().records[0]?.enabled).toBe(true)
+  })
+
+  it('coalesces rapid explicit enables and is idempotent after successful publication', async () => {
+    let finish!: () => void
+    const activation = new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    const s = setup({ activate: () => activation })
+    await s.manager.ready
+    await s.install()
+    const first = s.manager.enableFromUserIntent('test.lifecycle')
+    const second = s.manager.enableFromUserIntent('test.lifecycle')
+    expect(second).toBe(first)
+    await vi.waitFor(() => expect(s.events).toContain('activate:1.0.0'))
+    finish()
+    await Promise.all([first, second])
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(s.events).toEqual(['activate:1.0.0'])
+    expect(s.catalog.events.filter((x) => x === 'approve')).toHaveLength(1)
+    expect(s.catalog.events.filter((x) => x === 'commit')).toHaveLength(1)
+  })
+  it('keeps pending upgrades untouched by reload; off then on explicitly promotes the candidate', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    await s.install('2.0.0', ['document:write'])
+    const pending = structuredClone(s.catalog.snapshot.entries[0]!.pending)
+    await s.manager.reload('test.lifecycle')
+    expect(s.catalog.snapshot.entries[0]!.pending).toEqual(pending)
+    expect(s.manager.state().records[0]?.manifest.version).toBe('1.0.0')
+    await s.manager.disable('test.lifecycle')
+    expect(s.catalog.snapshot.entries[0]!.pending).toEqual({ ...pending, restoreEnabled: false })
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(s.manager.state().records[0]).toMatchObject({
+      enabled: true,
+      manifest: { version: '2.0.0' },
+    })
+  })
+  it('restores the published old active when an explicitly requested candidate fails', async () => {
+    const s = setup({
+      activate: (version) => {
+        if (version === '2.0.0') throw Error('BAD_UPGRADE')
+      },
+    })
+    await s.manager.ready
+    await s.install()
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    const old = structuredClone(s.catalog.snapshot.entries[0]!.active)
+    await s.install('2.0.0', ['document:write'])
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow('BAD_UPGRADE')
+    expect(s.catalog.snapshot.entries[0]!.active).toEqual(old)
+    expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
+    expect(s.manager.state().records[0]).toMatchObject({
+      enabled: true,
+      manifest: { version: '1.0.0' },
+    })
+  })
+  it('uses active approval CAS when a disabled retained active has revoked approval', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    await s.manager.revokeApproval('test.lifecycle')
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(s.catalog.events.slice(-3)).toEqual(['approveActive', 'startupBegin', 'startupComplete'])
+    expect(s.manager.state().records[0]?.enabled).toBe(true)
+  })
+  it('rejects a candidate replacement queued ahead of the captured user intent', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    let release!: () => void
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const queued = (s.manager as any).runPluginLifecycle('test.lifecycle', async () => {
+      await barrier
+      const e = s.catalog.snapshot.entries[0]!
+      await s.catalog.prepare({
+        archive: archive('2.0.0'),
+        sourcePath: 'other',
+        expectedRevision: e.revision,
+      })
+      ;(s.manager as any).applyCatalog(await s.catalog.read())
+    })
+    const enable = s.manager.enableFromUserIntent('test.lifecycle')
+    await Promise.resolve()
+    const failure = expect(enable).rejects.toThrow('changed before enable intent')
+    release()
+    await queued
+    await failure
+    expect(s.catalog.snapshot.entries[0]!.pending!.generation.approvedFingerprint).toBeNull()
+    expect(s.events).toEqual([])
+  })
+  it('does not activate a replaced candidate returned after the approval await', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    const transition = s.catalog.transition.bind(s.catalog)
+    vi.spyOn(s.catalog, 'transition').mockImplementation(async (...args) => {
+      await transition(...args)
+      if (args[2].type === 'approve') {
+        const e = s.catalog.snapshot.entries[0]!
+        await s.catalog.prepare({
+          archive: archive('2.0.0'),
+          sourcePath: 'other',
+          expectedRevision: e.revision,
+        })
+      }
+      return s.catalog.read()
+    })
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow(
+      'changed during enable intent',
+    )
+    expect(s.catalog.snapshot.entries[0]!.pending!.generation.approvedFingerprint).toBeNull()
+    expect(s.catalog.events).not.toContain('beginTrial')
+    expect(s.events).toEqual([])
+  })
+  it('retains native rejection of corrupted package approval and never starts code', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    vi.spyOn(s.catalog, 'transition').mockRejectedValueOnce(
+      Error('[plugin-catalog:corrupt] generation bytes changed'),
+    )
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow(
+      'generation bytes changed',
+    )
+    expect(s.catalog.snapshot.entries[0]!.pending!.generation.approvedFingerprint).toBeNull()
+    expect(s.events).toEqual([])
+  })
+  it.each(['sidecar', 'permission', 'platform', 'compatibility'])(
+    'rejects unsupported %s before granting candidate approval',
+    async (kind) => {
+      const s = setup()
+      await s.manager.ready
+      await s.install()
+      const e = s.catalog.snapshot.entries[0]!,
+        p = e.pending!
+      const m = {
+        ...p.generation.manifest,
+        ...(kind === 'sidecar' ? { host: 'sidecar' as const } : {}),
+        ...(kind === 'permission' ? { permissions: ['workspace:read'] as const } : {}),
+        ...(kind === 'compatibility' ? { engines: { milkup: '^99.0.0' } } : {}),
+      }
+      s.catalog.snapshot = {
+        ...s.catalog.snapshot,
+        entries: [{ ...e, pending: { ...p, generation: { ...p.generation, manifest: m } } }],
+      }
+      ;(s.manager as any).applyCatalog(await s.catalog.read())
+      if (kind === 'platform')
+        (s.manager as any).executionUnavailableReason = () => 'PLATFORM_UNAVAILABLE'
+      await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow()
+      expect(s.catalog.events).not.toContain('approve')
+      expect(s.catalog.events).not.toContain('beginTrial')
+      expect(s.events).toEqual([])
+    },
+  )
+  it('keeps restricted initialization writes blocked even with explicit user approval', async () => {
+    const s = setup({
+      activate: async (_version, context) => {
+        try {
+          await context.host.writeText('/data/test.lifecycle/result.txt', 'BAD')
+        } catch {}
+      },
+    })
+    await s.manager.ready
+    await s.install('1.0.0', ['file:write'])
+    fileWrites.mockClear()
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow()
+    expect(fileWrites).not.toHaveBeenCalled()
+    expect(s.manager.state().records[0]?.enabled).toBe(false)
+    expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
+  })
+})
+
+describe('beta4 host reserved plugin migration', () => {
+  function reservedManager(catalog: Catalog, load = vi.fn()) {
+    return new DesktopPluginManager({
+      catalog,
+      reservedPluginIds: ['test.lifecycle'],
+      actionRegistry: new ActionRegistry(),
+      permissions: [],
+      milkupVersion: '2.0.0',
+      pluginSdkVersion: '0.3.7',
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(archive()),
+      },
+      bundledPackagePaths: async () => ['/bundled.milkup-plugin'],
+      loadModule: load,
+    })
+  }
+  it('revokes old active before startup, hides it, rejects imports, and preserves retained native records', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    const active = s.catalog.snapshot.entries[0]!.active!
+    const load = vi.fn(),
+      next = reservedManager(s.catalog, load)
+    await next.ready
+    expect(load).not.toHaveBeenCalled()
+    expect(s.catalog.snapshot.entries[0]).toMatchObject({
+      enabled: false,
+      tombstone: false,
+      active: { id: active.id, approvedFingerprint: null },
+    })
+    expect(next.state().records).toEqual([])
+    expect(next.state().catalogEntries).toEqual([])
+    expect(next.managementSnapshot().items).toEqual([])
+    await expect(next.enableFromUserIntent('test.lifecycle')).rejects.toThrow('reserved')
+    await expect(next.enable('test.lifecycle')).rejects.toThrow('reserved')
+    await expect(next.installManifestPath('/reserved.milkup-plugin')).rejects.toThrow('reserved')
+    const before = structuredClone(s.catalog.snapshot)
+    await reservedManager(s.catalog).ready
+    expect(s.catalog.snapshot).toEqual(before)
+    expect(s.catalog.events).not.toContain('remove')
+  })
+  it('rejects ready on migration failure, starts no plugins, and retries safely on the next launch', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.approve()
+    const original = s.catalog.transition.bind(s.catalog)
+    vi.spyOn(s.catalog, 'transition').mockRejectedValueOnce(Error('disk failed'))
+    const load = vi.fn()
+    await expect(reservedManager(s.catalog, load).ready).rejects.toBeInstanceOf(
+      ReservedPluginMigrationError,
+    )
+    expect(load).not.toHaveBeenCalled()
+    vi.mocked(s.catalog.transition).mockImplementation(original)
+    await reservedManager(s.catalog, load).ready
+    expect(load).not.toHaveBeenCalled()
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.manifest.id).toBe('test.lifecycle')
+  })
+})
+
+describe('beta4 explicit trusted bundled upgrade', () => {
+  const source = 'bundled:fixture.milkup-plugin'
+  async function setupBundled(
+    options: {
+      active?: boolean
+      source?: string
+      oldVersion?: string
+      nextVersion?: string
+      tombstone?: boolean
+      paths?: string[]
+      historicalSources?: string[]
+    } = {},
+  ) {
+    const catalog = new Catalog()
+    const oldPackage = {
+      ...archive(options.oldVersion ?? '1.1.1', ['document:read']),
+      manifest: {
+        ...manifest(options.oldVersion ?? '1.1.1', ['document:read']),
+        host: 'dom' as const,
+        contributes: {
+          documentRenderers: [
+            { id: 'diagram', contexts: ['fence'] as const, fenceLanguages: ['mermaid'] },
+          ],
+        },
+      },
+    }
+    await catalog.prepare({
+      archive: oldPackage,
+      sourcePath: options.source ?? source,
+      expectedRevision: null,
+    })
+    if (options.active) {
+      for (const type of ['approve', 'beginTrial', 'commit'] as const) {
+        const e = catalog.snapshot.entries[0]!,
+          p = e.pending!
+        await catalog.transition(
+          e.id,
+          e.revision,
+          type === 'commit'
+            ? {
+                type,
+                transactionId: p.transactionId,
+                fingerprint: p.generation.capabilityFingerprint,
+                enabled: false,
+              }
+            : {
+                type,
+                transactionId: p.transactionId,
+                fingerprint: p.generation.capabilityFingerprint,
+              },
+        )
+      }
+    }
+    if (options.tombstone) {
+      const e = catalog.snapshot.entries[0]!
+      await catalog.transition(e.id, e.revision, { type: 'remove' })
+    }
+    const initial = structuredClone(catalog.snapshot)
+    const nextPackage = archive(options.nextVersion ?? '1.2.0')
+    const load = vi.fn(async () => ({
+      module: { runtimeHost: 'isolated' as const, activate: () => ({}) },
+      dispose: () => {},
+    }))
+    const manager = new DesktopPluginManager({
+      catalog,
+      actionRegistry: new ActionRegistry(),
+      permissions: ['document:read'],
+      milkupVersion: '2.0.0',
+      pluginSdkVersion: '0.3.7',
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(nextPackage),
+      },
+      bundledPackagePaths: async () => options.paths ?? [source],
+      bundledUpgradeSources: { 'test.lifecycle': options.historicalSources ?? [] },
+      executionUnavailableReason: (m) => (m.host === 'dom' ? 'WINDOWS_DOM_UNAVAILABLE' : undefined),
+      loadModule: load,
+    })
+    await manager.ready
+    return { manager, catalog, initial, load, nextPackage }
+  }
+  it.each([false, true])(
+    'offers newer bundled Worker without startup mutation, then applies it on one gesture (active=%s)',
+    async (active) => {
+      const s = await setupBundled({ active })
+      expect(s.catalog.snapshot).toEqual(s.initial)
+      expect(s.load).not.toHaveBeenCalled()
+      expect(s.manager.state().bundledUpgradeOffers?.['test.lifecycle']).toMatchObject({
+        version: '1.2.0',
+        host: 'worker',
+      })
+      expect(s.manager.state().executionUnavailableReasons?.['test.lifecycle']).toBeUndefined()
+      const prepare = vi.spyOn(s.catalog, 'prepare')
+      await s.manager.enableFromUserIntent('test.lifecycle')
+      expect(prepare).toHaveBeenCalledOnce()
+      const request = prepare.mock.calls[0]![0]
+      expect(request.archive).toEqual(parsePluginPackageArchive(s.nextPackage))
+      expect(request.archive.files).toEqual(s.nextPackage.files)
+      expect(request.sourcePath).toBe(source)
+      expect(request.expectedRevision).toBe(s.initial.entries[0]!.revision)
+      if (active) expect(request.replacePending).toBeUndefined()
+      else
+        expect(request.replacePending).toEqual({
+          transactionId: s.initial.entries[0]!.pending!.transactionId,
+          generationId: s.initial.entries[0]!.pending!.generation.id,
+          sourcePath: source,
+          fingerprint: s.initial.entries[0]!.pending!.generation.capabilityFingerprint,
+        })
+      expect(s.manager.state().records[0]).toMatchObject({
+        enabled: true,
+        manifest: { version: '1.2.0', host: 'worker' },
+      })
+      expect(s.load).toHaveBeenCalledOnce()
+      expect(s.manager.state().bundledUpgradeOffers?.['test.lifecycle']).toBeUndefined()
+    },
+  )
+  it.each([
+    { source: '/picked/user-package.milkup-plugin' },
+    { source: 'bundled:different-receipt.milkup-plugin' },
+    { tombstone: true },
+    { nextVersion: '1.1.1' },
+    { nextVersion: '1.0.0' },
+    { nextVersion: '1.1.1+new-build' },
+    { nextVersion: '1.1.1-beta.9' },
+    { nextVersion: '01.2.0' },
+    { paths: [source, 'bundled:duplicate.milkup-plugin'] },
+  ])(
+    'does not replace user receipts, removals, ambiguous bundles, or non-newer versions: %j',
+    async (options) => {
+      const s = await setupBundled(options)
+      expect(s.catalog.snapshot).toEqual(s.initial)
+      expect(s.manager.state().bundledUpgradeOffers?.['test.lifecycle']).toBeUndefined()
+      const prepare = vi.spyOn(s.catalog, 'prepare')
+      await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow()
+      expect(prepare).not.toHaveBeenCalled()
+      expect(s.catalog.snapshot).toEqual(s.initial)
+      expect(s.load).not.toHaveBeenCalled()
+    },
+  )
+  it.each([
+    { oldVersion: '1.9.0', nextVersion: '1.10.0' },
+    { oldVersion: '1.2.0-beta.2', nextVersion: '1.2.0-beta.11' },
+    { oldVersion: '1.2.0-beta.11', nextVersion: '1.2.0' },
+  ])('uses semver precedence for bundled offers: %j', async (options) => {
+    const s = await setupBundled(options)
+    expect(s.manager.state().bundledUpgradeOffers?.['test.lifecycle']?.version).toBe(
+      options.nextVersion,
+    )
+  })
+  it.each([false, true])(
+    'binds a host-listed historical filename while recording the actual new bundle source (active=%s)',
+    async (active) => {
+      const oldSource = 'bundled:test.lifecycle-1.1.1.milkup-plugin'
+      const s = await setupBundled({ active, source: oldSource, historicalSources: [oldSource] })
+      expect(s.manager.state().bundledUpgradeOffers?.['test.lifecycle']).toBeDefined()
+      const prepare = vi.spyOn(s.catalog, 'prepare')
+      await s.manager.enableFromUserIntent('test.lifecycle')
+      expect(prepare.mock.calls[0]![0].sourcePath).toBe(source)
+      if (!active) expect(prepare.mock.calls[0]![0].replacePending?.sourcePath).toBe(oldSource)
+      expect(s.catalog.snapshot.entries[0]!.active?.sourcePath).toBe(source)
+    },
+  )
+  it('uses a user-imported Worker candidate platform support over the retained old DOM active', async () => {
+    const s = await setupBundled({ active: true, paths: [] })
+    await s.manager.installManifestPath('/picked/new-worker.milkup-plugin')
+    expect(s.manager.state().bundledUpgradeOffers?.['test.lifecycle']).toBeUndefined()
+    expect(s.manager.state().executionUnavailableReasons?.['test.lifecycle']).toBeUndefined()
+    const prepare = vi.spyOn(s.catalog, 'prepare')
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(prepare).not.toHaveBeenCalled()
+    expect(s.manager.state().records[0]).toMatchObject({
+      enabled: true,
+      manifest: { host: 'worker', version: '1.2.0' },
+    })
+  })
+  it('retains the exact old candidate on a failed native replacement and remains retryable', async () => {
+    const s = await setupBundled()
+    vi.spyOn(s.catalog, 'prepare').mockRejectedValueOnce(Error('replacement disk full'))
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow('disk full')
+    expect(s.catalog.snapshot).toEqual(s.initial)
+    expect(s.load).not.toHaveBeenCalled()
+    expect(s.manager.state().records).toHaveLength(1)
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(s.manager.state().records[0]?.enabled).toBe(true)
+  })
+  it('rereads an uncertain durable replacement and does not approve until another explicit gesture', async () => {
+    const s = await setupBundled(),
+      prepare = s.catalog.prepare.bind(s.catalog)
+    vi.spyOn(s.catalog, 'prepare').mockImplementationOnce(async (request) => {
+      await prepare(request)
+      throw Error('reply lost after durable replacement')
+    })
+    const events = s.catalog.events.length
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow('reply lost')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.manifest.version).toBe('1.2.0')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+    expect(s.catalog.events.slice(events)).not.toContain('approve')
+    expect(s.load).not.toHaveBeenCalled()
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(s.manager.state().records[0]?.enabled).toBe(true)
   })
 })

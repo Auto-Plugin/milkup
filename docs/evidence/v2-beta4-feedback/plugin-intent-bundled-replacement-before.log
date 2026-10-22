@@ -1,0 +1,22 @@
+   Compiling milkup-catalog-core-tests v0.0.0 (/tmp/milkup-windows-manual-candidate/tests/native/catalog-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.26s
+     Running unittests src/lib.rs (tests/native/catalog-core/target/debug/deps/milkup_catalog_core_tests-5e221c9cbad76ec3)
+
+running 1 test
+test plugin_catalog::tests::beta4_atomic_bundled_replacement_keeps_previous_bytes_and_never_inherits_approval ... FAILED
+
+failures:
+
+---- plugin_catalog::tests::beta4_atomic_bundled_replacement_keeps_previous_bytes_and_never_inherits_approval stdout ----
+
+thread 'plugin_catalog::tests::beta4_atomic_bundled_replacement_keeps_previous_bytes_and_never_inherits_approval' (126413) panicked at src/../../../../apps/desktop/src-tauri/src/plugin_catalog_tests.rs:1029:139:
+called `Result::unwrap()` on an `Err` value: "[plugin-catalog:conflict] resolve existing candidate/startup first"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    plugin_catalog::tests::beta4_atomic_bundled_replacement_keeps_previous_bytes_and_never_inherits_approval
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

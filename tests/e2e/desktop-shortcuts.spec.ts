@@ -62,27 +62,15 @@ async function fixture(page: Page, failPersistence = false) {
   await page.goto('/')
 }
 const modal = (page: Page) => page.getByRole('dialog', { name: '快捷键', exact: true })
+const card = (page: Page) => page.locator('.plugin-summary-card[data-plugin-id="milkup.shortcuts"]')
+const panelAction = (page: Page) =>
+  card(page).locator('[data-plugin-action="open-ui"][data-plugin-ui-id="shortcuts-modal"]')
 async function open(page: Page, initial = true) {
   await page.getByRole('button', { name: '菜单', exact: true }).click()
-  if (!initial) {
-    await page.getByRole('button', { name: '插件', exact: true }).click()
-    if (
-      !(await page
-        .locator('[data-plugin-menu-group]')
-        .evaluate((group: HTMLDetailsElement) => group.open))
-    )
-      await page.locator('[data-plugin-menu-group] > summary').click()
-    await page.locator('[data-plugin-menu-entry="milkup.shortcuts:shortcuts-modal"]').click()
-    await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
-    return
-  }
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.getByRole('button', { name: 'Milkup Shortcuts 详情', exact: true }).click()
-  if (initial) {
-    await page.getByRole('button', { name: '批准能力', exact: true }).click()
-    await page.getByRole('button', { name: '启用', exact: true }).click()
-  }
-  await page.getByRole('button', { name: '弹出 快捷键', exact: true }).click()
+  if (initial) await card(page).getByRole('switch').click()
+  await expect(card(page).getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  await panelAction(page).click()
   await expect(modal(page)).toBeVisible()
   await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
 }
@@ -177,13 +165,12 @@ for (const mode of ['source', 'live'])
     await fixture(page)
     await open(page)
     await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: '禁用', exact: true }).click()
-    await expect(page.locator('.plugin-state')).toHaveText('已禁用')
-    await expect(page.getByRole('button', { name: '弹出 快捷键', exact: true })).toHaveCount(0)
-    await page.getByRole('button', { name: '移除', exact: true }).click()
-    await expect(
-      page.getByRole('button', { name: 'Milkup Shortcuts 详情', exact: true }),
-    ).toHaveCount(0)
+    await card(page).getByRole('switch').click()
+    await expect(card(page).getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+    await expect(panelAction(page)).toHaveCount(0)
+    await card(page).locator('[data-plugin-card-more-trigger]').click()
+    await card(page).locator('[data-plugin-action="remove"]').click()
+    await expect(card(page)).toHaveCount(0)
     await page.keyboard.press('Escape')
     await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
     await page.locator('.milkup-editor').click()

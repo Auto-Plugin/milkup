@@ -61,6 +61,11 @@ export interface PluginCatalogPrepareRequest {
   readonly archive: PluginPackageArchive
   readonly sourcePath: string
   readonly expectedRevision: number | null
+  /** Host-only CAS for replacing an idle candidate from the same closed bundled catalog. */
+  readonly replacePending?: CandidateIdentity & {
+    readonly generationId: string
+    readonly sourcePath: string
+  }
 }
 
 export interface PluginCatalogMigrationRecord {

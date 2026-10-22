@@ -4,6 +4,10 @@ import { installPreferencesFixture } from '../helpers/sealed-plugin-fixture'
 const view = (page: Page) => page.locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
 const field = (page: Page, label: string) => view(page).getByLabel(label, { exact: true })
 const settingsKey = 'milkup.desktop.settings.v1'
+const card = (page: Page) =>
+  page.locator('.plugin-summary-card[data-plugin-id="milkup.preferences"]')
+const panelAction = (page: Page) =>
+  card(page).locator('[data-plugin-action="open-ui"][data-plugin-ui-id="preferences-panel"]')
 const button = (page: Page, label: string) =>
   view(page).getByRole('button', { name: label, exact: true })
 async function menu(page: Page) {
@@ -13,13 +17,7 @@ async function menu(page: Page) {
 async function open(page: Page) {
   await menu(page)
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  if (
-    !(await page
-      .locator('[data-plugin-menu-group]')
-      .evaluate((group: HTMLDetailsElement) => group.open))
-  )
-    await page.locator('[data-plugin-menu-group] > summary').click()
-  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  await panelAction(page).click()
   await expect(field(page, '字体大小')).toBeVisible()
   await expect(field(page, '字体大小')).toBeEnabled()
 }
@@ -48,14 +46,10 @@ test('permissions, generic menu entry, controlled invalid drafts, preview cancel
 }) => {
   await setup(page, false)
   await menu(page)
-  await expect(
-    page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'),
-  ).toHaveCount(0)
+  await expect(panelAction(page)).toHaveCount(0)
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.locator('[data-plugin-action="details"][data-plugin-id="milkup.preferences"]').click()
-  await page.getByRole('button', { name: '批准能力', exact: true }).click()
-  await page.getByRole('button', { name: '启用', exact: true }).click()
-  await expect(page.locator('.plugin-state')).toHaveText('已启用')
+  await card(page).getByRole('switch').click()
+  await expect(card(page).getByRole('switch')).toHaveAttribute('aria-checked', 'true')
   await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
   await open(page)
   const baseline = await persisted(page)
@@ -136,15 +130,11 @@ test('closing preview then disabling, enabling and uninstalling preserves commit
   await expect.poll(() => fontSize(page)).toBe('20px')
   await menu(page)
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.locator('[data-plugin-action="details"][data-plugin-id="milkup.preferences"]').click()
-  await page.locator('[data-plugin-action="disable"][data-plugin-id="milkup.preferences"]').click()
-  await expect(
-    page.locator('[data-plugin-action="enable"][data-plugin-id="milkup.preferences"]'),
-  ).toBeVisible()
-  await expect(
-    page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'),
-  ).toHaveCount(0)
-  await page.locator('[data-plugin-action="enable"][data-plugin-id="milkup.preferences"]').click()
+  await card(page).getByRole('switch').click()
+  await expect(card(page).getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await expect(panelAction(page)).toHaveCount(0)
+  await card(page).getByRole('switch').click()
+  await expect(card(page).getByRole('switch')).toHaveAttribute('aria-checked', 'true')
   await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
   await open(page)
   await expect(field(page, '字体大小')).toHaveValue('20')
@@ -152,18 +142,16 @@ test('closing preview then disabling, enabling and uninstalling preserves commit
   await close(page)
   await menu(page)
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.locator('[data-plugin-action="remove"][data-plugin-id="milkup.preferences"]').click()
-  await expect(
-    page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'),
-  ).toHaveCount(0)
+  await card(page).locator('[data-plugin-card-more-trigger]').click()
+  await card(page).locator('[data-plugin-action="remove"]').click()
+  await expect(card(page)).toHaveCount(0)
+  await expect(panelAction(page)).toHaveCount(0)
   await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
   await expect.poll(() => fontSize(page)).toBe('20px')
   await page.reload()
   await expect.poll(() => fontSize(page)).toBe('20px')
   await menu(page)
-  await expect(
-    page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'),
-  ).toHaveCount(0)
+  await expect(panelAction(page)).toHaveCount(0)
 })
 
 for (const windowed of [false, true])

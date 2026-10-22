@@ -1,0 +1,51 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/application-updates.test.ts (12 tests | 1 failed) 84ms
+   ✓ host application updates controller > does no work on construction or state reads and starts once after migration 5ms
+   ✓ host application updates controller > does not duplicate an explicit check when startup is called later 1ms
+   ✓ host application updates controller > never reports current or a red dot on offline 1ms
+   ✓ host application updates controller > never reports current or a red dot on signature rejected 1ms
+   ✓ host application updates controller > never reports current or a red dot on check timed out 1ms
+   × host application updates controller > clears the badge and revoked release ID when rechecking, including a failed recheck 15ms
+     → expected { hasUpdate: true, …(4) } to match object { phase: 'error', …(2) }
+(2 matching properties omitted from actual)
+   ✓ host application updates controller > distinguishes an unconfigured channel from a successful no-update result 0ms
+   ✓ host application updates controller > polls one download through verification, then asks the existing trusted install gate 4ms
+   ✓ host application updates controller > keeps cancellation failures retryable and never starts a new check over them 1ms
+   ✓ host application updates controller > requires a new verified download after download or installation failure 1ms
+   ✓ host application updates controller > ignores a late poll after cancellation and stops polling when disposed 52ms
+   ✓ host application updates controller > disposes the adapter immediately and ignores late checks and pending install confirmations 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/application-updates.test.ts > host application updates controller > clears the badge and revoked release ID when rechecking, including a failed recheck
+AssertionError: expected { hasUpdate: true, …(4) } to match object { phase: 'error', …(2) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "hasUpdate": false,
++   "hasUpdate": true,
+    "phase": "error",
+    "retry": "check",
+  }
+
+ ❯ apps/desktop/src/application-updates.test.ts:64:32
+     62|     f.adapter.check.mockRejectedValueOnce(Error('offline'))
+     63|     await f.controller.check()
+     64|     expect(f.controller.state).toMatchObject({ phase: 'error', hasUpda…
+       |                                ^
+     65|     expect(f.controller.state.release).toBeUndefined()
+     66|     await f.controller.download()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  05:28:11
+   Duration  547ms (transform 78ms, setup 0ms, collect 66ms, tests 84ms, environment 0ms, prepare 84ms)
+

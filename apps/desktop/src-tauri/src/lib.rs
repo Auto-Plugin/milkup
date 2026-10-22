@@ -430,6 +430,7 @@ async fn plugin_catalog_prepare(
     archive: serde_json::Value,
     source_path: String,
     expected_revision: Option<u64>,
+    replace_pending: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     let root = app
         .path()
@@ -437,7 +438,13 @@ async fn plugin_catalog_prepare(
         .map_err(|e| e.to_string())?
         .join("plugins");
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_catalog::prepare(&root, archive, source_path, expected_revision)
+        plugin_catalog::prepare_with_replacement(
+            &root,
+            archive,
+            source_path,
+            expected_revision,
+            replace_pending,
+        )
     })
     .await
     .map_err(|e| e.to_string())?

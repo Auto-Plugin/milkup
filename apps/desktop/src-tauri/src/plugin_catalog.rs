@@ -1286,12 +1286,37 @@ fn with_store<T>(root: &Path, f: impl FnOnce(&Store, &mut Catalog) -> Result<T>)
 pub fn read(root: &Path) -> Result<Value> {
     with_store(root, |s, c| s.wire(c))
 }
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct PreparedReplacement {
+    source_path: String,
+    transaction_id: String,
+    generation_id: String,
+    fingerprint: String,
+}
+
 pub fn prepare(
     root: &Path,
     archive: Value,
     source_path: String,
     expected_revision: Option<u64>,
 ) -> Result<Value> {
+    prepare_with_replacement(root, archive, source_path, expected_revision, None)
+}
+
+/// Internal host operation. The host supplies bytes from its closed bundled index;
+/// source metadata only restricts eligibility and never authenticates archive contents.
+pub fn prepare_with_replacement(
+    root: &Path,
+    archive: Value,
+    source_path: String,
+    expected_revision: Option<u64>,
+    replace_pending: Option<Value>,
+) -> Result<Value> {
+    let replacement: Option<PreparedReplacement> = replace_pending
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(|e| err("invalid", e))?;
     let (manifest, files) = archive_decode(archive)?;
     let id = manifest_fields(&manifest)?.0;
     with_store(root, move |s, c| {
@@ -1301,12 +1326,60 @@ pub fn prepare(
                 if expected_revision != Some(c.entries[i].revision) {
                     return Err(err("conflict", "entry revision changed"));
                 }
-                if c.entries[i].pending.is_some() || c.entries[i].start_attempt.is_some() {
+                let e = &c.entries[i];
+                if let Some(identity) = &replacement {
+                    if e.tombstone || e.start_attempt.is_some() {
+                        return Err(err(
+                            "conflict",
+                            "replacement requires a retained idle entry",
+                        ));
+                    }
+                    let p = e
+                        .pending
+                        .as_ref()
+                        .filter(|p| {
+                            p.transaction_id == identity.transaction_id
+                                && p.generation.id == identity.generation_id
+                                && p.generation.capability_fingerprint == identity.fingerprint
+                                && p.generation.source_path == identity.source_path
+                        })
+                        .ok_or_else(|| err("conflict", "replacement candidate identity changed"))?;
+                    if p.phase != "prepared"
+                        || !source_path.starts_with("bundled:")
+                        || !p.generation.source_path.starts_with("bundled:")
+                    {
+                        return Err(err(
+                            "conflict",
+                            "replacement requires exact prepared bundled receipts",
+                        ));
+                    }
+                    let version = |m: &Value| -> Result<semver::Version> {
+                        semver::Version::parse(m["version"].as_str().unwrap_or_default())
+                            .map_err(|e| err("invalid", e))
+                    };
+                    let next_version = version(&manifest)?;
+                    if !next_version
+                        .cmp_precedence(&version(&p.generation.manifest)?)
+                        .is_gt()
+                    {
+                        return Err(err("conflict", "bundled replacement must be newer"));
+                    }
+                    if let Some(active) = &e.active {
+                        if !active.source_path.starts_with("bundled:")
+                            || !next_version
+                                .cmp_precedence(&version(&active.manifest)?)
+                                .is_gt()
+                        {
+                            return Err(err("conflict", "bundled replacement cannot replace a user receipt or downgrade active"));
+                        }
+                    }
+                    s.verify(&id, &p.generation)?;
+                } else if e.pending.is_some() || e.start_attempt.is_some() {
                     return Err(err("conflict", "resolve existing candidate/startup first"));
                 }
             }
             None => {
-                if expected_revision.is_some() {
+                if expected_revision.is_some() || replacement.is_some() {
                     return Err(err("conflict", "plugin no longer exists"));
                 }
                 if c.entries.len() >= MAX_ENTRIES {
@@ -1317,7 +1390,8 @@ pub fn prepare(
         let mut generation = s.stage(&id, manifest, files, source_path)?;
         if let Some(i) = index {
             if let Some(old) = &c.entries[i].active {
-                if !c.entries[i].tombstone
+                if replacement.is_none()
+                    && !c.entries[i].tombstone
                     && approve_ok(old)
                     && old.capability_fingerprint == generation.capability_fingerprint
                 {
@@ -1338,6 +1412,10 @@ pub fn prepare(
             e.enabled = false;
         }
         e.tombstone = false;
+        if replacement.is_some() {
+            let retired = e.pending.as_ref().unwrap();
+            e.note(&format!("Superseded prepared bundled candidate {} from {}; retained prior bytes until normal collection", retired.generation.id, retired.generation.source_path));
+        }
         e.pending = Some(Candidate {
             transaction_id: token(),
             generation,

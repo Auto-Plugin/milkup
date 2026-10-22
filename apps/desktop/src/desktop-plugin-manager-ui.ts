@@ -72,6 +72,18 @@ class DesktopPluginManagerView {
     target.ownerDocument.defaultView?.addEventListener(
       'keydown',
       (event) => {
+        if (event.key === 'Escape' && !event.isComposing && target.contains(event.target as Node)) {
+          const menu = (event.target as Element).closest<HTMLDetailsElement>(
+            '[data-plugin-card-more][open]',
+          )
+          if (menu) {
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            menu.open = false
+            menu.querySelector<HTMLElement>('summary')?.focus()
+            return
+          }
+        }
         if (
           event.key !== 'Escape' ||
           event.isComposing ||
@@ -122,6 +134,9 @@ class DesktopPluginManagerView {
         entry.pending.transactionId !==
           previous?.catalogEntries?.find((old) => old.id === entry.id)?.pending?.transactionId,
     )
+    // A bundled upgrade staged by the card switch must keep that same control in place.
+    const navigateToCandidate =
+      focused?.dataset.pluginAction !== 'toggle' ? candidateChanged : undefined
     const newFailure = state.installFailures.find(
       (f) =>
         !previous?.installFailures.some(
@@ -132,10 +147,10 @@ class DesktopPluginManagerView {
     if (newFailure && previous && this.target.getClientRects().length > 0) {
       this.selectedPluginId = undefined
       this.selectedFailurePath = newFailure.sourcePath
-    } else if (candidateChanged && previous && this.target.getClientRects().length > 0) {
+    } else if (navigateToCandidate && previous && this.target.getClientRects().length > 0) {
       this.selectedFailurePath = undefined
-      this.selectedPluginId = candidateChanged.id
-      this.returnPluginId = candidateChanged.id
+      this.selectedPluginId = navigateToCandidate.id
+      this.returnPluginId = navigateToCandidate.id
     } else if (removed) {
       this.selectedPluginId = undefined
       this.returnPluginId =
@@ -147,13 +162,16 @@ class DesktopPluginManagerView {
     }
     this.refreshIcons(state)
     this.paint()
-    if ((added || newFailure || candidateChanged) && focused) this.focusHeading()
+    if ((added || newFailure || navigateToCandidate) && focused) this.focusHeading()
     else if (removed && focused) this.focusCard()
     else if (focused) {
       const replacement = Array.from(
-        this.target.querySelectorAll<HTMLElement>('[data-plugin-action]'),
+        this.target.querySelectorAll<HTMLElement>(
+          '[data-plugin-action], [data-plugin-card-more-trigger]',
+        ),
       ).find(
         (element) =>
+          element.dataset.pluginCardMoreTrigger === focused.dataset.pluginCardMoreTrigger &&
           element.dataset.pluginAction === focused.dataset.pluginAction &&
           element.dataset.pluginId === focused.dataset.pluginId &&
           element.dataset.pluginCommand === focused.dataset.pluginCommand &&
@@ -176,11 +194,20 @@ class DesktopPluginManagerView {
   }
   private paint(): void {
     if (!this.state) return
+    const opened = new Set(
+      Array.from(
+        this.target.querySelectorAll<HTMLDetailsElement>('[data-plugin-card-more][open]'),
+      ).map((menu) => menu.dataset.pluginCardMore),
+    )
     this.target.innerHTML = renderDesktopPluginManager(this.state, {
       ...(this.selectedPluginId ? { selectedPluginId: this.selectedPluginId } : {}),
       icons: this.icons,
       ...(this.selectedFailurePath ? { selectedFailurePath: this.selectedFailurePath } : {}),
     })
+    for (const menu of Array.from(
+      this.target.querySelectorAll<HTMLDetailsElement>('[data-plugin-card-more]'),
+    ))
+      menu.open = opened.has(menu.dataset.pluginCardMore)
   }
 
   private back(): void {

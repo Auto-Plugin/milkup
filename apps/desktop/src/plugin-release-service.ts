@@ -22,7 +22,7 @@ export interface ReleaseTransport {
   install(token: number): Promise<void>
 }
 
-/** Host infrastructure only: plugin owns discovery UI, polling, retry and presentation.
+/** Host infrastructure shared by built-in Updates and scoped plugin capabilities.
  * A scoped opaque ID maps to trusted native metadata; arbitrary paths/URLs never cross.
  */
 export function createDesktopReleaseAdapter(options: {
@@ -43,7 +43,7 @@ export function createDesktopReleaseAdapter(options: {
   let installing = false
   let cancelling = false
   const active = () => {
-    if (abort.signal.aborted) throw Error('插件更新能力已撤销')
+    if (abort.signal.aborted) throw Error('更新能力已撤销')
   }
   const requireCandidate = (id: string) => {
     active()

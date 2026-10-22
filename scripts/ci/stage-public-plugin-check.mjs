@@ -64,7 +64,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const relative = path.relative(checkout, output)
   assert.ok(relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
   const { plugins } = await readPublicPluginBuildInputs(checkout)
-  assert.equal(plugins.length, 11, 'P8 reviewed inventory is exactly eleven plugins')
+  assert.equal(plugins.length, 10, 'Beta4 reviewed platform inventory is exactly ten plugins')
   const result = await stageVerifiedPlugins({
     checkout,
     output,

@@ -136,7 +136,7 @@ test('pointer capture ends on cancellation and disposal, and the remaining panel
   await expect(page.locator('.plugin-ui-sidebar-panel')).toHaveCount(0)
 })
 
-for (const entry of ['details', 'group'] as const) {
+for (const entry of ['card', 'details-return'] as const) {
   test(`plugin modal from ${entry} keeps the plugin page and returns focus on Escape`, async ({
     page,
   }, testInfo) => {
@@ -144,17 +144,19 @@ for (const entry of ['details', 'group'] as const) {
     await page.goto('/')
     await page.getByRole('button', { name: '菜单', exact: true }).click()
     await page.getByRole('button', { name: '插件', exact: true }).click()
-    if (entry === 'details') {
+    if (entry === 'details-return') {
       await page
         .locator('[data-plugin-action="details"][data-plugin-id="milkup.preferences"]')
         .click()
-    } else {
-      await page.locator('[data-plugin-menu-group] > summary').click()
+      await expect(page.locator('#plugin-detail-title')).toHaveText('编辑偏好')
+      await expect(page.locator('[data-plugin-action="open-ui"]')).toHaveCount(0)
+      await page.keyboard.press('Escape')
+      await expect(
+        page.locator('[data-plugin-action="details"][data-plugin-id="milkup.preferences"]'),
+      ).toBeFocused()
     }
     const opener = page.locator(
-      entry === 'details'
-        ? '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"]'
-        : '[data-plugin-menu-entry="milkup.preferences:preferences-panel"]',
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"]',
     )
     await opener.click()
     const modal = page.locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
@@ -162,9 +164,10 @@ for (const entry of ['details', 'group'] as const) {
     await expect(modal).toBeFocused()
     await expect(page.locator('[data-app-menu]')).toBeVisible()
     await expect(page.locator('[data-menu-panel="plugins"]')).toBeVisible()
-    if (entry === 'details')
-      await expect(page.locator('#plugin-detail-title')).toHaveText('编辑偏好')
-    else await expect(page.locator('[data-plugin-menu-group]')).toHaveAttribute('open', '')
+    await expect(
+      page.locator('.plugin-summary-card[data-plugin-id="milkup.preferences"]'),
+    ).toBeVisible()
+    await expect(page.locator('[data-plugin-menu-group], [data-plugin-menu-entry]')).toHaveCount(0)
     // CSS stacking must also keep the modal interactive above the menu.
     const size = modal.getByRole('spinbutton', { name: '字体大小', exact: true })
     await size.click()

@@ -77,14 +77,14 @@ export async function formattingFixture(page: Page) {
     phase('menu-clicked')
     await page.getByRole('button', { name: '插件', exact: true }).click()
     phase('plugins-clicked')
-    await page.getByRole('button', { name: 'Milkup Formatting 详情', exact: true }).click()
-    phase('plugin-details-clicked')
-    const approve = page.getByRole('button', { name: '批准能力', exact: true })
-    if (await approve.isVisible()) await approve.click()
-    else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
-    phase('approval-step-completed')
-    await page.getByRole('button', { name: '启用', exact: true }).click()
-    phase('enable-clicked')
+    const toggle = page.locator(
+      '.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]',
+    )
+    await toggle.click()
+    phase('card-enable-clicked')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+    await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+    phase('card-enable-completed')
     await page.locator('[data-menu-close]').click()
     phase('menu-close-clicked')
     await expect(

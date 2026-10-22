@@ -23,6 +23,8 @@ import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } fr
 import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
 import { createDesktopReleaseAdapter, nativeReleaseTransport } from './plugin-release-service'
+import { createApplicationUpdatesController } from './application-updates'
+import { renderApplicationUpdates } from './application-updates-ui'
 import {
   createDesktopWorkspaceAdapter,
   type WorkspaceOpenRequest,
@@ -119,6 +121,7 @@ import {
   PanelLeftClose,
   Plug,
   RotateCcw,
+  RefreshCw,
   Save,
   SaveAll,
   Search,
@@ -419,10 +422,6 @@ app.innerHTML = `
           </section>
           <section class="app-menu-section" data-menu-panel="plugins" hidden>
             <h3>${messages.menu.plugins}</h3>
-            <details class="plugin-menu-group" data-plugin-menu-group hidden>
-              <summary>插件控制面板</summary>
-              <div data-plugin-menu-entries></div>
-            </details>
             <div data-plugin-manager></div>
             <div data-plugin-slot="menu-page"></div>
           </section>
@@ -435,13 +434,14 @@ app.innerHTML = `
               </div>
               <div>
                 <dt>当前版本</dt>
-                <dd data-app-version>${appVersion}</dd>
+                <dd class="application-version"><span data-app-version>${appVersion}</span><button type="button" class="dialog-button secondary" data-application-update-action="check" aria-disabled="true">${iconSvg(RefreshCw)}<span>检查更新</span></button></dd>
               </div>
               <div>
                 <dt>版权信息</dt>
                 <dd>${appCopyright}</dd>
               </div>
             </dl>
+            <div class="application-updates" data-application-updates aria-live="polite"></div>
           </section>
         </div>
       </div>
@@ -1239,6 +1239,8 @@ const protectedInstallGate = createProtectedInstallGate({
     applicationUpdateInstalling = value
     renderSession()
   },
+  // Built-in About restores focus after its controller has rendered the settled state.
+  // Keep the generic release capability's existing modal focus behavior.
   returnFocus: () => appRoot.querySelector<HTMLElement>('.plugin-ui-modal')?.focus(),
 })
 
@@ -1323,6 +1325,10 @@ const desktopOutput = createDesktopOutputService({
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
+  reservedPluginIds: ['milkup.updates'],
+  bundledUpgradeSources: {
+    'milkup.diagrams': ['bundled:milkup.diagrams-1.1.1.milkup-plugin'],
+  },
   executionUnavailableReason: (manifest) =>
     manifest.host === 'dom' && platform !== 'linux'
       ? '当前平台不支持此插件的独立 DOM 执行环境'
@@ -1427,6 +1433,18 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   }),
   loadDomModule: loadDesktopPluginDomModule,
 })
+// One controller for the application lifetime, started only after legacy plugin retirement.
+let applicationUpdatesReady = false
+let applicationUpdatesMigrationError: string | undefined
+const applicationUpdates = createApplicationUpdatesController({
+  service: createDesktopReleaseAdapter({
+    transport: nativeReleaseTransport(),
+    currentVersion: appVersion,
+    confirmInstall: (request) => protectedInstallGate.request(request),
+  }),
+  currentVersion: appVersion,
+  changed: renderApplicationUpdateStatus,
+})
 let presentationMemorySource: MemoryDocumentSource | undefined
 let presentationMemoryDocument: object | undefined
 function currentPresentationDocument() {
@@ -1524,12 +1542,43 @@ void initialDocumentOpenPromise.finally(async () => {
   void showStartupWindow()
   if (recovery) void recoveryUi.open(false, true)
 })
-void desktopPluginManager.ready.then(async () => {
-  await initialDocumentOpenPromise
-  pluginUiReady = true
-  renderPluginManager()
-  refreshPluginContributionsInViews()
-  void desktopPluginUi.sync(session.documentId)
+void desktopPluginManager.ready.then(
+  async () => {
+    applicationUpdatesReady = true
+    void applicationUpdates.start()
+    try {
+      await initialDocumentOpenPromise
+      pluginUiReady = true
+      renderPluginManager()
+      refreshPluginContributionsInViews()
+      await desktopPluginUi.sync(session.documentId)
+    } catch (error) {
+      importantNotice = true
+      notice = `文档或插件界面初始化失败：${getErrorMessage(error)}`
+      renderSession()
+    }
+  },
+  (error: unknown) => {
+    // Only manager initialization failures block the new updater from starting.
+    applicationUpdatesMigrationError = `更新功能暂不可用：插件初始化失败。请重启后重试。${getErrorMessage(error)}`
+    importantNotice = true
+    notice = applicationUpdatesMigrationError
+    renderApplicationUpdateStatus()
+    renderSession()
+  },
+)
+renderApplicationUpdateStatus()
+appRoot.querySelector('[data-menu-panel="about"]')?.addEventListener('click', (event) => {
+  const button =
+    event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('[data-application-update-action]')
+      : null
+  if (!applicationUpdatesReady || !button || button.getAttribute('aria-disabled') === 'true') return
+  const action = button.dataset.applicationUpdateAction
+  if (action === 'check') void applicationUpdates.check()
+  else if (action === 'download') void applicationUpdates.download()
+  else if (action === 'cancel') void applicationUpdates.cancel()
+  else if (action === 'install') void installApplicationUpdate()
 })
 
 app.querySelector<HTMLButtonElement>('[data-mode-toggle]')?.addEventListener('click', () => {
@@ -1557,13 +1606,24 @@ if (developerStatusNoticeToggle) {
 }
 
 async function toggleDesktopPlugin(pluginId: string): Promise<void> {
-  if (pendingPluginToggles.has(pluginId)) return
+  if (pendingPluginToggles.has(pluginId) || closeConfirmOpen || isDocumentSaving()) return
+  if (isDocumentBusy()) {
+    notice = '文档正在打开，请稍候。'
+    renderSession()
+    return
+  }
   const record = desktopPluginManager.state().records.find((item) => item.manifest.id === pluginId)
   if (!record) return
   pendingPluginToggles.add(pluginId)
   renderPluginManager()
   try {
-    await runDesktopAction(record.enabled ? 'plugin.disable' : 'plugin.enable', { pluginId })
+    if (record.enabled) await desktopPluginManager.disable(pluginId)
+    else await desktopPluginManager.enableFromUserIntent(pluginId)
+    refreshPluginContributionsInViews()
+  } catch (error) {
+    importantNotice = true
+    notice = `插件切换失败：${getErrorMessage(error)}`
+    renderSession()
   } finally {
     pendingPluginToggles.delete(pluginId)
     renderPluginManager()
@@ -1572,7 +1632,7 @@ async function toggleDesktopPlugin(pluginId: string): Promise<void> {
 
 appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('click', (event) => {
   const target = event.target
-  const button = target instanceof HTMLElement ? target.closest<HTMLButtonElement>('button') : null
+  const button = target instanceof Element ? target.closest<HTMLButtonElement>('button') : null
 
   if (!button?.dataset.pluginAction) {
     return
@@ -1587,12 +1647,6 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
     case 'install':
       runDesktopAction('plugin.installLocal')
       break
-    case 'enable':
-      runDesktopAction('plugin.enable', { pluginId })
-      break
-    case 'disable':
-      runDesktopAction('plugin.disable', { pluginId })
-      break
     case 'reload':
       runDesktopAction('plugin.reload', { pluginId })
       break
@@ -1601,23 +1655,6 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
       break
     case 'export':
       runDesktopAction('plugin.export', { pluginId })
-      break
-    case 'approve':
-      runDesktopAction('plugin.approve', {
-        pluginId,
-        fingerprint: button.dataset.pluginFingerprint,
-        reviewedRevision: Number(button.dataset.pluginEntryRevision),
-      })
-      break
-    case 'reject-candidate':
-      runDesktopAction('plugin.rejectCandidate', {
-        pluginId,
-        fingerprint: button.dataset.pluginFingerprint,
-        reviewedRevision: Number(button.dataset.pluginEntryRevision),
-      })
-      break
-    case 'revoke-approval':
-      runDesktopAction('plugin.revokeApproval', { pluginId })
       break
     case 'command':
       if (button.dataset.pluginCommand) {
@@ -1855,6 +1892,17 @@ globalThis.addEventListener(
       return
     }
     if (event.key === 'Escape') {
+      const more =
+        document.activeElement instanceof Element
+          ? document.activeElement.closest<HTMLDetailsElement>('[data-plugin-card-more][open]')
+          : null
+      if (more) {
+        event.preventDefault()
+        event.stopPropagation()
+        more.open = false
+        more.querySelector<HTMLElement>('summary')?.focus()
+        return
+      }
       if (menuOpen) {
         event.preventDefault()
         setMenuOpen(false)
@@ -3789,6 +3837,70 @@ function bindCommand(command: string, actionId: string): void {
     })
 }
 
+async function installApplicationUpdate(): Promise<void> {
+  await applicationUpdates.install()
+  // Cancel/failure settles the protected prompt before the controller rebuilds its actions.
+  // Restore focus after both steps, and never bring a closed About page back into focus.
+  const about = appRoot.querySelector<HTMLElement>('[data-menu-panel="about"]')
+  if (
+    !about?.getClientRects().length ||
+    closeConfirmOpen ||
+    appRoot.querySelector('.plugin-ui-modal')
+  )
+    return
+  if (!['ready', 'error'].includes(applicationUpdates.state.phase)) return
+  const actions = Array.from(
+    about.querySelectorAll<HTMLButtonElement>('[data-application-update-action]'),
+  )
+  const next =
+    actions.find((button) =>
+      ['install', 'download'].includes(button.dataset.applicationUpdateAction ?? ''),
+    ) ?? actions.find((button) => button.getAttribute('aria-disabled') !== 'true')
+  next?.focus({ preventScroll: true })
+}
+
+function renderApplicationUpdateStatus(): void {
+  const target = appRoot.querySelector<HTMLElement>('[data-application-updates]')
+  if (!target) return
+  const focused = document.activeElement
+  const previousAction =
+    focused instanceof HTMLElement && target.contains(focused)
+      ? focused.dataset.applicationUpdateAction
+      : undefined
+  const state = applicationUpdates.state
+  if (applicationUpdatesMigrationError) target.textContent = applicationUpdatesMigrationError
+  else target.innerHTML = renderApplicationUpdates(state)
+  const check = appRoot
+    .querySelector<HTMLButtonElement>('[data-app-version]')
+    ?.parentElement?.querySelector<HTMLButtonElement>('[data-application-update-action="check"]')
+  const checkingBlocked =
+    !applicationUpdatesReady ||
+    [
+      'checking',
+      'downloading',
+      'verifying',
+      'ready',
+      'cancelling',
+      'confirming',
+      'installing',
+    ].includes(state.phase) ||
+    (state.phase === 'error' && state.retry === 'cancel')
+  check?.setAttribute('aria-disabled', String(checkingBlocked))
+  check?.setAttribute('aria-busy', String(state.phase === 'checking'))
+  const hasUpdate = applicationUpdatesReady && state.hasUpdate
+  const dot = appRoot.querySelector<HTMLElement>('[data-application-update-dot]')
+  if (dot) dot.hidden = !hasUpdate
+  appRoot
+    .querySelector('[data-menu-section="about"]')
+    ?.setAttribute('aria-label', hasUpdate ? '关于，有可用更新' : '关于')
+  if (previousAction) {
+    const replacement = Array.from(
+      target.querySelectorAll<HTMLButtonElement>('[data-application-update-action]'),
+    ).find((button) => button.dataset.applicationUpdateAction === previousAction)
+    ;(replacement ?? check)?.focus({ preventScroll: true })
+  }
+}
+
 function renderPluginManager(): void {
   const target = appRoot.querySelector<HTMLElement>('[data-plugin-manager]')
 
@@ -3805,28 +3917,6 @@ function renderPluginManager(): void {
       button.setAttribute('aria-disabled', 'true')
       button.setAttribute('aria-busy', 'true')
     }
-  }
-  const entries = appRoot.querySelector<HTMLElement>('[data-plugin-menu-entries]')!
-  const modals = desktopPluginManager
-    .state()
-    .contributions.ui.filter((item) => item.slot === 'modal')
-  appRoot.querySelector<HTMLElement>('[data-plugin-menu-group]')!.hidden = modals.length === 0
-  const signature = JSON.stringify(modals.map(({ pluginId, id, title }) => [pluginId, id, title]))
-  if (entries.dataset.signature !== signature) {
-    entries.dataset.signature = signature
-    entries.replaceChildren(
-      ...modals.map((item) => {
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.className = 'dialog-button'
-        button.dataset.pluginMenuEntry = `${item.pluginId}:${item.id}`
-        button.textContent = item.title
-        button.addEventListener('click', () => {
-          void desktopPluginUi.open(item.pluginId, item.id)
-        })
-        return button
-      }),
-    )
   }
 }
 
@@ -4665,6 +4755,9 @@ function menuNavButton(section: string, label: string, icon: IconNode, active = 
     `<button type="button" data-menu-section="${section}"${active ? ' data-active="true"' : ''}>`,
     iconSvg(icon),
     `<span>${label}</span>`,
+    section === 'about'
+      ? '<span class="application-update-dot" data-application-update-dot hidden aria-hidden="true"></span>'
+      : '',
     '</button>',
   ].join('')
 }
@@ -5699,6 +5792,7 @@ globalThis.addEventListener('beforeunload', (event) => {
 })
 
 globalThis.addEventListener('unload', () => {
+  applicationUpdates.dispose()
   loadingVisibility.dispose()
   editorContextMenu.dispose()
   disposeFileWatchEvents?.()

@@ -1,0 +1,121 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/plugins/diagrams-worker
+
+ ✓ src/renderer.test.ts (9 tests) 22ms
+ ❯ src/compiler.test.ts (39 tests | 2 failed) 50ms
+   ✓ compiles Unicode flowchart through fixed official grammar without DOM 9ms
+   ✓ compiles aliases and dotted sequence return messages 6ms
+   ✓ explicitly rejects unsupported input without partial diagram: pie
+"x":1 2ms
+   ✓ explicitly rejects unsupported input without partial diagram: flowchart TD
+A-->A 1ms
+   ✓ explicitly rejects unsupported input without partial diagram: flowchart TD
+A-->B
+click A "https://example.com" 0ms
+   ✓ explicitly rejects unsupported input without partial diagram: flowchart TD
+A["<img src=x>"] 1ms
+   ✓ explicitly rejects unsupported input without partial diagram: sequenceDiagram
+loop Again
+A->>B: x
+end 1ms
+   ✓ explicitly rejects unsupported input without partial diagram: ---
+config: x
+---
+flowchart TD
+A-->B 0ms
+   ✓ wraps long CJK labels to bounded text lines instead of overflowing node geometry 2ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart RL
+A-->B 1ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A((Round))-->B 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A-.->B 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A-->B
+B-->C
+A-->C 1ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A:::danger-->B 1ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A-->B
+style A fill:red 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+subgraph X
+A-->B
+end 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: %%{init: {"securityLevel":"loose"}}%%
+flowchart TD
+A-->B 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+A->>A: self 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+actor A
+A->>B: x 1ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+participant A@{type: "queue"}
+A->>B: x 1ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+create participant A
+A->>B: x 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+A->>+B: activate 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+autonumber
+A->>B: x 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+Note over A: note 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: sequenceDiagram
+A->B: open arrow 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: classDiagram
+class A 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A["`markdown`"]-->B 1ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A["xxxxxxxxxxxxxxxxxxxxxxxxx"]-->B 0ms
+   ✓ retains unsupported semantics by refusing the whole diagram: flowchart TD
+A[broken 1ms
+   ✓ supports the documented syntax: flowchart TD
+A-->B
+A-->C
+B-->D
+C-->D 2ms
+   ✓ supports the documented syntax: graph TB
+A(开始)-->B[结束] 1ms
+   ✓ supports the documented syntax: sequenceDiagram
+A->>B: request
+B-->>A: response 1ms
+   ✓ bounds request text and graph/sequence expansion 3ms
+   ✓ bounds the largest supported sequence to existing host output limits 4ms
+   ✓ rejects layouts that would obscure labels or merge two diagrams: flowchart TD
+A{这是超过十二个汉字的菱形标签}-->B 0ms
+   ✓ rejects layouts that would obscure labels or merge two diagrams: flowchart LR
+A-->|此标签超过四字|B 0ms
+   ✓ rejects layouts that would obscure labels or merge two diagrams: flowchart TD
+A-->B
+flowchart LR
+C-->D 0ms
+   × rejects Mermaid formatting controls instead of silently changing meaning: flowchart TD
+A -->|"`bold`"| B 7ms
+     → expected [Function] to throw an error
+   × rejects Mermaid formatting controls instead of silently changing meaning: sequenceDiagram
+A->>B: wrap: message 1ms
+     → expected [Function] to throw an error
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/compiler.test.ts > rejects Mermaid formatting controls instead of silently changing meaning: flowchart TD
+A -->|"`bold`"| B
+ FAIL  src/compiler.test.ts > rejects Mermaid formatting controls instead of silently changing meaning: sequenceDiagram
+A->>B: wrap: message
+AssertionError: expected [Function] to throw an error
+ ❯ src/compiler.test.ts:96:208
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 46 passed (48)
+   Start at  05:47:51
+   Duration  514ms (transform 164ms, setup 0ms, collect 288ms, tests 72ms, environment 1ms, prepare 160ms)
+

@@ -222,3 +222,23 @@ describe('legacy migration inspection', () => {
     expect(result.diagnostics.join(' ')).toMatch(/quarantined/)
   })
 })
+
+describe('beta4 host-only prepared replacement wire', () => {
+  it('passes exact replacement CAS identity through prepare without introducing a public plugin action', async () => {
+    const invoke = vi.fn(async () => snapshot())
+    const catalog = createDesktopPluginCatalog(invoke)
+    const request = {
+      archive: { format: 'milkup-plugin', version: 1, manifest, files: [] } as any,
+      sourcePath: 'bundled:fixture.milkup-plugin',
+      expectedRevision: 7,
+      replacePending: {
+        transactionId: 'txn-7',
+        generationId: 'gen-7',
+        sourcePath: 'bundled:old-fixture.milkup-plugin',
+        fingerprint,
+      },
+    }
+    await catalog.prepare(request)
+    expect(invoke).toHaveBeenCalledWith('plugin_catalog_prepare', request)
+  })
+})

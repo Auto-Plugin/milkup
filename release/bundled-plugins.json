@@ -5,11 +5,6 @@
     "host": "worker"
   },
   {
-    "directory": "plugins/updates",
-    "permissions": ["app:updates"],
-    "host": "worker"
-  },
-  {
     "directory": "plugins/workspace",
     "permissions": ["workspace:read"],
     "host": "worker"
@@ -55,7 +50,8 @@
       "lockSha256": "eece5b86a0955df5204de2dc0cd69b1907a31a83de7d6fad39fa442c11ca7f01",
       "profile": "build-dependencies.json",
       "profileSha256": "286fc4ff7359ecca44941bad046b88e2b185150ae8cb01280c94b67830e10c10"
-    }
+    },
+    "platforms": ["linux", "darwin"]
   },
   {
     "directory": "plugins/footnotes",
@@ -66,5 +62,11 @@
     "directory": "plugins/management",
     "permissions": ["app:plugins"],
     "host": "worker"
+  },
+  {
+    "directory": "plugins/diagrams-worker",
+    "permissions": ["document:read"],
+    "host": "worker",
+    "platforms": ["win32"]
   }
 ]

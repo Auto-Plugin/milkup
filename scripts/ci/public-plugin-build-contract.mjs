@@ -12,7 +12,8 @@ const versionPattern =
 
 /** Inputs for local public-SDK proof only. This does not grant packaging,
  * distribution or upload approval; those retain their separate delivery gates. */
-export async function readPublicPluginBuildInputs(root) {
+export async function readPublicPluginBuildInputs(root, { platform = process.platform } = {}) {
+  assert.ok(['linux', 'win32', 'darwin'].includes(platform), 'Unsupported distribution platform')
   const checkout = await realpath(root)
   const sdk = await json(path.join(checkout, 'packages/plugin-sdk/package.json'))
   assert.equal(sdk.name, '@milkup/plugin-sdk', 'Unexpected public SDK package')
@@ -28,6 +29,22 @@ export async function readPublicPluginBuildInputs(root) {
     assert.match(entry.directory, /^plugins\/[a-z0-9][a-z0-9-]*$/, 'Unsafe plugin directory')
     assert.ok(!directories.has(entry.directory), 'Duplicate plugin directory')
     directories.add(entry.directory)
+    if (entry.platforms !== undefined) {
+      assert.ok(
+        Array.isArray(entry.platforms) && entry.platforms.length > 0 && entry.platforms.length <= 3,
+        'Invalid distribution platforms',
+      )
+      assert.ok(
+        entry.platforms.every((value) => ['linux', 'win32', 'darwin'].includes(value)),
+        'Unknown distribution platform',
+      )
+      assert.equal(
+        new Set(entry.platforms).size,
+        entry.platforms.length,
+        'Duplicate distribution platform',
+      )
+      if (!entry.platforms.includes(platform)) continue
+    }
     const directory = await realpath(path.join(checkout, entry.directory))
     assert.ok(directory.startsWith(`${checkout}${path.sep}`), 'Plugin directory escapes checkout')
     assert.ok(Array.isArray(entry.permissions) && entry.permissions.length <= 64)
@@ -91,6 +108,7 @@ export async function readPublicPluginBuildInputs(root) {
       resources: [...resources],
     })
   }
+  assert.ok(plugins.length > 0, 'No plugins selected for distribution platform')
   return {
     sdkVersion: sdk.version,
     sdkTarballName: `milkup-plugin-sdk-${sdk.version}.tgz`,

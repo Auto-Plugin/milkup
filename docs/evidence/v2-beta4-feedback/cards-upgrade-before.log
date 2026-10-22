@@ -1,0 +1,38 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/apps/desktop
+
+ ❯ src/desktop-plugin-manager-render.test.ts (8 tests | 1 failed) 52ms
+   ✓ plugin cards and information details > allows a disabled unapproved plugin to use the only lifecycle switch 6ms
+   ✓ plugin cards and information details > blocks unavailable disabled plugins but lets an enabled plugin turn off 1ms
+   ✓ plugin cards and information details > puts only this plugin live control panels and commands on its card, once 2ms
+   ✓ plugin cards and information details > does not expose inactive contributions or reload on a disabled card 1ms
+   ✓ plugin cards and information details > keeps enabled=false details free of lifecycle and approval UI 2ms
+   ✓ plugin cards and information details > keeps enabled=true details free of lifecycle and approval UI 0ms
+   ✓ plugin cards and information details > explains pending upgrades without a second approval or enable flow 1ms
+   × shows a trusted bundled Worker upgrade without blocking on the installed DOM host 37ms
+     → expected '<div class="plugin-manager"><div clas…' to contain '2.0.0'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-manager-render.test.ts > shows a trusted bundled Worker upgrade without blocking on the installed DOM host
+AssertionError: expected '<div class="plugin-manager"><div clas…' to contain '2.0.0'
+
+Expected: "2.0.0"
+Received: "<div class="plugin-manager"><div class="plugin-manager-toolbar"><button type="button" class="dialog-button primary" data-plugin-action="install"><svg class="icon" aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"></path><path d="M16 17h6"></path><path d="M19 14v6"></path><path d="M21 10.535V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.675-.955"></path><path d="M3.29 7 12 12l8.71-5"></path><path d="m7.5 4.27 8.997 5.148"></path></svg>安装本地插件</button></div><div class="plugin-list"><article class="plugin-card plugin-summary-card" data-plugin-id="test.cards"><span class="plugin-logo" aria-hidden="true"><span>C</span></span><div class="plugin-card-copy"><span class="plugin-card-title">Card tools</span><span class="plugin-card-description">暂无描述</span><span class="plugin-card-status" data-enabled="false">未启用</span></div><button type="button" class="plugin-enable-switch" role="switch" aria-checked="false" aria-label="Card tools 启用" data-plugin-action="toggle" data-plugin-id="test.cards"  title="开启插件"><span aria-hidden="true"></span></button><div class="plugin-card-actions"><button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="test.cards" aria-label="Card tools 详情"><svg class="icon" aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>详情</button><details class="plugin-card-more" data-plugin-card-more="test.cards"><summary class="dialog-button" data-plugin-card-more-trigger="test.cards" aria-label="Card tools 更多操作" title="更多操作"><svg class="icon" aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg><span>更多</span></summary><div class="plugin-card-menu" aria-label="Card tools 操作"><button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="test.cards"><svg class="icon" aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg>导出插件</button><button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="test.cards"><svg class="icon" aria-hidden="true" focusable="false"xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>移除插件</button></div></details></div></article></div></div>"
+
+ ❯ src/desktop-plugin-manager-render.test.ts:158:16
+    156|   const card = renderDesktopPluginManager(upgradeState)
+    157|   expect(toggle(card)).not.toMatch(/\sdisabled(?:\s|>)/)
+    158|   expect(card).toContain('2.0.0')
+       |                ^
+    159|   expect(card).toContain('Worker')
+    160|   expect(card).toContain('下次开启')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  05:40:48
+   Duration  5.61s (transform 2.79s, setup 0ms, collect 3.87s, tests 52ms, environment 0ms, prepare 786ms)
+

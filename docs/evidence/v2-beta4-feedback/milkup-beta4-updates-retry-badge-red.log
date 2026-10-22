@@ -1,0 +1,78 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/application-updates.test.ts (13 tests | 2 failed) 96ms
+   ✓ host application updates controller > does no work on construction or state reads and starts once after migration 7ms
+   ✓ host application updates controller > does not duplicate an explicit check when startup is called later 1ms
+   ✓ host application updates controller > never reports current or a red dot on offline 1ms
+   ✓ host application updates controller > never reports current or a red dot on signature rejected 1ms
+   ✓ host application updates controller > never reports current or a red dot on check timed out 1ms
+   ✓ host application updates controller > clears the badge and revoked release ID when rechecking, including a failed recheck 2ms
+   ✓ host application updates controller > distinguishes an unconfigured channel from a successful no-update result 1ms
+   ✓ host application updates controller > polls one download through verification, then asks the existing trusted install gate 6ms
+   ✓ host application updates controller > keeps cancellation failures retryable and never starts a new check over them 2ms
+   × host application updates controller > requires a new verified download after download or installation failure 16ms
+     → expected { hasUpdate: false, …(8) } to match object { phase: 'ready', …(3) }
+(9 matching properties omitted from actual)
+   × host application updates controller > restores the badge only after a failed download retry is freshly verified 4ms
+     → expected { hasUpdate: false, …(8) } to match object { phase: 'ready', hasUpdate: true }
+(11 matching properties omitted from actual)
+   ✓ host application updates controller > ignores a late poll after cancellation and stops polling when disposed 53ms
+   ✓ host application updates controller > disposes the adapter immediately and ignores late checks and pending install confirmations 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/application-updates.test.ts > host application updates controller > requires a new verified download after download or installation failure
+AssertionError: expected { hasUpdate: false, …(8) } to match object { phase: 'ready', …(3) }
+(9 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "error": undefined,
+-   "hasUpdate": true,
++   "hasUpdate": false,
+    "phase": "ready",
+    "retry": undefined,
+  }
+
+ ❯ apps/desktop/src/application-updates.test.ts:180:32
+    178|     await f.controller.download()
+    179|     expect(f.adapter.cancel).toHaveBeenCalledWith(release.id)
+    180|     expect(f.controller.state).toMatchObject({
+       |                                ^
+    181|       phase: 'ready',
+    182|       hasUpdate: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/application-updates.test.ts > host application updates controller > restores the badge only after a failed download retry is freshly verified
+AssertionError: expected { hasUpdate: false, …(8) } to match object { phase: 'ready', hasUpdate: true }
+(11 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "hasUpdate": true,
++   "hasUpdate": false,
+    "phase": "ready",
+  }
+
+ ❯ apps/desktop/src/application-updates.test.ts:217:32
+    215|     expect(f.controller.state).toMatchObject({ phase: 'verifying', has…
+    216|     await vi.advanceTimersByTimeAsync(500)
+    217|     expect(f.controller.state).toMatchObject({ phase: 'ready', hasUpda…
+       |                                ^
+    218|   })
+    219| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 passed (13)
+   Start at  05:40:17
+   Duration  1.45s (transform 225ms, setup 0ms, collect 288ms, tests 96ms, environment 0ms, prepare 367ms)
+

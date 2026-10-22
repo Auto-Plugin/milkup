@@ -30,6 +30,7 @@ export function createDesktopPluginCatalog(invoke: PluginCatalogInvoke): Desktop
           archive: request.archive,
           sourcePath: request.sourcePath,
           expectedRevision: request.expectedRevision,
+          ...(request.replacePending ? { replacePending: request.replacePending } : {}),
         }),
       )
     },

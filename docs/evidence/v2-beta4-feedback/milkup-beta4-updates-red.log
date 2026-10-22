@@ -1,0 +1,27 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/application-updates.test.ts [ apps/desktop/src/application-updates.test.ts ]
+Error: Cannot find module './application-updates' imported from '/tmp/milkup-windows-manual-candidate/apps/desktop/src/application-updates.test.ts'
+ ❯ apps/desktop/src/application-updates.test.ts:3:1
+      1| import { afterEach, describe, expect, it, vi } from 'vitest'
+      2| import type { PluginReleaseCheckResult, PluginReleaseStatus } from '@m…
+      3| import { createApplicationUpdatesController } from './application-upda…
+       | ^
+      4| 
+      5| const release = { id: 'release-1', version: '2.0.1', notes: '<b>plain …
+
+Caused by: Error: Failed to load url ./application-updates (resolved id: ./application-updates) in /tmp/milkup-windows-manual-candidate/apps/desktop/src/application-updates.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../workspace/milkup/node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  05:27:38
+   Duration  689ms (transform 95ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 114ms)
+

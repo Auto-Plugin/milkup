@@ -148,13 +148,13 @@ async function state(page: Page): Promise<WorkspaceFixture> {
 async function enable(page: Page): Promise<void> {
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.getByRole('button', { name: 'Milkup Workspace 详情', exact: true }).click()
   expect((await state(page)).calls).toHaveLength(0)
   await expect(page.getByRole('button', { name: '选择工作区文件夹' })).toHaveCount(0)
-  await page.getByRole('button', { name: '批准能力', exact: true }).click()
-  await page.getByRole('button', { name: '启用', exact: true }).click()
-  await expect(page.locator('.plugin-state')).toHaveText('已启用')
-  await page.keyboard.press('Escape')
+  const toggle = page
+    .locator('.plugin-summary-card[data-plugin-id="milkup.workspace"]')
+    .getByRole('switch')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
   await page.keyboard.press('Escape')
   if ((await page.locator('#app').getAttribute('data-sidebar-collapsed')) === 'true')
     await page.locator('[data-sidebar-toggle]').click()

@@ -1,7 +1,7 @@
 import { sealWorkerFixture } from '../helpers/sealed-plugin-fixture'
 import { expect, test, type Page } from '@playwright/test'
 
-async function seed(page: Page, betaCode = 'export default {}'): Promise<void> {
+async function seed(page: Page, betaCode = 'export default {}', controls = false): Promise<void> {
   const records = ['alpha', 'beta'].map((id) => ({
     manifest: {
       id: `cards.${id}`,
@@ -10,6 +10,14 @@ async function seed(page: Page, betaCode = 'export default {}'): Promise<void> {
       version: '1.0.0',
       main: './dist/plugin.js',
       engines: { milkup: '^2.0.0-beta.1', pluginSdk: '*' },
+      ...(id === 'beta' && controls
+        ? {
+            contributes: {
+              commands: [{ id: 'cards.run', title: '运行卡片命令', action: 'cards.run' }],
+              ui: [{ id: 'panel', title: '卡片控制面板', slot: 'modal' }],
+            },
+          }
+        : {}),
       ...(id === 'alpha'
         ? { permissions: ['network:access'], networkOrigins: ['https://example.test'] }
         : {}),
@@ -73,23 +81,30 @@ test('plugin cards expose explicit details; keyboard detail and back restore foc
   await expect(card).toBeFocused()
 })
 
-test('plugin permission approval, enable, disable and uninstall remain inside details', async ({
+test('the card switch enables sensitive plugins directly and details contain information only', async ({
   page,
 }) => {
   await seed(page)
-  await page.getByRole('button', { name: 'alpha tools 详情', exact: true }).click()
-  await expect(page.locator('.plugin-meta')).toContainText('待审批')
-  await page.getByRole('button', { name: '启用', exact: true }).click()
-  await expect(page.locator('.plugin-state')).toHaveText('失败')
-  await expect(page.locator('.plugin-errors')).toContainText('require approval')
-  await page.getByRole('button', { name: '批准能力', exact: true }).click()
-  await expect(page.locator('.plugin-meta')).toContainText('已批准')
-  await page.getByRole('button', { name: '启用', exact: true }).click()
+  const card = page.locator('.plugin-summary-card[data-plugin-id="cards.alpha"]')
+  const toggle = card.getByRole('switch')
+  await expect(toggle).toBeEnabled()
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).toBeFocused()
+  await card.getByRole('button', { name: 'alpha tools 详情', exact: true }).click()
   await expect(page.locator('.plugin-state')).toHaveText('已启用')
-  await expect(page.getByRole('heading', { name: 'alpha tools' })).toBeFocused()
-  await page.getByRole('button', { name: '禁用', exact: true }).click()
-  await expect(page.locator('.plugin-state')).toHaveText('已禁用')
-  await page.getByRole('button', { name: '移除', exact: true }).click()
+  await expect(
+    page.locator(
+      '[data-plugin-action="approve"], [data-plugin-action="enable"], [data-plugin-action="disable"], [data-plugin-action="revoke-approval"]',
+    ),
+  ).toHaveCount(0)
+  await expect(page.locator('.plugin-meta')).not.toContainText('审批')
+  await page.keyboard.press('Escape')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await card.getByRole('button', { name: 'alpha tools 详情', exact: true }).click()
+  await expect(page.locator('[data-plugin-action="reload"]')).toHaveCount(0)
+  await page.getByRole('button', { name: '移除插件', exact: true }).click()
   await expect(page.getByRole('button', { name: 'beta tools 详情', exact: true })).toBeFocused()
   await expect(page.getByRole('button', { name: 'alpha tools 详情', exact: true })).toHaveCount(0)
 })
@@ -98,7 +113,7 @@ test('plugin detail controls and long metadata fit a narrow viewport', async ({ 
   await page.setViewportSize({ width: 390, height: 844 })
   await seed(page)
   await page.getByRole('button', { name: 'alpha tools 详情', exact: true }).click()
-  await expect(page.getByRole('button', { name: '移除', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '移除插件', exact: true })).toBeVisible()
   expect(
     await page
       .locator('.plugin-detail')
@@ -106,7 +121,7 @@ test('plugin detail controls and long metadata fit a narrow viewport', async ({ 
   ).toBe(true)
 })
 
-test('new installation opens approval details; late and broken logos preserve fallback and focus', async ({
+test('new installation opens information details; late and broken logos preserve fallback and focus', async ({
   page,
 }) => {
   await page.goto('/')
@@ -170,7 +185,9 @@ test('new installation opens approval details; late and broken logos preserve fa
   })
   const target = page.locator('#plugin-ui-test')
   await expect(target.getByRole('heading', { name: 'New Tools' })).toBeFocused()
-  await expect(target.getByRole('button', { name: '批准能力', exact: true })).toBeVisible()
+  await expect(
+    target.locator('[data-plugin-action="approve"], [data-plugin-action="enable"]'),
+  ).toHaveCount(0)
   await expect(target.locator('.plugin-logo img')).toHaveCount(1)
   await expect(target.getByRole('heading', { name: 'New Tools' })).toBeFocused()
   await target.getByRole('button', { name: '返回插件列表', exact: true }).click()
@@ -262,7 +279,7 @@ test('beta3 card switch toggles in place without opening details', async ({ page
   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
   await expect(
     page.locator('.plugin-summary-card[data-plugin-id="cards.alpha"]').getByRole('switch'),
-  ).toBeDisabled()
+  ).toBeEnabled()
 })
 
 test('beta3 switch rejects repeated activation while pending and reports failure in place', async ({
@@ -289,4 +306,241 @@ test('beta3 switch rejects repeated activation while pending and reports failure
   await expect(page.locator('.plugin-detail')).toHaveCount(0)
   await card.getByRole('button', { name: 'beta tools 详情' }).click()
   await expect(page.locator('.plugin-errors')).toContainText('fixture activation failed')
+})
+
+for (const theme of ['light', 'dark'])
+  for (const width of [1100, 390])
+    test(`beta4 card controls fit ${theme} ${width} and retain menu focus`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 })
+      await seed(page)
+      await page.evaluate(async (theme) => {
+        const { renderDesktopPluginManagerElement } = await import(
+          /* @vite-ignore */ '/src/desktop-plugin-manager-ui.ts'
+        )
+        document.documentElement.dataset.theme = theme
+        const original = document.querySelector('[data-plugin-manager]')!
+        const target = document.createElement('div')
+        target.id = 'card-visual-fixture'
+        original.replaceWith(target)
+        const record = {
+          manifest: {
+            id: 'visual.tools',
+            name: '文档工具 · Document tools',
+            description: '在卡片打开控制面板或执行插件命令，所有操作保持清晰可达。',
+            version: '1.0.0',
+            main: './plugin.js',
+            contributes: {
+              commands: [{ id: 'visual.run', title: '整理当前文档', action: 'visual.run' }],
+            },
+          },
+          manifestPath: '/plugins/visual/plugin.json',
+          rootPath: '/plugins/visual',
+          sourcePath: '/visual.milkup-plugin',
+          state: 'enabled',
+          enabled: true,
+          installedAt: 1,
+          updatedAt: 1,
+          trust: 'development',
+          dataRoot: '/data',
+          storageRoot: '/storage',
+          approvals: { hosts: ['worker'], permissions: [] },
+          errors: [],
+        }
+        const state = {
+          records: [
+            record,
+            {
+              ...record,
+              manifest: { ...record.manifest, id: 'visual.other', name: '未启用插件' },
+              state: 'disabled',
+              enabled: false,
+            },
+          ],
+          contributions: {
+            commands: [{ id: 'visual.run', title: '整理当前文档', category: 'plugin', run() {} }],
+            ui: [{ pluginId: 'visual.tools', id: 'panel', title: '控制面板', slot: 'modal' }],
+            keymaps: [],
+            renderers: [],
+            markdownSyntax: [],
+            importers: [],
+            documentTypes: [],
+          },
+          auditCount: 0,
+          auditRecords: [],
+          installFailures: [],
+        }
+        renderDesktopPluginManagerElement(target, state)
+        ;(window as any).repaintCardFixture = () =>
+          renderDesktopPluginManagerElement(target, { ...state })
+      }, theme)
+      const card = page.locator('.plugin-summary-card[data-plugin-id="visual.tools"]')
+      await expect(card.getByRole('button', { name: '控制面板', exact: true })).toBeVisible()
+      const toggle = card.getByRole('switch')
+      await toggle.focus()
+      await expect(toggle).toBeFocused()
+      expect(await toggle.evaluate((element) => element.getBoundingClientRect().width)).toBe(44)
+      const summary = card.locator('summary')
+      await summary.click()
+      const reload = card.locator('[data-plugin-action="reload"]')
+      await page.keyboard.press('Tab')
+      await expect(reload).toBeFocused()
+      await page.evaluate(() => (window as any).repaintCardFixture())
+      await expect(reload).toBeFocused()
+      await expect(card.locator('[data-plugin-card-more]')).toHaveAttribute('open', '')
+      for (const selector of ['.plugin-summary-card', '.plugin-card-menu']) {
+        for (const item of await page.locator(selector).all()) {
+          const box = (await item.boundingBox())!
+          expect(box.x).toBeGreaterThanOrEqual(0)
+          expect(box.x + box.width).toBeLessThanOrEqual(width + 1)
+          expect(await item.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true)
+        }
+      }
+      await testInfo.attach(`cards-${theme}-${width}`, {
+        body: await page.screenshot({ path: testInfo.outputPath(`cards-${theme}-${width}.png`) }),
+        contentType: 'image/png',
+      })
+      await page.keyboard.press('Escape')
+      await expect(summary).toBeFocused()
+      await expect(card.locator('[data-plugin-card-more]')).not.toHaveAttribute('open', '')
+      await expect(page.locator('[data-app-menu]')).toBeVisible()
+      await card.getByRole('button', { name: '文档工具 · Document tools 详情' }).click()
+      await expect(page.getByRole('heading', { name: '文档工具 · Document tools' })).toBeFocused()
+      await testInfo.attach(`details-${theme}-${width}`, {
+        body: await page.screenshot({ path: testInfo.outputPath(`details-${theme}-${width}.png`) }),
+        contentType: 'image/png',
+      })
+    })
+
+test('beta4 card icons open the actual Worker panel and invoke its command', async ({ page }) => {
+  await seed(
+    page,
+    `let runs=0; export default { commands:{'cards.run':()=>{runs++}}, renderers:{panel:()=>({type:'element',tag:'span',text:'Runs '+runs})} }`,
+    true,
+  )
+  const card = page.locator('.plugin-summary-card[data-plugin-id="cards.beta"]')
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  const panel = card.locator('[data-plugin-action="open-ui"]')
+  await panel.locator('svg').click()
+  await expect(page.locator('.plugin-ui-modal')).toContainText('Runs 0')
+  await page.keyboard.press('Escape')
+  await expect(panel).toBeFocused()
+  await expect(page.locator('[data-app-menu]')).toBeVisible()
+  await card.locator('summary svg').click()
+  await card.locator('[data-plugin-command="cards.run"] svg').click()
+  await panel.locator('svg').click()
+  await expect(page.locator('.plugin-ui-modal')).toContainText('Runs 1')
+  await page.keyboard.press('Escape')
+  await expect(panel).toBeFocused()
+  await expect(page.locator('[data-plugin-menu-group], [data-plugin-menu-entry]')).toHaveCount(0)
+})
+
+test('beta4 trusted Worker upgrade stays on its card while a candidate is staged', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 760, height: 850 })
+  await seed(page)
+  await page.evaluate(async () => {
+    const { renderDesktopPluginManagerElement } = await import(
+      /* @vite-ignore */ '/src/desktop-plugin-manager-ui.ts'
+    )
+    const target = document.createElement('div')
+    target.id = 'upgrade-card-fixture'
+    document.querySelector('[data-plugin-manager]')!.replaceWith(target)
+    const manifest = {
+      id: 'upgrade.fixture',
+      name: '文档图表',
+      version: '1.0.0',
+      host: 'dom',
+      main: './plugin.js',
+    }
+    const offer = {
+      ...manifest,
+      version: '2.0.0',
+      host: 'worker',
+      description: '仅提供受限的静态文档呈现。',
+    }
+    const record = {
+      manifest,
+      manifestPath: '/plugins/upgrade/plugin.json',
+      rootPath: '/plugins/upgrade',
+      sourcePath: 'bundled:/upgrade',
+      state: 'disabled',
+      enabled: false,
+      installedAt: 1,
+      updatedAt: 1,
+      trust: 'development',
+      dataRoot: '/data',
+      storageRoot: '/storage',
+      approvals: { hosts: ['dom'], permissions: [] },
+      errors: [],
+    }
+    const state = {
+      records: [record],
+      bundledUpgradeOffers: { 'upgrade.fixture': offer },
+      contributions: {
+        commands: [],
+        ui: [],
+        keymaps: [],
+        renderers: [],
+        markdownSyntax: [],
+        importers: [],
+        documentTypes: [],
+      },
+      auditCount: 0,
+      auditRecords: [],
+      installFailures: [],
+    }
+    renderDesktopPluginManagerElement(target, state)
+    ;(window as any).stageUpgradeFixture = () =>
+      renderDesktopPluginManagerElement(target, {
+        ...state,
+        bundledUpgradeOffers: {},
+        catalogEntries: [
+          {
+            id: 'upgrade.fixture',
+            revision: 2,
+            active: null,
+            previous: null,
+            pending: {
+              transactionId: 'upgrade-staging',
+              phase: 'prepared',
+              restoreEnabled: false,
+              generation: {
+                id: 'new',
+                manifest: offer,
+                capabilityFingerprint: 'new',
+                approvedFingerprint: null,
+                verified: false,
+                sourcePath: 'bundled:/upgrade',
+                packageRoot: '/upgrade',
+                manifestSha256: 'a',
+                contentSha256: 'b',
+              },
+            },
+            enabled: false,
+            tombstone: false,
+            startAttempt: null,
+            dataRoot: '/data',
+            storageRoot: '/storage',
+            diagnostics: [],
+          },
+        ],
+      })
+  })
+  const target = page.locator('#upgrade-card-fixture')
+  const toggle = target.getByRole('switch')
+  await expect(toggle).toBeEnabled()
+  await expect(target).toContainText('2.0.0 · Worker · 下次开启时应用')
+  await expect(target).toContainText('仅提供受限的静态文档呈现。')
+  await target.locator('[data-plugin-action="install"]').focus()
+  await page.keyboard.press('Tab')
+  await expect(toggle).toBeFocused()
+  await page.screenshot({ path: testInfo.outputPath('bundled-worker-upgrade.png') })
+  await page.evaluate(() => (window as any).stageUpgradeFixture())
+  await expect(toggle).toBeFocused()
+  await expect(target.locator('.plugin-summary-card')).toHaveCount(1)
+  await expect(target.locator('.plugin-detail')).toHaveCount(0)
 })

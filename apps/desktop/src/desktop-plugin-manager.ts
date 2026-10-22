@@ -1,3 +1,15 @@
+import {
+  ArrowLeft,
+  Download,
+  Ellipsis,
+  Info,
+  PackagePlus,
+  RotateCw,
+  Settings2,
+  Terminal,
+  Trash2,
+} from 'lucide'
+import { iconSvg } from './icons'
 import type {
   ActionContext,
   ActionDefinition,
@@ -214,6 +226,8 @@ export interface DesktopPluginKeymapContext {
 
 export interface DesktopPluginManagerOptions {
   readonly catalog?: DesktopPluginCatalog
+  /** Host-owned built-ins cannot also run as plugins; retained catalog/data are never removed. */
+  readonly reservedPluginIds?: readonly string[]
   /** Trusted platform capability check; undefined means the existing activation gates apply. */
   readonly executionUnavailableReason?: (manifest: PluginManifest) => string | undefined
   readonly requestManagementHostView?: (
@@ -243,8 +257,10 @@ export interface DesktopPluginManagerOptions {
   readonly loadSidecarModule?: DesktopPluginModuleLoader
   readonly loadDomModule?: DesktopDomPluginModuleLoader
   readonly now?: () => number
-  /** Distribution-provided packages; never used to upgrade an existing user installation. */
+  /** Distribution-provided packages; upgrades require an explicit card enable intent. */
   readonly bundledPackagePaths?: () => Promise<readonly string[]>
+  /** Host-maintained exact receipts of prior distributions; never supplied by plugins. */
+  readonly bundledUpgradeSources?: Readonly<Record<string, readonly string[]>>
   readonly editingAdapter?: (manifest: PluginManifest) => {
     adapter: PluginEditingBrokerAdapter
     dispose(): void | Promise<void>
@@ -277,6 +293,7 @@ export interface DesktopPluginManagerOptions {
 export interface DesktopPluginManagerState {
   readonly catalogRevision?: number
   readonly executionUnavailableReasons?: Readonly<Record<string, string>>
+  readonly bundledUpgradeOffers?: Readonly<Record<string, PluginManifest>>
   readonly catalogEntries?: readonly PluginCatalogEntry[]
   readonly diagnostics?: readonly string[]
   readonly records: readonly PluginRegistryRecord[]
@@ -308,8 +325,58 @@ const sensitivePermissions = new Set([
   'document:output',
 ])
 
+/** Semver precedence, ignoring build metadata; invalid inputs never offer an update. */
+function isNewerBundledVersion(next: string, prior: string): boolean {
+  const parse = (value: string) => {
+    const match =
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
+        value,
+      )
+    if (!match) return undefined
+    const pre = match[4]?.split('.')
+    if (pre?.some((part) => /^\d+$/.test(part) && part.length > 1 && part[0] === '0'))
+      return undefined
+    return { core: match.slice(1, 4).map((value) => BigInt(value!)), pre }
+  }
+  const a = parse(next),
+    b = parse(prior)
+  if (!a || !b) return false
+  for (let i = 0; i < 3; i++) {
+    if (a.core[i] !== b.core[i]) return a.core[i]! > b.core[i]!
+  }
+  if (!a.pre || !b.pre) return !a.pre && !!b.pre
+  for (let i = 0; i < Math.max(a.pre.length, b.pre.length); i++) {
+    const left = a.pre[i],
+      right = b.pre[i]
+    if (left === right) continue
+    if (left === undefined || right === undefined) return right === undefined
+    const leftNumeric = /^\d+$/.test(left),
+      rightNumeric = /^\d+$/.test(right)
+    if (leftNumeric && rightNumeric) return BigInt(left) > BigInt(right)
+    if (leftNumeric !== rightNumeric) return !leftNumeric
+    return left > right
+  }
+  return false
+}
+
+export class ReservedPluginMigrationError extends Error {
+  constructor(cause: unknown) {
+    super('Built-in plugin migration did not complete; restart the application to retry', { cause })
+    this.name = 'ReservedPluginMigrationError'
+  }
+}
+
 export class DesktopPluginManager {
   private readonly catalog: DesktopPluginCatalog | undefined
+  private readonly reservedPluginIds: ReadonlySet<string>
+  private readonly hostPermissions: ReadonlySet<string>
+  private readonly userEnableTasks = new Map<string, Promise<PluginRegistryRecord>>()
+  private readonly bundledUpgradeIndex = new Map<
+    string,
+    { path: string; archive: PluginPackageArchive }
+  >()
+  private readonly ambiguousBundledIds = new Set<string>()
+  private readonly bundledUpgradeSources: ReadonlyMap<string, ReadonlySet<string>>
   private readonly executionUnavailableReason: DesktopPluginManagerOptions['executionUnavailableReason']
   private catalogSnapshot: PluginCatalogSnapshot | undefined
   private readonly publishedGenerations = new Map<string, string>()
@@ -387,6 +454,14 @@ export class DesktopPluginManager {
 
   constructor(options: DesktopPluginManagerOptions) {
     this.catalog = options.catalog
+    this.reservedPluginIds = new Set(options.reservedPluginIds ?? [])
+    this.bundledUpgradeSources = new Map(
+      Object.entries(options.bundledUpgradeSources ?? {}).map(([id, sources]) => [
+        id,
+        new Set(sources),
+      ]),
+    )
+    this.hostPermissions = new Set(options.permissions)
     this.executionUnavailableReason = options.executionUnavailableReason
     this.requestManagementHostView = options.requestManagementHostView
     this.editingAdapter = options.editingAdapter
@@ -502,14 +577,16 @@ export class DesktopPluginManager {
     if (this.catalogSnapshot && snapshot.revision < this.catalogSnapshot.revision) return
     this.catalogSnapshot = snapshot
     const projected = catalogToRegistrySnapshot(snapshot)
-    const records = projected.records.map((record) => {
-      const entry = snapshot.entries.find((e) => e.id === record.manifest.id)!
-      const published =
-        entry.enabled && entry.active?.id === this.publishedGenerations.get(entry.id)
-      return published
-        ? { ...record, state: 'enabled' as const, enabled: true, errors: [] }
-        : record
-    })
+    const records = projected.records
+      .filter((record) => !this.reservedPluginIds.has(record.manifest.id))
+      .map((record) => {
+        const entry = snapshot.entries.find((e) => e.id === record.manifest.id)!
+        const published =
+          entry.enabled && entry.active?.id === this.publishedGenerations.get(entry.id)
+        return published
+          ? { ...record, state: 'enabled' as const, enabled: true, errors: [] }
+          : record
+      })
     this.registry.restore({ ...projected, records })
     this.persist()
   }
@@ -525,6 +602,7 @@ export class DesktopPluginManager {
   private async initializeCatalog(
     listPaths: DesktopPluginManagerOptions['bundledPackagePaths'],
   ): Promise<void> {
+    let reservedMigrationComplete = this.reservedPluginIds.size === 0
     try {
       let snapshot = await this.catalog!.read()
       let legacy: string | null = null
@@ -536,7 +614,23 @@ export class DesktopPluginManager {
       if (!snapshot.migrationReceipt && snapshot.entries.length === 0 && legacy)
         snapshot = await this.catalog!.migrateLegacy(legacy)
       this.applyCatalog(snapshot)
+      // Complete host-owned migration before restoring any plugin execution epoch.
       for (const entry of snapshot.entries) {
+        if (!this.reservedPluginIds.has(entry.id)) continue
+        if (
+          entry.enabled ||
+          entry.startAttempt ||
+          entry.pending?.phase === 'trial' ||
+          [entry.active, entry.previous, entry.pending?.generation].some(
+            (g) => g?.approvedFingerprint,
+          )
+        ) {
+          await this.catalogTransition(entry.id, { type: 'revokeApproval' })
+        }
+      }
+      reservedMigrationComplete = true
+      for (const entry of snapshot.entries) {
+        if (this.reservedPluginIds.has(entry.id)) continue
         if (entry.pending?.phase === 'trial') {
           await this.catalogTransition(entry.id, {
             type: 'failCandidate',
@@ -568,6 +662,17 @@ export class DesktopPluginManager {
           const archive = parsePluginPackageArchive(
             parseManifestJson(await this.manifestHost.readManifestText(path), path),
           )
+          if (this.reservedPluginIds.has(archive.manifest.id)) continue
+          // Only the host's closed bundled list contributes offers; a sourcePath string
+          // on an installed generation is an eligibility receipt, not package authentication.
+          if (/^bundled:[A-Za-z0-9][A-Za-z0-9._-]*\.milkup-plugin$/.test(path)) {
+            if (this.bundledUpgradeIndex.has(archive.manifest.id)) {
+              this.ambiguousBundledIds.add(archive.manifest.id)
+              this.bundledUpgradeIndex.delete(archive.manifest.id)
+            } else if (!this.ambiguousBundledIds.has(archive.manifest.id)) {
+              this.bundledUpgradeIndex.set(archive.manifest.id, { path, archive })
+            }
+          }
           const existing = this.catalogEntry(archive.manifest.id)
           // Repair pre-beta3 empty failed receipts; preserve installations and explicit removals.
           if (existing && (existing.active || existing.pending || existing.tombstone)) continue
@@ -578,6 +683,7 @@ export class DesktopPluginManager {
       }
     } catch (error) {
       this.managerDiagnostics.push('Native plugin catalog unavailable: ' + String(error))
+      if (!reservedMigrationComplete) throw new ReservedPluginMigrationError(error)
     }
   }
   private publishCatalogInstance(
@@ -748,7 +854,7 @@ export class DesktopPluginManager {
           parseManifestJson(await this.manifestHost.readManifestText(path), path),
         )
         const { id } = archive.manifest
-        if (considered.has(id)) continue
+        if (this.reservedPluginIds.has(id) || considered.has(id)) continue
         // Persist before installing: a crash or subsequent uninstall must not cause
         // an automatic reinstall. A failed attempt remains visible and can be
         // retried manually through the ordinary package picker.
@@ -786,35 +892,51 @@ export class DesktopPluginManager {
   state(): DesktopPluginManagerState {
     return Object.freeze({
       records: Object.freeze([
-        ...this.registry.list(),
+        ...this.registry.list().filter((record) => !this.reservedPluginIds.has(record.manifest.id)),
         ...(this.catalogSnapshot?.entries.flatMap((entry) =>
-          entry.tombstone && entry.active && entry.diagnostics.length
-            ? [
-                {
-                  ...this.generationRecord(entry, entry.active),
-                  state: 'failed' as const,
-                  errors: entry.diagnostics,
-                },
-              ]
-            : !entry.active && entry.pending && !entry.tombstone
+          this.reservedPluginIds.has(entry.id)
+            ? []
+            : entry.tombstone && entry.active && entry.diagnostics.length
               ? [
                   {
-                    ...this.generationRecord(entry, entry.pending.generation),
-                    state: entry.diagnostics.length ? ('failed' as const) : ('disabled' as const),
+                    ...this.generationRecord(entry, entry.active),
+                    state: 'failed' as const,
                     errors: entry.diagnostics,
                   },
                 ]
-              : [],
+              : !entry.active && entry.pending && !entry.tombstone
+                ? [
+                    {
+                      ...this.generationRecord(entry, entry.pending.generation),
+                      state: entry.diagnostics.length ? ('failed' as const) : ('disabled' as const),
+                      errors: entry.diagnostics,
+                    },
+                  ]
+                : [],
         ) ?? []),
       ]),
       ...(this.catalogSnapshot
         ? {
             catalogRevision: this.catalogSnapshot.revision,
-            catalogEntries: this.catalogSnapshot.entries,
+            catalogEntries: this.catalogSnapshot.entries.filter(
+              (entry) => !this.reservedPluginIds.has(entry.id),
+            ),
+            bundledUpgradeOffers: Object.freeze(
+              Object.fromEntries(
+                this.catalogSnapshot.entries.flatMap((entry) => {
+                  const offer = this.bundledUpgrade(entry)
+                  return offer ? [[entry.id, offer.archive.manifest]] : []
+                }),
+              ),
+            ),
             executionUnavailableReasons: Object.freeze(
               Object.fromEntries(
                 this.catalogSnapshot.entries.flatMap((entry) => {
-                  const manifest = entry.pending?.generation.manifest ?? entry.active?.manifest
+                  if (this.reservedPluginIds.has(entry.id)) return []
+                  const manifest =
+                    this.bundledUpgrade(entry)?.archive.manifest ??
+                    entry.pending?.generation.manifest ??
+                    entry.active?.manifest
                   const reason = manifest && this.executionUnavailableReason?.(manifest)
                   return reason ? [[entry.id, reason]] : []
                 }),
@@ -827,7 +949,7 @@ export class DesktopPluginManager {
         ...(this.catalogSnapshot?.diagnostics ?? []),
       ]),
       contributions: createPluginContributionIndex(
-        this.registry.list(),
+        this.registry.list().filter((record) => !this.reservedPluginIds.has(record.manifest.id)),
         this.runtime.getActionRegistry().list(),
       ),
       auditCount: this.registry.auditLog().length,
@@ -853,6 +975,7 @@ export class DesktopPluginManager {
       const value = parseManifestJson(text, path)
       const archive = isPluginPackageArchive(value) ? parsePluginPackageArchive(value) : undefined
       const manifest = archive?.manifest ?? parsePluginManifest(value)
+      this.assertPluginNotReserved(manifest.id)
       if (!allowedHosts.includes(manifest.host ?? 'worker'))
         throw new Error(`Plugin host is not allowed: ${manifest.host}`)
       const errors = validatePluginCompatibility(manifest, this.compatibility)
@@ -920,6 +1043,182 @@ export class DesktopPluginManager {
     return target
   }
 
+  /** Called only by the trusted host's explicit card gesture, never by plugin RPC/actions. */
+  enableFromUserIntent(pluginId: string): Promise<PluginRegistryRecord> {
+    const pending = this.userEnableTasks.get(pluginId)
+    if (pending) return pending
+    const result = this.ready.then(() => {
+      this.assertPluginNotReserved(pluginId)
+      const intentEntry = this.catalog ? this.requireCatalogEntry(pluginId) : undefined
+      const intentRecord = this.catalog ? undefined : this.require(pluginId)
+      return this.runPluginLifecycle(pluginId, async () => {
+        if (intentEntry) {
+          let current = this.requireCatalogEntry(pluginId)
+          const selectedIntent = intentEntry.pending?.generation ?? intentEntry.active
+          let generation = current.pending?.generation ?? current.active
+          if (
+            current.revision !== intentEntry.revision ||
+            current.tombstone ||
+            current.pending?.transactionId !== intentEntry.pending?.transactionId ||
+            generation?.id !== selectedIntent?.id ||
+            generation?.capabilityFingerprint !== selectedIntent?.capabilityFingerprint
+          )
+            throw new Error('Plugin changed before enable intent; click the switch again')
+          const offer = this.bundledUpgrade(current)
+          if (offer) {
+            this.assertUserExecutionSupported(offer.archive.manifest)
+            current = await this.stageBundledUpgrade(current, offer)
+            generation = current.pending?.generation ?? current.active
+          }
+          if (!generation) throw new Error('Plugin has no installation to enable')
+          this.assertUserExecutionSupported(generation.manifest)
+          if (
+            !current.pending &&
+            current.enabled &&
+            this.publishedGenerations.get(pluginId) === generation.id
+          )
+            return this.require(pluginId)
+          const transactionId = current.pending?.transactionId
+          if (generation.approvedFingerprint !== generation.capabilityFingerprint) {
+            const approved = await this.catalogTransition(
+              pluginId,
+              transactionId
+                ? { type: 'approve', transactionId, fingerprint: generation.capabilityFingerprint }
+                : {
+                    type: 'approveActive',
+                    generationId: generation.id,
+                    fingerprint: generation.capabilityFingerprint,
+                  },
+            )
+            const selected = approved.pending?.generation ?? approved.active
+            if (
+              approved.revision !== current.revision + 1 ||
+              approved.tombstone ||
+              approved.pending?.transactionId !== transactionId ||
+              selected?.id !== generation.id ||
+              selected.capabilityFingerprint !== generation.capabilityFingerprint
+            )
+              throw new Error('Plugin changed during enable intent; click the switch again')
+          }
+          return this.enableCatalogInstance(pluginId)
+        }
+        const record = this.require(pluginId)
+        if (JSON.stringify(record) !== JSON.stringify(intentRecord))
+          throw new Error('Plugin changed before enable intent; click the switch again')
+        this.assertUserExecutionSupported(record.manifest)
+        if (record.enabled) return record
+        this.registry.approve(pluginId)
+        this.persist()
+        // Compatibility, host permissions and runtime isolation are revalidated; historical
+        // activation diagnostics do not prevent a deliberate retry of the same installation.
+        return this.enablePluginInstance(pluginId, undefined, true)
+      })
+    })
+    this.userEnableTasks.set(pluginId, result)
+    const clear = () => {
+      if (this.userEnableTasks.get(pluginId) === result) this.userEnableTasks.delete(pluginId)
+    }
+    void result.then(clear, clear)
+    return result
+  }
+
+  private bundledUpgrade(
+    entry: PluginCatalogEntry,
+  ): { path: string; archive: PluginPackageArchive } | undefined {
+    if (
+      entry.tombstone ||
+      entry.startAttempt ||
+      entry.pending?.phase === 'trial' ||
+      this.reservedPluginIds.has(entry.id)
+    )
+      return undefined
+    const offer = this.bundledUpgradeIndex.get(entry.id)
+    const selected = entry.pending?.generation ?? entry.active
+    const receiptAllowed = (path: string) =>
+      path === offer?.path || this.bundledUpgradeSources.get(entry.id)?.has(path) === true
+    if (
+      !offer ||
+      !selected ||
+      !receiptAllowed(selected.sourcePath) ||
+      !isNewerBundledVersion(offer.archive.manifest.version, selected.manifest.version)
+    )
+      return undefined
+    if (
+      entry.active &&
+      (!receiptAllowed(entry.active.sourcePath) ||
+        !isNewerBundledVersion(offer.archive.manifest.version, entry.active.manifest.version))
+    )
+      return undefined
+    return offer
+  }
+
+  private async stageBundledUpgrade(
+    entry: PluginCatalogEntry,
+    offer: { path: string; archive: PluginPackageArchive },
+  ): Promise<PluginCatalogEntry> {
+    const pending = entry.pending
+    try {
+      this.applyCatalog(
+        await this.catalog!.prepare({
+          archive: offer.archive,
+          sourcePath: offer.path,
+          expectedRevision: entry.revision,
+          ...(pending
+            ? {
+                replacePending: {
+                  transactionId: pending.transactionId,
+                  generationId: pending.generation.id,
+                  sourcePath: pending.generation.sourcePath,
+                  fingerprint: pending.generation.capabilityFingerprint,
+                },
+              }
+            : {}),
+        }),
+      )
+      const staged = this.requireCatalogEntry(entry.id),
+        candidate = staged.pending
+      if (
+        staged.revision !== entry.revision + 1 ||
+        staged.tombstone ||
+        !candidate ||
+        candidate.phase !== 'prepared' ||
+        candidate.transactionId === pending?.transactionId ||
+        candidate.generation.sourcePath !== offer.path ||
+        candidate.generation.manifest.version !== offer.archive.manifest.version ||
+        candidate.generation.manifest.host !== offer.archive.manifest.host
+      )
+        throw new Error('Bundled candidate changed during enable intent; click the switch again')
+      return staged
+    } catch (error) {
+      // A rejected IPC may follow a durable write. Refresh authority, but do not approve
+      // or activate on this failed gesture; the next explicit gesture captures fresh identity.
+      try {
+        this.applyCatalog(await this.catalog!.read())
+      } catch (recovery) {
+        this.managerDiagnostics.push('Bundled candidate recovery failed: ' + String(recovery))
+      }
+      throw error
+    }
+  }
+
+  private assertPluginNotReserved(pluginId: string): void {
+    if (this.reservedPluginIds.has(pluginId))
+      throw new Error('This plugin ID is reserved for a built-in feature: ' + pluginId)
+  }
+
+  private assertUserExecutionSupported(manifest: PluginManifest): void {
+    const errors = validatePluginCompatibility(manifest, this.compatibility)
+    if (errors.length) throw new Error(errors.join('; '))
+    const denied = (manifest.permissions ?? []).filter(
+      (permission) => !this.hostPermissions.has(permission),
+    )
+    if (denied.length) throw new Error('Plugin permissions are not allowed: ' + denied.join(', '))
+    const unavailable = this.executionUnavailableReason?.(manifest)
+    if (unavailable) throw new Error(unavailable)
+    if (!supportsRestrictedActivation(manifest))
+      throw new Error('Restricted activation is not supported for this execution host')
+  }
+
   async enable(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
     return this.enableRestoredPlugin(pluginId)
@@ -934,6 +1233,7 @@ export class DesktopPluginManager {
   private async enablePluginInstance(
     pluginId: string,
     candidate?: PluginRegistryRecord,
+    explicitRetry = false,
   ): Promise<PluginRegistryRecord> {
     const record = candidate ?? this.require(pluginId)
 
@@ -947,7 +1247,7 @@ export class DesktopPluginManager {
       const blockingErrors = record.errors.filter(
         (error) => error !== documentRendererTimeoutMessage && error !== retryableFailure,
       )
-      if (blockingErrors.length > 0) {
+      if (!explicitRetry && blockingErrors.length > 0) {
         throw new Error(blockingErrors.join('; '))
       }
 
@@ -1097,19 +1397,15 @@ export class DesktopPluginManager {
   async reload(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
     return this.runPluginLifecycle(pluginId, async () => {
-      if (this.catalog) {
-        const entry = this.requireCatalogEntry(pluginId)
-        if (entry.pending) return this.trialCandidate(pluginId)
-        return this.enableCatalogInstance(pluginId)
-      }
-      const record = this.require(pluginId),
-        wasEnabled = record.enabled
+      const record = this.requireDisplayRecord(pluginId)
+      if (!record.enabled) throw new Error('Only an enabled plugin can be reloaded')
+      if (this.catalog) return this.enableCatalogInstance(pluginId, false)
       await this.unloadRuntimePlugin(pluginId)
       this.registry.markDisabled(pluginId)
       // A reload of the sealed installed version does not recursively enter its own queue.
       this.registry.recordAudit(pluginId, 'reload')
       this.persist()
-      return wasEnabled ? this.enablePluginInstance(pluginId) : this.require(pluginId)
+      return this.enablePluginInstance(pluginId)
     })
   }
   async remove(pluginId: string): Promise<void> {
@@ -1716,7 +2012,12 @@ export class DesktopPluginManager {
       revision: this.catalogSnapshot.revision,
       items: Object.freeze(
         this.catalogSnapshot.entries
-          .filter((e) => (!e.tombstone || e.diagnostics.length > 0) && (e.active || e.pending))
+          .filter(
+            (e) =>
+              !this.reservedPluginIds.has(e.id) &&
+              (!e.tombstone || e.diagnostics.length > 0) &&
+              (e.active || e.pending),
+          )
           .map((e) => {
             const manifest = e.active?.manifest ?? e.pending!.generation.manifest
             return Object.freeze({ id: e.id, ...projectPluginManagementMetadata(manifest) })
@@ -1729,7 +2030,8 @@ export class DesktopPluginManager {
     if (input.revision !== this.catalogSnapshot.revision) throw new PluginManagementError('stale')
     const entry = this.catalogEntry(input.pluginId),
       generation = entry?.pending?.generation ?? entry?.active
-    if (!entry || !generation) throw new PluginManagementError('not-found')
+    if (this.reservedPluginIds.has(input.pluginId) || !entry || !generation)
+      throw new PluginManagementError('not-found')
     const manifest = generation.manifest,
       active = entry.active
     const approved =
@@ -1992,6 +2294,7 @@ export class DesktopPluginManager {
   }
 
   private runPluginLifecycle<T>(pluginId: string, operation: () => Promise<T>): Promise<T> {
+    this.assertPluginNotReserved(pluginId)
     const pending = this.lifecycleTasks.get(pluginId) ?? Promise.resolve()
     const result = pending.then(operation)
     const completed = result.then(
@@ -2224,6 +2527,7 @@ export class DesktopPluginManager {
 
   private async restoreEnabledPlugins(): Promise<void> {
     for (const record of this.registry.list()) {
+      if (this.reservedPluginIds.has(record.manifest.id)) continue
       const directories = await this.manifestHost
         .ensureDataDirectories?.(record.manifest.id)
         .catch(() => undefined)
@@ -2236,7 +2540,12 @@ export class DesktopPluginManager {
     }
     const pluginIds = this.registry
       .list()
-      .filter((record) => record.enabled && record.state === 'enabled')
+      .filter(
+        (record) =>
+          !this.reservedPluginIds.has(record.manifest.id) &&
+          record.enabled &&
+          record.state === 'enabled',
+      )
       .map((record) => record.manifest.id)
 
     for (const pluginId of pluginIds) {
@@ -2319,6 +2628,13 @@ export class DesktopPluginManager {
 
     try {
       this.registry.restore(parsePluginRegistrySnapshot(text))
+      let migrated = false
+      for (const record of this.registry.list()) {
+        if (!this.reservedPluginIds.has(record.manifest.id)) continue
+        this.registry.revokeApproval(record.manifest.id)
+        migrated = true
+      }
+      if (migrated) this.persist()
     } catch {
       this.managerDiagnostics.push(
         'Legacy registry is corrupt; original bytes retained for native migration',
@@ -2541,10 +2857,16 @@ export function renderDesktopPluginManager(
   const failure = state.installFailures.find((item) => item.sourcePath === view.selectedFailurePath)
   const entry = state.catalogEntries?.find((item) => item.id === selected?.manifest.id)
   const content = failure
-    ? `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">安装未完成</h4>${renderInstallFailure(failure)}<p>现有插件保持不变。请选择修正后的完整插件包重试。</p><button type="button" class="dialog-button" data-plugin-action="install">选择插件包</button></article>`
+    ? `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">安装未完成</h4>${renderInstallFailure(failure)}<p>现有插件保持不变。请选择修正后的完整插件包重试。</p><button type="button" class="dialog-button" data-plugin-action="install">${iconSvg(PackagePlus)}选择插件包</button></article>`
     : selected
-      ? renderPluginRecord(selected, view.icons?.get(selected.manifest.id), entry) +
+      ? renderPluginRecord(
+          selected,
+          view.icons?.get(selected.manifest.id),
+          entry,
+          state.bundledUpgradeOffers?.[selected.manifest.id],
+        ) +
         renderCandidate(entry) +
+        renderBundledUpgrade(state.bundledUpgradeOffers?.[selected.manifest.id]) +
         renderPluginDetails(state, selected)
       : `<div class="plugin-list">${state.records
           .map((record) =>
@@ -2553,6 +2875,8 @@ export function renderDesktopPluginManager(
               view.icons?.get(record.manifest.id),
               state.catalogEntries?.find((entry) => entry.id === record.manifest.id),
               state.executionUnavailableReasons?.[record.manifest.id],
+              state.contributions,
+              state.bundledUpgradeOffers?.[record.manifest.id],
             ),
           )
           .join(
@@ -2561,8 +2885,8 @@ export function renderDesktopPluginManager(
   return [
     '<div class="plugin-manager"><div class="plugin-manager-toolbar">',
     selected || failure
-      ? '<button type="button" class="dialog-button" data-plugin-action="back">返回插件列表</button>'
-      : '<button type="button" class="dialog-button primary" data-plugin-action="install">安装本地插件</button>',
+      ? `<button type="button" class="dialog-button" data-plugin-action="back">${iconSvg(ArrowLeft)}返回插件列表</button>`
+      : `<button type="button" class="dialog-button primary" data-plugin-action="install">${iconSvg(PackagePlus)}安装本地插件</button>`,
     '</div>',
     content,
     state.diagnostics?.length
@@ -2586,21 +2910,25 @@ export function pluginCapabilityDifference(
 function renderCandidate(entry: PluginCatalogEntry | undefined): string {
   const pending = entry?.pending
   if (!entry || !pending) return ''
-  const g = pending.generation,
-    old = entry.active,
-    approved = old?.approvedFingerprint === old?.capabilityFingerprint
-  const permissions = pluginCapabilityDifference(
-    g.manifest.permissions ?? [],
-    approved ? (old?.manifest.permissions ?? []) : [],
-  )
-  const origins = pluginCapabilityDifference(
-    g.manifest.networkOrigins ?? [],
-    approved ? (old?.manifest.networkOrigins ?? []) : [],
-  )
-  const scope = (label: string, d: ReturnType<typeof pluginCapabilityDifference>) =>
-    `<dt>${label}</dt><dd>候选：${escapeHtml(d.declared.join(', ') || '无')}<br>原批准：${escapeHtml(d.approved.join(', ') || '无')}<br>新增：${escapeHtml(d.added.join(', ') || '无')}<br>移除：${escapeHtml(d.removed.join(', ') || '无')}</dd>`
-  const attrs = `data-plugin-id="${escapeHtml(entry.id)}" data-plugin-fingerprint="${g.capabilityFingerprint}" data-plugin-entry-revision="${entry.revision}"`
-  return `<section class="plugin-detail-section plugin-candidate"><h4>待验证版本 ${escapeHtml(g.manifest.version)}</h4><p>现有版本与其审批保持独立。候选通过受限启动验证后才会替换。</p><dl class="plugin-meta"><dt>执行环境</dt><dd>${escapeHtml(old?.manifest.host ?? '无')} → ${escapeHtml(g.manifest.host ?? 'worker')}</dd>${scope('权限', permissions)}${scope('网络范围', origins)}</dl>${renderExecutionSupport(g.manifest)}${g.approvedFingerprint === g.capabilityFingerprint ? `<button type="button" class="dialog-button primary" data-plugin-action="enable" ${attrs}>验证并启用候选</button>` : `<button type="button" class="dialog-button primary" data-plugin-action="approve" ${attrs}>批准此候选能力</button>`}<button type="button" class="dialog-button" data-plugin-action="reject-candidate" ${attrs}>拒绝候选</button></section>`
+  const generation = pending.generation
+  const current = entry.active
+  const scope = (label: string, next: readonly string[], previous: readonly string[]) => {
+    const difference = pluginCapabilityDifference(next, previous)
+    return `<div><dt>${label}</dt><dd>新版本：${escapeHtml(next.join(', ') || '无')}<br>当前版本：${escapeHtml(previous.join(', ') || '无')}${difference.added.length ? `<br>新增：${escapeHtml(difference.added.join(', '))}` : ''}${difference.removed.length ? `<br>移除：${escapeHtml(difference.removed.join(', '))}` : ''}</dd></div>`
+  }
+  return `<section class="plugin-detail-section plugin-candidate"><h4>可用版本 ${escapeHtml(generation.manifest.version)}</h4><p>${current ? '下次开启卡片开关时应用新版本；当前已开启时，先关闭再开启。' : '在插件卡片开启开关即可使用。'}启动验证成功后才会替换当前版本。</p><dl class="plugin-meta"><div><dt>执行环境</dt><dd>${escapeHtml(current?.manifest.host ?? '无')} → ${escapeHtml(generation.manifest.host ?? 'worker')}</dd></div>${scope('权限', generation.manifest.permissions ?? [], current?.manifest.permissions ?? [])}${scope('网络范围', generation.manifest.networkOrigins ?? [], current?.manifest.networkOrigins ?? [])}</dl>${renderExecutionSupport(generation.manifest)}</section>`
+}
+
+function upgradeHostLabel(manifest: PluginManifest): string {
+  return manifest.host === 'worker' || !manifest.host
+    ? 'Worker'
+    : manifest.host === 'dom'
+      ? 'DOM'
+      : 'Sidecar'
+}
+function renderBundledUpgrade(offer: PluginManifest | undefined): string {
+  if (!offer) return ''
+  return `<section class="plugin-detail-section plugin-candidate"><h4>随应用提供的新版 ${escapeHtml(offer.version)}</h4><p>下次开启卡片开关时应用；当前已开启时，先关闭再开启。运行方式：${upgradeHostLabel(offer)}。</p>${offer.description ? `<p>${escapeHtml(offer.description)}</p>` : ''}${renderExecutionSupport(offer)}</section>`
 }
 
 function renderPluginLogo(name: string, icon?: string): string {
@@ -2613,22 +2941,50 @@ function renderPluginLogo(name: string, icon?: string): string {
 
 function renderPluginCard(
   record: PluginRegistryRecord,
-  icon?: string,
-  entry?: PluginCatalogEntry,
-  unavailable?: string,
+  icon: string | undefined,
+  entry: PluginCatalogEntry | undefined,
+  unavailable: string | undefined,
+  contributions: PluginContributionIndex,
+  bundledUpgrade?: PluginManifest,
 ): string {
   const manifest = record.manifest
-  const approvalRequired =
-    entry?.pending && !entry.active
-      ? entry.pending.generation.approvedFingerprint !==
-        entry.pending.generation.capabilityFingerprint
-      : requiresApproval(record)
-  const blocked = !record.enabled && (approvalRequired || !!unavailable || !!entry?.tombstone)
-  const status =
-    unavailable ||
-    (approvalRequired ? '请在详情中审阅并批准能力' : record.enabled ? '已启用' : '未启用')
+  const id = escapeHtml(manifest.id)
+  const blocked = !record.enabled && (!!unavailable || !!entry?.tombstone)
+  const status = entry?.tombstone
+    ? '已移除，等待清理'
+    : unavailable || (record.enabled ? '已启用' : '未启用')
   const errors = [...new Set([...record.errors, ...(entry?.diagnostics ?? [])])]
-  return `<article class="plugin-card plugin-summary-card" data-plugin-id="${escapeHtml(manifest.id)}">${renderPluginLogo(manifest.name, icon)}<div class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span><span class="plugin-card-status">${escapeHtml(status)}</span>${errors.length ? `<span class="plugin-card-error" role="status">操作未完成，请查看详情中的诊断</span>` : ''}</div><div class="plugin-card-actions"><button type="button" class="plugin-enable-switch" role="switch" aria-checked="${record.enabled}" aria-label="${escapeHtml(manifest.name)} 启用" data-plugin-action="toggle" data-plugin-id="${escapeHtml(manifest.id)}" ${blocked ? 'disabled' : ''} title="${escapeHtml(status)}"><span aria-hidden="true"></span></button><button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="${escapeHtml(manifest.id)}" aria-label="${escapeHtml(manifest.name)} 详情">详情</button></div></article>`
+  const views = record.enabled
+    ? [
+        ...new Map(
+          contributions.ui
+            .filter(
+              (view) =>
+                view.pluginId === manifest.id &&
+                (view.slot === 'modal' || view.slot === 'menu-page'),
+            )
+            .map((view) => [view.id, view]),
+        ).values(),
+      ]
+    : []
+  const commandIds = new Set(manifest.contributes?.commands?.map((command) => command.id))
+  const commands = record.enabled
+    ? [
+        ...new Map(
+          contributions.commands
+            .filter((command) => commandIds.has(command.id))
+            .map((command) => [command.id, command]),
+        ).values(),
+      ]
+    : []
+  const panelButtons = views
+    .map(
+      (view) =>
+        `<button type="button" class="dialog-button plugin-panel-action" data-plugin-action="open-ui" data-plugin-id="${id}" data-plugin-ui-id="${escapeHtml(view.id)}" title="打开 ${escapeHtml(view.title)}">${iconSvg(Settings2)}<span>${escapeHtml(view.title)}</span></button>`,
+    )
+    .join('')
+  const more = `<details class="plugin-card-more" data-plugin-card-more="${id}"><summary class="dialog-button" data-plugin-card-more-trigger="${id}" aria-label="${escapeHtml(manifest.name)} 更多操作" title="更多操作">${iconSvg(Ellipsis)}<span>更多</span></summary><div class="plugin-card-menu" aria-label="${escapeHtml(manifest.name)} 操作">${record.enabled ? `<button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="${id}">${iconSvg(RotateCw)}重新加载</button>` : ''}<button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="${id}">${iconSvg(Download)}导出插件</button>${commands.map((command) => `<button type="button" class="dialog-button" data-plugin-action="command" data-plugin-command="${escapeHtml(command.id)}" data-plugin-id="${id}">${iconSvg(Terminal)}<span>${escapeHtml(command.title)}</span></button>`).join('')}<button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="${id}">${iconSvg(Trash2)}${entry?.tombstone ? '重试清理' : '移除插件'}</button></div></details>`
+  return `<article class="plugin-card plugin-summary-card" data-plugin-id="${id}">${renderPluginLogo(manifest.name, icon)}<div class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span><span class="plugin-card-status" data-enabled="${record.enabled}">${escapeHtml(status)}</span>${entry?.pending ? `<span class="plugin-card-update">${escapeHtml(entry.pending.generation.manifest.version)} · 下次开启时应用</span>` : bundledUpgrade ? `<span class="plugin-card-update">随应用新版 ${escapeHtml(bundledUpgrade.version)} · ${upgradeHostLabel(bundledUpgrade)} · 下次开启时应用</span>${bundledUpgrade.description ? `<span class="plugin-card-description">${escapeHtml(bundledUpgrade.description)}</span>` : ''}` : ''}${errors.length ? `<span class="plugin-card-error" role="status">操作未完成，请查看详情中的诊断</span>` : ''}</div><button type="button" class="plugin-enable-switch" role="switch" aria-checked="${record.enabled}" aria-label="${escapeHtml(manifest.name)} 启用" data-plugin-action="toggle" data-plugin-id="${id}" ${blocked ? 'disabled' : ''} title="${escapeHtml(blocked ? status : record.enabled ? '关闭插件' : '开启插件')}"><span aria-hidden="true"></span></button><div class="plugin-card-actions">${panelButtons}<button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="${id}" aria-label="${escapeHtml(manifest.name)} 详情">${iconSvg(Info)}详情</button>${more}</div></article>`
 }
 
 function renderPluginDetails(
@@ -2645,47 +3001,14 @@ function renderPluginDetails(
   }
   return (
     '<section class="plugin-contribution-summary">' +
-    renderPluginCommands(contributions) +
     renderPluginKeymaps(contributions) +
-    renderPluginUiContributions(contributions) +
     renderPluginAudit(state.auditRecords.filter((entry) => entry.pluginId === id)) +
     '</section>'
   )
 }
 
-function renderPluginUiContributions(contributions: PluginContributionIndex): string {
-  if (contributions.ui.length === 0) {
-    return ''
-  }
-
-  return [
-    '<section class="plugin-detail-section"><h4>界面扩展</h4><div class="plugin-command-list">',
-    ...contributions.ui.map((view) =>
-      view.slot === 'modal' || view.slot === 'menu-page'
-        ? `<button type="button" class="dialog-button" data-plugin-action="open-ui" data-plugin-id="${escapeHtml(view.pluginId)}" data-plugin-ui-id="${escapeHtml(view.id)}">${view.slot === 'modal' ? '弹出' : '打开'} ${escapeHtml(view.title)}</button>`
-        : `<span class="plugin-ui-contribution-label">${escapeHtml(view.title)} · ${escapeHtml(view.slot)}</span>`,
-    ),
-    '</div></section>',
-  ].join('')
-}
-
 function renderInstallFailure(failure: DesktopPluginInstallFailure): string {
   return `<div class="plugin-errors"><strong>安装失败</strong><br />${escapeHtml(failure.sourcePath)}<br />${escapeHtml(failure.message)}</div>`
-}
-
-function renderPluginCommands(contributions: PluginContributionIndex): string {
-  if (contributions.commands.length === 0) {
-    return ''
-  }
-
-  return [
-    '<section class="plugin-detail-section"><h4>命令</h4><div class="plugin-command-list">',
-    ...contributions.commands.map(
-      (command) =>
-        `<button type="button" class="dialog-button" data-plugin-action="command" data-plugin-command="${escapeHtml(command.id)}">${escapeHtml(command.title)}</button>`,
-    ),
-    '</div></section>',
-  ].join('')
 }
 
 function renderPluginKeymaps(contributions: PluginContributionIndex): string {
@@ -2725,18 +3048,15 @@ function renderPluginRecord(
   record: PluginRegistryRecord,
   icon?: string,
   entry?: PluginCatalogEntry,
+  bundledUpgrade?: PluginManifest,
 ): string {
   if (entry?.tombstone)
-    return `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">${escapeHtml(record.manifest.name)}</h4><p>已卸载，权限与启动已撤销。用户数据保留。</p><div class="plugin-errors">${entry.diagnostics.map(escapeHtml).join('<br>')}</div><button type="button" class="dialog-button" data-plugin-action="remove" data-plugin-id="${escapeHtml(entry.id)}">重试清理安装文件</button></article>`
+    return `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">${escapeHtml(record.manifest.name)}</h4><p>已卸载，权限与启动已撤销。用户数据保留。</p><div class="plugin-errors">${entry.diagnostics.map(escapeHtml).join('<br>')}</div><button type="button" class="dialog-button" data-plugin-action="remove" data-plugin-id="${escapeHtml(entry.id)}">${iconSvg(Trash2)}重试清理安装文件</button></article>`
   const manifest = record.manifest
   const host = manifest.host ?? 'worker'
   const permissions = manifest.permissions?.join(', ') || '无'
   const outputPermission = manifest.permissions?.includes('document:output')
     ? '<p class="plugin-permission-description">导出与打印当前文档：读取当前文档或选区，在你触发命令并选择目标后导出文件，或打开系统打印。仅授权本次输出所需的文档与资源。</p>'
-    : ''
-  const approvalRequired = requiresApproval(record)
-  const approvalAttrs = entry?.active
-    ? ` data-plugin-fingerprint="${entry.active.capabilityFingerprint}" data-plugin-entry-revision="${entry.revision}"`
     : ''
   // Runtime publication clears mirror errors, not the native recovery history.
   // Preserve every native event (including identical repeated failures), while
@@ -2749,9 +3069,6 @@ function renderPluginRecord(
   const errors = detailErrors.length
     ? `<div class="plugin-errors">${detailErrors.map(escapeHtml).join('<br />')}</div>`
     : ''
-  const primaryAction = record.enabled
-    ? `<button type="button" class="dialog-button" data-plugin-action="disable" data-plugin-id="${escapeHtml(manifest.id)}">禁用</button>`
-    : `<button type="button" class="dialog-button primary" data-plugin-action="enable" data-plugin-id="${escapeHtml(manifest.id)}">启用</button>`
 
   return [
     '<article class="plugin-card plugin-detail" aria-labelledby="plugin-detail-title">',
@@ -2769,25 +3086,18 @@ function renderPluginRecord(
     `<div><dt>SDK 兼容要求</dt><dd>${escapeHtml(manifest.engines?.pluginSdk || '未声明')}</dd></div>`,
     `<div><dt>Host</dt><dd>${escapeHtml(host)}</dd></div>`,
     `<div><dt>权限</dt><dd>${escapeHtml(permissions)}</dd></div>`,
-    `<div><dt>审批</dt><dd>${approvalRequired ? '待审批' : '已批准'}</dd></div>`,
     `<div><dt>来源</dt><dd title="${escapeHtml(record.sourcePath)}">${escapeHtml(record.sourcePath)}</dd></div>`,
     `<div><dt>数据</dt><dd>${escapeHtml(record.dataRoot)}</dd></div>`,
     '</dl>',
     outputPermission,
-    entry ? renderExecutionSupport(manifest) : '',
+    entry && !bundledUpgrade ? renderExecutionSupport(manifest) : '',
     errors,
     '<footer>',
-    entry?.pending && !entry.active
-      ? '<p>尚无已验证的安装版本。请在候选详情中审阅。</p>'
-      : primaryAction,
-    entry?.pending
-      ? ''
-      : approvalRequired
-        ? `<button type="button" class="dialog-button" data-plugin-action="approve" data-plugin-id="${escapeHtml(manifest.id)}"${approvalAttrs}>批准能力</button>`
-        : `<button type="button" class="dialog-button" data-plugin-action="revoke-approval" data-plugin-id="${escapeHtml(manifest.id)}">撤销审批</button>`,
-    `<button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="${escapeHtml(manifest.id)}">重载</button>`,
-    `<button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="${escapeHtml(manifest.id)}">导出</button>`,
-    `<button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="${escapeHtml(manifest.id)}">移除</button>`,
+    record.enabled
+      ? `<button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="${escapeHtml(manifest.id)}">${iconSvg(RotateCw)}重新加载</button>`
+      : '',
+    `<button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="${escapeHtml(manifest.id)}">${iconSvg(Download)}导出插件</button>`,
+    `<button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="${escapeHtml(manifest.id)}">${iconSvg(Trash2)}移除插件</button>`,
     '</footer>',
     record.manifest.settings
       ? `<section data-plugin-settings-schema><h4>设置结构（只读）</h4><pre>${escapeHtml(JSON.stringify(record.manifest.settings, null, 2))}</pre></section>`
@@ -3015,7 +3325,7 @@ function renderExecutionSupport(manifest: PluginManifest): string {
   const host = manifest.host ?? 'worker'
   const message =
     host === 'sidecar'
-      ? '当前插件目录不支持启用 sidecar 插件。满足版本要求或批准能力不会解除此限制。'
+      ? '当前插件目录不支持启用 sidecar 插件。'
       : host === 'dom'
         ? '仅支持只读文档呈现：document:read 权限与 documentRenderers 贡献，不允许设置、网络来源或其他贡献。' +
           (supportsRestrictedActivation(manifest)

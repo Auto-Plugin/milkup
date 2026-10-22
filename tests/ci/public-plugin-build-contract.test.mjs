@@ -85,3 +85,42 @@ test('includes declared resources for external builds and rejects traversal', as
   await f.write('plugins/workspace/plugin.json', { ...manifest, resources: ['../private.png'] })
   await assert.rejects(readPublicPluginBuildInputs(f.root), /Unsafe plugin resource/)
 })
+
+test('selects explicit platform archives without changing manifests or allowing duplicate IDs', async (t) => {
+  const f = await fixture(t)
+  await f.write('plugins/workspace-windows/plugin.json', {
+    id: 'milkup.workspace',
+    version: '1.1.0',
+    host: 'worker',
+    main: './dist/plugin.js',
+    permissions: ['workspace:read'],
+    engines: { pluginSdk: '^0.3.0' },
+  })
+  const original = { ...f.inventory[0], platforms: ['linux', 'darwin'] }
+  const windows = {
+    ...f.inventory[0],
+    directory: 'plugins/workspace-windows',
+    platforms: ['win32'],
+  }
+  await f.write('release/bundled-plugins.json', [original, windows, f.inventory[1]])
+  for (const platform of ['linux', 'darwin', 'win32']) {
+    const { plugins } = await readPublicPluginBuildInputs(f.root, { platform })
+    assert.equal(plugins.length, 2)
+    const variant = plugins.find((p) => p.id === 'milkup.workspace')
+    assert.equal(variant.directory, platform === 'win32' ? windows.directory : original.directory)
+    assert.equal(variant.version, platform === 'win32' ? '1.1.0' : '1.0.0')
+  }
+  await f.write('release/bundled-plugins.json', [original, { ...windows, platforms: ['linux'] }])
+  await assert.rejects(
+    readPublicPluginBuildInputs(f.root, { platform: 'linux' }),
+    /Duplicate plugin identity/,
+  )
+  for (const platforms of [[], ['win32', 'win32'], ['unknown'], 'win32']) {
+    await f.write('release/bundled-plugins.json', [{ ...original, platforms }])
+    await assert.rejects(readPublicPluginBuildInputs(f.root, { platform: 'linux' }), /platform/)
+  }
+  await assert.rejects(
+    readPublicPluginBuildInputs(f.root, { platform: 'unknown' }),
+    /Unsupported distribution platform/,
+  )
+})

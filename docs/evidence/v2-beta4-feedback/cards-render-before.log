@@ -1,0 +1,109 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/apps/desktop
+
+ ❯ src/desktop-plugin-manager-render.test.ts (7 tests | 6 failed) 20ms
+   × plugin cards and information details > allows a disabled unapproved plugin to use the only lifecycle switch 8ms
+     → expected '<button type="button" class="plugin-e…' not to match /\sdisabled(?:\s|>)/
+   ✓ plugin cards and information details > blocks unavailable disabled plugins but lets an enabled plugin turn off 1ms
+   × plugin cards and information details > puts only this plugin live control panels and commands on its card, once 2ms
+     → Target cannot be null or undefined.
+   × plugin cards and information details > does not expose inactive contributions or reload on a disabled card 4ms
+     → expected '<div class="plugin-manager"><div clas…' to contain 'data-plugin-action="reload"'
+   × plugin cards and information details > keeps enabled=false details free of lifecycle and approval UI 1ms
+     → expected '<div class="plugin-manager"><div clas…' not to match /data-plugin-action="(?:approve|reject…/
+   × plugin cards and information details > keeps enabled=true details free of lifecycle and approval UI 1ms
+     → expected '<div class="plugin-manager"><div clas…' not to match /data-plugin-action="(?:approve|reject…/
+   × plugin cards and information details > explains pending upgrades without a second approval or enable flow 2ms
+     → expected '<div class="plugin-manager"><div clas…' to contain '下次开启'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-manager-render.test.ts > plugin cards and information details > allows a disabled unapproved plugin to use the only lifecycle switch
+AssertionError: expected '<button type="button" class="plugin-e…' not to match /\sdisabled(?:\s|>)/
+
+- Expected: 
+/\sdisabled(?:\s|>)/
+
++ Received: 
+"<button type=\"button\" class=\"plugin-enable-switch\" role=\"switch\" aria-checked=\"false\" aria-label=\"Card tools 启用\" data-plugin-action=\"toggle\" data-plugin-id=\"test.cards\" disabled title=\"请在详情中审阅并批准能力\">"
+
+ ❯ src/desktop-plugin-manager-render.test.ts:18:30
+     16|   it('allows a disabled unapproved plugin to use the only lifecycle sw…
+     17|     const html = renderDesktopPluginManager(state())
+     18|     expect(toggle(html)).not.toMatch(/\sdisabled(?:\s|>)/)
+       |                              ^
+     19|     expect(html).not.toMatch(/审阅|批准|审批/)
+     20|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/desktop-plugin-manager-render.test.ts > plugin cards and information details > puts only this plugin live control panels and commands on its card, once
+AssertionError: Target cannot be null or undefined.
+ ❯ src/desktop-plugin-manager-render.test.ts:29:57
+     27|     enabled.contributions.ui = [...enabled.contributions.ui, enabled.c…
+     28|     const html = renderDesktopPluginManager(enabled)
+     29|     expect(html.match(/data-plugin-ui-id="settings"/g)).toHaveLength(1)
+       |                                                         ^
+     30|     expect(html).toContain('data-plugin-command="cards.run"')
+     31|     expect(html).not.toContain('Other panel')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/desktop-plugin-manager-render.test.ts > plugin cards and information details > does not expose inactive contributions or reload on a disabled card
+AssertionError: expected '<div class="plugin-manager"><div clas…' to contain 'data-plugin-action="reload"'
+
+Expected: "data-plugin-action="reload""
+Received: "<div class="plugin-manager"><div class="plugin-manager-toolbar"><button type="button" class="dialog-button primary" data-plugin-action="install">安装本地插件</button></div><div class="plugin-list"><article class="plugin-card plugin-summary-card" data-plugin-id="test.cards"><span class="plugin-logo" aria-hidden="true"><span>C</span></span><div class="plugin-card-copy"><span class="plugin-card-title">Card tools</span><span class="plugin-card-description">暂无描述</span><span class="plugin-card-status">请在详情中审阅并批准能力</span></div><div class="plugin-card-actions"><button type="button" class="plugin-enable-switch" role="switch" aria-checked="true" aria-label="Card tools 启用" data-plugin-action="toggle" data-plugin-id="test.cards"  title="请在详情中审阅并批准能力"><span aria-hidden="true"></span></button><button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="test.cards" aria-label="Card tools 详情">详情</button></div></article></div></div>"
+
+ ❯ src/desktop-plugin-manager-render.test.ts:41:53
+     39|     expect(html).not.toContain('data-plugin-action="command"')
+     40|     expect(html).not.toContain('data-plugin-action="reload"')
+     41|     expect(renderDesktopPluginManager(state(true))).toContain('data-pl…
+       |                                                     ^
+     42|   })
+     43|   it.each([false, true])('keeps enabled=%s details free of lifecycle a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/desktop-plugin-manager-render.test.ts > plugin cards and information details > keeps enabled=false details free of lifecycle and approval UI
+ FAIL  src/desktop-plugin-manager-render.test.ts > plugin cards and information details > keeps enabled=true details free of lifecycle and approval UI
+AssertionError: expected '<div class="plugin-manager"><div clas…' not to match /data-plugin-action="(?:approve|reject…/
+
+- Expected: 
+/data-plugin-action="(?:approve|reject-candidate|revoke-approval|enable|disable)"|待审批|已批准|批准能力|审批/
+
++ Received: 
+"<div class=\"plugin-manager\"><div class=\"plugin-manager-toolbar\"><button type=\"button\" class=\"dialog-button\" data-plugin-action=\"back\">返回插件列表</button></div><article class=\"plugin-card plugin-detail\" aria-labelledby=\"plugin-detail-title\"><header><span class=\"plugin-logo\" aria-hidden=\"true\"><span>C</span></span><div class=\"plugin-detail-heading\"><h4 id=\"plugin-detail-title\" tabindex=\"-1\">Card tools</h4><p>test.cards · v1.0.0</p></div><span class=\"plugin-state\" data-state=\"installed\">已安装</span></header><p>暂无描述</p><dl class=\"plugin-meta\"><div><dt>Milkup 兼容要求</dt><dd>未声明</dd></div><div><dt>SDK 兼容要求</dt><dd>未声明</dd></div><div><dt>Host</dt><dd>worker</dd></div><div><dt>权限</dt><dd>network:access</dd></div><div><dt>审批</dt><dd>待审批</dd></div><div><dt>来源</dt><dd title=\"/cards.milkup-plugin\">/cards.milkup-plugin</dd></div><div><dt>数据</dt><dd>/data</dd></div></dl><footer><button type=\"button\" class=\"dialog-button primary\" data-plugin-action=\"enable\" data-plugin-id=\"test.cards\">启用</button><button type=\"button\" class=\"dialog-button\" data-plugin-action=\"approve\" data-plugin-id=\"test.cards\">批准能力</button><button type=\"button\" class=\"dialog-button\" data-plugin-action=\"reload\" data-plugin-id=\"test.cards\">重载</button><button type=\"button\" class=\"dialog-button\" data-plugin-action=\"export\" data-plugin-id=\"test.cards\">导出</button><button type=\"button\" class=\"dialog-button warning\" data-plugin-action=\"remove\" data-plugin-id=\"test.cards\">移除</button></footer></article><section class=\"plugin-contribution-summary\"><section class=\"plugin-detail-section\"><h4>命令</h4><div class=\"plugin-command-list\"><button type=\"button\" class=\"dialog-button\" data-plugin-action=\"command\" data-plugin-command=\"cards.run\">Run tool</button></div></section><section class=\"plugin-detail-section\"><h4>界面扩展</h4><div class=\"plugin-command-list\"><button type=\"button\" class=\"dialog-button\" data-plugin-action=\"open-ui\" data-plugin-id=\"test.cards\" data-plugin-ui-id=\"settings\">弹出 Control panel</button></div></section></section></div>"
+
+ ❯ src/desktop-plugin-manager-render.test.ts:45:22
+     43|   it.each([false, true])('keeps enabled=%s details free of lifecycle a…
+     44|     const html = renderDesktopPluginManager(state(enabled), { selected…
+     45|     expect(html).not.toMatch(forbidden)
+       |                      ^
+     46|     expect(html).toContain('network:access')
+     47|     expect(html).toContain('data-plugin-action="export"')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/desktop-plugin-manager-render.test.ts > plugin cards and information details > explains pending upgrades without a second approval or enable flow
+AssertionError: expected '<div class="plugin-manager"><div clas…' to contain '下次开启'
+
+Expected: "下次开启"
+Received: "<div class="plugin-manager"><div class="plugin-manager-toolbar"><button type="button" class="dialog-button" data-plugin-action="back">返回插件列表</button></div><article class="plugin-card plugin-detail" aria-labelledby="plugin-detail-title"><header><span class="plugin-logo" aria-hidden="true"><span>C</span></span><div class="plugin-detail-heading"><h4 id="plugin-detail-title" tabindex="-1">Card tools</h4><p>test.cards · v1.0.0</p></div><span class="plugin-state" data-state="installed">已安装</span></header><p>暂无描述</p><dl class="plugin-meta"><div><dt>Milkup 兼容要求</dt><dd>未声明</dd></div><div><dt>SDK 兼容要求</dt><dd>未声明</dd></div><div><dt>Host</dt><dd>worker</dd></div><div><dt>权限</dt><dd>network:access</dd></div><div><dt>审批</dt><dd>待审批</dd></div><div><dt>来源</dt><dd title="/cards.milkup-plugin">/cards.milkup-plugin</dd></div><div><dt>数据</dt><dd>/data</dd></div></dl><p class="plugin-execution-support"><strong>执行支持：</strong>Worker 仍须通过当前系统的隔离启动验证；满足版本要求不代表当前平台已提供所需执行环境。</p><footer><button type="button" class="dialog-button" data-plugin-action="disable" data-plugin-id="test.cards">禁用</button><button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="test.cards">重载</button><button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="test.cards">导出</button><button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="test.cards">移除</button></footer></article><section class="plugin-detail-section plugin-candidate"><h4>待验证版本 2.0.0</h4><p>现有版本与其审批保持独立。候选通过受限启动验证后才会替换。</p><dl class="plugin-meta"><dt>执行环境</dt><dd>无 → worker</dd><dt>权限</dt><dd>候选：network:access<br>原批准：无<br>新增：network:access<br>移除：无</dd><dt>网络范围</dt><dd>候选：https://example.test<br>原批准：无<br>新增：https://example.test<br>移除：无</dd></dl><p class="plugin-execution-support"><strong>执行支持：</strong>Worker 仍须通过当前系统的隔离启动验证；满足版本要求不代表当前平台已提供所需执行环境。</p><button type="button" class="dialog-button primary" data-plugin-action="approve" data-plugin-id="test.cards" data-plugin-fingerprint="f2" data-plugin-entry-revision="2">批准此候选能力</button><button type="button" class="dialog-button" data-plugin-action="reject-candidate" data-plugin-id="test.cards" data-plugin-fingerprint="f2" data-plugin-entry-revision="2">拒绝候选</button></section><section class="plugin-contribution-summary"><section class="plugin-detail-section"><h4>命令</h4><div class="plugin-command-list"><button type="button" class="dialog-button" data-plugin-action="command" data-plugin-command="cards.run">Run tool</button></div></section><section class="plugin-detail-section"><h4>界面扩展</h4><div class="plugin-command-list"><button type="button" class="dialog-button" data-plugin-action="open-ui" data-plugin-id="test.cards" data-plugin-ui-id="settings">弹出 Control panel</button></div></section></section></div>"
+
+ ❯ src/desktop-plugin-manager-render.test.ts:56:18
+     54|     const html = renderDesktopPluginManager({ ...s, catalogEntries: [e…
+     55|     expect(html).toContain('2.0.0')
+     56|     expect(html).toContain('下次开启')
+       |                  ^
+     57|     expect(html).not.toMatch(forbidden)
+     58|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed (7)
+   Start at  05:29:24
+   Duration  1.27s (transform 679ms, setup 0ms, collect 904ms, tests 20ms, environment 0ms, prepare 83ms)
+

@@ -1,24 +1,24 @@
-name: Windows beta3 manual trial
-# Candidate 2 includes async-switch focus and code-language invalidation regressions.
+name: Windows beta4 manual trial
+# Card-only enable, built-in updates, and restricted Worker diagrams for manual trial.
 on:
   push:
-    branches: [dot/milkup-v2-beta3-feedback]
+    branches: [dot/milkup-v2-beta4-feedback]
     paths:
       - .github/workflows/v2-windows-manual-candidate.yml
 permissions:
   contents: read
 concurrency:
-  group: milkup-windows-beta3-manual-delivery
+  group: milkup-windows-beta4-manual-delivery
   cancel-in-progress: false
 jobs:
   package:
     if: >-
       github.repository == 'Auto-Plugin/milkup' &&
-      github.ref == 'refs/heads/dot/milkup-v2-beta3-feedback' &&
+      github.ref == 'refs/heads/dot/milkup-v2-beta4-feedback' &&
       github.event.repository.private == false &&
       github.event.deleted == false &&
       github.run_attempt == 1 &&
-      contains(github.event.head_commit.message, '[windows-manual-beta3]')
+      contains(github.event.head_commit.message, '[windows-manual-beta4]')
     runs-on: windows-2025
     timeout-minutes: 60
     defaults:
@@ -44,7 +44,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Source SHA mismatch' }
-          git merge-base --is-ancestor 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc HEAD
+          git merge-base --is-ancestor f40ff18dba33b42754af160739342faa3b4359a2 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Wrong validated baseline' }
           foreach ($file in @('update_handoff.rs','update_identity.rs','update_transaction.rs','update_health_contract.rs')) {
             if (Test-Path "apps/desktop/src-tauri/src/$file") { throw 'Unaccepted experiment in product candidate' }
@@ -53,7 +53,7 @@ jobs:
           if (git status --porcelain) { throw 'Dirty candidate' }
           node scripts/check-versions.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Version mismatch' }
-          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.3') { throw 'Wrong beta' }
+          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.4') { throw 'Wrong beta' }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
@@ -93,13 +93,13 @@ jobs:
           node --test tests/windows/verify-build-tree.test.mjs scripts/ci/verify-nsis-image.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Source-state gate regressions failed' }
       - name: Full Windows source and independent plugin checks
-        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta3-source" -FailFast
+        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta4-source" -FailFast
       - name: Build and inspect unsigned NSIS without installation
-        run: ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta3-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta3-deliverable"
+        run: ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta4-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta4-deliverable"
       - name: Record source checks and delivery boundary
         if: always()
         run: |
-          foreach ($path in @('manual-beta3-source/phases.json','manual-beta3-source/rust-test-result.json','manual-beta3-deliverable/manifest.json','manual-beta3-deliverable/plugins.json','manual-beta3-deliverable/SHA256SUMS.txt')) {
+          foreach ($path in @('manual-beta4-source/phases.json','manual-beta4-source/rust-test-result.json','manual-beta4-deliverable/manifest.json','manual-beta4-deliverable/plugins.json','manual-beta4-deliverable/SHA256SUMS.txt')) {
             $file = Join-Path $env:RUNNER_TEMP $path
             if (Test-Path $file) { Write-Host "::group::$path"; Get-Content $file | Write-Host; Write-Host '::endgroup::' }
           }
@@ -108,8 +108,8 @@ jobs:
         id: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-2.0.0-beta.3-windows-x64-${{ github.sha }}
-          path: ${{ runner.temp }}/manual-beta3-deliverable/
+          name: milkup-2.0.0-beta.4-windows-x64-${{ github.sha }}
+          path: ${{ runner.temp }}/manual-beta4-deliverable/
           retention-days: 1
           if-no-files-found: error
           compression-level: 6

@@ -267,16 +267,16 @@ test('version-gates candidate reuses the bounded source job on its isolated bran
   assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
 })
 
-test('beta3 feedback delivery is confined to its exact branch and verified beta2 ancestry', async () => {
+test('beta4 feedback delivery is confined to its exact branch and verified beta3 ancestry', async () => {
   const workflow = await read('.github/workflows/v2-windows-manual-candidate.yml')
   const source = await read('scripts/ci/check-windows-desktop-source.ps1')
   const packaging = await read('scripts/ci/build-windows-manual-candidate.ps1')
   for (const text of [workflow, source, packaging]) {
-    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta3-feedback'))
-    assert.ok(text.includes('32b55aa4dfd2806433a649eca2c9d7ad2262d3bc'))
+    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta4-feedback'))
+    assert.ok(text.includes('f40ff18dba33b42754af160739342faa3b4359a2'))
   }
-  assert.ok(workflow.includes('[windows-manual-beta3]'))
-  assert.ok(source.includes('[windows-manual-beta3]'))
+  assert.ok(workflow.includes('[windows-manual-beta4]'))
+  assert.ok(source.includes('[windows-manual-beta4]'))
   assert.match(workflow, /contents: read/)
   assert.match(workflow, /persist-credentials: false/)
   assert.match(workflow, /retention-days: 1/)

@@ -10,13 +10,13 @@ assert.ok(evidence && output)
 const json = async (file) => JSON.parse((await readFile(file, 'utf8')).replace(/^\uFEFF/, ''))
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const manifest = await json(path.join(output, 'manifest.json'))
-assert.equal(manifest.version, '2.0.0-beta.3')
+assert.equal(manifest.version, '2.0.0-beta.4')
 assert.equal(manifest.installerExecuted, false)
 const proof = await json(path.join(evidence, 'public-plugins/verification.json'))
 const staged = await json(path.join(evidence, 'public-plugins/staged-bundles.json'))
 assert.equal(proof.status, 'passed')
-assert.equal(proof.plugins.length, 11)
-assert.equal(staged.length, 11)
+assert.equal(proof.plugins.length, 10)
+assert.equal(staged.length, 10)
 const inventory = []
 await mkdir(path.join(output, 'plugins'))
 for (const record of proof.plugins) {
@@ -29,7 +29,11 @@ for (const record of proof.plugins) {
   const source = await json(path.join(root, record.directory, 'plugin.json'))
   assert.deepEqual(archive.manifest, source)
   assert.equal(source.engines.milkup, '^2.0.0-0')
-  if (source.id === 'milkup.updates') assert.equal(source.version, '1.0.1')
+  assert.notEqual(source.id, 'milkup.updates', 'Updates is a built-in application feature')
+  if (source.id === 'milkup.diagrams') {
+    assert.equal(source.version, '1.2.0')
+    assert.equal(source.host, 'worker')
+  }
   if (source.id === 'milkup.outline') assert.equal(source.version, '1.3.3')
   inventory.push({
     id: source.id,
@@ -48,10 +52,10 @@ for (const record of proof.plugins) {
 }
 await writeFile(path.join(output, 'plugins.json'), JSON.stringify(inventory, null, 2) + '\n')
 for (const name of ['README.md', 'FEEDBACK.md'])
-  await copyFile(path.join(root, 'docs/manual-windows-beta3', name), path.join(output, name))
+  await copyFile(path.join(root, 'docs/manual-windows-beta4', name), path.join(output, name))
 await mkdir(path.join(output, 'samples'))
 await copyFile(
-  path.join(root, 'tests/fixtures/manual-beta3/basic.md'),
+  path.join(root, 'tests/fixtures/manual-beta4/basic.md'),
   path.join(output, 'samples/basic.md'),
 )
 let larger = '# 较大文档手测副本\n\n首部标记：START_ORIGINAL。\n\n'
@@ -82,7 +86,7 @@ async function walk(relative = '') {
 }
 await walk()
 assert.equal(files.filter((f) => f.name.endsWith('.exe')).length, 1)
-assert.equal(files.length, 18)
+assert.equal(files.length, 17)
 assert.ok(
   files.reduce((n, f) => n + f.bytes, 0) < 49 * 1024 * 1024,
   'Bounded 50 MiB upload including archive overhead',

@@ -1,0 +1,103 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/application-updates-ui.test.ts (10 tests | 4 failed) 19ms
+   × built-in updates presentation > renders download with a decorative icon and its unchanged text label 8ms
+     → expected '下载更新' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+   × built-in updates presentation > renders cancel with a decorative icon and its unchanged text label 1ms
+     → expected '取消下载' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+   × built-in updates presentation > renders install with a decorative icon and its unchanged text label 1ms
+     → expected '请求安装更新' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+   × built-in updates presentation > renders check with a decorative icon and its unchanged text label 1ms
+     → expected '重试检查' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+   ✓ built-in updates presentation > renders untrusted metadata as plain text and never exposes opaque IDs 1ms
+   ✓ built-in updates presentation > distinguishes failure and unconfigured channels from current 1ms
+   ✓ built-in updates presentation > exposes cancellation and accessible unknown progress in downloading 0ms
+   ✓ built-in updates presentation > exposes cancellation and accessible unknown progress in verifying 3ms
+   ✓ built-in updates presentation > allows installation only in ready and exposes stage-specific retries 1ms
+   ✓ built-in updates presentation > does not render a blank release heading or extra check button before a release exists 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/application-updates-ui.test.ts > built-in updates presentation > renders download with a decorative icon and its unchanged text label
+AssertionError: expected '下载更新' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+
+- Expected: 
+/<svg[^>]*aria-hidden="true"[^>]*focusable="false"/
+
++ Received: 
+"下载更新"
+
+ ❯ apps/desktop/src/application-updates-ui.test.ts:29:20
+     27|     const html = renderApplicationUpdates({ ...state, phase, retry })
+     28|     const button = html.match(new RegExp(`<button[^>]*data-application…
+     29|     expect(button).toMatch(/<svg[^>]*aria-hidden="true"[^>]*focusable=…
+       |                    ^
+     30|     expect(button).toContain(`<span>${label}</span>`)
+     31|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  apps/desktop/src/application-updates-ui.test.ts > built-in updates presentation > renders cancel with a decorative icon and its unchanged text label
+AssertionError: expected '取消下载' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+
+- Expected: 
+/<svg[^>]*aria-hidden="true"[^>]*focusable="false"/
+
++ Received: 
+"取消下载"
+
+ ❯ apps/desktop/src/application-updates-ui.test.ts:29:20
+     27|     const html = renderApplicationUpdates({ ...state, phase, retry })
+     28|     const button = html.match(new RegExp(`<button[^>]*data-application…
+     29|     expect(button).toMatch(/<svg[^>]*aria-hidden="true"[^>]*focusable=…
+       |                    ^
+     30|     expect(button).toContain(`<span>${label}</span>`)
+     31|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  apps/desktop/src/application-updates-ui.test.ts > built-in updates presentation > renders install with a decorative icon and its unchanged text label
+AssertionError: expected '请求安装更新' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+
+- Expected: 
+/<svg[^>]*aria-hidden="true"[^>]*focusable="false"/
+
++ Received: 
+"请求安装更新"
+
+ ❯ apps/desktop/src/application-updates-ui.test.ts:29:20
+     27|     const html = renderApplicationUpdates({ ...state, phase, retry })
+     28|     const button = html.match(new RegExp(`<button[^>]*data-application…
+     29|     expect(button).toMatch(/<svg[^>]*aria-hidden="true"[^>]*focusable=…
+       |                    ^
+     30|     expect(button).toContain(`<span>${label}</span>`)
+     31|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  apps/desktop/src/application-updates-ui.test.ts > built-in updates presentation > renders check with a decorative icon and its unchanged text label
+AssertionError: expected '重试检查' to match /<svg[^>]*aria-hidden="true"[^>]*focus…/
+
+- Expected: 
+/<svg[^>]*aria-hidden="true"[^>]*focusable="false"/
+
++ Received: 
+"重试检查"
+
+ ❯ apps/desktop/src/application-updates-ui.test.ts:29:20
+     27|     const html = renderApplicationUpdates({ ...state, phase, retry })
+     28|     const button = html.match(new RegExp(`<button[^>]*data-application…
+     29|     expect(button).toMatch(/<svg[^>]*aria-hidden="true"[^>]*focusable=…
+       |                    ^
+     30|     expect(button).toContain(`<span>${label}</span>`)
+     31|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 6 passed (10)
+   Start at  05:46:31
+   Duration  523ms (transform 52ms, setup 0ms, collect 52ms, tests 19ms, environment 0ms, prepare 76ms)
+

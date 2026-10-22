@@ -1,0 +1,32 @@
+{
+  "platform": "Linux Chromium (not Windows/WebView2)",
+  "productionPluginSha256": "e4071d15ee289890b0d8db84fd9d7a8674a20c869ae002157ca682893bc8abdd",
+  "checks": [
+    "production plugin via createBrowserWorkerPluginHost + initializePluginWorkerRealm + EditorView flowchart",
+    "production CSP and ambient Worker guards reject eval/Function/network/RTC",
+    "sequence alias / Chinese / solid and dashed messages visibly rendered",
+    "source/live preserve exact source",
+    "real document transaction refreshes bounded Worker output",
+    "five unsupported/injection fixtures retain exact source with explicit error and no active DOM",
+    "existing host kills a separate deliberately nonresponsive Worker at its fixed 2s render deadline",
+    "editor and independent productive Worker remain usable after timeout"
+  ],
+  "probe": {
+    "proofProbe": true,
+    "document": "undefined",
+    "rtc": "function",
+    "rtcConstructorBlocked": true,
+    "evalBlocked": true,
+    "functionBlocked": true,
+    "networkDenied": true
+  },
+  "timeout": {
+    "elapsed": 2002.2999999970198,
+    "error": "DocumentPresentationError: Document presentation: timeout",
+    "terminated": 1
+  },
+  "server": {
+    "canaries": 0
+  },
+  "passed": true
+}

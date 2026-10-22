@@ -1134,3 +1134,91 @@ describe('beta3 activation failure diagnostics without native catalog', () => {
     expect(getter).not.toHaveBeenCalled()
   })
 })
+
+describe('beta4 user intent without native catalog', () => {
+  it('grants current installation capabilities once and permits explicit retry after activation failure', async () => {
+    let fails = true
+    const activate = vi.fn(() => {
+      if (fails) throw Error('RETRY_ME')
+      return {}
+    })
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      loadModule: async () => ({
+        module: { runtimeHost: 'isolated', activate },
+        dispose: () => {},
+      }),
+    })
+    await manager.ready
+    await manager.installManifestPath('/plugin.json')
+    expect(await manager.enableFromUserIntent('example-tools')).toMatchObject({
+      enabled: false,
+      state: 'failed',
+      errors: [expect.stringContaining('RETRY_ME')],
+    })
+    fails = false
+    expect(await manager.enableFromUserIntent('example-tools')).toMatchObject({
+      enabled: true,
+      errors: [],
+    })
+    await manager.enableFromUserIntent('example-tools')
+    expect(activate).toHaveBeenCalledTimes(2)
+    await manager.disable('example-tools')
+    await expect(manager.reload('example-tools')).rejects.toThrow('enabled')
+  })
+  it('rejects unisolated modules despite explicit user intent', async () => {
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      loadModule: async () => ({
+        module: { runtimeHost: 'in-process' as never, activate: () => ({}) },
+        dispose: () => {},
+      }),
+    })
+    await manager.ready
+    await manager.installManifestPath('/plugin.json')
+    const result = await manager.enableFromUserIntent('example-tools')
+    expect(result.enabled).toBe(false)
+    expect(result.errors.join(' ')).toContain('In-process')
+  })
+  it('disables and retains a reserved legacy record before restoration, without deleting settings or importing a duplicate', async () => {
+    const storage = createMemoryStorage()
+    const first = createManager({ registry: new ActionRegistry(), storage })
+    await first.ready
+    await first.installManifestPath('/plugins/example/plugin.json')
+    await first.enableFromUserIntent('example-tools')
+    storage.setItem('milkup.plugin.storage.example-tools.value', 'KEEP')
+    const load = vi.fn(),
+      ensure = vi.fn()
+    const next = new DesktopPluginManager({
+      reservedPluginIds: ['example-tools'],
+      actionRegistry: new ActionRegistry(),
+      storage,
+      permissions: ['document:write'],
+      milkupVersion: '0.1.0',
+      pluginSdkVersion: '0.1.0',
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(pluginManifest()),
+        ensureDataDirectories: ensure,
+      },
+      loadModule: load,
+    })
+    await next.ready
+    expect(load).not.toHaveBeenCalled()
+    expect(ensure).not.toHaveBeenCalled()
+    expect(next.state().records).toEqual([])
+    const retained = JSON.parse(storage.getItem('milkup.desktop.plugins.registry.v1')!).records[0]
+    expect(retained).toMatchObject({
+      enabled: false,
+      manifest: { id: 'example-tools' },
+      approvals: { permissions: [] },
+    })
+    expect(storage.getItem('milkup.plugin.storage.example-tools.value')).toBe('KEEP')
+    await expect(next.installManifestPath('/plugin.json')).rejects.toThrow('reserved')
+    await expect(next.enableFromUserIntent('example-tools')).rejects.toThrow('reserved')
+    await expect(next.approve('example-tools')).rejects.toThrow('reserved')
+    expect(storage.getItem('milkup.plugin.storage.example-tools.value')).toBe('KEEP')
+  })
+})

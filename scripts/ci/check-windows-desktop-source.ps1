@@ -7,6 +7,10 @@ $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows) { throw 'Desktop source check requires actual Windows' }
 if ($env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup') { throw 'Unexpected source-check repository' }
 switch -CaseSensitive ($env:GITHUB_REF) {
+    'refs/heads/dot/milkup-v2-beta4-feedback' {
+        $baseline = 'f40ff18dba33b42754af160739342faa3b4359a2'
+        $marker = '[windows-manual-beta4]'
+    }
     'refs/heads/dot/milkup-v2-beta3-feedback' {
         $baseline = '32b55aa4dfd2806433a649eca2c9d7ad2262d3bc'
         $marker = '[windows-manual-beta3]'
@@ -108,7 +112,7 @@ $sourceProof = [ordered]@{
     node = (& node --version)
     pnpm = $version
     rustc = (& rustc --version --verbose)
-    dependencyPolicies = 'Workspace frozen lock; diagrams reviewed frozen SDK 0.3.4; ten Worker independent builds explicitly legacy/non-frozen.'
+    dependencyPolicies = 'Workspace frozen lock; ten platform-selected independent builds; Windows Worker diagrams vendors the pinned official parser; build mode recorded per archive.'
     boundary = 'Source checks and local compile outputs only. No installed application, GUI, Runtime provisioning or delivery acceptance.'
 }
 $sourceProof | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $EvidenceDirectory 'source.json')
@@ -129,14 +133,14 @@ $sdkBuilt = Invoke-Phase 'public-sdk-build' {
 $publicDirectory = Join-Path $EvidenceDirectory 'public-plugins'
 $pluginsBuilt = $false
 if ($sdkBuilt) {
-    $pluginsBuilt = Invoke-Phase 'eleven-independent-public-plugins' {
+    $pluginsBuilt = Invoke-Phase 'ten-independent-public-plugins' {
         Invoke-Checked node @('scripts/ci/verify-public-plugin-builds.mjs', $publicDirectory, $pnpm)
     }
 }
 if ($pluginsBuilt) {
-    $null = Invoke-Phase 'eleven-independent-plugin-types' {
+    $null = Invoke-Phase 'ten-independent-plugin-types' {
         $proof = Get-Content (Join-Path $publicDirectory 'verification.json') -Raw | ConvertFrom-Json
-        if (@($proof.plugins).Count -ne 11) { throw 'Expected eleven independent plugins' }
+        if (@($proof.plugins).Count -ne 10) { throw 'Expected ten independent plugins' }
         foreach ($plugin in $proof.plugins) {
             Invoke-Checked node @($pnpm, '--dir', (Join-Path $publicDirectory $plugin.id), 'exec', 'tsc', '--noEmit', '-p', 'tsconfig.json')
         }

@@ -1013,3 +1013,274 @@ fn beta3_backup_recovery_preserves_first_candidate_without_restoring_approval() 
     assert!(recovered["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
     assert_eq!(recovered["entries"][0]["enabled"], false);
 }
+
+#[test]
+fn beta4_atomic_bundled_replacement_keeps_previous_bytes_and_never_inherits_approval() {
+    let f = Fixture::new();
+    let source = "bundled:fixture.milkup-plugin";
+    prepare(&f.0, archive("test.plugin", "1.0.0"), source.into(), None).unwrap();
+    let before = f.candidate_action("approve");
+    let e = &before["entries"][0];
+    let p = &e["pending"];
+    let module = Path::new(p["generation"]["packageRoot"].as_str().unwrap()).join("dist/main.js");
+    let old_bytes = std::fs::read(&module).unwrap();
+    let replacement = json!({"transactionId":p["transactionId"],"generationId":p["generation"]["id"],"sourcePath":p["generation"]["sourcePath"],"fingerprint":p["generation"]["capabilityFingerprint"]});
+    let after = prepare_with_replacement(
+        &f.0,
+        archive("test.plugin", "2.0.0"),
+        source.into(),
+        e["revision"].as_u64(),
+        Some(replacement),
+    )
+    .unwrap();
+    let candidate = &after["entries"][0]["pending"];
+    assert_eq!(candidate["generation"]["manifest"]["version"], "2.0.0");
+    assert_ne!(candidate["transactionId"], p["transactionId"]);
+    assert_ne!(candidate["generation"]["id"], p["generation"]["id"]);
+    assert!(candidate["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(std::fs::read(module).unwrap(), old_bytes);
+    assert_eq!(after["entries"][0]["enabled"], false);
+}
+
+fn bundled_replacement_identity(state: &Value) -> Value {
+    let p = &state["entries"][0]["pending"];
+    json!({"transactionId":p["transactionId"],"generationId":p["generation"]["id"],"sourcePath":p["generation"]["sourcePath"],"fingerprint":p["generation"]["capabilityFingerprint"]})
+}
+
+#[test]
+fn beta4_bundled_replacement_disk_failures_preserve_catalog_candidate_and_userdata() {
+    for point in ["stage-file", "before-catalog-replace"] {
+        let f = Fixture::new();
+        let source = "bundled:fixture.milkup-plugin";
+        let before = prepare(&f.0, archive("test.plugin", "1.0.0"), source.into(), None).unwrap();
+        let module = Path::new(
+            before["entries"][0]["pending"]["generation"]["packageRoot"]
+                .as_str()
+                .unwrap(),
+        )
+        .join("dist/main.js");
+        let old_bytes = std::fs::read(&module).unwrap();
+        let catalog_bytes = std::fs::read(f.0.join(CATALOG)).unwrap();
+        let sentinel = f.0.join("test.plugin/data/sentinel");
+        std::fs::write(&sentinel, b"user data").unwrap();
+        FAILURE.with(|v| *v.borrow_mut() = Some((point, 0)));
+        assert!(prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", "2.0.0"),
+            source.into(),
+            before["entries"][0]["revision"].as_u64(),
+            Some(bundled_replacement_identity(&before))
+        )
+        .is_err());
+        FAILURE.with(|v| *v.borrow_mut() = None);
+        assert_eq!(std::fs::read(f.0.join(CATALOG)).unwrap(), catalog_bytes);
+        assert_eq!(f.read(), before);
+        assert_eq!(std::fs::read(&module).unwrap(), old_bytes);
+        assert_eq!(std::fs::read(&sentinel).unwrap(), b"user data");
+        let retry = prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", "2.0.0"),
+            source.into(),
+            before["entries"][0]["revision"].as_u64(),
+            Some(bundled_replacement_identity(&before)),
+        )
+        .unwrap();
+        assert_eq!(
+            retry["entries"][0]["pending"]["generation"]["manifest"]["version"],
+            "2.0.0"
+        );
+    }
+}
+
+#[test]
+fn beta4_bundled_replacement_rejects_stale_identity_version_and_user_receipts() {
+    let source = "bundled:fixture.milkup-plugin";
+    for case in [
+        "revision",
+        "transactionId",
+        "generationId",
+        "fingerprint",
+        "trial",
+        "tombstone",
+        "source",
+        "user",
+        "same",
+        "lower",
+        "build",
+        "corrupt",
+    ] {
+        let f = Fixture::new();
+        let receipt = if case == "user" {
+            "user:fixture"
+        } else {
+            source
+        };
+        let mut before =
+            prepare(&f.0, archive("test.plugin", "1.0.0"), receipt.into(), None).unwrap();
+        if case == "trial" {
+            f.candidate_action("approve");
+            before = f.candidate_action("beginTrial");
+        }
+        let mut identity = bundled_replacement_identity(&before);
+        if case == "source" {
+            identity["sourcePath"] = json!("bundled:wrong.milkup-plugin");
+        }
+        if ["transactionId", "generationId", "fingerprint"].contains(&case) {
+            identity[case] = json!("wrong");
+        }
+        if case == "tombstone" {
+            before = f.action(json!({"type":"remove"}));
+        }
+        if case == "corrupt" {
+            let module = Path::new(
+                before["entries"][0]["pending"]["generation"]["packageRoot"]
+                    .as_str()
+                    .unwrap(),
+            )
+            .join("dist/main.js");
+            std::fs::write(module, b"corrupted old candidate").unwrap();
+        }
+        let bytes = std::fs::read(f.0.join(CATALOG)).unwrap();
+        let revision = before["entries"][0]["revision"].as_u64().unwrap();
+        let version = match case {
+            "same" => "1.0.0",
+            "lower" => "0.9.0",
+            "build" => "1.0.0+new",
+            _ => "2.0.0",
+        };
+        let result = prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", version),
+            if case == "source" {
+                "bundled:other.milkup-plugin".into()
+            } else {
+                receipt.into()
+            },
+            Some(if case == "revision" {
+                revision + 1
+            } else {
+                revision
+            }),
+            Some(identity),
+        );
+        assert!(result.is_err(), "case {case} must fail closed");
+        assert_eq!(
+            std::fs::read(f.0.join(CATALOG)).unwrap(),
+            bytes,
+            "case {case}"
+        );
+    }
+}
+
+#[test]
+fn beta4_bundled_replacement_preserves_enabled_active_and_backup_candidate() {
+    let f = Fixture::new();
+    let source = "bundled:fixture.milkup-plugin";
+    prepare(&f.0, archive("test.plugin", "1.0.0"), source.into(), None).unwrap();
+    f.candidate_action("approve");
+    f.candidate_action("beginTrial");
+    let active = f.candidate_action("commit");
+    let before = prepare(
+        &f.0,
+        archive("test.plugin", "1.1.0"),
+        source.into(),
+        active["entries"][0]["revision"].as_u64(),
+    )
+    .unwrap();
+    let sentinel = f.0.join("test.plugin/storage/sentinel");
+    std::fs::write(&sentinel, b"storage").unwrap();
+    let after = prepare_with_replacement(
+        &f.0,
+        archive("test.plugin", "2.0.0"),
+        source.into(),
+        before["entries"][0]["revision"].as_u64(),
+        Some(bundled_replacement_identity(&before)),
+    )
+    .unwrap();
+    assert_eq!(
+        after["entries"][0]["active"],
+        before["entries"][0]["active"]
+    );
+    assert_eq!(after["entries"][0]["enabled"], true);
+    assert!(after["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(std::fs::read(&sentinel).unwrap(), b"storage");
+    std::fs::write(f.0.join(CATALOG), b"corrupt primary").unwrap();
+    let recovered = f.restart();
+    assert_eq!(
+        recovered["entries"][0]["pending"]["generation"]["id"],
+        before["entries"][0]["pending"]["generation"]["id"]
+    );
+    assert_eq!(recovered["entries"][0]["pending"]["phase"], "prepared");
+    assert!(recovered["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(recovered["entries"][0]["enabled"], false);
+    assert_eq!(std::fs::read(sentinel).unwrap(), b"storage");
+}
+
+#[test]
+fn beta4_concurrent_bundled_replacements_accept_only_one_revision() {
+    let f = Fixture::new();
+    let source = "bundled:fixture.milkup-plugin";
+    let before = prepare(&f.0, archive("test.plugin", "1.0.0"), source.into(), None).unwrap();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let handles: Vec<_> = ["2.0.0", "3.0.0"]
+        .into_iter()
+        .map(|version| {
+            let root = f.0.clone();
+            let barrier = barrier.clone();
+            let identity = bundled_replacement_identity(&before);
+            let revision = before["entries"][0]["revision"].as_u64();
+            std::thread::spawn(move || {
+                barrier.wait();
+                prepare_with_replacement(
+                    &root,
+                    archive("test.plugin", version),
+                    source.into(),
+                    revision,
+                    Some(identity),
+                )
+            })
+        })
+        .collect();
+    let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
+    assert!(results
+        .iter()
+        .find_map(|r| r.as_ref().err())
+        .unwrap()
+        .contains("conflict"));
+    assert_eq!(
+        f.read()["entries"][0]["revision"].as_u64().unwrap(),
+        before["entries"][0]["revision"].as_u64().unwrap() + 1
+    );
+}
+
+#[test]
+fn beta4_bundled_replacement_records_new_source_without_forging_the_old_receipt() {
+    let f = Fixture::new();
+    let old_source = "bundled:test.plugin-1.0.0.milkup-plugin";
+    let new_source = "bundled:test.plugin-2.0.0.milkup-plugin";
+    let before = prepare(
+        &f.0,
+        archive("test.plugin", "1.0.0"),
+        old_source.into(),
+        None,
+    )
+    .unwrap();
+    let after = prepare_with_replacement(
+        &f.0,
+        archive("test.plugin", "2.0.0"),
+        new_source.into(),
+        before["entries"][0]["revision"].as_u64(),
+        Some(bundled_replacement_identity(&before)),
+    )
+    .unwrap();
+    assert_eq!(
+        after["entries"][0]["pending"]["generation"]["sourcePath"],
+        new_source
+    );
+    assert!(after["entries"][0]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|v| v.as_str().unwrap_or_default().contains(old_source)));
+}

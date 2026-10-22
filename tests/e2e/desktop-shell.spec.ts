@@ -196,12 +196,16 @@ test('plugin manager restores, executes, disables, and reenables a Worker plugin
   await page.getByRole('button', { name: 'E2E Tools 详情', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'E2E Tools' })).toBeVisible()
   await expect(page.locator('.plugin-state')).toHaveText('已启用')
-  await page.getByRole('button', { name: 'Plugin Hello' }).click()
-  await page.getByRole('button', { name: '禁用' }).click()
-
-  await expect(page.locator('.plugin-state')).toHaveText('已禁用')
-  await expect(page.getByRole('button', { name: 'Plugin Hello' })).toHaveCount(0)
-  await page.getByRole('button', { name: '启用' }).click()
+  await page.getByRole('button', { name: '返回插件列表', exact: true }).click()
+  const card = page.locator('.plugin-summary-card[data-plugin-id="e2e-tools"]')
+  await card.locator('[data-plugin-card-more-trigger]').click()
+  await card.getByRole('button', { name: 'Plugin Hello' }).click()
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await expect(card.getByRole('button', { name: 'Plugin Hello' })).toHaveCount(0)
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  await card.getByRole('button', { name: 'E2E Tools 详情', exact: true }).click()
   await expect(page.locator('.plugin-state')).toHaveText('已启用')
   await expect(page.getByText('Mod+Alt+H')).toBeVisible()
 })
@@ -750,13 +754,11 @@ const imagesPanel = (page: Page) => page.locator('[data-plugin-ui="milkup.images
 async function openImagesPanel(page: Page): Promise<void> {
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  if (
-    !(await page
-      .locator('[data-plugin-menu-group]')
-      .evaluate((group: HTMLDetailsElement) => group.open))
-  )
-    await page.locator('[data-plugin-menu-group] > summary').click()
-  await page.locator('[data-plugin-menu-entry="milkup.images:images-panel"]').click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.images"][data-plugin-ui-id="images-panel"]',
+    )
+    .click()
   await expect(imagesPanel(page).getByLabel('资源目录', { exact: true })).toBeEnabled()
 }
 async function closeImagesPanel(page: Page): Promise<void> {
@@ -1501,13 +1503,11 @@ test('phase18 theme follows system only when selected, persists explicit dark an
   await page.keyboard.insertText('# Heading\n\ntext `code` and [link](https://example.com)\n')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  if (
-    !(await page
-      .locator('[data-plugin-menu-group]')
-      .evaluate((group: HTMLDetailsElement) => group.open))
-  )
-    await page.locator('[data-plugin-menu-group] > summary').click()
-  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"][data-plugin-ui-id="preferences-panel"]',
+    )
+    .click()
   await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('dark')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   const contrast = await page.evaluate(() => {
@@ -1564,13 +1564,11 @@ test('phase18 theme follows system only when selected, persists explicit dark an
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  if (
-    !(await page
-      .locator('[data-plugin-menu-group]')
-      .evaluate((group: HTMLDetailsElement) => group.open))
-  )
-    await page.locator('[data-plugin-menu-group] > summary').click()
-  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"][data-plugin-ui-id="preferences-panel"]',
+    )
+    .click()
   await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('system')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.emulateMedia({ colorScheme: 'dark' })
@@ -1612,13 +1610,11 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
   await page.keyboard.press('Escape')
   await page.locator('[data-menu-toggle]').click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  if (
-    !(await page
-      .locator('[data-plugin-menu-group]')
-      .evaluate((group: HTMLDetailsElement) => group.open))
-  )
-    await page.locator('[data-plugin-menu-group] > summary').click()
-  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  await page
+    .locator(
+      '[data-plugin-action="open-ui"][data-plugin-id="milkup.preferences"][data-plugin-ui-id="preferences-panel"]',
+    )
+    .click()
   const content = await page
     .locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
     .boundingBox()
