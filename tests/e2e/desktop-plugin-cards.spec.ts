@@ -1,7 +1,7 @@
 import { sealWorkerFixture } from '../helpers/sealed-plugin-fixture'
 import { expect, test, type Page } from '@playwright/test'
 
-async function seed(page: Page): Promise<void> {
+async function seed(page: Page, betaCode = 'export default {}'): Promise<void> {
   const records = ['alpha', 'beta'].map((id) => ({
     manifest: {
       id: `cards.${id}`,
@@ -28,7 +28,12 @@ async function seed(page: Page): Promise<void> {
     errors: [],
   }))
   for (const record of records)
-    await sealWorkerFixture(page, record.manifest, record.manifestPath, 'export default {}')
+    await sealWorkerFixture(
+      page,
+      record.manifest,
+      record.manifestPath,
+      record.manifest.id === 'cards.beta' ? betaCode : 'export default {}',
+    )
   await page.addInitScript((records) => {
     localStorage.setItem(
       'milkup.desktop.plugins.registry.v1',
@@ -41,14 +46,17 @@ async function seed(page: Page): Promise<void> {
   await page.getByRole('button', { name: '插件', exact: true }).click()
 }
 
-test('plugin cards show only identity and description; keyboard detail and back restore focus', async ({
+test('plugin cards expose explicit details; keyboard detail and back restore focus', async ({
   page,
 }) => {
   await seed(page)
-  const card = page.getByRole('button', { name: 'alpha tools', exact: true })
+  const card = page.getByRole('button', { name: 'alpha tools 详情', exact: true })
   await expect(card).toBeVisible()
-  await expect(card).toHaveText('aalpha toolsalpha description <script>plain text</script>')
-  await expect(card.locator('.plugin-logo')).toHaveCount(1)
+  await expect(card).toHaveText('详情')
+  await expect(card.locator('xpath=../..')).toContainText(
+    'alpha description <script>plain text</script>',
+  )
+  await expect(card.locator('xpath=../..').locator('.plugin-logo')).toHaveCount(1)
   await expect(
     page.locator('.plugin-meta, .plugin-state, [data-plugin-action="enable"]'),
   ).toHaveCount(0)
@@ -69,7 +77,7 @@ test('plugin permission approval, enable, disable and uninstall remain inside de
   page,
 }) => {
   await seed(page)
-  await page.getByRole('button', { name: 'alpha tools', exact: true }).click()
+  await page.getByRole('button', { name: 'alpha tools 详情', exact: true }).click()
   await expect(page.locator('.plugin-meta')).toContainText('待审批')
   await page.getByRole('button', { name: '启用', exact: true }).click()
   await expect(page.locator('.plugin-state')).toHaveText('失败')
@@ -82,14 +90,14 @@ test('plugin permission approval, enable, disable and uninstall remain inside de
   await page.getByRole('button', { name: '禁用', exact: true }).click()
   await expect(page.locator('.plugin-state')).toHaveText('已禁用')
   await page.getByRole('button', { name: '移除', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'beta tools', exact: true })).toBeFocused()
-  await expect(page.getByRole('button', { name: 'alpha tools', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'beta tools 详情', exact: true })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'alpha tools 详情', exact: true })).toHaveCount(0)
 })
 
 test('plugin detail controls and long metadata fit a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await seed(page)
-  await page.getByRole('button', { name: 'alpha tools', exact: true }).click()
+  await page.getByRole('button', { name: 'alpha tools 详情', exact: true }).click()
   await expect(page.getByRole('button', { name: '移除', exact: true })).toBeVisible()
   expect(
     await page
@@ -166,12 +174,12 @@ test('new installation opens approval details; late and broken logos preserve fa
   await expect(target.locator('.plugin-logo img')).toHaveCount(1)
   await expect(target.getByRole('heading', { name: 'New Tools' })).toBeFocused()
   await target.getByRole('button', { name: '返回插件列表', exact: true }).click()
-  await expect(target.getByRole('button', { name: 'New Tools', exact: true })).toBeFocused()
+  await expect(target.getByRole('button', { name: 'New Tools 详情', exact: true })).toBeFocused()
   await expect(
-    target.getByRole('button', { name: 'Broken Tools', exact: true }).locator('img'),
+    target.locator('.plugin-summary-card[data-plugin-id="broken.tools"] img'),
   ).toHaveCount(0)
   await expect(
-    target.getByRole('button', { name: 'Broken Tools', exact: true }).locator('.plugin-logo'),
+    target.locator('.plugin-summary-card[data-plugin-id="broken.tools"] .plugin-logo'),
   ).toHaveText('B')
 })
 
@@ -232,8 +240,52 @@ test('background package restoration opens on the list and changed icons do not 
     )
   })
   const target = page.locator('#plugin-restoration-test')
-  await expect(target.getByRole('button', { name: 'Restored Tools', exact: true })).toBeVisible()
+  await expect(
+    target.getByRole('button', { name: 'Restored Tools 详情', exact: true }),
+  ).toBeVisible()
   await expect(target.locator('.plugin-detail')).toHaveCount(0)
   await expect(target.locator('img')).toHaveCount(0)
   await expect(target.locator('.plugin-logo')).toHaveText('R')
+})
+
+test('beta3 card switch toggles in place without opening details', async ({ page }) => {
+  await seed(page)
+  const card = page.locator('.plugin-summary-card[data-plugin-id="cards.beta"]')
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await card.locator('.plugin-card-title').click()
+  await expect(page.locator('.plugin-detail')).toHaveCount(0)
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('.plugin-detail')).toHaveCount(0)
+  await card.getByRole('switch').click()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await expect(
+    page.locator('.plugin-summary-card[data-plugin-id="cards.alpha"]').getByRole('switch'),
+  ).toBeDisabled()
+})
+
+test('beta3 switch rejects repeated activation while pending and reports failure in place', async ({
+  page,
+}) => {
+  await seed(
+    page,
+    'export default { async activate() { await new Promise(resolve => setTimeout(resolve, 250)); throw new Error("fixture activation failed") } }',
+  )
+  const card = page.locator('.plugin-summary-card[data-plugin-id="cards.beta"]')
+  await card.getByRole('switch').evaluate((button: HTMLButtonElement) => {
+    button.click()
+    document
+      .querySelector<HTMLButtonElement>(
+        '.plugin-summary-card[data-plugin-id="cards.beta"] [role="switch"]',
+      )!
+      .click()
+  })
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-busy', 'true')
+  await expect(card.getByRole('switch')).toBeDisabled()
+  await expect(card.getByRole('switch')).toBeEnabled()
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await expect(card.getByRole('status')).toContainText('操作未完成')
+  await expect(page.locator('.plugin-detail')).toHaveCount(0)
+  await card.getByRole('button', { name: 'beta tools 详情' }).click()
+  await expect(page.locator('.plugin-errors')).toContainText('fixture activation failed')
 })

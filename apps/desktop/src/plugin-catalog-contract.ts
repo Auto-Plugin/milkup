@@ -50,6 +50,7 @@ interface CandidateIdentity {
 export type PluginCatalogAction =
   | (CandidateIdentity & { readonly type: 'approve' | 'beginTrial' | 'abort' })
   | (CandidateIdentity & { readonly type: 'commit'; readonly enabled: boolean })
+  | (CandidateIdentity & { readonly type: 'failCandidate'; readonly message: string })
   | { readonly type: 'startupBegin'; readonly generationId: string }
   | { readonly type: 'startupComplete'; readonly attemptId: string }
   | { readonly type: 'approveActive'; readonly generationId: string; readonly fingerprint: string }

@@ -1087,3 +1087,50 @@ describe('P6 lifecycle failure boundaries', () => {
     expect(manager.state().records).toEqual([])
   })
 })
+
+describe('beta3 activation failure diagnostics without native catalog', () => {
+  it('preserves the matching runtime activation message instead of stringifying its typed record', async () => {
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      loadModule: async () => ({
+        module: {
+          runtimeHost: 'isolated',
+          activate: () => {
+            throw new Error('fixture activation failed')
+          },
+        },
+        dispose: () => {},
+      }),
+    })
+    await manager.ready
+    await manager.installManifestPath('/plugin.json')
+    const failed = await manager.enable('example-tools')
+    expect(failed.state).toBe('failed')
+    expect(failed.errors.join(' ')).toContain('fixture activation failed')
+    expect(failed.errors.join(' ')).not.toContain('[object Object]')
+  })
+  it('does not extract another owner, wrong phase, or arbitrary accessor diagnostics', async () => {
+    const getter = vi.fn(() => 'PRIVATE_DIAGNOSTIC')
+    for (const failure of [
+      { pluginId: 'other-plugin', phase: 'enable', message: 'PRIVATE_DIAGNOSTIC' },
+      { pluginId: 'example-tools', phase: 'renderer', message: 'PRIVATE_DIAGNOSTIC' },
+      Object.defineProperty({ pluginId: 'example-tools', phase: 'enable' }, 'message', {
+        get: getter,
+      }),
+    ]) {
+      const manager = createManager({
+        registry: new ActionRegistry(),
+        storage: createMemoryStorage(),
+        loadModule: async () => {
+          throw failure
+        },
+      })
+      await manager.ready
+      await manager.installManifestPath('/plugin.json')
+      const failed = await manager.enable('example-tools')
+      expect(failed.errors.join(' ')).not.toContain('PRIVATE_DIAGNOSTIC')
+    }
+    expect(getter).not.toHaveBeenCalled()
+  })
+})

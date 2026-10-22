@@ -115,6 +115,7 @@ export class DesktopPluginUiController {
   private lastSyncSignature = ''
   private readonly collapsedSidebarPanels = new Set<string>()
   private readonly hiddenSlots = new Set<PluginUiBinding['slot']>()
+  private sidebarResizeCleanup: (() => void) | undefined
   private viewportUpdatePending = false
   private viewportUpdatePromise: Promise<void> | undefined
 
@@ -210,6 +211,7 @@ export class DesktopPluginUiController {
   /** The embedding shell owns slot visibility; plugins receive an actual lifecycle snapshot. */
   setSlotVisible(slot: PluginUiBinding['slot'], visible: boolean): void {
     if (this.hiddenSlots.has(slot) === !visible) return
+    if (slot === 'sidebar-panel' && !visible) this.sidebarResizeCleanup?.()
     if (visible) this.hiddenSlots.delete(slot)
     else this.hiddenSlots.add(slot)
     for (const mount of this.mounts.values()) {
@@ -1171,6 +1173,7 @@ export class DesktopPluginUiController {
   }
 
   private reorderSidebarPanels(): void {
+    this.sidebarResizeCleanup?.()
     const target = this.root.querySelector<HTMLElement>('[data-plugin-slot="sidebar-panel"]')
     if (!target) return
 
@@ -1195,6 +1198,14 @@ export class DesktopPluginUiController {
 
     target.append(...panels.map(([, mount]) => mount.container))
     const expanded = panels.filter(([key]) => !this.collapsedSidebarPanels.has(key))
+    if (expanded.some(([, mount]) => mount.container.style.flex)) {
+      const weights = expanded.map(([, mount]) => Number(mount.container.style.flexGrow || 1))
+      const total = weights.reduce((sum, weight) => sum + weight, 0)
+      expanded.forEach(([, mount], index) => {
+        const weight = total > 0 ? (weights[index]! * expanded.length) / total : 1
+        mount.container.style.flex = `${weight} 1 ${sidebarPanelMinimumHeight}px`
+      })
+    }
     let foundCollapsedPanel = false
 
     for (const [key, mount] of panels) {
@@ -1214,25 +1225,45 @@ export class DesktopPluginUiController {
   private startSidebarPanelResize(key: string, event: PointerEvent): void {
     if (event.button !== 0) return
     const pair = this.getSidebarPanelPair(key)
-    if (!pair) return
+    const handle = pair?.[0].resizeHandle
+    if (!pair || !handle) return
+    this.sidebarResizeCleanup?.()
     event.preventDefault()
+    handle.focus({ preventScroll: true })
 
     const startY = event.clientY
     const firstHeight = pair[0].container.getBoundingClientRect().height
     const secondHeight = pair[1].container.getBoundingClientRect().height
     const ownerDocument = this.root.ownerDocument
+    const window = ownerDocument.defaultView
     const handleMove = (moveEvent: PointerEvent): void => {
+      if (moveEvent.pointerId !== event.pointerId) return
       this.applySidebarPanelPairSize(pair, firstHeight, secondHeight, moveEvent.clientY - startY)
     }
-    const handleUp = (): void => {
+    const cleanup = (): void => {
+      this.sidebarResizeCleanup = undefined
       ownerDocument.removeEventListener('pointermove', handleMove)
-      ownerDocument.removeEventListener('pointerup', handleUp)
+      ownerDocument.removeEventListener('pointerup', handleEnd)
+      ownerDocument.removeEventListener('pointercancel', handleEnd)
+      handle.removeEventListener('lostpointercapture', handleEnd)
+      window?.removeEventListener('blur', cleanup)
+      window?.removeEventListener('resize', cleanup)
+      if (handle.hasPointerCapture?.(event.pointerId)) handle.releasePointerCapture(event.pointerId)
       ownerDocument.documentElement.dataset.pluginPanelResizing = 'false'
     }
+    const handleEnd = (endEvent: PointerEvent): void => {
+      if (endEvent.pointerId === event.pointerId) cleanup()
+    }
 
+    this.sidebarResizeCleanup = cleanup
     ownerDocument.documentElement.dataset.pluginPanelResizing = 'true'
     ownerDocument.addEventListener('pointermove', handleMove)
-    ownerDocument.addEventListener('pointerup', handleUp)
+    ownerDocument.addEventListener('pointerup', handleEnd)
+    ownerDocument.addEventListener('pointercancel', handleEnd)
+    handle.addEventListener('lostpointercapture', handleEnd)
+    window?.addEventListener('blur', cleanup)
+    window?.addEventListener('resize', cleanup)
+    handle.setPointerCapture?.(event.pointerId)
   }
 
   private resizeSidebarPanelPair(key: string, delta: number): void {
@@ -1249,14 +1280,23 @@ export class DesktopPluginUiController {
   private getSidebarPanelPair(
     key: string,
   ): readonly [MountedPluginUi, MountedPluginUi] | undefined {
-    const expanded = [...this.mounts.entries()].filter(
-      ([candidate, mount]) =>
-        mount.contribution.slot === 'sidebar-panel' && !this.collapsedSidebarPanels.has(candidate),
-    )
-    const index = expanded.findIndex(([candidate]) => candidate === key)
+    const expanded = this.getExpandedSidebarPanels()
+    const index = expanded.findIndex((mount) => uiKey(mount.contribution) === key)
     return index >= 0 && index < expanded.length - 1
-      ? [expanded[index]![1], expanded[index + 1]![1]]
+      ? [expanded[index]!, expanded[index + 1]!]
       : undefined
+  }
+
+  private getExpandedSidebarPanels(): MountedPluginUi[] {
+    const target = this.root.querySelector<HTMLElement>('[data-plugin-slot="sidebar-panel"]')
+    if (!target) return []
+    // Document-scoped remounts change Map insertion order. The separator belongs
+    // to the next visible DOM panel, including after collapse/reordering.
+    return Array.from(target.children).flatMap((element) => {
+      const key = (element as HTMLElement).dataset.pluginUi
+      const mount = key ? this.mounts.get(key) : undefined
+      return mount && !this.collapsedSidebarPanels.has(key!) ? [mount] : []
+    })
   }
 
   private applySidebarPanelPairSize(
@@ -1269,8 +1309,24 @@ export class DesktopPluginUiController {
       secondHeight - sidebarPanelMinimumHeight,
       Math.max(sidebarPanelMinimumHeight - firstHeight, delta),
     )
-    pair[0].container.style.flex = `0 0 ${Math.round(firstHeight + boundedDelta)}px`
-    pair[1].container.style.flex = `0 0 ${Math.round(secondHeight - boundedDelta)}px`
+    const panels = this.getExpandedSidebarPanels()
+    const excessHeights = panels.map((mount) => {
+      const height =
+        mount === pair[0]
+          ? firstHeight + boundedDelta
+          : mount === pair[1]
+            ? secondHeight - boundedDelta
+            : mount.container.getBoundingClientRect().height
+      return Math.max(0, height - sidebarPanelMinimumHeight)
+    })
+    const total = excessHeights.reduce((sum, height) => sum + height, 0)
+    // Share only the space above each panel's minimum. Pixel bases would leave
+    // siblings clipped after a window resize; resize all weights to keep the
+    // untouched panels stationary during this gesture.
+    panels.forEach((mount, index) => {
+      const weight = total > 0 ? (excessHeights[index]! * panels.length) / total : 1
+      mount.container.style.flex = `${weight} 1 ${sidebarPanelMinimumHeight}px`
+    })
   }
 }
 

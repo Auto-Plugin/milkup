@@ -54,7 +54,12 @@ fn fresh_process_recovers_interrupted_trial_without_changing_old_package() {
     let original = std::fs::read(&module).unwrap();
     let recovered = profile.run("read");
     let after = &recovered["entries"][0];
-    assert!(after["pending"].is_null());
+    assert_eq!(after["pending"]["phase"], "prepared");
+    assert_eq!(
+        after["pending"]["generation"]["id"],
+        entry["pending"]["generation"]["id"]
+    );
+    assert!(after["pending"]["generation"]["approvedFingerprint"].is_null());
     assert_eq!(after["enabled"], false);
     assert_eq!(after["active"], entry["active"]);
     assert_eq!(std::fs::read(module).unwrap(), original);
@@ -96,4 +101,23 @@ fn other_process_cannot_read_or_mutate_while_native_catalog_lock_is_owned() {
     fs2::FileExt::unlock(&lock).unwrap();
     drop(lock);
     assert_eq!(profile.run("read"), initial);
+}
+
+#[test]
+fn fresh_process_keeps_interrupted_first_install_visible_without_approval() {
+    let profile = Profile::new();
+    let before = profile.run("seed-first-trial");
+    let entry = &before["entries"][0];
+    assert!(entry["active"].is_null());
+    assert_eq!(entry["pending"]["phase"], "trial");
+    let recovered = profile.run("read");
+    let after = &recovered["entries"][0];
+    assert_eq!(
+        after["pending"]["generation"]["id"],
+        entry["pending"]["generation"]["id"]
+    );
+    assert_eq!(after["pending"]["phase"], "prepared");
+    assert!(after["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(after["enabled"], false);
+    assert_eq!(profile.run("read"), recovered);
 }

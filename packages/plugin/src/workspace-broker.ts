@@ -26,6 +26,8 @@ export interface PluginWorkspaceListOptions extends PluginWorkspaceOperationOpti
   readonly limit?: number
 }
 export interface PluginWorkspaceReadHost {
+  /** Restore only the host-owned last selection, once per activation. No paths authorize access. */
+  restoreRoot?(options?: PluginWorkspaceOperationOptions): Promise<PluginWorkspaceRoot | null>
   listChildren(rootId: string, options?: PluginWorkspaceListOptions): Promise<PluginWorkspacePage>
   resolveEntry(
     rootId: string,
@@ -140,6 +142,7 @@ export function createPluginWorkspaceBroker(
 ): RevocablePluginWorkspaceBroker {
   let disposed = false
   let choosing = false
+  let restoreAttempted = false
   const roots = new Map<string, PluginWorkspaceRoot>()
   const entries = new Map<string, { rootId: string; entry: PluginWorkspaceEntry }>()
   const cursors = new Map<string, { rootId: string; directoryId?: string; generation: number }>()
@@ -248,36 +251,50 @@ export function createPluginWorkspaceBroker(
     enumerations.clear()
     config.onDispose?.()
   }
+  async function acquireRoot(
+    options: PluginWorkspaceOperationOptions | undefined,
+    restoring: boolean,
+  ) {
+    if (choosing) workspaceFailure('busy')
+    choosing = true
+    try {
+      const selected = await run(undefined, options?.signal, async (signal) => {
+        const value = await (restoring
+          ? (config.adapter.restoreRoot?.({ signal }) ?? Promise.resolve(null))
+          : config.adapter.chooseRoot({ signal }))
+        if (!value) return null
+        try {
+          if (signal.aborted) workspaceFailure('aborted')
+          const selected = copyRoot(value)
+          const previous = [...roots.keys()]
+          if (previous.includes(selected.id)) workspaceFailure('invalidated')
+          for (const id of previous) retire(id)
+          for (const id of previous) await config.adapter.releaseRoot(id)
+          if (signal.aborted) workspaceFailure('aborted')
+          return selected
+        } catch (error) {
+          await config.adapter.releaseRoot(value.id).catch(() => undefined)
+          throw error
+        }
+      })
+      if (!selected) return null
+      active()
+      roots.set(selected.id, selected)
+      return selected
+    } finally {
+      choosing = false
+    }
+  }
   return Object.freeze({
+    restoreRoot: async (options?: PluginWorkspaceOperationOptions) => {
+      active()
+      if (restoreAttempted || roots.size) return Promise.resolve(null)
+      restoreAttempted = true
+      return acquireRoot(options, true)
+    },
     chooseRoot: async (options?: PluginWorkspaceGestureOptions) => {
       gesture(options?.gesture)
-      if (choosing) workspaceFailure('busy')
-      choosing = true
-      try {
-        const selected = await run(undefined, options?.signal, async (signal) => {
-          const value = await config.adapter.chooseRoot({ signal })
-          if (!value) return null
-          try {
-            if (signal.aborted) workspaceFailure('aborted')
-            const selected = copyRoot(value)
-            const previous = [...roots.keys()]
-            if (previous.includes(selected.id)) workspaceFailure('invalidated')
-            for (const id of previous) retire(id)
-            for (const id of previous) await config.adapter.releaseRoot(id)
-            if (signal.aborted) workspaceFailure('aborted')
-            return selected
-          } catch (error) {
-            await config.adapter.releaseRoot(value.id).catch(() => undefined)
-            throw error
-          }
-        })
-        if (!selected) return null
-        active()
-        roots.set(selected.id, selected)
-        return selected
-      } finally {
-        choosing = false
-      }
+      return acquireRoot(options, false)
     },
     listChildren: async (rootId: string, options: PluginWorkspaceListOptions = {}) => {
       root(rootId)
@@ -399,6 +416,7 @@ export function createPluginWorkspaceHostCapabilities(
     return result
   }
   const read: PluginWorkspaceReadHost = {
+    restoreRoot: (options) => run(() => broker.restoreRoot?.(options) ?? Promise.resolve(null)),
     listChildren: (rootId, options) => run(() => broker.listChildren(rootId, options)),
     resolveEntry: (rootId, relativePath, options) =>
       run(() => broker.resolveEntry(rootId, relativePath, options)),

@@ -11,12 +11,38 @@ import {
 } from './registry'
 
 describe('plugin registry', () => {
+  it.each(['0.3.2', '0.3.7', '0.3.8'])(
+    'enforces the current workspace 1.0.1 restoration contract on SDK %s',
+    (pluginSdkVersion) => {
+      const manifest = parsePluginManifest(
+        JSON.parse(
+          readFileSync(new URL('../../../plugins/workspace/plugin.json', import.meta.url), 'utf8'),
+        ),
+      )
+      expect(manifest.version).toBe('1.0.1')
+      expect(manifest.engines?.pluginSdk).toBe('^0.3.8')
+      expect(
+        validatePluginCompatibility(manifest, { milkupVersion: '2.0.0-beta.3', pluginSdkVersion }),
+      ).toEqual(pluginSdkVersion === '0.3.8' ? [] : ['Requires plugin SDK ^0.3.8'])
+    },
+  )
+
   it.each(['outline', 'updates', 'workspace', 'preferences', 'shortcuts'])(
     'restores installed %s under SDK 0.3.2 without altering range, approvals or enable state',
     (name) => {
-      const manifest = JSON.parse(
+      const currentManifest = JSON.parse(
         readFileSync(new URL(`../../../plugins/${name}/plugin.json`, import.meta.url), 'utf8'),
       )
+      // This upgrade fixture describes the installed 1.0.0 workspace, before
+      // host-owned restoration raised its minimum SDK to 0.3.8 in version 1.0.1.
+      const manifest =
+        name === 'workspace'
+          ? {
+              ...currentManifest,
+              version: '1.0.0',
+              engines: { ...currentManifest.engines, pluginSdk: '^0.3.0' },
+            }
+          : currentManifest
       const expectedRange =
         name === 'preferences'
           ? '^0.3.1'

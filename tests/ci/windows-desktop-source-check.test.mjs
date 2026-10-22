@@ -266,3 +266,22 @@ test('version-gates candidate reuses the bounded source job on its isolated bran
   )
   assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
 })
+
+test('beta3 feedback delivery is confined to its exact branch and verified beta2 ancestry', async () => {
+  const workflow = await read('.github/workflows/v2-windows-manual-candidate.yml')
+  const source = await read('scripts/ci/check-windows-desktop-source.ps1')
+  const packaging = await read('scripts/ci/build-windows-manual-candidate.ps1')
+  for (const text of [workflow, source, packaging]) {
+    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta3-feedback'))
+    assert.ok(text.includes('32b55aa4dfd2806433a649eca2c9d7ad2262d3bc'))
+  }
+  assert.ok(workflow.includes('[windows-manual-beta3]'))
+  assert.ok(source.includes('[windows-manual-beta3]'))
+  assert.match(workflow, /contents: read/)
+  assert.match(workflow, /persist-credentials: false/)
+  assert.match(workflow, /retention-days: 1/)
+  assert.match(workflow, /timeout-minutes: 60/)
+  assert.doesNotMatch(workflow, /secrets\.|workflow_dispatch|gh release|write-all/)
+  assert.match(packaging, /Unexpected source SHA/)
+  assert.match(packaging, /installerExecuted=\$false/)
+})

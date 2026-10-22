@@ -33,6 +33,40 @@ function make(host = adapter()) {
 }
 
 describe('workspace scope broker', () => {
+  it('restores at most once without granting chooser/open gestures or reusing tokens', async () => {
+    const host = { ...adapter(), restoreRoot: vi.fn(async () => selected) }
+    const { broker } = make(host)
+    const read = createPluginWorkspaceHostCapabilities(broker)
+    expect(await read.restoreRoot?.()).toEqual(selected)
+    expect(await read.restoreRoot?.()).toBeNull()
+    expect(host.restoreRoot).toHaveBeenCalledTimes(1)
+    expect(await read.listChildren(selected.id)).toMatchObject({ entries: [file, directory] })
+    await expect(broker.requestOpen(file.id)).rejects.toMatchObject({ code: 'gesture-required' })
+    broker.dispose()
+    await expect(read.restoreRoot?.()).rejects.toMatchObject({ code: 'revoked' })
+  })
+  it('rejects unapproved restore before native access and releases late cancelled grants', async () => {
+    const late = deferred<typeof selected>()
+    const host = { ...adapter(), restoreRoot: vi.fn(() => late.promise) }
+    const denied = createPluginWorkspaceBroker({
+      manifest: { ...manifest, permissions: [] },
+      adapter: host,
+    })
+    await expect(denied.restoreRoot?.()).rejects.toMatchObject({ code: 'revoked' })
+    expect(host.restoreRoot).not.toHaveBeenCalled()
+    const { broker } = make(host)
+    const abort = new AbortController()
+    const restoring = broker.restoreRoot?.({ signal: abort.signal })
+    await flush()
+    abort.abort()
+    await expect(restoring).rejects.toMatchObject({ code: 'aborted' })
+    late.resolve(selected)
+    await flush()
+    expect(host.releaseRoot).toHaveBeenCalledWith(selected.id)
+    await expect(broker.listChildren(selected.id)).rejects.toMatchObject({ code: 'invalid-token' })
+    broker.dispose()
+  })
+
   it.each(['list', 'resolve', 'refresh', 'open'] as const)(
     'rejects %s results when disposal runs between the adapter result and publication',
     async (method) => {

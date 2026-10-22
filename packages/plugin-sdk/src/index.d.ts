@@ -491,6 +491,8 @@ export interface SdkWorkspaceListOptions extends SdkWorkspaceOperationOptions {
   readonly limit?: number
 }
 export interface SdkPluginWorkspaceReadHost {
+  /** Restore only the host-owned last selection, once per activation. No paths authorize access. */
+  restoreRoot?(options?: SdkWorkspaceOperationOptions): Promise<SdkWorkspaceRoot | null>
   /** Omitting cursor restarts this directory enumeration and invalidates old cursors. */
   listChildren(rootId: string, options?: SdkWorkspaceListOptions): Promise<SdkWorkspacePage>
   resolveEntry(

@@ -7,7 +7,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sdk = process.argv[2] && (await realpath(resolve(process.argv[2])))
 if (!sdk || !sdk.endsWith('.tgz'))
   throw new Error(
-    'Usage: node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.0.tgz [external-directory]',
+    'Usage: node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.8.tgz [external-directory]',
   )
 const output = resolve(
   process.argv[3] || '/workspace/milkup-workspace-phase2-evidence/workspace-external',
@@ -61,6 +61,6 @@ await run(['run', 'build'], 'build.log')
 await run(['test'], 'test.log')
 await writeFile(
   resolve(target, 'verification.json'),
-  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: 'dist/milkup.workspace-1.0.0.milkup-plugin' }, null, 2)}\n`,
+  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: 'dist/milkup.workspace-1.0.1.milkup-plugin' }, null, 2)}\n`,
 )
 console.log(`Independent workspace plugin verified: ${target}`)

@@ -426,7 +426,10 @@ async function interrupted(kind) {
   await restart()
   const after = await record()
   assert.equal(after.active.id, before.active.id)
-  assert.equal(after.pending, null)
+  if (kind === 'trial') {
+    assert.equal(after.pending.phase, 'prepared')
+    assert.equal(after.pending.generation.approvedFingerprint, null)
+  } else assert.equal(after.pending, null)
   assert.equal(after.startAttempt, null)
   assert.equal(after.enabled, false)
   assert(after.diagnostics.length > 0)

@@ -75,6 +75,7 @@ export default definePlugin({
         return ''
       }
       visible = true
+      void controller?.restore()
       return render(controller?.state)
     },
   },
@@ -126,9 +127,11 @@ export function render(state?: State): SdkRendererOutput {
     },
     span(state?.root?.label || '尚未授权文件夹', { class: 'plugin-list-summary' }),
     span(
-      state && (state.root || busy)
-        ? statuses[state.phase]
-        : '每次启动需重新选择文件夹。授权后可查看该文件夹的最近文件。',
+      state && (state.root || state.phase !== 'idle')
+        ? state.phase === 'cancelled' && !state.root
+          ? '操作已取消，可重新选择文件夹。'
+          : statuses[state.phase]
+        : '选择文件夹后，下次打开工作区将尝试恢复；无法访问时请重新选择。',
       { role: 'status', class: 'plugin-list-summary' },
     ),
   ]

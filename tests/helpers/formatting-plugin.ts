@@ -77,7 +77,7 @@ export async function formattingFixture(page: Page) {
     phase('menu-clicked')
     await page.getByRole('button', { name: '插件', exact: true }).click()
     phase('plugins-clicked')
-    await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+    await page.getByRole('button', { name: 'Milkup Formatting 详情', exact: true }).click()
     phase('plugin-details-clicked')
     const approve = page.getByRole('button', { name: '批准能力', exact: true })
     if (await approve.isVisible()) await approve.click()

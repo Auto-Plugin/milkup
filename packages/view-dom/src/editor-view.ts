@@ -1,3 +1,9 @@
+import {
+  codeBlockForLine,
+  renderCodeLine,
+  codeLanguagePicker,
+  codeLanguageEdit,
+} from './code-presentation'
 import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
 import { createControlledRendererNodes } from './controlled-renderer'
 import { ImagePasteSession, ImagePresentation } from './image-presentation'
@@ -157,6 +163,17 @@ export class EditorView {
       }
     })
   }
+  private readonly handleCodeLanguageEvent = (event: Event): void => {
+    const picker = codeLanguagePicker(event, this.contentDOM)
+    if (!picker || !this.editable || this.composing || this.mode !== 'live') return
+    const from = Number(picker.dataset.codeFrom)
+    if (!Number.isInteger(from) || from < 0 || from > this.currentState.doc.length) return
+    const line = this.currentState.doc.lineAt(from)
+    const edit = codeLanguageEdit(picker, from, line.text)
+    if (!edit || line.from !== from) return
+    this.applyBlockChanges(ChangeSet.replace(edit.from, edit.to, edit.insert), 'view.code.language')
+    this.inputDOM.focus({ preventScroll: true })
+  }
   private readonly handleTaskKeyDownEvent = (event: KeyboardEvent): void => {
     const task = taskMarkerFromEvent(event, this.contentDOM)
     if (!task || (event.key !== ' ' && event.key !== 'Enter')) return
@@ -253,6 +270,7 @@ export class EditorView {
     this.dom.addEventListener('scroll', this.handleScrollEvent)
     this.contentDOM.addEventListener('scroll', this.handleInnerScrollEvent, true)
     this.contentDOM.addEventListener('keydown', this.handleTaskKeyDownEvent)
+    this.contentDOM.addEventListener('change', this.handleCodeLanguageEvent)
     this.dom.addEventListener('click', this.handleClickEvent)
     this.dom.addEventListener('mousedown', this.handleMouseDownEvent)
     this.dom.addEventListener('mousemove', this.handleMouseMoveEvent)
@@ -569,6 +587,7 @@ export class EditorView {
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
     this.contentDOM.removeEventListener('scroll', this.handleInnerScrollEvent, true)
     this.contentDOM.removeEventListener('keydown', this.handleTaskKeyDownEvent)
+    this.contentDOM.removeEventListener('change', this.handleCodeLanguageEvent)
     this.dom.removeEventListener('click', this.handleClickEvent)
     this.dom.removeEventListener('mousedown', this.handleMouseDownEvent)
     this.dom.removeEventListener('mousemove', this.handleMouseMoveEvent)
@@ -1914,7 +1933,9 @@ function renderMarkdownLine(
   const table = findBlockForLine(blocks, 'table', line.from, line.to)
 
   if (!shouldRenderInlineDecorations(blocks, line.from, line.to)) {
-    lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
+    const code = codeBlockForLine(blocks, line.from, line.to)
+    if (code) renderCodeLine(lineDOM, line.text, line.from, code)
+    else lineDOM.textContent = line.text || '\u200b'
   } else if (heading) {
     lineDOM.replaceChildren(
       ...renderBlockLineDecorations(

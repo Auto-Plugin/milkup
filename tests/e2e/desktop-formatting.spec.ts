@@ -90,7 +90,7 @@ test('disabling formatting removes its contributions and retains basic editing/h
   await formattingFixture(page)
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  const card = page.getByRole('button', { name: 'Milkup Formatting', exact: true })
+  const card = page.getByRole('button', { name: 'Milkup Formatting 详情', exact: true })
   if (await card.isVisible()) await card.click()
   await page.getByRole('button', { name: '禁用', exact: true }).click()
   await expect(toolbar(page).getByRole('button', { name: '格式', exact: true })).toHaveCount(0)

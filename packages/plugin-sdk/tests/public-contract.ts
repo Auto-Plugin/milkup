@@ -190,6 +190,12 @@ async function workspaceContract(
   activation: SdkPluginWorkspaceReadHost,
 ) {
   const controller = new AbortController()
+  const remembered: SdkWorkspaceRoot | null | undefined = await activation.restoreRoot?.({
+    signal: controller.signal,
+  })
+  // @ts-expect-error Restoring accepts neither a path nor a stable metadata key.
+  activation.restoreRoot?.({ path: '/outside', key: 'forged' })
+  void remembered
   const root: SdkWorkspaceRoot | null = await host.chooseRoot({ signal: controller.signal })
   if (!root) return
   const page: SdkWorkspacePage = await activation.listChildren(root.id, {

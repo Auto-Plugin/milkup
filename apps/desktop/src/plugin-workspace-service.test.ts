@@ -52,6 +52,101 @@ const tick = async () => {
 }
 
 describe('desktop workspace scope and descriptor ownership', () => {
+  it('restores a fresh root using only its trusted owner scope', async () => {
+    const invoke = vi.fn(async (command: string) =>
+      command === 'workspace_create_scope' ? 'owned-scope' : root,
+    )
+    const service = createDesktopWorkspaceAdapter({
+      pluginId: 'test.plugin',
+      invoke: invoke as WorkspaceInvoke,
+      openDocument: async () => ({ status: 'cancelled' }),
+    })
+    expect(await service.adapter.restoreRoot?.()).toEqual(root)
+    expect(invoke.mock.calls).toEqual([
+      ['workspace_create_scope', { pluginId: 'test.plugin' }],
+      ['workspace_restore_root', { scopeId: 'owned-scope' }],
+    ])
+    service.dispose()
+  })
+  it('remembers successful picks but never cancelled or late picker results', async () => {
+    const selection = deferred<typeof root | null>()
+    const invoke = vi.fn(async (command: string) =>
+      command === 'workspace_create_scope'
+        ? 'owned-scope'
+        : command === 'workspace_choose_root'
+          ? selection.promise
+          : undefined,
+    )
+    const service = createDesktopWorkspaceAdapter({
+      pluginId: 'test.plugin',
+      invoke: invoke as WorkspaceInvoke,
+      openDocument: async () => ({ status: 'cancelled' }),
+    })
+    const abort = new AbortController()
+    const choosing = service.adapter.chooseRoot({ signal: abort.signal })
+    await tick()
+    abort.abort()
+    selection.resolve(root)
+    await expect(choosing).rejects.toMatchObject({ name: 'AbortError' })
+    expect(invoke.mock.calls.some(([command]) => command === 'workspace_remember_root')).toBe(false)
+    expect(invoke).toHaveBeenCalledWith('workspace_release_root', {
+      scopeId: 'owned-scope',
+      rootId: root.id,
+    })
+    service.dispose()
+  })
+  it('commits a successful native selection and surfaces persistence failure', async () => {
+    let fail = false
+    const invoke = vi.fn(async (command: string) => {
+      if (command === 'workspace_create_scope') return 'owned-scope'
+      if (command === 'workspace_choose_root') return root
+      if (command === 'workspace_remember_root' && fail) throw Error('storage unavailable')
+    })
+    const service = createDesktopWorkspaceAdapter({
+      pluginId: 'test.plugin',
+      invoke: invoke as WorkspaceInvoke,
+      openDocument: async () => ({ status: 'cancelled' }),
+    })
+    await expect(service.adapter.chooseRoot()).resolves.toEqual(root)
+    expect(invoke).toHaveBeenCalledWith('workspace_remember_root', {
+      scopeId: 'owned-scope',
+      rootId: root.id,
+    })
+    fail = true
+    await expect(service.adapter.chooseRoot()).rejects.toThrow('storage unavailable')
+    expect(invoke).toHaveBeenCalledWith('workspace_release_root', {
+      scopeId: 'owned-scope',
+      rootId: root.id,
+    })
+    service.dispose()
+  })
+  it('releases a late restoration on cancellation', async () => {
+    const restoration = deferred<typeof root | null>()
+    const invoke = vi.fn(async (command: string) =>
+      command === 'workspace_create_scope'
+        ? 'owned-scope'
+        : command === 'workspace_restore_root'
+          ? restoration.promise
+          : undefined,
+    )
+    const service = createDesktopWorkspaceAdapter({
+      pluginId: 'test.plugin',
+      invoke: invoke as WorkspaceInvoke,
+      openDocument: async () => ({ status: 'cancelled' }),
+    })
+    const abort = new AbortController()
+    const restoring = service.adapter.restoreRoot?.({ signal: abort.signal })
+    await tick()
+    abort.abort()
+    restoration.resolve(root)
+    await expect(restoring).rejects.toMatchObject({ name: 'AbortError' })
+    expect(invoke).toHaveBeenCalledWith('workspace_release_root', {
+      scopeId: 'owned-scope',
+      rootId: root.id,
+    })
+    service.dispose()
+  })
+
   it('does not race cancellation cleanup against an acceptance already sent to native', async () => {
     const controller = createDocumentTransitionController({
       session: () => createDocumentSession({ documentId: 'draft' }),

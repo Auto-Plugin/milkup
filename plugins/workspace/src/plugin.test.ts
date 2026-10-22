@@ -77,6 +77,54 @@ const nodes = (value: unknown): Node[] => {
 }
 
 describe('workspace lifecycle and bounded reads', () => {
+  it('restores the host remembered root only once and loads its recent files', async () => {
+    const api = { ...backend(), restoreRoot: vi.fn(async () => root) }
+    const { controller, store } = setup(api)
+    store.getItem.mockResolvedValueOnce('["a.md"]')
+    await controller.restore()
+    await controller.restore()
+    expect(api.restoreRoot).toHaveBeenCalledTimes(1)
+    expect(api.chooseRoot).not.toHaveBeenCalled()
+    expect(controller.state.root).toEqual(root)
+    expect(controller.state.recent).toEqual(['a.md'])
+    expect(api.listChildren).toHaveBeenCalledTimes(1)
+  })
+  it('shows failed restoration and permits an explicit picker retry', async () => {
+    const api = {
+      ...backend(),
+      restoreRoot: vi.fn(async () => {
+        throw Error('invalidated')
+      }),
+    }
+    const { controller } = setup(api)
+    await controller.restore()
+    await controller.restore()
+    expect(api.restoreRoot).toHaveBeenCalledTimes(1)
+    expect(controller.state.phase).toBe('error')
+    expect(controller.state.error).toContain('重新选择')
+    await controller.choose(api)
+    expect(controller.state.root).toEqual(root)
+    expect(controller.state.phase).toBe('idle')
+  })
+  it('releases a late restored root after cancellation without resurrecting state', async () => {
+    const late = deferred<typeof root | null>()
+    const api = { ...backend(), restoreRoot: vi.fn(() => late.promise) }
+    const { controller } = setup(api)
+    const restoring = controller.restore()
+    controller.cancel()
+    late.resolve(root)
+    await restoring
+    expect(api.releaseRoot).toHaveBeenCalledWith(root.id)
+    expect(api.listChildren).not.toHaveBeenCalled()
+    expect(controller.state.root).toBeUndefined()
+    expect(controller.state.phase).toBe('cancelled')
+    expect(
+      nodes(render(controller.state)).some(
+        (node) => node.text === '操作已取消，可重新选择文件夹。',
+      ),
+    ).toBe(true)
+  })
+
   it('starts without authority or reads and loads only the chosen root page', async () => {
     const { api, controller } = setup()
     expect(controller.state.root).toBeUndefined()
@@ -374,6 +422,43 @@ describe('recent files and trusted opens', () => {
 })
 
 describe('controlled workspace UI', () => {
+  it('attempts restoration only on first visible render and keeps explicit selection available after failure', async () => {
+    const api = {
+      ...backend(),
+      restoreRoot: vi.fn(async () => {
+        throw Error('permission denied')
+      }),
+    }
+    const requestUpdate = vi.fn(async () => {})
+    plugin.activate({
+      pluginId: 'milkup.workspace',
+      permissions: ['workspace:read'],
+      host: {
+        workspace: api,
+        storage: storage(),
+        ui: { requestUpdate, revealLine: async () => {} },
+      },
+    })
+    plugin.renderers['workspace-panel']({ node: { phase: 'mount', visible: false } })
+    expect(api.restoreRoot).not.toHaveBeenCalled()
+    plugin.renderers['workspace-panel']({ node: { phase: 'update', visible: true } })
+    await flush()
+    const failed = nodes(
+      plugin.renderers['workspace-panel']({ node: { phase: 'update', visible: true } }),
+    )
+    expect(
+      failed.some((node) => node.attributes?.role === 'alert' && node.text?.includes('重新选择')),
+    ).toBe(true)
+    expect(api.restoreRoot).toHaveBeenCalledTimes(1)
+    plugin.commands['workspace.choose']({ host: { workspace: api } })
+    await vi.waitFor(() => expect(api.listChildren).toHaveBeenCalledTimes(1))
+    const restored = nodes(
+      plugin.renderers['workspace-panel']({ node: { phase: 'update', visible: true } }),
+    )
+    expect(restored.some((node) => node.text === 'Project')).toBe(true)
+    expect(api.restoreRoot).toHaveBeenCalledTimes(1)
+  })
+
   it('uses stable complete relative-path tree labels and plain text names', async () => {
     const { api, controller } = setup()
     const literal = '<img src=x onerror=alert(1)>.md'

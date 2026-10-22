@@ -60,6 +60,31 @@ function setup() {
   }
 }
 describe('workspace isolated protocol', () => {
+  it('restores through RPC with no path-bearing payload and rejects forged selection fields', async () => {
+    const endpoints = pair()
+    const host = { ...adapter(), restoreRoot: vi.fn(async () => selected) }
+    const broker = createPluginWorkspaceBroker({ manifest, adapter: host })
+    const server = createPluginWorkspaceRpcServer(endpoints.main, broker)
+    const client = createRpcPluginWorkspaceBroker(endpoints.worker)
+    expect(await client.restoreRoot?.()).toEqual(selected)
+    expect(endpoints.worker.sent[0]).toMatchObject({ method: 'restoreRoot', payload: {} })
+    endpoints.worker.postMessage({
+      protocol,
+      type: 'request',
+      id: 'forged',
+      method: 'restoreRoot',
+      payload: { path: '/arbitrary/path' },
+    })
+    await flush()
+    expect(endpoints.main.sent).toContainEqual(
+      expect.objectContaining({ id: 'forged', ok: false, error: { code: 'invalid-token' } }),
+    )
+    expect(host.restoreRoot).toHaveBeenCalledTimes(1)
+    broker.dispose()
+    server.dispose()
+    client.dispose()
+  })
+
   it('dispatches exact scope operations and excludes private native metadata', async () => {
     const s = setup()
     expect(await s.client.chooseRoot({ gesture: 'trusted-proof' })).toEqual(selected)

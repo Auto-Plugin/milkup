@@ -28,6 +28,8 @@ export interface WorkspaceOpenRequest {
 /** Native scope and file-descriptor leases only. Navigation state belongs to the plugin. */
 export function createDesktopWorkspaceAdapter(options: {
   invoke?: WorkspaceInvoke
+  /** Trusted manager identity, never obtained from plugin input. */
+  pluginId?: string
   openDocument(request: WorkspaceOpenRequest): Promise<{ status: 'opened' | 'cancelled' }>
 }) {
   const invoke = options.invoke ?? nativeWorkspaceInvoke
@@ -39,7 +41,10 @@ export function createDesktopWorkspaceAdapter(options: {
   }
   const getScope = async (signal?: AbortSignal) => {
     active(signal)
-    scope ??= invoke<string>('workspace_create_scope')
+    scope ??= invoke<string>(
+      'workspace_create_scope',
+      options.pluginId ? { pluginId: options.pluginId } : undefined,
+    )
     const id = await scope
     active(signal)
     return id
@@ -71,10 +76,30 @@ export function createDesktopWorkspaceAdapter(options: {
     return root
   }
   const adapter: PluginWorkspaceBrokerAdapter = {
+    restoreRoot: (request) =>
+      run(request?.signal, async (signal) => {
+        if (!options.pluginId) return null
+        const scopeId = await getScope(signal)
+        const root = await invoke<PluginWorkspaceRoot | null>('workspace_restore_root', { scopeId })
+        return releaseLateRoot(scopeId, root, signal)
+      }),
     chooseRoot: (request) =>
       run(request?.signal, async (signal) => {
         const scopeId = await getScope(signal)
         const root = await invoke<PluginWorkspaceRoot | null>('workspace_choose_root', { scopeId })
+        await releaseLateRoot(scopeId, root, signal)
+        if (root && options.pluginId) {
+          try {
+            active(signal)
+            // Once submitted, the native atomic commit owns its terminal disposition.
+            await invoke('workspace_remember_root', { scopeId, rootId: root.id })
+          } catch (error) {
+            await invoke('workspace_release_root', { scopeId, rootId: root.id }).catch(
+              () => undefined,
+            )
+            throw error
+          }
+        }
         return releaseLateRoot(scopeId, root, signal)
       }),
     listChildren: (rootId, request = {}) =>

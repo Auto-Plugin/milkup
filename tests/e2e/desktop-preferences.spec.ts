@@ -7,10 +7,18 @@ const settingsKey = 'milkup.desktop.settings.v1'
 const button = (page: Page, label: string) =>
   view(page).getByRole('button', { name: label, exact: true })
 async function menu(page: Page) {
-  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  if (!(await page.locator('[data-app-menu]').isVisible()))
+    await page.getByRole('button', { name: '菜单', exact: true }).click()
 }
 async function open(page: Page) {
   await menu(page)
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  if (
+    !(await page
+      .locator('[data-plugin-menu-group]')
+      .evaluate((group: HTMLDetailsElement) => group.open))
+  )
+    await page.locator('[data-plugin-menu-group] > summary').click()
   await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
   await expect(field(page, '字体大小')).toBeVisible()
   await expect(field(page, '字体大小')).toBeEnabled()
@@ -18,6 +26,7 @@ async function open(page: Page) {
 async function close(page: Page) {
   await page.keyboard.press('Escape')
   await expect(view(page)).toHaveCount(0)
+  await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
 }
 async function setup(page: Page, approved = true) {
   await installPreferencesFixture(page, { enabled: approved, approved })

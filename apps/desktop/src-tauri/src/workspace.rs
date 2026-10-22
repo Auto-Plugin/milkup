@@ -1,7 +1,7 @@
 //! Session-scoped filesystem capabilities for the optional workspace plugin.
 //! Paths never authorize IPC operations. Directory iteration is incremental and
 //! bounded; file reads use a verified descriptor, not a later path reopen.
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 #[cfg(windows)]
@@ -12,7 +12,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_dialog::DialogExt;
 
 const DEFAULT_PAGE: usize = 100;
@@ -186,11 +186,32 @@ struct OpenLease {
 }
 #[derive(Default)]
 struct Scope {
+    owner: Option<String>,
+    restore_attempted: bool,
+    selected: Option<String>,
     roots: HashMap<String, Arc<Root>>,
     opens: HashMap<String, Arc<OpenLease>>,
 }
 #[derive(Default)]
 pub(crate) struct WorkspaceRegistry(Mutex<HashMap<String, Scope>>);
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RememberedRoot {
+    version: u8,
+    path: PathBuf,
+    identity: (u64, u64),
+}
+fn remembered_name(owner: &str) -> String {
+    format!("{:x}.json", Sha256::digest(owner.as_bytes()))
+}
+fn memory_directory(app: &AppHandle) -> Result<PathBuf> {
+    Ok(app
+        .path()
+        .app_data_dir()
+        .map_err(err)?
+        .join("workspace-memory"))
+}
 
 fn relative_components(relative: &str) -> Result<Vec<&str>> {
     if relative.is_empty()
@@ -508,13 +529,32 @@ impl Root {
 }
 
 impl WorkspaceRegistry {
+    #[cfg(test)]
     fn create_scope(&self) -> Result<String> {
+        self.create_owned_scope(None)
+    }
+    fn create_owned_scope(&self, owner: Option<String>) -> Result<String> {
+        if owner.as_ref().is_some_and(|id| {
+            id.is_empty()
+                || id.len() > 128
+                || !id
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
+        }) {
+            return Err("Invalid workspace owner".into());
+        }
         let mut scopes = self.0.lock().map_err(err)?;
         if scopes.len() >= MAX_SCOPES {
             return Err("Workspace scope budget reached".into());
         }
         let key = id("scope")?;
-        scopes.insert(key.clone(), Scope::default());
+        scopes.insert(
+            key.clone(),
+            Scope {
+                owner,
+                ..Scope::default()
+            },
+        );
         Ok(key)
     }
     fn root(&self, scope_id: &str, root_id: &str) -> Result<Arc<Root>> {
@@ -527,7 +567,15 @@ impl WorkspaceRegistry {
             .ok_or("Unknown or released workspace root".into())
     }
     fn adopt_selected(&self, scope_id: &str, selected: &Path) -> Result<WorkspaceRoot> {
-        // Only the native picker (or in-module tests) calls this path-taking method.
+        // Only native picker results (or in-module fixtures) may be remembered.
+        self.adopt_root(scope_id, selected, true)
+    }
+    fn adopt_root(
+        &self,
+        scope_id: &str,
+        selected: &Path,
+        rememberable: bool,
+    ) -> Result<WorkspaceRoot> {
         let (selected_file, _) = open_absolute_directory(selected)?;
         let path = selected.canonicalize().map_err(err)?;
         let (file, guards) = open_absolute_directory(&path)?;
@@ -565,8 +613,83 @@ impl WorkspaceRegistry {
         if scope.roots.len() >= MAX_ROOTS {
             return Err("Workspace root budget reached".into());
         }
+        if rememberable {
+            scope.selected = Some(public.id.clone());
+        }
         scope.roots.insert(public.id.clone(), root);
         Ok(public)
+    }
+    fn remember_selected(&self, data: &Path, scope_id: &str, root_id: &str) -> Result<()> {
+        // Keep the scope lock through commit: revocation cannot race the durable grant.
+        let mut scopes = self.0.lock().map_err(err)?;
+        let scope = scopes
+            .get_mut(scope_id)
+            .ok_or("Workspace scope was released")?;
+        if scope.selected.as_deref() != Some(root_id) {
+            return Err("Unknown selected workspace root".into());
+        }
+        let owner = scope.owner.as_deref().ok_or("Unknown workspace owner")?;
+        let root = scope.roots.get(root_id).ok_or("Unknown workspace root")?;
+        root.check_root(false)?;
+        let record = RememberedRoot {
+            version: 1,
+            path: root.path.clone(),
+            identity: root.baseline.identity,
+        };
+        let directory = super::plugin_catalog::disk::Dir::open(data, true)?;
+        let _lock = directory.lock()?;
+        directory.atomic(
+            &remembered_name(owner),
+            &serde_json::to_vec(&record).map_err(err)?,
+        )?;
+        scope.selected = None;
+        Ok(())
+    }
+    fn restore_remembered(&self, data: &Path, scope_id: &str) -> Result<Option<WorkspaceRoot>> {
+        let owner = {
+            let mut scopes = self.0.lock().map_err(err)?;
+            let scope = scopes
+                .get_mut(scope_id)
+                .ok_or("Workspace scope was released")?;
+            if scope.restore_attempted || !scope.roots.is_empty() {
+                return Ok(None);
+            }
+            scope.restore_attempted = true;
+            scope.owner.clone().ok_or("Unknown workspace owner")?
+        };
+        let directory = super::plugin_catalog::disk::Dir::open(data, true)?;
+        let name = remembered_name(&owner);
+        if !directory.exists(&name)? {
+            return Ok(None);
+        }
+        let record: RememberedRoot =
+            serde_json::from_slice(&directory.read(&name, 32 * 1024)?).map_err(err)?;
+        if record.version != 1 || !record.path.is_absolute() {
+            return Err("Remembered workspace record is invalid".into());
+        }
+        // Open without following links, then compare the persisted filesystem identity.
+        // A fresh descriptor and fresh opaque IDs are mandatory across sessions.
+        let root = self.adopt_root(scope_id, &record.path, false)?;
+        let result = (|| {
+            let mut scopes = self.0.lock().map_err(err)?;
+            let scope = scopes
+                .get_mut(scope_id)
+                .ok_or("Workspace scope was released")?;
+            let restored = scope
+                .roots
+                .get(&root.id)
+                .ok_or("Workspace root was released")?;
+            if restored.baseline.identity != record.identity {
+                return Err("Remembered workspace root was replaced; choose it again".into());
+            }
+            restored.check_root(false)?;
+            Ok(())
+        })();
+        if let Err(error) = result {
+            self.revoke_root(scope_id, &root.id)?;
+            return Err(error);
+        }
+        Ok(Some(root))
     }
     fn revoke_root(&self, scope_id: &str, root_id: &str) -> Result<Vec<String>> {
         let mut scopes = self.0.lock().map_err(err)?;
@@ -1095,8 +1218,31 @@ fn transport_error(error: String) -> String {
 }
 
 #[tauri::command]
-pub(crate) fn workspace_create_scope(registry: State<WorkspaceRegistry>) -> Result<String> {
-    (|| registry.create_scope())().map_err(transport_error)
+pub(crate) fn workspace_create_scope(
+    registry: State<WorkspaceRegistry>,
+    plugin_id: Option<String>,
+) -> Result<String> {
+    registry
+        .create_owned_scope(plugin_id)
+        .map_err(transport_error)
+}
+#[tauri::command]
+pub(crate) fn workspace_restore_root(
+    app: AppHandle,
+    registry: State<WorkspaceRegistry>,
+    scope_id: String,
+) -> Result<Option<WorkspaceRoot>> {
+    (|| registry.restore_remembered(&memory_directory(&app)?, &scope_id))().map_err(transport_error)
+}
+#[tauri::command]
+pub(crate) fn workspace_remember_root(
+    app: AppHandle,
+    registry: State<WorkspaceRegistry>,
+    scope_id: String,
+    root_id: String,
+) -> Result<()> {
+    (|| registry.remember_selected(&memory_directory(&app)?, &scope_id, &root_id))()
+        .map_err(transport_error)
 }
 #[tauri::command]
 pub(crate) async fn workspace_choose_root(
@@ -1163,7 +1309,7 @@ pub(crate) fn workspace_refresh_root(
         let root = registry.root(&scope_id, &root_id)?;
         root.check_root(false)?;
         cleanup_documents(&large, registry.revoke_root(&scope_id, &root_id)?)?;
-        registry.adopt_selected(&scope_id, &root.path)
+        registry.adopt_root(&scope_id, &root.path, false)
     })()
     .map_err(transport_error)
 }
@@ -1294,6 +1440,158 @@ mod tests {
             .unwrap()
             .unwrap()
     }
+    #[test]
+    fn remembered_folder_restores_fresh_authority_after_restart_for_its_owner_only() {
+        let data = Fixture::new();
+        let folder = Fixture::new();
+        folder.write("note.md", "owned contents");
+        let old = WorkspaceRegistry::default();
+        let scope = old
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        let chosen = old.adopt_selected(&scope, &folder.0).unwrap();
+        // Picker results become durable only after host acknowledgement.
+        let before = WorkspaceRegistry::default();
+        let before_scope = before
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        assert!(before
+            .restore_remembered(&data.0, &before_scope)
+            .unwrap()
+            .is_none());
+        old.remember_selected(&data.0, &scope, &chosen.id).unwrap();
+        assert!(old.remember_selected(&data.0, &scope, &chosen.id).is_err());
+        old.revoke_scope(&scope).unwrap();
+        let new = WorkspaceRegistry::default();
+        let next = new
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        let restored = new.restore_remembered(&data.0, &next).unwrap().unwrap();
+        assert_ne!(restored.id, chosen.id);
+        assert_eq!(restored.key, chosen.key);
+        assert!(new.root(&next, &chosen.id).is_err());
+        assert_eq!(
+            new.list(&next, &restored.id, None, None, None)
+                .unwrap()
+                .entries
+                .len(),
+            1
+        );
+        assert!(new.restore_remembered(&data.0, &next).unwrap().is_none());
+        assert!(new.remember_selected(&data.0, &next, &restored.id).is_err());
+        let other = new
+            .create_owned_scope(Some("another.plugin".into()))
+            .unwrap();
+        assert!(new.restore_remembered(&data.0, &other).unwrap().is_none());
+    }
+    #[test]
+    fn remembered_folder_rejects_replacement_and_allows_explicit_reselection() {
+        let data = Fixture::new();
+        let folder = Fixture::new();
+        let registry = WorkspaceRegistry::default();
+        let scope = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        let chosen = registry.adopt_selected(&scope, &folder.0).unwrap();
+        registry
+            .remember_selected(&data.0, &scope, &chosen.id)
+            .unwrap();
+        registry.revoke_scope(&scope).unwrap();
+        // Keep the original inode alive so replacement cannot reuse its identity.
+        let moved = folder.0.with_extension("moved");
+        fs::rename(&folder.0, &moved).unwrap();
+        fs::create_dir(&folder.0).unwrap();
+        let next = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        assert!(registry
+            .restore_remembered(&data.0, &next)
+            .unwrap_err()
+            .contains("replaced"));
+        assert!(registry
+            .0
+            .lock()
+            .unwrap()
+            .get(&next)
+            .unwrap()
+            .roots
+            .is_empty());
+        assert!(registry
+            .restore_remembered(&data.0, &next)
+            .unwrap()
+            .is_none());
+        let selected = registry.adopt_selected(&next, &folder.0).unwrap();
+        registry
+            .remember_selected(&data.0, &next, &selected.id)
+            .unwrap();
+        registry.revoke_scope(&next).unwrap();
+        fs::remove_dir(&moved).unwrap();
+    }
+    #[test]
+    fn cancelled_selection_and_missing_folder_do_not_replace_remembered_selection() {
+        let data = Fixture::new();
+        let folder = Fixture::new();
+        let registry = WorkspaceRegistry::default();
+        let scope = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        let chosen = registry.adopt_selected(&scope, &folder.0).unwrap();
+        registry.revoke_root(&scope, &chosen.id).unwrap();
+        assert!(registry
+            .remember_selected(&data.0, &scope, &chosen.id)
+            .is_err());
+        assert!(!data.0.join(remembered_name("test.workspace")).exists());
+        let chosen = registry.adopt_selected(&scope, &folder.0).unwrap();
+        registry
+            .remember_selected(&data.0, &scope, &chosen.id)
+            .unwrap();
+        registry.revoke_scope(&scope).unwrap();
+        fs::remove_dir(&folder.0).unwrap();
+        let next = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        assert!(registry.restore_remembered(&data.0, &next).is_err());
+        assert!(registry
+            .0
+            .lock()
+            .unwrap()
+            .get(&next)
+            .unwrap()
+            .roots
+            .is_empty());
+    }
+    #[cfg(unix)]
+    #[test]
+    fn remembered_folder_rejects_symlink_and_permission_loss() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+        let data = Fixture::new();
+        let folder = Fixture::new();
+        let other = Fixture::new();
+        let registry = WorkspaceRegistry::default();
+        let scope = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        let chosen = registry.adopt_selected(&scope, &folder.0).unwrap();
+        registry
+            .remember_selected(&data.0, &scope, &chosen.id)
+            .unwrap();
+        registry.revoke_scope(&scope).unwrap();
+        fs::set_permissions(&folder.0, fs::Permissions::from_mode(0o000)).unwrap();
+        let next = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        let result = registry.restore_remembered(&data.0, &next);
+        fs::set_permissions(&folder.0, fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(result.is_err());
+        fs::remove_dir(&folder.0).unwrap();
+        symlink(&other.0, &folder.0).unwrap();
+        let next = registry
+            .create_owned_scope(Some("test.workspace".into()))
+            .unwrap();
+        assert!(registry.restore_remembered(&data.0, &next).is_err());
+        fs::remove_file(&folder.0).unwrap();
+    }
+
     fn large_registry() -> super::super::LargeFileRegistry {
         super::super::LargeFileRegistry(Mutex::new(HashMap::new()))
     }

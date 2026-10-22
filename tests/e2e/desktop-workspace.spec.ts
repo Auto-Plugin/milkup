@@ -5,7 +5,13 @@ import { resolve } from 'node:path'
 import { build } from 'esbuild'
 
 type NativeCall = { command: string; args: Record<string, unknown> }
-type WorkspaceFixture = { calls: NativeCall[]; chosen: number; opened: number; chooseDelay: number }
+type WorkspaceFixture = {
+  calls: NativeCall[]
+  chosen: number
+  opened: number
+  restored: number
+  chooseDelay: number
+}
 
 async function fixture(page: Page): Promise<void> {
   const manifest = JSON.parse(await readFile('plugins/workspace/plugin.json', 'utf8'))
@@ -25,14 +31,35 @@ async function fixture(page: Page): Promise<void> {
   )
   await page.addInitScript(
     ({ manifest }) => {
-      const state: WorkspaceFixture = { calls: [], chosen: 0, opened: 0, chooseDelay: 180 }
-      const root = () => ({ id: `root-${state.chosen}`, key: 'stable-notes', label: 'Notes' })
+      const state: WorkspaceFixture = {
+        calls: [],
+        chosen: 0,
+        opened: 0,
+        restored: 0,
+        chooseDelay: 180,
+      }
+      const root = () => ({
+        id: `root-${state.chosen}-${state.restored}`,
+        key: 'stable-notes',
+        label: 'Notes',
+      })
       const entry = { id: 'a', name: 'a.md', kind: 'file', relativePath: 'docs/a.md' }
       Object.assign(window, {
         workspaceFixture: state,
         workspaceTransport: async (command: string, args: Record<string, unknown> = {}) => {
           state.calls.push({ command, args })
           if (command === 'workspace_create_scope') return 'scope-one'
+          // Test-only native persistence surrogate. Production memory lives in Rust,
+          // outside plugin storage; this fixture exercises the actual Worker RPC.
+          if (command === 'workspace_restore_root') {
+            if (!localStorage.getItem('fixture.native.workspace-memory')) return null
+            state.restored++
+            return root()
+          }
+          if (command === 'workspace_remember_root') {
+            localStorage.setItem('fixture.native.workspace-memory', 'selected-by-native-picker')
+            return undefined
+          }
           if (command === 'workspace_choose_root') {
             await new Promise((resolve) => setTimeout(resolve, state.chooseDelay))
             state.chosen++
@@ -121,7 +148,7 @@ async function state(page: Page): Promise<WorkspaceFixture> {
 async function enable(page: Page): Promise<void> {
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.getByRole('button', { name: 'Milkup Workspace', exact: true }).click()
+  await page.getByRole('button', { name: 'Milkup Workspace 详情', exact: true }).click()
   expect((await state(page)).calls).toHaveLength(0)
   await expect(page.getByRole('button', { name: '选择工作区文件夹' })).toHaveCount(0)
   await page.getByRole('button', { name: '批准能力', exact: true }).click()
@@ -132,6 +159,7 @@ async function enable(page: Page): Promise<void> {
   if ((await page.locator('#app').getAttribute('data-sidebar-collapsed')) === 'true')
     await page.locator('[data-sidebar-toggle]').click()
   await expect(page.getByRole('button', { name: '选择工作区文件夹' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '取消操作', exact: true })).toHaveCount(0)
 }
 async function chooseAndExpand(page: Page): Promise<void> {
   await page.getByRole('button', { name: '选择工作区文件夹' }).click()
@@ -149,6 +177,10 @@ test('trusted workspace commands cross the actual Worker and retain asynchronous
   await enable(page)
   await chooseAndExpand(page)
   expect((await state(page)).chosen).toBe(1)
+  const originalRoot = (await state(page)).calls.find(
+    (call) => call.command === 'workspace_list_children',
+  )?.args.rootId
+  expect(typeof originalRoot).toBe('string')
   const file = page.getByRole('treeitem', { name: 'docs/a.md', exact: true })
   await file.click()
   await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:/notes/docs/a.md')
@@ -174,13 +206,21 @@ test('trusted workspace commands cross the actual Worker and retain asynchronous
     )
     .toBe(1)
   await expect(page.getByRole('alert')).toHaveCount(0)
-  // Reload retains only relative recent metadata; renewed folder selection is still required.
+  // Reload restores the native remembered folder with fresh IDs through the actual Worker.
   await page.reload()
   await enable(page)
-  await expect(page.getByRole('button', { name: '最近文件：docs/a.md' })).toHaveCount(0)
-  expect((await state(page)).chosen).toBe(0)
-  await chooseAndExpand(page)
   await expect(page.getByRole('button', { name: '最近文件：docs/a.md' })).toBeVisible()
+  expect((await state(page)).chosen).toBe(0)
+  expect((await state(page)).restored).toBe(1)
+  expect(
+    (await state(page)).calls.find((call) => call.command === 'workspace_list_children')?.args
+      .rootId,
+  ).not.toBe(originalRoot)
+  expect((await state(page)).calls.some((call) => call.command === 'workspace_choose_root')).toBe(
+    false,
+  )
+  await page.getByRole('button', { name: '最近文件：docs/a.md', exact: true }).click()
+  await expect.poll(async () => (await state(page)).opened).toBe(1)
 })
 
 test('scripted workspace actions receive no authority and dirty cancellation preserves the document', async ({
@@ -238,6 +278,9 @@ test('hiding the embedding sidebar cancels pending workspace authority and disca
           .length,
     )
     .toBe(1)
+  expect((await state(page)).calls.some((call) => call.command === 'workspace_remember_root')).toBe(
+    false,
+  )
   await page.locator('[data-sidebar-toggle]').click()
   await expect(page.getByRole('treeitem')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '选择工作区文件夹' })).toBeVisible()

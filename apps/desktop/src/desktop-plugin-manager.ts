@@ -214,6 +214,8 @@ export interface DesktopPluginKeymapContext {
 
 export interface DesktopPluginManagerOptions {
   readonly catalog?: DesktopPluginCatalog
+  /** Trusted platform capability check; undefined means the existing activation gates apply. */
+  readonly executionUnavailableReason?: (manifest: PluginManifest) => string | undefined
   readonly requestManagementHostView?: (
     input: PluginManagementHostViewRequest,
     context: PluginManagementOperationContext,
@@ -274,6 +276,7 @@ export interface DesktopPluginManagerOptions {
 
 export interface DesktopPluginManagerState {
   readonly catalogRevision?: number
+  readonly executionUnavailableReasons?: Readonly<Record<string, string>>
   readonly catalogEntries?: readonly PluginCatalogEntry[]
   readonly diagnostics?: readonly string[]
   readonly records: readonly PluginRegistryRecord[]
@@ -307,6 +310,7 @@ const sensitivePermissions = new Set([
 
 export class DesktopPluginManager {
   private readonly catalog: DesktopPluginCatalog | undefined
+  private readonly executionUnavailableReason: DesktopPluginManagerOptions['executionUnavailableReason']
   private catalogSnapshot: PluginCatalogSnapshot | undefined
   private readonly publishedGenerations = new Map<string, string>()
   private readonly executingRecords = new Map<string, PluginRegistryRecord>()
@@ -383,6 +387,7 @@ export class DesktopPluginManager {
 
   constructor(options: DesktopPluginManagerOptions) {
     this.catalog = options.catalog
+    this.executionUnavailableReason = options.executionUnavailableReason
     this.requestManagementHostView = options.requestManagementHostView
     this.editingAdapter = options.editingAdapter
     this.resourcesAdapter = options.resourcesAdapter
@@ -534,7 +539,8 @@ export class DesktopPluginManager {
       for (const entry of snapshot.entries) {
         if (entry.pending?.phase === 'trial') {
           await this.catalogTransition(entry.id, {
-            type: 'abort',
+            type: 'failCandidate',
+            message: 'Previous candidate trial did not complete; review before retry',
             transactionId: entry.pending.transactionId,
             fingerprint: entry.pending.generation.capabilityFingerprint,
           })
@@ -562,7 +568,9 @@ export class DesktopPluginManager {
           const archive = parsePluginPackageArchive(
             parseManifestJson(await this.manifestHost.readManifestText(path), path),
           )
-          if (this.catalogEntry(archive.manifest.id)) continue
+          const existing = this.catalogEntry(archive.manifest.id)
+          // Repair pre-beta3 empty failed receipts; preserve installations and explicit removals.
+          if (existing && (existing.active || existing.pending || existing.tombstone)) continue
           await this.installManifestPath(path)
         } catch (error) {
           this.recordInstallFailure(path, error)
@@ -611,6 +619,8 @@ export class DesktopPluginManager {
       })
       throw error
     }
+    const unavailable = this.executionUnavailableReason?.(active.manifest)
+    if (unavailable) throw new Error(unavailable)
     // Only Worker and the native sealed, strictly read-only renderer profile support trial.
     if (!supportsRestrictedActivation(active.manifest))
       throw new Error('Restricted activation is not supported for this execution host')
@@ -650,6 +660,8 @@ export class DesktopPluginManager {
     if (compatibilityErrors.length) throw new Error(compatibilityErrors.join('; '))
     if (generation.approvedFingerprint !== generation.capabilityFingerprint)
       throw new Error('Exact candidate capabilities require approval')
+    const unavailable = this.executionUnavailableReason?.(generation.manifest)
+    if (unavailable) throw new Error(unavailable)
     if (!supportsRestrictedActivation(generation.manifest))
       throw new Error('Restricted activation is not supported for this execution host')
     const identity = {
@@ -685,7 +697,11 @@ export class DesktopPluginManager {
               message: 'Committed plugin could not be published; manual recovery required',
             })
         } else if (current.pending?.transactionId === candidate.transactionId)
-          await this.catalogTransition(pluginId, { type: 'abort', ...identity })
+          await this.catalogTransition(pluginId, {
+            type: 'failCandidate',
+            ...identity,
+            message: String(error),
+          })
         if ((!oldFullyStopped || !cleanupOk) && this.catalogEntry(pluginId)?.active)
           await this.catalogTransition(pluginId, {
             type: 'markFailed',
@@ -781,7 +797,13 @@ export class DesktopPluginManager {
                 },
               ]
             : !entry.active && entry.pending && !entry.tombstone
-              ? [this.generationRecord(entry, entry.pending.generation)]
+              ? [
+                  {
+                    ...this.generationRecord(entry, entry.pending.generation),
+                    state: entry.diagnostics.length ? ('failed' as const) : ('disabled' as const),
+                    errors: entry.diagnostics,
+                  },
+                ]
               : [],
         ) ?? []),
       ]),
@@ -789,6 +811,15 @@ export class DesktopPluginManager {
         ? {
             catalogRevision: this.catalogSnapshot.revision,
             catalogEntries: this.catalogSnapshot.entries,
+            executionUnavailableReasons: Object.freeze(
+              Object.fromEntries(
+                this.catalogSnapshot.entries.flatMap((entry) => {
+                  const manifest = entry.pending?.generation.manifest ?? entry.active?.manifest
+                  const reason = manifest && this.executionUnavailableReason?.(manifest)
+                  return reason ? [[entry.id, reason]] : []
+                }),
+              ),
+            ),
           }
         : {}),
       diagnostics: Object.freeze([
@@ -1031,12 +1062,14 @@ export class DesktopPluginManager {
       } catch (cleanup) {
         this.managerDiagnostics.push(String(cleanup))
       }
-      if (this.catalog) throw catalogActivationError(pluginId, error)
+      const activationError = pluginActivationError(pluginId, error)
+      if (this.catalog) throw activationError
       const prior = this.registry.get(pluginId)?.runtimeFailure
       const failed = this.registry.markFailed(
         pluginId,
-        error,
-        prior?.message === (error instanceof Error ? error.message : String(error))
+        activationError,
+        prior?.message ===
+          (activationError instanceof Error ? activationError.message : String(activationError))
           ? prior.kind
           : undefined,
       )
@@ -2513,7 +2546,18 @@ export function renderDesktopPluginManager(
       ? renderPluginRecord(selected, view.icons?.get(selected.manifest.id), entry) +
         renderCandidate(entry) +
         renderPluginDetails(state, selected)
-      : `<div class="plugin-list">${state.records.map((record) => renderPluginCard(record, view.icons?.get(record.manifest.id))).join('')}${state.installFailures.map((item) => `<button type="button" class="plugin-card plugin-summary-card" data-plugin-action="failure-details" data-plugin-source="${escapeHtml(item.sourcePath)}">${renderPluginLogo('安装项目')}<span class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(item.sourcePath.split(/[\\/]/).pop() || '安装项目')}</span><span class="plugin-card-description">查看此安装项目的详情</span></span></button>`).join('')}</div>`
+      : `<div class="plugin-list">${state.records
+          .map((record) =>
+            renderPluginCard(
+              record,
+              view.icons?.get(record.manifest.id),
+              state.catalogEntries?.find((entry) => entry.id === record.manifest.id),
+              state.executionUnavailableReasons?.[record.manifest.id],
+            ),
+          )
+          .join(
+            '',
+          )}${state.installFailures.map((item) => `<button type="button" class="plugin-card plugin-summary-card" data-plugin-action="failure-details" data-plugin-source="${escapeHtml(item.sourcePath)}">${renderPluginLogo('安装项目')}<span class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(item.sourcePath.split(/[\\/]/).pop() || '安装项目')}</span><span class="plugin-card-description">查看此安装项目的详情</span></span></button>`).join('')}</div>`
   return [
     '<div class="plugin-manager"><div class="plugin-manager-toolbar">',
     selected || failure
@@ -2567,9 +2611,24 @@ function renderPluginLogo(name: string, icon?: string): string {
   return `<span class="plugin-logo" aria-hidden="true"><span>${escapeHtml(Array.from(name)[0] || '◇')}</span>${image}</span>`
 }
 
-function renderPluginCard(record: PluginRegistryRecord, icon?: string): string {
+function renderPluginCard(
+  record: PluginRegistryRecord,
+  icon?: string,
+  entry?: PluginCatalogEntry,
+  unavailable?: string,
+): string {
   const manifest = record.manifest
-  return `<button type="button" class="plugin-card plugin-summary-card" data-plugin-action="details" data-plugin-id="${escapeHtml(manifest.id)}" aria-label="${escapeHtml(manifest.name)}">${renderPluginLogo(manifest.name, icon)}<span class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span></span></button>`
+  const approvalRequired =
+    entry?.pending && !entry.active
+      ? entry.pending.generation.approvedFingerprint !==
+        entry.pending.generation.capabilityFingerprint
+      : requiresApproval(record)
+  const blocked = !record.enabled && (approvalRequired || !!unavailable || !!entry?.tombstone)
+  const status =
+    unavailable ||
+    (approvalRequired ? '请在详情中审阅并批准能力' : record.enabled ? '已启用' : '未启用')
+  const errors = [...new Set([...record.errors, ...(entry?.diagnostics ?? [])])]
+  return `<article class="plugin-card plugin-summary-card" data-plugin-id="${escapeHtml(manifest.id)}">${renderPluginLogo(manifest.name, icon)}<div class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span><span class="plugin-card-status">${escapeHtml(status)}</span>${errors.length ? `<span class="plugin-card-error" role="status">操作未完成，请查看详情中的诊断</span>` : ''}</div><div class="plugin-card-actions"><button type="button" class="plugin-enable-switch" role="switch" aria-checked="${record.enabled}" aria-label="${escapeHtml(manifest.name)} 启用" data-plugin-action="toggle" data-plugin-id="${escapeHtml(manifest.id)}" ${blocked ? 'disabled' : ''} title="${escapeHtml(status)}"><span aria-hidden="true"></span></button><button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="${escapeHtml(manifest.id)}" aria-label="${escapeHtml(manifest.name)} 详情">详情</button></div></article>`
 }
 
 function renderPluginDetails(
@@ -2603,7 +2662,7 @@ function renderPluginUiContributions(contributions: PluginContributionIndex): st
     '<section class="plugin-detail-section"><h4>界面扩展</h4><div class="plugin-command-list">',
     ...contributions.ui.map((view) =>
       view.slot === 'modal' || view.slot === 'menu-page'
-        ? `<button type="button" class="dialog-button" data-plugin-action="open-ui" data-plugin-id="${escapeHtml(view.pluginId)}" data-plugin-ui-id="${escapeHtml(view.id)}">打开 ${escapeHtml(view.title)}</button>`
+        ? `<button type="button" class="dialog-button" data-plugin-action="open-ui" data-plugin-id="${escapeHtml(view.pluginId)}" data-plugin-ui-id="${escapeHtml(view.id)}">${view.slot === 'modal' ? '弹出' : '打开'} ${escapeHtml(view.title)}</button>`
         : `<span class="plugin-ui-contribution-label">${escapeHtml(view.title)} · ${escapeHtml(view.slot)}</span>`,
     ),
     '</div></section>',
@@ -2980,7 +3039,7 @@ function supportsRestrictedActivation(manifest: PluginManifest): boolean {
 }
 
 /** Preserve typed runtime activation failures at the trusted manager boundary. */
-function catalogActivationError(pluginId: string, error: unknown): unknown {
+function pluginActivationError(pluginId: string, error: unknown): unknown {
   if (error instanceof Error || typeof error !== 'object' || error === null) return error
   // Read only own data fields; an unknown object's accessors are not a diagnostic contract.
   try {

@@ -1,3 +1,5 @@
+import { formatDisplayPath } from './display-path'
+import { recoveryStatusText } from './recovery-status-presentation'
 import { LargeDocumentSource } from './large-document-source'
 import { moveDesktopFocus, restoreDesktopFocus } from './desktop-focus'
 import { locateDocumentPresentationTarget } from './document-navigation'
@@ -287,6 +289,7 @@ const messages = {
   },
 } as const
 
+const pendingPluginToggles = new Set<string>()
 const platform = getDesktopPlatform()
 
 type DesktopPlatform = 'windows' | 'macos' | 'linux' | 'other'
@@ -355,7 +358,6 @@ app.innerHTML = `
           <nav class="app-menu-nav" aria-label="菜单分类">
             ${menuNavButton('file', messages.menu.file, FileText, true)}
             ${menuNavButton('plugins', messages.menu.plugins, Plug)}
-            <div data-plugin-menu-entries></div>
             ${menuNavButton('about', messages.menu.about, Info)}
           </nav>
           <section class="app-menu-section" data-menu-panel="file">
@@ -417,6 +419,10 @@ app.innerHTML = `
           </section>
           <section class="app-menu-section" data-menu-panel="plugins" hidden>
             <h3>${messages.menu.plugins}</h3>
+            <details class="plugin-menu-group" data-plugin-menu-group hidden>
+              <summary>插件控制面板</summary>
+              <div data-plugin-menu-entries></div>
+            </details>
             <div data-plugin-manager></div>
             <div data-plugin-slot="menu-page"></div>
           </section>
@@ -730,7 +736,7 @@ function renderRecoveryStatus(status: RecoveryStatus): void {
   warning.hidden = !lastRecoveryError
   const warningText = appRoot.querySelector<HTMLElement>('[data-recovery-warning-text]')!
   warningText.textContent = lastRecoveryError
-    ? `恢复点未更新：${lastRecoveryError.split('。')[0]}。${status.version === undefined ? '尚无成功恢复点。' : `最后恢复点 v${status.version}。`}`
+    ? `恢复点未更新：${lastRecoveryError.split('。')[0]}。${status.version === undefined ? '尚无成功恢复备份，请手动保存文档。' : '已有恢复备份保留，新编辑可能尚未备份。'}`
     : ''
   warningText.title = lastRecoveryError ?? ''
   appRoot.querySelector<HTMLButtonElement>('[data-recovery-retry]')!.disabled =
@@ -739,18 +745,9 @@ function renderRecoveryStatus(status: RecoveryStatus): void {
   const element = appRoot.querySelector<HTMLElement>('[data-recovery-status]')!
   appRoot.dataset.recoveryPhase = status.phase
   appRoot.dataset.recoveryVersion = String(status.version ?? -1)
-  element.hidden = status.phase === 'idle'
+  element.hidden = status.phase === 'idle' || status.phase === 'ready'
   element.dataset.error = String(status.phase === 'error')
-  element.textContent =
-    status.phase === 'error'
-      ? '恢复点未更新'
-      : status.phase === 'writing'
-        ? '正在保留恢复点…'
-        : status.phase === 'ready'
-          ? `恢复点 v${status.version}`
-          : status.version === undefined
-            ? '尚无恢复点'
-            : `恢复点 v${status.version} · 新编辑待保留`
+  element.textContent = recoveryStatusText(status)
   element.title =
     status.error ??
     (status.at
@@ -1326,6 +1323,10 @@ const desktopOutput = createDesktopOutputService({
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
+  executionUnavailableReason: (manifest) =>
+    manifest.host === 'dom' && platform !== 'linux'
+      ? '当前平台不支持此插件的独立 DOM 执行环境'
+      : undefined,
   ...(isTauriRuntime() ? { catalog: createDesktopPluginCatalog(recoveryInvoke) } : {}),
   actionRegistry: desktopActionRegistry,
   manifestHost: createDesktopPluginManifestHost(),
@@ -1369,7 +1370,8 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
     renderSession()
   },
   settingsAdapter: (manifest) => desktopSettings.adapterForPlugin(manifest.id, manifest.settings),
-  workspaceAdapter: () => createDesktopWorkspaceAdapter({ openDocument: openWorkspaceDocument }),
+  workspaceAdapter: (pluginId) =>
+    createDesktopWorkspaceAdapter({ pluginId, openDocument: openWorkspaceDocument }),
   releasesAdapter: () =>
     createDesktopReleaseAdapter({
       transport: nativeReleaseTransport(),
@@ -1554,6 +1556,20 @@ if (developerStatusNoticeToggle) {
   })
 }
 
+async function toggleDesktopPlugin(pluginId: string): Promise<void> {
+  if (pendingPluginToggles.has(pluginId)) return
+  const record = desktopPluginManager.state().records.find((item) => item.manifest.id === pluginId)
+  if (!record) return
+  pendingPluginToggles.add(pluginId)
+  renderPluginManager()
+  try {
+    await runDesktopAction(record.enabled ? 'plugin.disable' : 'plugin.enable', { pluginId })
+  } finally {
+    pendingPluginToggles.delete(pluginId)
+    renderPluginManager()
+  }
+}
+
 appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('click', (event) => {
   const target = event.target
   const button = target instanceof HTMLElement ? target.closest<HTMLButtonElement>('button') : null
@@ -1565,6 +1581,9 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
   const pluginId = button.dataset.pluginId
 
   switch (button.dataset.pluginAction) {
+    case 'toggle':
+      if (pluginId && !button.disabled) void toggleDesktopPlugin(pluginId)
+      break
     case 'install':
       runDesktopAction('plugin.installLocal')
       break
@@ -2035,24 +2054,24 @@ function runDesktopAction(
   input: unknown = {},
   originalEvent?: Event,
   onFailure?: () => void,
-): void {
+): Promise<void> {
   if (closeConfirmOpen) {
     onFailure?.()
-    return
+    return Promise.resolve()
   }
   if (
     isDocumentSaving() &&
     (isDocumentInputLocked() || !['core.undo', 'core.redo', 'file.save'].includes(id))
   ) {
     onFailure?.()
-    return
+    return Promise.resolve()
   }
   importantNotice = false
   if (isDocumentBusy() && !isBusyAllowedAction(id)) {
     onFailure?.()
     notice = '文档正在打开，请稍候。'
     renderSession()
-    return
+    return Promise.resolve()
   }
 
   const context = {
@@ -2061,7 +2080,7 @@ function runDesktopAction(
     confirm: () => true,
   }
   if (originalEvent) markTrustedPluginCommand(context, originalEvent)
-  void desktopActionRegistry
+  return desktopActionRegistry
     .run(id, context, input)
     .then(() => {
       if (id.startsWith('plugin.')) {
@@ -3778,10 +3797,19 @@ function renderPluginManager(): void {
   }
 
   renderDesktopPluginManagerElement(target, desktopPluginManager.state(), loadDesktopPluginIcon)
+  for (const button of Array.from(
+    target.querySelectorAll<HTMLButtonElement>('[data-plugin-action="toggle"]'),
+  )) {
+    if (pendingPluginToggles.has(button.dataset.pluginId ?? '')) {
+      button.disabled = true
+      button.setAttribute('aria-busy', 'true')
+    }
+  }
   const entries = appRoot.querySelector<HTMLElement>('[data-plugin-menu-entries]')!
   const modals = desktopPluginManager
     .state()
     .contributions.ui.filter((item) => item.slot === 'modal')
+  appRoot.querySelector<HTMLElement>('[data-plugin-menu-group]')!.hidden = modals.length === 0
   const signature = JSON.stringify(modals.map(({ pluginId, id, title }) => [pluginId, id, title]))
   if (entries.dataset.signature !== signature) {
     entries.dataset.signature = signature
@@ -3789,11 +3817,10 @@ function renderPluginManager(): void {
       ...modals.map((item) => {
         const button = document.createElement('button')
         button.type = 'button'
-        button.className = 'app-menu-nav-button'
+        button.className = 'dialog-button'
         button.dataset.pluginMenuEntry = `${item.pluginId}:${item.id}`
         button.textContent = item.title
         button.addEventListener('click', () => {
-          setMenuOpen(false)
           void desktopPluginUi.open(item.pluginId, item.id)
         })
         return button
@@ -5068,7 +5095,7 @@ function getSessionTitleInfo(path: string | undefined): {
     return { name: messages.titleUntitled, directory: messages.pathUnsaved }
   }
 
-  const normalizedPath = path.replace(/\\/g, '/')
+  const normalizedPath = formatDisplayPath(path)
   const slashIndex = normalizedPath.lastIndexOf('/')
   const fileName = slashIndex >= 0 ? normalizedPath.slice(slashIndex + 1) : normalizedPath
   const dotIndex = fileName.lastIndexOf('.')

@@ -1022,6 +1022,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             workspace::workspace_create_scope,
             workspace::workspace_choose_root,
+            workspace::workspace_restore_root,
+            workspace::workspace_remember_root,
             workspace::workspace_list_children,
             workspace::workspace_resolve_entry,
             workspace::workspace_refresh_root,

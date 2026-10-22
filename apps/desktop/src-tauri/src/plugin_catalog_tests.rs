@@ -142,7 +142,8 @@ fn commit_failure_before_replace_restores_old_decision_after_restart() {
         recovered["entries"][0]["active"],
         old["entries"][0]["active"]
     );
-    assert!(recovered["entries"][0]["pending"].is_null());
+    assert_eq!(recovered["entries"][0]["pending"]["phase"], "prepared");
+    assert!(recovered["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
     assert_eq!(recovered["entries"][0]["enabled"], false);
 }
 #[test]
@@ -823,7 +824,8 @@ fn changed_candidate_cannot_commit_or_replace_retained_active_generation() {
         old["entries"][0]["active"]
     );
     assert_eq!(recovered["entries"][0]["enabled"], false);
-    assert!(recovered["entries"][0]["pending"].is_null());
+    assert_eq!(recovered["entries"][0]["pending"]["phase"], "prepared");
+    assert!(recovered["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
 }
 
 #[test]
@@ -840,4 +842,174 @@ fn sidecar_candidate_remains_unactivated_even_after_explicit_approval() {
     assert_eq!(f.read(), approved);
     assert!(approved["entries"][0]["active"].is_null());
     assert_eq!(approved["entries"][0]["enabled"], false);
+}
+
+#[test]
+fn beta3_interrupted_first_install_remains_visible_for_review_after_restart() {
+    let f = Fixture::new();
+    f.prepare("1.0.0");
+    f.candidate_action("approve");
+    let trial = f.candidate_action("beginTrial");
+    let restarted = f.restart();
+    let e = &restarted["entries"][0];
+    assert_eq!(
+        e["pending"]["generation"]["id"],
+        trial["entries"][0]["pending"]["generation"]["id"]
+    );
+    assert_eq!(e["pending"]["phase"], "prepared");
+    assert!(e["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(e["enabled"], false);
+    assert!(!e["diagnostics"].as_array().unwrap().is_empty());
+    assert_eq!(f.restart(), restarted);
+    f.candidate_action("approve");
+    f.candidate_action("beginTrial");
+    assert_eq!(f.candidate_action("commit")["entries"][0]["enabled"], true);
+}
+
+#[test]
+fn beta3_failed_candidate_retains_sealed_bytes_and_requires_exact_identity_for_retry_or_cleanup() {
+    for upgrading in [false, true] {
+        let f = Fixture::new();
+        let old = if upgrading {
+            Some(f.install("1.0.0"))
+        } else {
+            None
+        };
+        f.prepare("2.0.0");
+        f.candidate_action("approve");
+        let trial = f.candidate_action("beginTrial");
+        let pending = &trial["entries"][0]["pending"];
+        let root = PathBuf::from(pending["generation"]["packageRoot"].as_str().unwrap());
+        let data = f.0.join("test.plugin/data/sentinel");
+        std::fs::write(&data, b"user data").unwrap();
+        let orphan = root.parent().unwrap().join(token());
+        std::fs::create_dir(&orphan).unwrap();
+        std::fs::write(orphan.join("orphan.js"), b"unreferenced").unwrap();
+        let failure = json!({"type":"failCandidate","transactionId":pending["transactionId"],"fingerprint":pending["generation"]["capabilityFingerprint"],"message":"FIRST_INSTALL_FAILURE"});
+        let failed = f.action(failure.clone());
+        assert_eq!(failed["entries"][0]["pending"]["phase"], "prepared");
+        assert_eq!(
+            failed["entries"][0]["pending"]["generation"],
+            pending["generation"]
+        );
+        assert_eq!(failed["entries"][0]["enabled"], false);
+        assert!(root.join("dist/main.js").exists());
+        assert!(!orphan.exists());
+        assert!(read_worker_module(
+            &f.0,
+            "test.plugin",
+            pending["generation"]["id"].as_str().unwrap()
+        )
+        .is_err());
+        assert!(failed["entries"][0]["diagnostics"]
+            .to_string()
+            .contains("FIRST_INSTALL_FAILURE"));
+        if let Some(old) = old {
+            assert_eq!(failed["entries"][0]["active"], old["entries"][0]["active"]);
+        }
+        assert!(transition(
+            &f.0,
+            "test.plugin",
+            trial["entries"][0]["revision"].as_u64().unwrap(),
+            failure.clone()
+        )
+        .is_err());
+        let mut wrong = failure;
+        wrong["transactionId"] = json!(token());
+        assert!(transition(
+            &f.0,
+            "test.plugin",
+            failed["entries"][0]["revision"].as_u64().unwrap(),
+            wrong
+        )
+        .is_err());
+        assert_eq!(f.restart(), failed);
+        f.candidate_action("beginTrial");
+        let committed = f.candidate_action("commit");
+        assert_eq!(
+            committed["entries"][0]["active"]["id"],
+            pending["generation"]["id"]
+        );
+        assert_eq!(std::fs::read(&data).unwrap(), b"user data");
+        f.prepare("3.0.0");
+        f.candidate_action("approve");
+        let trial = f.candidate_action("beginTrial");
+        let p = &trial["entries"][0]["pending"];
+        f.action(json!({"type":"failCandidate","transactionId":p["transactionId"],"fingerprint":p["generation"]["capabilityFingerprint"],"message":"retry failed"}));
+        f.candidate_action("abort");
+        assert!(!Path::new(p["generation"]["packageRoot"].as_str().unwrap()).exists());
+        assert!(root.exists());
+        assert_eq!(std::fs::read(data).unwrap(), b"user data");
+    }
+}
+
+#[test]
+fn beta3_rejected_first_install_is_tombstoned_and_does_not_return_on_restart() {
+    let f = Fixture::new();
+    let prepared = f.prepare("1.0.0");
+    let root = PathBuf::from(
+        prepared["entries"][0]["pending"]["generation"]["packageRoot"]
+            .as_str()
+            .unwrap(),
+    );
+    let rejected = f.candidate_action("abort");
+    assert_eq!(rejected["entries"][0]["tombstone"], true);
+    assert!(rejected["entries"][0]["pending"].is_null());
+    assert!(!root.exists());
+    assert_eq!(f.restart(), rejected);
+}
+
+#[test]
+fn beta3_tampered_first_candidate_stays_visible_but_cannot_be_approved_or_executed() {
+    let f = Fixture::new();
+    f.prepare("1.0.0");
+    let approved = f.candidate_action("approve");
+    let p = &approved["entries"][0]["pending"];
+    let root = PathBuf::from(p["generation"]["packageRoot"].as_str().unwrap());
+    let original = std::fs::read(root.join("dist/main.js")).unwrap();
+    std::fs::write(root.join("dist/main.js"), b"tampered").unwrap();
+    let recovered = f.restart();
+    assert_eq!(
+        recovered["entries"][0]["pending"]["generation"]["id"],
+        p["generation"]["id"]
+    );
+    assert!(recovered["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(f.restart(), recovered);
+    for kind in ["approve", "beginTrial", "commit"] {
+        let action = json!({"type":kind,"transactionId":p["transactionId"],"fingerprint":p["generation"]["capabilityFingerprint"]});
+        assert!(transition(
+            &f.0,
+            "test.plugin",
+            recovered["entries"][0]["revision"].as_u64().unwrap(),
+            action
+        )
+        .is_err());
+    }
+    // Repeated corruption after an explicit repair/approval must revoke approval again,
+    // even when the diagnostic text is already present in the catalog.
+    std::fs::write(root.join("dist/main.js"), original).unwrap();
+    f.candidate_action("approve");
+    std::fs::write(root.join("dist/main.js"), b"tampered").unwrap();
+    let repeated = f.restart();
+    assert!(repeated["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(f.read(), repeated);
+    f.candidate_action("abort");
+    assert!(!root.exists());
+}
+
+#[test]
+fn beta3_backup_recovery_preserves_first_candidate_without_restoring_approval() {
+    let f = Fixture::new();
+    f.prepare("1.0.0");
+    f.candidate_action("approve");
+    let trial = f.candidate_action("beginTrial");
+    std::fs::write(f.0.join(CATALOG), b"broken catalog").unwrap();
+    let recovered = f.restart();
+    assert_eq!(
+        recovered["entries"][0]["pending"]["generation"]["id"],
+        trial["entries"][0]["pending"]["generation"]["id"]
+    );
+    assert_eq!(recovered["entries"][0]["pending"]["phase"], "prepared");
+    assert!(recovered["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert_eq!(recovered["entries"][0]["enabled"], false);
 }

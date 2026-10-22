@@ -18,7 +18,7 @@ const output =
   '/workspace/milkup-workspace-phase2-evidence/workspace-native'
 const archive =
   process.env.MILKUP_WORKSPACE_ARCHIVE ||
-  '/workspace/milkup-workspace-phase2-evidence/workspace-external/dist/milkup.workspace-1.0.0.milkup-plugin'
+  '/workspace/milkup-workspace-phase2-evidence/workspace-external/dist/milkup.workspace-1.0.1.milkup-plugin'
 const binary = process.env.TAURI_APP_PATH
 const focusOnly = process.argv.includes('--focus-only')
 await mkdir(output, { recursive: true })
@@ -29,7 +29,7 @@ assert(
     (file) => file.path === packageData.manifest.icon && file.encoding === 'base64',
   ),
 )
-assert.equal(packageData.manifest.engines.pluginSdk, '^0.3.0')
+assert.equal(packageData.manifest.engines.pluginSdk, '^0.3.8')
 if (process.argv.includes('--preflight')) {
   console.log('PASS workspace external archive preflight; no driver started')
   process.exit(0)
@@ -359,8 +359,16 @@ try {
       })
     }
     await openPanel()
-    assert((await snapshot()).text.includes('每次启动需重新选择'))
-    await shot('02-active-without-authority')
+    await loaded()
+    if (process.env.MILKUP_WORKSPACE_RESUME !== '1') {
+      assert((await snapshot()).text.includes('尚未授权文件夹'))
+      assert.equal((await snapshot()).tree.length, 0)
+      assert((await snapshot()).text.includes('下次打开工作区将尝试恢复'))
+      await shot('02-active-without-remembered-selection')
+    } else {
+      await ui.ready(treeitem('ordinary.md'))
+      await shot('02-resumed-remembered-selection')
+    }
     await choose()
     await shot('03-native-folder-authorized')
     const previousTree = (await snapshot()).tree
@@ -495,15 +503,15 @@ try {
     await app.close()
     await start()
     await openPanel()
-    assert((await snapshot()).text.includes('每次启动需重新选择'))
-    assert.equal((await snapshot()).tree.length, 0)
-    await shot('13-restart-needs-new-root')
-    await choose()
+    await ui.ready(treeitem('ordinary.md'))
+    await loaded()
+    assert((await snapshot()).text.includes('Project Unicode'))
+    await shot('13-restart-restored-remembered-folder')
     await ui.ready(`${command('recent')}[aria-label="最近文件：destination.md"]`)
     await ui.click(`${command('recent')}[aria-label="最近文件：destination.md"]`)
     await app.until(
       async () => (await app.probe()).path === path.join(folder, 'destination.md'),
-      'recent resolves after new authorization',
+      'recent resolves under freshly restored authority',
     )
     await loaded()
     await shot('14-recent-persisted')
@@ -570,9 +578,11 @@ try {
       await ui.click(action('enable', id))
       await ui.ready(action('disable', id))
       await openPanel()
-      assert.equal((await snapshot()).tree.length, 0)
-      assert((await snapshot()).text.includes('每次启动需重新选择'))
-      await choose()
+      // Re-approval/re-enable may restore host-owned selection; old session tokens
+      // remain revoked. Native unit tests verify the descriptor/token boundary.
+      await ui.ready(treeitem('ordinary.md'))
+      await loaded()
+      await shot(`15-${lifecycle}-restored-after-enable`)
     }
     await ui.details(id)
     await ui.click(action('remove', id))
@@ -586,8 +596,11 @@ try {
     await ui.click(action('enable', id))
     await ui.ready(action('disable', id))
     await openPanel()
-    assert.equal((await snapshot()).tree.length, 0)
-    await shot('17-reinstalled-no-old-handles')
+    // Uninstall retains plugin data and the host-owned directory memory. Only
+    // explicit installation, approval and enablement above allow restoration.
+    await ui.ready(treeitem('ordinary.md'))
+    await loaded()
+    await shot('17-reinstalled-restored-retained-selection')
   }
   await record(
     focusOnly ? 'FOCUS-PASS' : 'PASS',
@@ -598,7 +611,7 @@ try {
           realFolderPicker: true,
           ordinaryWindowedSourceLive: true,
           dirtyCancelSaveConflict: true,
-          recentReauthorized: true,
+          recentRestored: true,
           lifecycleRevoked: true,
           matrix: 16,
         },

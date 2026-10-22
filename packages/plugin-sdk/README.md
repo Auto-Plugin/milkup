@@ -238,7 +238,7 @@ requires explicit approval. It provides metadata for a user-selected directory a
 protected document opening; it does not grant arbitrary filesystem reads or writes.
 
 Activation `host.workspace` exposes `listChildren`, `resolveEntry`, `refreshRoot`
-and `releaseRoot`. Only a command's `context.host?.workspace` exposes `chooseRoot`
+and `releaseRoot`, plus optional `restoreRoot`. Only a command's `context.host?.workspace` exposes `chooseRoot`
 and `requestOpen`. Those methods require a genuine host-routed click or key command:
 a one-use internal authorization expires after five seconds if unused. Start the
 operation promptly and update UI asynchronously; do not hold a command open while
@@ -259,7 +259,14 @@ restart rather than treating invalidation as an empty directory.
 
 The plugin owns recent-file UI and persistence. Store bounded relative paths under
 `root.key` with `host.storage`, only after `requestOpen(fileId)` reports `opened`.
-After a restart or re-enable, the user must select the root again. Call
+Optional `restoreRoot({signal})` restores only the last native selection remembered
+by the host for this plugin, at most once per activation. It takes no path or key.
+The host opens a fresh descriptor, verifies directory identity and returns fresh
+opaque IDs; a missing/replaced/inaccessible directory fails visibly. No remembered
+selection returns `null`. Hosts without this optional method require selection
+again. After a failed or cancelled restore, offer the user the picker; do not loop.
+Restoration still requires currently approved `workspace:read` and does not grant
+picker or document-opening gestures. Call
 `resolveEntry(newRoot.id, relativePath,{signal})` to obtain a new entry token;
 missing entries return null. Relative paths use `/`, are never URL-decoded, and
 must have no absolute/drive/UNC prefix, backslashes, empty/dot/parent components,

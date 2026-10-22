@@ -193,7 +193,7 @@ test('plugin manager restores, executes, disables, and reenables a Worker plugin
   await page.getByRole('button', { name: '菜单' }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
 
-  await page.getByRole('button', { name: 'E2E Tools', exact: true }).click()
+  await page.getByRole('button', { name: 'E2E Tools 详情', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'E2E Tools' })).toBeVisible()
   await expect(page.locator('.plugin-state')).toHaveText('已启用')
   await page.getByRole('button', { name: 'Plugin Hello' }).click()
@@ -749,6 +749,13 @@ const imageFixtureBytes = Array.from(
 const imagesPanel = (page: Page) => page.locator('[data-plugin-ui="milkup.images:images-panel"]')
 async function openImagesPanel(page: Page): Promise<void> {
   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  if (
+    !(await page
+      .locator('[data-plugin-menu-group]')
+      .evaluate((group: HTMLDetailsElement) => group.open))
+  )
+    await page.locator('[data-plugin-menu-group] > summary').click()
   await page.locator('[data-plugin-menu-entry="milkup.images:images-panel"]').click()
   await expect(imagesPanel(page).getByLabel('资源目录', { exact: true })).toBeEnabled()
 }
@@ -1493,6 +1500,13 @@ test('phase18 theme follows system only when selected, persists explicit dark an
   await page.goto('/')
   await page.keyboard.insertText('# Heading\n\ntext `code` and [link](https://example.com)\n')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  if (
+    !(await page
+      .locator('[data-plugin-menu-group]')
+      .evaluate((group: HTMLDetailsElement) => group.open))
+  )
+    await page.locator('[data-plugin-menu-group] > summary').click()
   await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
   await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('dark')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
@@ -1549,6 +1563,13 @@ test('phase18 theme follows system only when selected, persists explicit dark an
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  if (
+    !(await page
+      .locator('[data-plugin-menu-group]')
+      .evaluate((group: HTMLDetailsElement) => group.open))
+  )
+    await page.locator('[data-plugin-menu-group] > summary').click()
   await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
   await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('system')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
@@ -1590,6 +1611,13 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.keyboard.press('Escape')
   await page.locator('[data-menu-toggle]').click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  if (
+    !(await page
+      .locator('[data-plugin-menu-group]')
+      .evaluate((group: HTMLDetailsElement) => group.open))
+  )
+    await page.locator('[data-plugin-menu-group] > summary').click()
   await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
   const content = await page
     .locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
@@ -1599,4 +1627,20 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
   const field = await page.getByRole('combobox', { name: '外观主题', exact: true }).boundingBox()
   expect(field!.y).toBeGreaterThanOrEqual(content!.y)
   expect(field!.y + field!.height).toBeLessThanOrEqual(content!.y + content!.height)
+})
+
+test('beta3 menu covers inert titlebar and retains an accessible close button', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  expect(
+    await page.locator('[data-app-menu]').evaluate((menu) => {
+      const rect = menu.getBoundingClientRect()
+      const top = document.elementFromPoint(20, 10)
+      return rect.top === 0 && !!top && menu.contains(top)
+    }),
+  ).toBe(true)
+  await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
+  await expect(page.locator('[data-app-menu]')).toBeHidden()
 })

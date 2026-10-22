@@ -31,6 +31,11 @@ fn run() -> Result<Value, String> {
     if command == "read" {
         return plugin_catalog::read(root);
     }
+    if command == "seed-first-trial" {
+        let state = plugin_catalog::prepare(root, archive("1.0.0"), "test:process".into(), None)?;
+        let state = candidate(root, &state, "approve")?;
+        return candidate(root, &state, "beginTrial");
+    }
     if command != "seed-interrupted-trial" && command != "seed-interrupted-startup" {
         return Err("unknown command".into());
     }

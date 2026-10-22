@@ -335,9 +335,19 @@ describe('bounded document render isolation', () => {
   it.each(['outline', 'updates', 'workspace', 'preferences', 'shortcuts', 'formatting', 'images'])(
     'restores installed %s from 0.3.2 into 0.3.3 unchanged',
     (name) => {
-      const manifest = JSON.parse(
+      const currentManifest = JSON.parse(
         readFileSync(new URL(`../../../plugins/${name}/plugin.json`, import.meta.url), 'utf8'),
       )
+      // This upgrade fixture describes the installed 1.0.0 workspace, before
+      // host-owned restoration raised its minimum SDK to 0.3.8 in version 1.0.1.
+      const manifest =
+        name === 'workspace'
+          ? {
+              ...currentManifest,
+              version: '1.0.0',
+              engines: { ...currentManifest.engines, pluginSdk: '^0.3.0' },
+            }
+          : currentManifest
       for (const enabled of [false, true]) {
         const old = new PluginRegistry({
           compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.2' },

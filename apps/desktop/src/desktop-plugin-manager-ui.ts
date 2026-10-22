@@ -231,9 +231,7 @@ class DesktopPluginManagerView {
           this.icons.set(id, icon)
           // Update images in place; asynchronous image arrival must not steal focus.
           for (const card of Array.from(
-            this.target.querySelectorAll<HTMLElement>(
-              '[data-plugin-action="details"], .plugin-detail',
-            ),
+            this.target.querySelectorAll<HTMLElement>('.plugin-summary-card, .plugin-detail'),
           )) {
             if (
               card.dataset.pluginId !== id &&

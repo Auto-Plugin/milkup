@@ -41,6 +41,7 @@ export function createController(
 ) {
   const state: State = { directories: new Map(), recent: [], phase: 'idle' }
   let disposed = false
+  let restoreAttempted = false
   let generation = 0
   let pending: AbortController | undefined
   let storageWrites = Promise.resolve()
@@ -127,11 +128,15 @@ export function createController(
     directory.cursor = result.nextCursor
     directory.loaded = true
   }
-  function choose(scope: SdkPluginWorkspaceHost | undefined) {
-    return run('choosing', async (signal, current) => {
-      if (!scope) throw new Error('请使用工作区中的选择按钮授权文件夹。')
+  function choose(scope: SdkPluginWorkspaceHost | undefined, restoring = false) {
+    return run(restoring ? 'loading' : 'choosing', async (signal, current) => {
+      if (!scope && !restoring) throw new Error('请使用工作区中的选择按钮授权文件夹。')
       const previous = state.root
-      const root = await scope.chooseRoot({ signal })
+      const root = await (restoring
+        ? host?.restoreRoot?.({ signal }).catch(() => {
+            throw new Error('上次选择的文件夹已失效或无法访问，请重新选择文件夹。')
+          })
+        : scope!.chooseRoot({ signal }))
       if (!current()) {
         if (root) {
           await release(root.id)
@@ -244,6 +249,12 @@ export function createController(
   return {
     state,
     choose,
+    restore() {
+      if (disposed || pending || restoreAttempted || state.root) return Promise.resolve()
+      restoreAttempted = true
+      if (!host?.restoreRoot) return Promise.resolve()
+      return choose(undefined, true)
+    },
     refresh,
     more,
     toggle,

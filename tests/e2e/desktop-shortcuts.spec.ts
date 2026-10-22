@@ -65,17 +65,24 @@ const modal = (page: Page) => page.getByRole('dialog', { name: '快捷键', exac
 async function open(page: Page, initial = true) {
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   if (!initial) {
+    await page.getByRole('button', { name: '插件', exact: true }).click()
+    if (
+      !(await page
+        .locator('[data-plugin-menu-group]')
+        .evaluate((group: HTMLDetailsElement) => group.open))
+    )
+      await page.locator('[data-plugin-menu-group] > summary').click()
     await page.locator('[data-plugin-menu-entry="milkup.shortcuts:shortcuts-modal"]').click()
     await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
     return
   }
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  await page.getByRole('button', { name: 'Milkup Shortcuts', exact: true }).click()
+  await page.getByRole('button', { name: 'Milkup Shortcuts 详情', exact: true }).click()
   if (initial) {
     await page.getByRole('button', { name: '批准能力', exact: true }).click()
     await page.getByRole('button', { name: '启用', exact: true }).click()
   }
-  await page.getByRole('button', { name: '打开 快捷键', exact: true }).click()
+  await page.getByRole('button', { name: '弹出 快捷键', exact: true }).click()
   await expect(modal(page)).toBeVisible()
   await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
 }
@@ -172,9 +179,11 @@ for (const mode of ['source', 'live'])
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '禁用', exact: true }).click()
     await expect(page.locator('.plugin-state')).toHaveText('已禁用')
-    await expect(page.getByRole('button', { name: '打开 快捷键', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '弹出 快捷键', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: '移除', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Milkup Shortcuts', exact: true })).toHaveCount(0)
+    await expect(
+      page.getByRole('button', { name: 'Milkup Shortcuts 详情', exact: true }),
+    ).toHaveCount(0)
     await page.keyboard.press('Escape')
     await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
     await page.locator('.milkup-editor').click()

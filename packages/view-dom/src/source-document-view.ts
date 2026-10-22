@@ -1,3 +1,9 @@
+import {
+  codeBlockForLine,
+  renderCodeLine,
+  codeLanguagePicker,
+  codeLanguageEdit,
+} from './code-presentation'
 import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
 import {
   applyPresentation,
@@ -294,6 +300,61 @@ export class SourceDocumentView {
       throw error
     })
   }
+  private readonly handleCodeLanguageEvent = (event: Event): void => {
+    const picker = codeLanguagePicker(event, this.contentDOM)
+    if (
+      !picker ||
+      !this.editable ||
+      !this.onEdit ||
+      this.composing ||
+      this.destroyed ||
+      this.mode !== 'live' ||
+      this.taskTogglePending ||
+      this.pendingVisibleEdit ||
+      this.activeVisibleEditTasks.size > 0
+    )
+      return
+    const source = this.currentSource,
+      version = source.version,
+      revision = this.editRevision
+    const from = Number(picker.dataset.codeFrom)
+    const line = this.renderedSourceWindow?.lines.find((line) => line.from === from)
+    if (!line) return
+    const edit = codeLanguageEdit(picker, from, line.text)
+    if (!edit) return
+    this.taskTogglePending = true
+    syncTaskAvailability(this.contentDOM, false)
+    void this.trackVisibleEditTask(async () => {
+      try {
+        await this.editCommitQueue
+        if (
+          !this.editable ||
+          this.destroyed ||
+          this.mode !== 'live' ||
+          this.composing ||
+          source !== this.currentSource ||
+          version !== source.version ||
+          revision !== this.editRevision
+        )
+          return
+        const changes = ChangeSet.replace(edit.from, edit.to, edit.insert)
+        await this.applyVisibleEdit(
+          edit.from,
+          edit.to,
+          edit.insert,
+          'isolate',
+          this.currentSelection().map(changes),
+        )
+        await this.flushPendingVisibleEdit()
+        await this.renderVisibleWindow()
+      } finally {
+        this.taskTogglePending = false
+        syncTaskAvailability(this.contentDOM, this.editable && !!this.onEdit)
+        if (!this.destroyed && this.currentSource.documentId === source.documentId)
+          this.inputDOM.focus({ preventScroll: true })
+      }
+    })
+  }
   private readonly handleInputEvent = (): void => {
     void this.trackVisibleEditTask(() => this.readInputProxy())
   }
@@ -500,6 +561,7 @@ export class SourceDocumentView {
     this.dom.append(this.inputDOM)
     this.contentDOM.addEventListener('scroll', this.handleInnerScrollEvent, true)
     this.contentDOM.addEventListener('click', this.handleTaskClickEvent)
+    this.contentDOM.addEventListener('change', this.handleCodeLanguageEvent)
     this.dom.addEventListener('scroll', this.handleScrollEvent)
     this.dom.addEventListener('keydown', this.handleKeyDownEvent)
     this.dom.addEventListener('copy', this.handleCopyEvent)
@@ -1019,6 +1081,7 @@ export class SourceDocumentView {
     }
     this.contentDOM.removeEventListener('scroll', this.handleInnerScrollEvent, true)
     this.contentDOM.removeEventListener('click', this.handleTaskClickEvent)
+    this.contentDOM.removeEventListener('change', this.handleCodeLanguageEvent)
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
     this.dom.removeEventListener('keydown', this.handleKeyDownEvent)
     this.dom.removeEventListener('copy', this.handleCopyEvent)
@@ -3543,7 +3606,9 @@ function renderLiveLine(
     findListItemForLine(blocks, line.from, line.to) ?? fallbackListItemForLine(line, blocks)
 
   if (lineDOM.classList.contains('milkup-block-code')) {
-    lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
+    const code = codeBlockForLine(blocks, line.from, line.to)
+    if (code) renderCodeLine(lineDOM, line.text, line.from, code)
+    else lineDOM.textContent = line.text || '\u200b'
   } else if (heading) {
     lineDOM.replaceChildren(
       ...renderMappedLinePieces(document, line, heading, {

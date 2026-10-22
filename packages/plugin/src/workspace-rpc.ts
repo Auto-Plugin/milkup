@@ -16,6 +16,7 @@ import {
 const PROTOCOL = 'milkup.plugin.workspace.rpc.v1'
 const METHODS = [
   'chooseRoot',
+  'restoreRoot',
   'listChildren',
   'resolveEntry',
   'refreshRoot',
@@ -59,7 +60,7 @@ function validatePayload(
 ): asserts payload is Record<string, unknown> {
   if (!record(payload)) throw new PluginWorkspaceError('invalid-token')
   const required =
-    method === 'chooseRoot'
+    method === 'chooseRoot' || method === 'restoreRoot'
       ? []
       : method === 'requestOpen'
         ? ['fileId']
@@ -103,7 +104,7 @@ function validateResponse(method: Method, value: unknown): void {
     assertWorkspaceId(item.id)
     assertWorkspaceRelativePath(item.relativePath)
   }
-  if (method === 'chooseRoot') {
+  if (method === 'chooseRoot' || method === 'restoreRoot') {
     if (value !== null) root(value)
   } else if (method === 'refreshRoot') root(value)
   else if (method === 'resolveEntry') {
@@ -236,6 +237,8 @@ export function createRpcPluginWorkspaceBroker(
   }
   const operation = (rootId: string) => ({ rootId })
   return Object.freeze({
+    restoreRoot: (options?: PluginWorkspaceOperationOptions) =>
+      call('restoreRoot', {}, options?.signal) as Promise<PluginWorkspaceRoot | null>,
     chooseRoot: (options?: PluginWorkspaceGestureOptions) =>
       call(
         'chooseRoot',
@@ -323,6 +326,7 @@ export function createPluginWorkspaceRpcServer(
           ...options,
           ...(payload.gesture !== undefined ? { gesture: payload.gesture as string } : {}),
         })
+      else if (method === 'restoreRoot') value = (await broker.restoreRoot?.(options)) ?? null
       else if (method === 'listChildren')
         value = await broker.listChildren(payload.rootId as string, {
           ...options,

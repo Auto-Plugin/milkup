@@ -200,6 +200,12 @@ enum Action {
         fingerprint: String,
     },
     #[serde(rename_all = "camelCase")]
+    FailCandidate {
+        transaction_id: String,
+        fingerprint: String,
+        message: String,
+    },
+    #[serde(rename_all = "camelCase")]
     StartupBegin {
         generation_id: String,
     },
@@ -600,7 +606,7 @@ fn decode(bytes: &[u8]) -> Result<Catalog> {
 }
 
 #[cfg(unix)]
-mod disk {
+pub(crate) mod disk {
     use super::*;
     use std::ffi::CString;
     use std::fs::File;
@@ -860,9 +866,9 @@ mod disk {
 }
 #[cfg(windows)]
 #[path = "plugin_catalog_windows.rs"]
-mod disk;
+pub(crate) mod disk;
 #[cfg(not(any(unix, windows)))]
-mod disk {
+pub(crate) mod disk {
     use super::*;
     pub struct Dir;
     impl Dir {
@@ -939,7 +945,11 @@ impl Store {
             for e in &mut c.entries {
                 e.enabled = false;
                 e.start_attempt = None;
-                e.pending = None;
+                if let Some(p) = &mut e.pending {
+                    p.phase = "prepared".into();
+                    p.restore_enabled = false;
+                    p.generation.approved_fingerprint = None;
+                }
                 for g in [&mut e.active, &mut e.previous].into_iter().flatten() {
                     g.approved_fingerprint = None;
                 }
@@ -1202,10 +1212,13 @@ fn recover(store: &Store, c: &mut Catalog) -> Result<()> {
     for e in &mut c.entries {
         let mut dirty = false;
         if e.pending.as_ref().is_some_and(|p| p.phase == "trial") {
-            e.pending = None;
+            let p = e.pending.as_mut().unwrap();
+            p.phase = "prepared".into();
+            p.restore_enabled = false;
+            p.generation.approved_fingerprint = None;
             e.enabled = false;
             e.start_attempt = None;
-            e.note("Interrupted candidate trial aborted; old installation retained disabled for explicit restart");
+            e.note("Interrupted candidate trial retained for explicit review/retry; old installation retained disabled");
             dirty = true;
         }
         if e.start_attempt.take().is_some() {
@@ -1226,11 +1239,20 @@ fn recover(store: &Store, c: &mut Catalog) -> Result<()> {
             }
             if let Some(p) = &e.pending {
                 if let Err(error) = store.verify(&e.id, &p.generation) {
-                    e.pending = None;
-                    e.note(&format!(
-                        "Invalid candidate removed from authority: {error}"
+                    let p = e.pending.as_mut().unwrap();
+                    dirty |= p.phase != "prepared"
+                        || p.generation.approved_fingerprint.is_some()
+                        || p.restore_enabled;
+                    p.phase = "prepared".into();
+                    p.generation.approved_fingerprint = None;
+                    p.restore_enabled = false;
+                    let message = bounded_message(&format!(
+                        "Invalid candidate quarantined for removal/reinstall: {error}"
                     ));
-                    dirty = true;
+                    if !e.diagnostics.contains(&message) {
+                        e.note(&message);
+                        dirty = true;
+                    }
                 }
             }
         }
@@ -1424,9 +1446,28 @@ pub fn transition(
                 let p = candidate(e, &transaction_id, &fingerprint)?;
                 let restore = p.restore_enabled;
                 e.pending = None;
+                // Explicit rejection of a first installation is a durable user decision.
+                e.tombstone = e.active.is_none();
                 e.enabled = restore && e.active.as_ref().is_some_and(approve_ok);
                 e.start_attempt = None;
                 e.note("Candidate aborted; old installation retained");
+                collect = true;
+            }
+            Action::FailCandidate {
+                transaction_id,
+                fingerprint,
+                message,
+            } => {
+                let p = candidate(e, &transaction_id, &fingerprint)?;
+                p.phase = "prepared".into();
+                // Runtime cleanup/restart is the manager's responsibility. Never infer that
+                // a retained old installation is live from a failed candidate transaction.
+                e.enabled = false;
+                e.start_attempt = None;
+                e.note(&format!(
+                    "Candidate activation failed: {}",
+                    bounded_message(&message)
+                ));
                 collect = true;
             }
             Action::StartupBegin { generation_id } => {

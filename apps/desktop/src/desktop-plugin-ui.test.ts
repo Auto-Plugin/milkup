@@ -1291,9 +1291,56 @@ describe('DesktopPluginUiController', () => {
       .querySelector<HTMLElement>('.plugin-ui-panel-resize')!
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
 
-    expect(outline.style.flex).toBe('0 0 216px')
-    expect(notes.style.flex).toBe('0 0 184px')
+    expect(Number(outline.style.flexGrow)).toBeCloseTo(120 / 104)
+    expect(Number(notes.style.flexGrow)).toBeCloseTo(88 / 104)
+    expect(outline.style.flexBasis).toBe('96px')
+    expect(notes.style.flexBasis).toBe('96px')
   })
+
+  it.each(['pointercancel', 'lostpointercapture', 'dispose', 'collapse', 'hide', 'resize', 'blur'])(
+    'ends a sidebar pointer drag on %s without responding to later moves',
+    async (end) => {
+      document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'
+      const runtime = createRuntime(
+        ['a', 'b', 'c'].map((id) => ({
+          pluginId: 'example',
+          id,
+          title: id,
+          slot: 'sidebar-panel',
+        })),
+        [],
+      )
+      const controller = new DesktopPluginUiController(document.body, runtime)
+      await controller.sync('doc-a')
+      const panels = Array.from(document.querySelectorAll<HTMLElement>('.plugin-ui-sidebar-panel'))
+      for (const panel of panels) panel.getBoundingClientRect = () => ({ height: 200 }) as DOMRect
+      const handle = panels[0]!.querySelector<HTMLElement>('.plugin-ui-panel-resize')!
+      const pointer = (type: string, pointerId = 1, clientY = 0): Event => {
+        const event = new MouseEvent(type, { bubbles: true, button: 0, clientY })
+        Object.defineProperty(event, 'pointerId', { value: pointerId })
+        return event
+      }
+      handle.dispatchEvent(pointer('pointerdown'))
+      expect(document.documentElement.dataset.pluginPanelResizing).toBe('true')
+      document.dispatchEvent(pointer('pointermove', 2, 50))
+      expect(panels[0]!.style.flex).toBe('')
+      document.dispatchEvent(pointer('pointerup', 2))
+      expect(document.documentElement.dataset.pluginPanelResizing).toBe('true')
+      document.dispatchEvent(pointer('pointermove', 1, 50))
+      expect(Number(panels[0]!.style.flexGrow)).toBeGreaterThan(1)
+      if (end === 'dispose') await controller.dispose()
+      else if (end === 'collapse') panels[1]!.querySelector<HTMLButtonElement>('button')!.click()
+      else if (end === 'hide') controller.setSlotVisible('sidebar-panel', false)
+      else if (end === 'resize' || end === 'blur') window.dispatchEvent(new Event(end))
+      else if (end === 'lostpointercapture') handle.dispatchEvent(pointer(end))
+      else document.dispatchEvent(pointer(end))
+      expect(document.documentElement.dataset.pluginPanelResizing).toBe('false')
+      const styles = panels.map((panel) => panel.style.flex)
+      document.dispatchEvent(pointer('pointermove', 1, -50))
+      expect(panels.map((panel) => panel.style.flex)).toEqual(styles)
+      await controller.dispose()
+    },
+  )
 
   it('keeps identical controlled output mounted and preserves internal scroll on changes', async () => {
     document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'

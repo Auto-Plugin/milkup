@@ -959,6 +959,7 @@ function isHiddenTextNode(node: Text, root: HTMLElement): boolean {
   ) {
     if (
       parent.classList.contains('milkup-marker-hidden') ||
+      parent.classList.contains('milkup-code-language') ||
       parent.hasAttribute('data-document-presentation')
     ) {
       return true

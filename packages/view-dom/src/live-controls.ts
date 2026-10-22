@@ -40,9 +40,13 @@ export function taskMarkerFromEvent(
 }
 
 export function syncTaskAvailability(content: HTMLElement, editable: boolean): void {
-  content.querySelectorAll<HTMLButtonElement>('.milkup-task-marker').forEach((task) => {
-    if (task.disabled === editable) task.disabled = !editable
-  })
+  content
+    .querySelectorAll<HTMLButtonElement | HTMLSelectElement>(
+      '.milkup-task-marker, .milkup-code-language',
+    )
+    .forEach((task) => {
+      if (task.disabled === editable) task.disabled = !editable
+    })
 }
 
 /** Change exactly the ASCII check character; offsets remain UTF-16 source offsets. */

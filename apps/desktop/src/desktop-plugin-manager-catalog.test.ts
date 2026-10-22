@@ -124,7 +124,11 @@ class Catalog implements DesktopPluginCatalog {
       expect(e.pending.generation.capabilityFingerprint).toBe(action.fingerprint)
     }
     if (action.type === 'approve') e.pending.generation.approvedFingerprint = action.fingerprint
-    if (action.type === 'beginTrial') e.pending.phase = 'trial'
+    if (action.type === 'beginTrial') {
+      e.pending.phase = 'trial'
+      e.pending.restoreEnabled = e.enabled
+      e.enabled = false
+    }
     if (action.type === 'commit') {
       if (this.failCommit) throw Error('commit disk failure')
       e.previous = e.active
@@ -133,8 +137,15 @@ class Catalog implements DesktopPluginCatalog {
       e.enabled = action.enabled
     }
     if (action.type === 'abort') {
-      e.enabled = e.pending.restoreEnabled
+      e.enabled = e.pending.restoreEnabled && !!e.active
       e.pending = null
+      e.tombstone = !e.active
+    }
+    if (action.type === 'failCandidate') {
+      e.pending.phase = 'prepared'
+      e.enabled = false
+      e.startAttempt = null
+      e.diagnostics.push(action.message)
     }
     if (action.type === 'startupBegin') {
       e.startAttempt = 'attempt' + ++this.sequence
@@ -396,7 +407,7 @@ describe('P6 candidate failure injection', () => {
     await s.approve()
     s.catalog.failCommit = true
     await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('commit disk failure')
-    expect(s.catalog.snapshot.entries[0]!.pending).toBeNull()
+    expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
     expect(s.manager.state().records[0]).toMatchObject({
       enabled: true,
       manifest: { version: '1.0.0' },
@@ -428,7 +439,7 @@ describe('P6 candidate failure injection', () => {
       await vi.advanceTimersByTimeAsync(10001)
       loader.mockRestore()
       await assertion
-      expect(s.catalog.snapshot.entries[0]!.pending).toBeNull()
+      expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
     } finally {
       vi.useRealTimers()
     }
@@ -936,7 +947,7 @@ describe('P6 catalog activation error presentation', () => {
       enabled: true,
       manifest: { version: '1.0.0' },
     })
-    expect(s.catalog.snapshot.entries[0]!.pending).toBeNull()
+    expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
     expect(s.manager.state().diagnostics?.join(' ')).not.toContain('[object Object]')
   })
 })
@@ -1065,5 +1076,135 @@ describe('P6 trusted host execution support explanation', () => {
       renderDesktopPluginManager({ ...state, records: [{ ...record, manifest: sidecar }] }),
     ).not.toContain('执行支持')
     expect(s.manager.state().records[0]!.enabled).toBe(true)
+  })
+})
+
+describe('beta3 failed candidate recovery', () => {
+  it('keeps a first-install activation failure visible with diagnostics and permits explicit retry', async () => {
+    let fails = true
+    const s = setup({
+      activate: () => {
+        if (fails) throw Error('FIRST_INSTALL_FAILURE')
+      },
+    })
+    await s.manager.ready
+    await s.install()
+    await s.approve()
+    await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('FIRST_INSTALL_FAILURE')
+    expect(s.manager.state().records).toHaveLength(1)
+    expect(s.manager.state().records[0]).toMatchObject({ enabled: false, state: 'failed' })
+    expect(s.manager.state().records[0]!.errors.join(' ')).toContain('FIRST_INSTALL_FAILURE')
+    expect(s.catalog.snapshot.entries[0]!.pending?.phase).toBe('prepared')
+    fails = false
+    await s.manager.reload('test.lifecycle')
+    expect(s.manager.state().records[0]).toMatchObject({ enabled: true })
+  })
+})
+
+describe('beta3 restart and platform execution boundaries', () => {
+  function reopen(
+    catalog: Catalog,
+    options: Partial<ConstructorParameters<typeof DesktopPluginManager>[0]> = {},
+  ) {
+    return new DesktopPluginManager({
+      catalog,
+      actionRegistry: new ActionRegistry(),
+      permissions: [],
+      milkupVersion: '2.0.0',
+      pluginSdkVersion: '0.3.7',
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(archive()),
+      },
+      loadModule: async () => ({
+        module: { runtimeHost: 'isolated', activate: () => ({}) },
+        dispose: () => {},
+      }),
+      ...options,
+    })
+  }
+  it('retains failure details on manager reopen and explicitly retries the same sealed candidate', async () => {
+    const s = setup({
+      activate: () => {
+        throw Error('PERSISTED_FAILURE')
+      },
+    })
+    await s.manager.ready
+    await s.install()
+    await s.approve()
+    await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('PERSISTED_FAILURE')
+    const candidate = s.catalog.snapshot.entries[0]!.pending!
+    const load = vi.fn(async () => ({
+      module: { runtimeHost: 'isolated' as const, activate: () => ({}) },
+      dispose: () => {},
+    }))
+    const reopened = reopen(s.catalog, {
+      loadModule: load,
+      bundledPackagePaths: async () => ['/bundled.milkup-plugin'],
+    })
+    await reopened.ready
+    expect(load).not.toHaveBeenCalled()
+    expect(reopened.state().records[0]?.errors.join(' ')).toContain('PERSISTED_FAILURE')
+    expect(s.catalog.snapshot.entries[0]!.pending).toEqual(candidate)
+    await reopened.enable('test.lifecycle')
+    expect(s.catalog.snapshot.entries[0]!.active?.id).toBe(candidate.generation.id)
+    expect(reopened.state().records[0]?.enabled).toBe(true)
+  })
+  it('repairs legacy empty receipts from bundled packages while preserving explicit rejection tombstones', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    const entry = s.catalog.snapshot.entries[0]!
+    s.catalog.snapshot = {
+      ...s.catalog.snapshot,
+      entries: [
+        { ...entry, pending: null, diagnostics: ['Candidate aborted; old installation retained'] },
+      ],
+    }
+    const repaired = reopen(s.catalog, {
+      bundledPackagePaths: async () => ['/bundled.milkup-plugin'],
+    })
+    await repaired.ready
+    expect(repaired.state().records).toHaveLength(1)
+    const candidate = s.catalog.snapshot.entries[0]!
+    await repaired.rejectCandidate(
+      candidate.id,
+      candidate.pending!.generation.capabilityFingerprint,
+      candidate.revision,
+    )
+    const rejected = structuredClone(s.catalog.snapshot)
+    const next = reopen(s.catalog, { bundledPackagePaths: async () => ['/bundled.milkup-plugin'] })
+    await next.ready
+    expect(s.catalog.snapshot).toEqual(rejected)
+    expect(next.state().records).toHaveLength(0)
+  })
+  it('checks trusted platform support before trial or old-instance retirement and exposes the reason', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.approve()
+    await s.manager.enable('test.lifecycle')
+    await s.install('2.0.0')
+    await s.approve()
+    const load = vi.fn(async () => ({
+      module: { runtimeHost: 'isolated' as const, activate: () => ({}) },
+      dispose: () => {},
+    }))
+    const manager = reopen(s.catalog, {
+      loadModule: load,
+      executionUnavailableReason: (m) =>
+        m.version === '2.0.0' ? 'PLATFORM_DOM_UNAVAILABLE' : undefined,
+    })
+    await manager.ready
+    const before = structuredClone(s.catalog.snapshot)
+    const count = s.catalog.events.filter((x) => x === 'beginTrial').length
+    await expect(manager.enable('test.lifecycle')).rejects.toThrow('PLATFORM_DOM_UNAVAILABLE')
+    expect(s.catalog.snapshot).toEqual(before)
+    expect(s.catalog.events.filter((x) => x === 'beginTrial')).toHaveLength(count)
+    expect(load).toHaveBeenCalledOnce()
+    expect(manager.state().records[0]?.enabled).toBe(true)
+    expect(manager.state().executionUnavailableReasons?.['test.lifecycle']).toBe(
+      'PLATFORM_DOM_UNAVAILABLE',
+    )
   })
 })
