@@ -1,0 +1,58 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts (25 tests | 1 failed) 274ms
+   × keeps an initial fallback notice visible when the document is at the top 47ms
+     → expected 30 to be +0 // Object.is equality
+   ✓ anchors notice layout without pulling an offscreen selection back (false) 14ms
+   ✓ anchors uncached replacement after measuring the new lines (false) 18ms
+   ✓ anchors notice layout without pulling an offscreen selection back (true) 13ms
+   ✓ anchors uncached replacement after measuring the new lines (true) 11ms
+   ✓ does not restore an old notice anchor after source changes during layout 22ms
+   ✓ does not restore an old notice anchor after version changes during layout 8ms
+   ✓ does not restore an old notice anchor after document-version changes during layout 7ms
+   ✓ does not restore an old notice anchor after selection changes during layout 7ms
+   ✓ does not restore an old notice anchor after mode changes during layout 7ms
+   ✓ does not restore an old notice anchor after config changes during layout 7ms
+   ✓ does not restore an old notice anchor after epoch changes during layout 11ms
+   ✓ does not restore an old notice anchor after destroy changes during layout 7ms
+   ✓ does not restore an old replacement anchor after source changes during layout 7ms
+   ✓ does not restore an old replacement anchor after version changes during layout 6ms
+   ✓ does not restore an old replacement anchor after document-version changes during layout 7ms
+   ✓ does not restore an old replacement anchor after selection changes during layout 6ms
+   ✓ does not restore an old replacement anchor after mode changes during layout 7ms
+   ✓ does not restore an old replacement anchor after config changes during layout 4ms
+   ✓ does not restore an old replacement anchor after epoch changes during layout 7ms
+   ✓ does not restore an old replacement anchor after destroy changes during layout 4ms
+   ✓ does not scroll when the old anchor line is absent from an uncached replacement 5ms
+   ✓ leaves measurement to the view when presentation is disabled or in source mode 7ms
+   ✓ reports no measurement when a cached paint is already current 17ms
+   ✓ the source view still measures when presentation reports an already-current paint 17ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > keeps an initial fallback notice visible when the document is at the top
+AssertionError: expected 30 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 30
+
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts:87:28
+     85|   await settle()
+     86|   expect(f.root.querySelector('[data-document-presentation-notice]')).…
+     87|   expect(f.root.scrollTop).toBe(0)
+       |                            ^
+     88|   expect(f.content.children[0]!.getBoundingClientRect().top).toBe(30)
+     89|   expect(f.snapshot.selection).toEqual(before)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 24 passed (25)
+   Start at  06:24:28
+   Duration  1.86s (transform 590ms, setup 0ms, collect 776ms, tests 274ms, environment 541ms, prepare 83ms)
+

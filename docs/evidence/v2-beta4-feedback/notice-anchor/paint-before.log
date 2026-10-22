@@ -1,0 +1,65 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts (30 tests | 2 failed) 370ms
+   ✓ keeps an initial fallback notice visible when the document is at the top 46ms
+   × preserves notice visibility or the existing reading position for a painted error result at 0 33ms
+     → expected 30 to be +0 // Object.is equality
+   ✓ preserves notice visibility or the existing reading position for a painted error result at 50 17ms
+   × preserves notice visibility or the existing reading position for a painted incomplete result at 0 11ms
+     → expected 30 to be +0 // Object.is equality
+   ✓ preserves notice visibility or the existing reading position for a painted incomplete result at 50 10ms
+   ✓ retains successful paint anchoring at the top when no fallback notice appears 13ms
+   ✓ anchors notice layout without pulling an offscreen selection back (false) 11ms
+   ✓ anchors uncached replacement after measuring the new lines (false) 44ms
+   ✓ anchors notice layout without pulling an offscreen selection back (true) 10ms
+   ✓ anchors uncached replacement after measuring the new lines (true) 8ms
+   ✓ does not restore an old notice anchor after source changes during layout 7ms
+   ✓ does not restore an old notice anchor after version changes during layout 6ms
+   ✓ does not restore an old notice anchor after document-version changes during layout 6ms
+   ✓ does not restore an old notice anchor after selection changes during layout 7ms
+   ✓ does not restore an old notice anchor after mode changes during layout 6ms
+   ✓ does not restore an old notice anchor after config changes during layout 5ms
+   ✓ does not restore an old notice anchor after epoch changes during layout 9ms
+   ✓ does not restore an old notice anchor after destroy changes during layout 7ms
+   ✓ does not restore an old replacement anchor after source changes during layout 7ms
+   ✓ does not restore an old replacement anchor after version changes during layout 9ms
+   ✓ does not restore an old replacement anchor after document-version changes during layout 9ms
+   ✓ does not restore an old replacement anchor after selection changes during layout 7ms
+   ✓ does not restore an old replacement anchor after mode changes during layout 4ms
+   ✓ does not restore an old replacement anchor after config changes during layout 4ms
+   ✓ does not restore an old replacement anchor after epoch changes during layout 11ms
+   ✓ does not restore an old replacement anchor after destroy changes during layout 7ms
+   ✓ does not scroll when the old anchor line is absent from an uncached replacement 8ms
+   ✓ leaves measurement to the view when presentation is disabled or in source mode 11ms
+   ✓ reports no measurement when a cached paint is already current 15ms
+   ✓ the source view still measures when presentation reports an already-current paint 20ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > preserves notice visibility or the existing reading position for a painted error result at 0
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > preserves notice visibility or the existing reading position for a painted incomplete result at 0
+AssertionError: expected 30 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 30
+
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts:115:34
+    113|       expect(notice?.textContent).toBe(kind === 'error' ? 'painted fra…
+    114|       if (initial === 0) {
+    115|         expect(f.root.scrollTop).toBe(0)
+       |                                  ^
+    116|         expect(f.content.children[0]!.getBoundingClientRect().top).toB…
+    117|       } else expect(anchor.getBoundingClientRect().top).toBe(before)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 28 passed (30)
+   Start at  06:31:58
+   Duration  2.22s (transform 784ms, setup 0ms, collect 1.02s, tests 370ms, environment 495ms, prepare 73ms)
+

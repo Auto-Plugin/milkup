@@ -27,6 +27,10 @@ const smokeOnly = process.argv.includes('--smoke-only')
 assert(!(matrixOnly && smokeOnly))
 const matrixZooms = process.env.MILKUP_NATIVE_ZOOMS?.split(',').map(Number) ?? [1, 1.25, 1.5, 2]
 assert(matrixZooms.every((zoom) => [1, 1.25, 1.5, 2].includes(zoom)))
+const matrixHeight = Number(process.env.MILKUP_NATIVE_WINDOW_HEIGHT ?? 800)
+assert([520, 800].includes(matrixHeight))
+const matrixWidths = process.env.MILKUP_NATIVE_WINDOW_WIDTHS?.split(',').map(Number) ?? [1280, 760]
+assert(matrixWidths.length > 0 && matrixWidths.every((width) => [760, 1280].includes(width)))
 const results = []
 let app
 const ui = nativeFixture(() => app)
@@ -508,7 +512,7 @@ try {
   for (const value of smokeOnly ? ['light'] : ['light', 'dark']) {
     await theme(value)
     for (const mode of smokeOnly ? ['live'] : ['source', 'live'])
-      for (const width of smokeOnly ? [1280] : [1280, 760])
+      for (const width of smokeOnly ? [1280] : matrixWidths)
         for (const zoom of smokeOnly ? [1] : matrixZooms) {
           await record(`cards-about-${value}-${mode}-${width}-${zoom}`, async (row) => {
             await closeOverlays()
@@ -532,13 +536,14 @@ try {
                 'native zoom increment',
               )
             }
-            x('windowsize', ui.windowId(), String(width), '800')
+            x('windowsize', ui.windowId(), String(width), String(matrixHeight))
             await app.until(
               () =>
                 app.execute(
-                  'return Math.abs(innerWidth*arguments[0]-arguments[1])<3&&Number(document.querySelector("#app").dataset.appearanceZoom)===arguments[0]',
+                  'return Math.abs(innerWidth*arguments[0]-arguments[1])<3&&Math.abs(innerHeight*arguments[0]-arguments[2])<3&&Number(document.querySelector("#app").dataset.appearanceZoom)===arguments[0]',
                   zoom,
                   width,
+                  matrixHeight,
                 ),
               'window and zoom',
             )
@@ -554,6 +559,7 @@ try {
               Math.abs(state.menuRect.width - state.width) < 2 &&
                 Math.abs(state.menuRect.height - state.height) < 2,
             )
+            row.nativeWindow = { width, height: matrixHeight, zoom }
             row.cards = await app.execute(
               'const e=document.querySelector(arguments[0]),r=e.getBoundingClientRect();return {rect:r.toJSON(),clientWidth:e.clientWidth,scrollWidth:e.scrollWidth}',
               '.plugin-summary-card[data-plugin-id="milkup.preferences"]',

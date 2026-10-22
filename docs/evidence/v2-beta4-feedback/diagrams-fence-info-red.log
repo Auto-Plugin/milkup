@@ -1,0 +1,338 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/plugins/diagrams-worker
+
+ ✓ src/compiler.test.ts (39 tests) 132ms
+ ❯ src/renderer.test.ts (17 tests | 4 failed) 100ms
+   ✓ produces a static vector and absolute UTF-16 offsets for a bounded window 21ms
+   ✓ preserves exact unsupported fence with CRLF and Unicode: pie
+"A":3 1ms
+   ✓ preserves exact unsupported fence with CRLF and Unicode: sequenceDiagram
+loop More
+A->>B: x
+end 9ms
+   ✓ preserves exact unsupported fence with CRLF and Unicode: flowchart TD
+A["<img src=x onerror=alert(1)>"]-->B 1ms
+   ✓ preserves exact unsupported fence with CRLF and Unicode: flowchart TD
+A-->B
+click A "javascript:alert(1)" 0ms
+   ✓ never renders an unknown context, incomplete fence or wrong language 1ms
+   ✓ honors cancellation before compiling 3ms
+   ✓ keeps body budget failures explicit and input request budget bounded 3ms
+   ✓ refuses aggregate output beyond the shared host budget without replacing source 9ms
+   × preserves the exact fence and explicitly rejects extra fence parameters: mermaid unsupported-option 31ms
+     → expected { from: 73, to: 138, …(4) } to match object { from: 73, to: 138, …(2) }
+(4 matching properties omitted from actual)
+   × preserves the exact fence and explicitly rejects extra fence parameters:  mermaid	unsupported-option  8ms
+     → expected { from: 73, to: 140, …(4) } to match object { from: 73, to: 140, …(2) }
+(4 matching properties omitted from actual)
+   × preserves the exact fence and explicitly rejects extra fence parameters: 	mermaid  unsupported-option	 4ms
+     → expected { from: 73, to: 141, …(4) } to match object { from: 73, to: 141, …(2) }
+(4 matching properties omitted from actual)
+   × preserves the exact fence and explicitly rejects extra fence parameters: mermaid unsupported-option 4ms
+     → expected { from: 73, to: 138, …(4) } to match object { from: 73, to: 138, …(2) }
+(4 matching properties omitted from actual)
+   ✓ accepts only exact mermaid after trimming harmless surrounding whitespace: mermaid 1ms
+   ✓ accepts only exact mermaid after trimming harmless surrounding whitespace:  mermaid  1ms
+   ✓ accepts only exact mermaid after trimming harmless surrounding whitespace: 	mermaid	 1ms
+   ✓ accepts only exact mermaid after trimming harmless surrounding whitespace: mermaid  1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer.test.ts > preserves the exact fence and explicitly rejects extra fence parameters: mermaid unsupported-option
+ FAIL  src/renderer.test.ts > preserves the exact fence and explicitly rejects extra fence parameters: mermaid unsupported-option
+AssertionError: expected { from: 73, to: 138, …(4) } to match object { from: 73, to: 138, …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "content": {
+      "children": [
+        {
+-         "text": "```mermaid unsupported-option
+- flowchart LR
+- A[开始😀]-->B[结束]
+- ```",
++         "stroke": "border",
++         "strokeWidth": 1.5,
++         "type": "line",
++         "x1": 270,
++         "x2": 340,
++         "y1": 60,
++         "y2": 60,
++       },
++       {
++         "fill": "foreground",
++         "points": [
++           {
++             "x": 340,
++             "y": 60,
++           },
++           {
++             "x": 331,
++             "y": 56,
++           },
++           {
++             "x": 331,
++             "y": 64,
++           },
++         ],
++         "type": "polygon",
++       },
++       {
++         "fill": "background",
++         "height": 60,
++         "radius": 2,
++         "stroke": "border",
++         "type": "rect",
++         "width": 240,
++         "x": 30,
++         "y": 30,
++       },
++       {
++         "anchor": "middle",
++         "fontSize": 14,
++         "text": "开始😀",
+          "type": "text",
++         "x": 150,
++         "y": 65,
+        },
++       {
++         "fill": "background",
++         "height": 60,
++         "radius": 2,
++         "stroke": "border",
++         "type": "rect",
++         "width": 240,
++         "x": 340,
++         "y": 30,
++       },
++       {
++         "anchor": "middle",
++         "fontSize": 14,
++         "text": "结束",
++         "type": "text",
++         "x": 460,
++         "y": 65,
++       },
+      ],
+-     "type": "code",
++     "type": "vector",
+    },
+    "from": 73,
+-   "status": "error",
++   "status": "ready",
+    "to": 138,
+  }
+
+ ❯ src/renderer.test.ts:125:31
+    123|   const result = await render(input)
+    124|   expect(result.fragments).toHaveLength(1)
+    125|   expect(result.fragments[0]).toMatchObject({
+       |                               ^
+    126|     from: 73,
+    127|     to: input.to,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/renderer.test.ts > preserves the exact fence and explicitly rejects extra fence parameters:  mermaid	unsupported-option 
+AssertionError: expected { from: 73, to: 140, …(4) } to match object { from: 73, to: 140, …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "content": {
+      "children": [
+        {
+-         "text": "``` mermaid	unsupported-option 
+- flowchart LR
+- A[开始😀]-->B[结束]
+- ```",
++         "stroke": "border",
++         "strokeWidth": 1.5,
++         "type": "line",
++         "x1": 270,
++         "x2": 340,
++         "y1": 60,
++         "y2": 60,
++       },
++       {
++         "fill": "foreground",
++         "points": [
++           {
++             "x": 340,
++             "y": 60,
++           },
++           {
++             "x": 331,
++             "y": 56,
++           },
++           {
++             "x": 331,
++             "y": 64,
++           },
++         ],
++         "type": "polygon",
++       },
++       {
++         "fill": "background",
++         "height": 60,
++         "radius": 2,
++         "stroke": "border",
++         "type": "rect",
++         "width": 240,
++         "x": 30,
++         "y": 30,
++       },
++       {
++         "anchor": "middle",
++         "fontSize": 14,
++         "text": "开始😀",
+          "type": "text",
++         "x": 150,
++         "y": 65,
+        },
++       {
++         "fill": "background",
++         "height": 60,
++         "radius": 2,
++         "stroke": "border",
++         "type": "rect",
++         "width": 240,
++         "x": 340,
++         "y": 30,
++       },
++       {
++         "anchor": "middle",
++         "fontSize": 14,
++         "text": "结束",
++         "type": "text",
++         "x": 460,
++         "y": 65,
++       },
+      ],
+-     "type": "code",
++     "type": "vector",
+    },
+    "from": 73,
+-   "status": "error",
++   "status": "ready",
+    "to": 140,
+  }
+
+ ❯ src/renderer.test.ts:125:31
+    123|   const result = await render(input)
+    124|   expect(result.fragments).toHaveLength(1)
+    125|   expect(result.fragments[0]).toMatchObject({
+       |                               ^
+    126|     from: 73,
+    127|     to: input.to,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/renderer.test.ts > preserves the exact fence and explicitly rejects extra fence parameters: 	mermaid  unsupported-option	
+AssertionError: expected { from: 73, to: 141, …(4) } to match object { from: 73, to: 141, …(2) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "content": {
+      "children": [
+        {
+-         "text": "```	mermaid  unsupported-option	
+- flowchart LR
+- A[开始😀]-->B[结束]
+- ```",
++         "stroke": "border",
++         "strokeWidth": 1.5,
++         "type": "line",
++         "x1": 270,
++         "x2": 340,
++         "y1": 60,
++         "y2": 60,
++       },
++       {
++         "fill": "foreground",
++         "points": [
++           {
++             "x": 340,
++             "y": 60,
++           },
++           {
++             "x": 331,
++             "y": 56,
++           },
++           {
++             "x": 331,
++             "y": 64,
++           },
++         ],
++         "type": "polygon",
++       },
++       {
++         "fill": "background",
++         "height": 60,
++         "radius": 2,
++         "stroke": "border",
++         "type": "rect",
++         "width": 240,
++         "x": 30,
++         "y": 30,
++       },
++       {
++         "anchor": "middle",
++         "fontSize": 14,
++         "text": "开始😀",
+          "type": "text",
++         "x": 150,
++         "y": 65,
+        },
++       {
++         "fill": "background",
++         "height": 60,
++         "radius": 2,
++         "stroke": "border",
++         "type": "rect",
++         "width": 240,
++         "x": 340,
++         "y": 30,
++       },
++       {
++         "anchor": "middle",
++         "fontSize": 14,
++         "text": "结束",
++         "type": "text",
++         "x": 460,
++         "y": 65,
++       },
+      ],
+-     "type": "code",
++     "type": "vector",
+    },
+    "from": 73,
+-   "status": "error",
++   "status": "ready",
+    "to": 141,
+  }
+
+ ❯ src/renderer.test.ts:125:31
+    123|   const result = await render(input)
+    124|   expect(result.fragments).toHaveLength(1)
+    125|   expect(result.fragments[0]).toMatchObject({
+       |                               ^
+    126|     from: 73,
+    127|     to: input.to,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  4 failed | 52 passed (56)
+   Start at  06:17:27
+   Duration  2.69s (transform 850ms, setup 0ms, collect 1.25s, tests 231ms, environment 0ms, prepare 1.21s)
+

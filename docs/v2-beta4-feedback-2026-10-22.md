@@ -28,3 +28,25 @@
 目标为 `2.0.0-beta.4` Windows x64 小型未签名 NSIS，沿用已批准的 Auto-Plugin/milkup Actions artifacts 和对话交付，保留一天；精确源码、EXE/ZIP 哈希、插件清单及实际下载链接将在终态交付记录补齐。手测指南和副本样本位于 `docs/manual-windows-beta4/`、`tests/fixtures/manual-beta4/`。
 
 不执行安装器，不上传到其他目的地。Windows GUI、IME、系统 DPI、实际升级/健康确认/回滚仍须真实验收；Linux Chromium/WebKit 结果不冒充 Windows。当前签名渠道未配置，Windows 独立 DOM/PDF 仍关闭；新版 Worker 不等于完整 Mermaid 支持。
+
+## Windows 首次 CI 失败与 checkout 修复
+
+首次 [Windows 运行 39731812510](https://github.com/Auto-Plugin/milkup/actions/runs/39731812510) 使用源码 `d115364eed98f6cb4e1949043e98f5ede3e43fb1`，约 95 秒在独立插件构建前置检查中失败，产物数为 0。严格 parser 字节哈希检查报 `Vendored parser hash differs: src/vendor/flow-parser.mjs`，交付门禁随即停止；未进入产品运行或安装验证，不能归为产品运行时失败。[原始 CI 日志](./evidence/v2-beta4-feedback/windows-first-failure.log)完整保留。
+
+根因是 Windows checkout 的换行转换改变了已审计的 Mermaid Worker parser 字节。修复提交 `8df2969b36278ff090a74dcb7616b6f475bcc13b` 仅补 checkout 属性与回归：两个 parser 使用 `-text` 保留原始字节，打包的 provenance/notice 固定 LF；workflow 仅补说明注释。未改 parser 内容、预期哈希、构建校验逻辑或运行时权限，也未通过换行归一化放松验证。真实 Git autocrlf checkout 回归从 [9 通过、6 失败](./evidence/v2-beta4-feedback/worker-checkout-red.log) 到 [15/15 通过](./evidence/v2-beta4-feedback/worker-checkout-green.log)，另有 [36/36 相关检查通过](./evidence/v2-beta4-feedback/worker-checkout-related.log)；CRLF、内容篡改及 provenance 摘要变化仍被严格拒绝。
+
+后续 [Windows 运行 39732673935](https://github.com/Auto-Plugin/milkup/actions/runs/39732673935) 已启动。本节只记录首次失败及 checkout 修复，不据本地回归声明后续 CI、安装包或交付成功；终态与产物仍需另行核验。
+
+## 参数边界补丁与原生生产验证
+
+独立审查发现 Worker 将额外围栏参数按首词忽略。`7eee3944a8658a955f5f43fff3455f734aa6ce0d` 增加严格 info 校验；4 种参数空白组合先失败，修后全部 56 项图表测试与仓库外 SDK 构建通过。合法 `mermaid` 周边空白仍允许；额外参数显示明确诊断并保留完整原围栏。新版归档 SHA-256 `b1c2b8490da465f1c38f4f3886e7fa926978d2e6e2c5081bca4d716659c4acc1`。原运行 39732673935 因候选被替代主动取消，未打包/上传，0 artifacts，不能写成成功或新的产品失败。最终候选运行 39733156227。
+
+Linux release 二进制 SHA-256 `a31e3b2d222f7dbb69146cfb82b82f393d8504d4b75374793915633730c19301`，编译提交 d115364；其 520 项 Linux 构建输入与 7eee3944 候选逐字节相同。Windows Worker 平台归档单独重建验证。原生初轮 4 项通过后，测试错误地寻找 blob img，实际截图已经显示 typed SVG；保留失败并修正为精确向量节点/连线/标签/尺寸/可见性断言。新临时目录完整复验 38/38 通过，含 32 组 light/dark × source/live × 1280/760 宽 × 原生 100/125/150/200% 缩放，真实卡片动作、指针分隔条、About 和恢复备份不等于保存。
+
+最终 Worker 归档首次补验脚本报告 7/7，但随后像素复核推翻了诊断可见性的弱断言：提示虽有 DOM 高度，已被父编辑器滚动裁掉。完整四行源码、无错误图形替换、磁盘字节不变及合法向量断言仍有效；这次不能称为实际诊断可见性通过。只读六帧探针确认 notice top=8、editor top=37、scrollTop=29，提示中心命中标题栏。正在以原顶部不滚走新提示的最小修复补验；其他滚动位置仍保留原有阅读锚定。截图和只读 DOM 观察在 native-first/native-matrix/native-final，原失败没有覆盖。使用既有私有用户/挂载命名空间；初次嵌套沙箱因只读 uid_map 失败，获准在执行器启动同一隔离映射后成功，未关闭 WebKit 沙箱。所有这些是 Linux WebKit/X11 结果，不是 Windows GUI、OS DPI 或中文 IME 验收。
+
+原生严格断言对第一版提示修复 `993b2a30` 再次报红：220 项局部测试虽通过，但只覆盖 provider reject 路径。真实错误 fragment 在 `paint()` 内调用 fallback，随后外层无条件恢复锚点，同样把提示滚走。此候选未推送/未跑 Windows CI；原生失败与像素保留于 native-notice-first-fix。必须覆盖真实 error fragment / incomplete 响应路径后重新构建验收，不能沿用局部测试绿灯声明已修复。
+
+最终 `0e74d9fad211c304ef68449fa6becb7450dfffef` 补齐 paint 外层：只有初始顶部且实际产生 notice 时跳过该次阅读锚点恢复，成功预览和已滚动位置不变。error fragment/incomplete 两个回归先红后绿，225 项相关测试与类型检查通过。新 Linux release SHA-256 `c2ec837c2c24b14e426b52719f90cad48525402499f14855b1a5f86ac66ab754`，520 项输入与该提交无漂移。严格原生 38/38 通过；诊断真实像素显示、notice y=37..66.1875、editor y=37、scrollTop=0，命中自身且不受祖先裁切，源码和磁盘字节完整。已目视系统截图，不再依赖 DOM 存在作为可见性证明。最终 Windows run 39735106683 受测同一源码；此前 39733156227 因发现此缺陷主动取消，0 artifacts。
+
+最终同一二进制另通过 760×520 的 16 组 light/dark × source/live × 100/125/150/200% 窄窗矩阵。200% 下需要正常纵向滚动，不代表全部内容同屏。真实键盘补验确认 Tab 从开关进入卡片面板动作、Return 打开、Escape 还原可见焦点；原生滚轮使 About 完整未配置说明可读且中心命中自身。该补验首跑因测试脚本未等待缩放重置而失败，补齐与主矩阵相同的等待后通过，未更改产品；两次记录保留。新增测试参数与辅助脚本属于报告提交，不改变受测产品源代码。
