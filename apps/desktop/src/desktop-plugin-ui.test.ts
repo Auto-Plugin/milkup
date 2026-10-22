@@ -7,6 +7,238 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
 
+describe('plugin UI lifecycle races', () => {
+  function fixture(scope: 'app' | 'document' = 'document') {
+    document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'
+    let views: PluginContributionIndex['ui'] = ['first', 'second'].map((id) => ({
+      pluginId: 'example',
+      id,
+      title: id,
+      slot: 'sidebar-panel',
+      scope,
+    }))
+    const runtime = createRuntime(views, [])
+    const index = runtime.contributions()
+    runtime.contributions = () => ({ ...index, ui: views })
+    const render = vi.fn<DesktopPluginUiRuntime['renderUi']>(
+      async (_plugin, id, phase, state) => `${id}:${phase}:${String(state?.documentId)}`,
+    )
+    runtime.renderUi = render
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    return {
+      controller,
+      runtime,
+      render,
+      removeViews: () => {
+        views = []
+      },
+      panels: () => Array.from(document.querySelectorAll<HTMLElement>('[data-plugin-ui]')),
+      text: () =>
+        Array.from(document.querySelectorAll('.plugin-ui-panel-body')).map(
+          (body) => body.textContent,
+        ),
+    }
+  }
+
+  function deferred() {
+    let resolve!: (output: unknown) => void
+    let reject!: (error: Error) => void
+    const promise = new Promise<unknown>((finish, fail) => {
+      resolve = finish
+      reject = fail
+    })
+    return { promise, resolve, reject }
+  }
+
+  it.each(['disable', 'dispose'] as const)(
+    'does not resume mounting views after %s interrupts sync',
+    async (stop) => {
+      const f = fixture()
+      const pending = deferred()
+      f.render.mockImplementationOnce(() => pending.promise)
+      const syncing = f.controller.sync('doc-a')
+      if (stop === 'disable') {
+        f.removeViews()
+        await f.controller.sync('doc-a')
+      } else await f.controller.dispose()
+      pending.resolve('retired first view')
+      await syncing
+      expect(f.panels()).toHaveLength(0)
+      expect(
+        f.render.mock.calls.filter(([, id, phase]) => id === 'second' && phase === 'mount'),
+      ).toHaveLength(0)
+      await f.controller.dispose()
+    },
+  )
+
+  it.each(['disable', 'dispose', 'document'] as const)(
+    'removes every retired view synchronously while %s cleanup is pending',
+    async (stop) => {
+      const f = fixture()
+      await f.controller.sync('doc-a')
+      const retiredPanels = f.panels()
+      const pending = deferred()
+      f.render.mockImplementationOnce(() => pending.promise)
+      if (stop === 'disable') f.removeViews()
+      const stopping =
+        stop === 'dispose'
+          ? f.controller.dispose()
+          : f.controller.sync(stop === 'document' ? 'doc-b' : 'doc-a')
+      const connected = retiredPanels.map((panel) => panel.isConnected)
+      pending.resolve('retired cleanup')
+      await stopping
+      expect(connected).toEqual([false, false])
+      await f.controller.dispose()
+    },
+  )
+
+  it('keeps only the newest document when a prior sync resumes after pending cleanup', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    const pending = deferred()
+    f.render.mockImplementationOnce(() => pending.promise)
+    const oldSync = f.controller.sync('doc-b')
+    const latestSync = f.controller.sync('doc-c')
+    pending.resolve('retired cleanup')
+    await Promise.all([oldSync, latestSync])
+    expect(f.text()).toEqual(['first:mount:doc-c', 'second:mount:doc-c'])
+    expect(
+      f.render.mock.calls.filter(
+        ([, , phase, state]) => phase === 'mount' && state?.documentId === 'doc-c',
+      ),
+    ).toHaveLength(2)
+    expect(
+      f.render.mock.calls.filter(
+        ([, , phase, state]) => phase === 'update' && state?.documentId === 'doc-c',
+      ),
+    ).toHaveLength(0)
+    await f.controller.dispose()
+  })
+
+  it.each(['same', 'new'] as const)(
+    'waits for retiring view cleanup only when replacing within the %s execution generation',
+    async (replacement) => {
+      const f = fixture()
+      let generation = 1
+      Object.assign(f.runtime, { generation: () => generation })
+      await f.controller.sync('doc-a')
+      const pending = deferred()
+      f.render.mockImplementationOnce(() => pending.promise)
+      const oldSync = f.controller.sync('doc-b')
+      if (replacement === 'new') generation++
+      const latestSync = f.controller.sync('doc-c')
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      const mountedBeforeCleanup = f.render.mock.calls.filter(
+        ([, , phase, state]) => phase === 'mount' && state?.documentId === 'doc-c',
+      ).length
+      pending.resolve('retired cleanup')
+      await Promise.all([oldSync, latestSync])
+      expect(mountedBeforeCleanup).toBe(replacement === 'same' ? 0 : 2)
+      expect(f.text()).toEqual(['first:mount:doc-c', 'second:mount:doc-c'])
+      await f.controller.dispose()
+    },
+  )
+
+  it('does not mount remaining views from a revoked sync snapshot before the next sync', async () => {
+    const f = fixture()
+    let generation = 1
+    Object.assign(f.runtime, { generation: () => generation })
+    const pending = deferred()
+    f.render.mockImplementationOnce(() => pending.promise)
+    const oldSync = f.controller.sync('doc-a')
+    generation++
+    pending.resolve('retired first mount')
+    await oldSync
+    expect(
+      f.render.mock.calls.filter(([, id, phase]) => id === 'second' && phase === 'mount'),
+    ).toHaveLength(0)
+    await f.controller.sync('doc-a')
+    expect(f.text()).toEqual(['first:mount:doc-a', 'second:mount:doc-a'])
+    await f.controller.dispose()
+  })
+
+  it('refreshes app-scoped views for a new document while an old mount is pending', async () => {
+    const f = fixture('app')
+    const pending = deferred()
+    f.render.mockImplementationOnce(() => pending.promise)
+    const oldSync = f.controller.sync('doc-a')
+    await f.controller.sync('doc-b')
+    pending.resolve('retired document output')
+    await oldSync
+    expect(f.text()).toEqual(['first:update:doc-b', 'second:mount:doc-b'])
+    await f.controller.dispose()
+  })
+
+  it('does not cancel an in-flight sync when its document and contributions are unchanged', async () => {
+    const f = fixture()
+    const pending = deferred()
+    f.render.mockImplementationOnce(() => pending.promise)
+    const syncing = f.controller.sync('doc-a')
+    await f.controller.sync('doc-a')
+    pending.resolve('first:mount:doc-a')
+    await syncing
+    expect(f.text()).toEqual(['first:mount:doc-a', 'second:mount:doc-a'])
+    await f.controller.dispose()
+  })
+
+  it('remounts unchanged contributions for a new execution generation without disposing the new instance', async () => {
+    const f = fixture()
+    let generation = 1
+    Object.assign(f.runtime, { generation: () => generation })
+    await f.controller.sync('doc-a')
+    const retiredPanels = f.panels()
+    generation++
+    await f.controller.sync('doc-a')
+    expect(retiredPanels.every((panel) => !panel.isConnected)).toBe(true)
+    expect(f.render.mock.calls.filter(([, , phase]) => phase === 'mount')).toHaveLength(4)
+    expect(f.render.mock.calls.filter(([, , phase]) => phase === 'dispose')).toHaveLength(0)
+    await f.controller.dispose()
+  })
+
+  it('does not dispatch focus or controlled commands from a retired execution generation', async () => {
+    const f = fixture()
+    let generation = 1
+    Object.assign(f.runtime, { generation: () => generation })
+    await f.controller.sync('doc-a')
+    const retired = f.panels()[0]!
+    generation++
+    const count = f.render.mock.calls.length
+    retired.focus()
+    retired.dispatchEvent(
+      new CustomEvent('milkup-plugin-renderer-action', {
+        bubbles: true,
+        detail: { rendererId: 'example:first', command: 'example.run' },
+      }),
+    )
+    expect(f.render).toHaveBeenCalledTimes(count)
+    expect(f.runtime.runCommand).not.toHaveBeenCalled()
+    await f.controller.dispose()
+  })
+
+  it.each(['output', 'error'] as const)(
+    'drops late render %s and invalidation once its execution generation is revoked',
+    async (result) => {
+      const f = fixture()
+      let generation = 1
+      Object.assign(f.runtime, { generation: () => generation })
+      await f.controller.sync('doc-a')
+      const pending = deferred()
+      f.render.mockImplementationOnce(() => pending.promise)
+      const updating = f.controller.invalidate('example', 'first')
+      generation++
+      if (result === 'output') pending.resolve('revoked output')
+      else pending.reject(new Error('revoked render error'))
+      await updating
+      const count = f.render.mock.calls.length
+      await f.controller.invalidate('example')
+      expect(f.text()).toEqual(['first:mount:doc-a', 'second:mount:doc-a'])
+      expect(f.render).toHaveBeenCalledTimes(count)
+      await f.controller.dispose()
+      expect(f.render.mock.calls.filter(([, , phase]) => phase === 'dispose')).toHaveLength(0)
+    },
+  )
+})
+
 describe('generic contextual document toolbar', () => {
   it('collapses empty contributions and the entire empty slot, restoring either when content returns', async () => {
     document.body.innerHTML =
@@ -508,7 +740,7 @@ describe('DesktopPluginUiController', () => {
       )
       const render = runtime.renderUi
       runtime.renderUi = async (...args) =>
-        args[2] === 'update'
+        args[2] === 'update' && args[3]?.documentId === 'doc'
           ? new Promise((_resolve, fail) => {
               reject = fail
             })

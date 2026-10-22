@@ -21,6 +21,8 @@ import { decorateControlledTrees, type ControlledTreeFocus } from './controlled-
 
 export interface DesktopPluginUiRuntime {
   contributions(): PluginContributionIndex
+  /** Host-owned execution identity, independent of stable plugin/view IDs. */
+  generation?(pluginId: string): number
   renderUi(
     pluginId: string,
     viewId: string,
@@ -38,7 +40,7 @@ interface MountedPluginUi {
   readonly toggle?: HTMLButtonElement
   readonly resizeHandle?: HTMLElement
   readonly documentId: string
-  readonly generation: number
+  readonly executionGeneration: number | undefined
   renderSequence: number
   renderSignature: string | undefined
   pendingFocusLabel: string | undefined
@@ -110,7 +112,8 @@ export class DesktopPluginUiController {
     | undefined
   private readonly openModals = new Set<string>()
   private readonly modalReturnFocus = new Map<string, HTMLElement>()
-  private generation = 0
+  private syncSequence = 0
+  private readonly disposals = new Map<MountedPluginUi, Promise<unknown>>()
   private documentId = ''
   private lastSyncSignature = ''
   private readonly collapsedSidebarPanels = new Set<string>()
@@ -126,53 +129,68 @@ export class DesktopPluginUiController {
   ) {}
 
   async sync(documentId: string): Promise<void> {
+    const documentChanged = this.documentId !== documentId
     this.documentId = documentId
-    const contributions = this.runtime.contributions().ui
-    const signature = contributions
-      .filter((view) => view.slot !== 'modal' || this.openModals.has(uiKey(view)))
-      .map(
-        (view) =>
-          `${uiKey(view)}:${view.slot}:${view.title}:${view.scope ?? 'app'}:${view.viewportUpdates !== false}:${view.scope === 'document' ? documentId : ''}`,
-      )
-      .join('|')
-
-    if (signature === this.lastSyncSignature) {
-      return
-    }
-
-    this.lastSyncSignature = signature
     const desired = new Map(
-      contributions
-        .filter((view) => view.slot !== 'modal' || this.openModals.has(uiKey(view)))
-        .map((view) => [uiKey(view), view]),
+      this.runtime
+        .contributions()
+        .ui.filter((view) => view.slot !== 'modal' || this.openModals.has(uiKey(view)))
+        .map((contribution) => [
+          uiKey(contribution),
+          {
+            contribution,
+            executionGeneration: this.runtime.generation?.(contribution.pluginId),
+          },
+        ]),
+    )
+    const signature = JSON.stringify(
+      [...desired].map(([key, { contribution: view, executionGeneration }]) => [
+        key,
+        view.slot,
+        view.title,
+        view.scope ?? 'app',
+        view.viewportUpdates !== false,
+        executionGeneration,
+      ]),
     )
 
-    for (const [key, mount] of this.mounts) {
+    if (signature === this.lastSyncSignature && !documentChanged) return
+
+    this.lastSyncSignature = signature
+    const sequence = ++this.syncSequence
+    // Retire every obsolete shell before yielding to plugin cleanup. Otherwise a
+    // slow first view leaves later views interactive against the wrong document.
+    for (const [key, mount] of [...this.mounts]) {
+      if (sequence !== this.syncSequence) return
       const next = desired.get(key)
       const documentChanged =
         mount.contribution.scope === 'document' && mount.documentId !== documentId
       const contributionChanged =
         next !== undefined &&
-        (mount.contribution.slot !== next.slot ||
-          mount.contribution.title !== next.title ||
-          mount.contribution.scope !== next.scope ||
-          mount.contribution.viewportUpdates !== next.viewportUpdates)
+        (mount.executionGeneration !== next.executionGeneration ||
+          mount.contribution.slot !== next.contribution.slot ||
+          mount.contribution.title !== next.contribution.title ||
+          mount.contribution.scope !== next.contribution.scope ||
+          mount.contribution.viewportUpdates !== next.contribution.viewportUpdates)
 
-      if (!next || documentChanged || contributionChanged) {
-        await this.disposeMount(key, mount)
-      }
+      if (!next || documentChanged || contributionChanged) void this.disposeMount(key, mount)
     }
+    // A newer sync can arrive after the previous one detached its views. Keep
+    // same-instance disposal ahead of replacement mounts even in that case.
+    const disposing = [...this.disposals]
+      .filter(([mount]) => this.isCurrentGeneration(mount))
+      .map(([, pending]) => pending)
+    if (disposing.length) await Promise.all(disposing)
 
-    for (const [key, contribution] of desired) {
+    for (const [key, { contribution, executionGeneration }] of desired) {
+      if (sequence !== this.syncSequence) return
+      if (executionGeneration !== this.runtime.generation?.(contribution.pluginId)) return
       // A modal may be closed while an earlier view is still rendering.
       if (contribution.slot === 'modal' && !this.openModals.has(key)) continue
       const mount = this.mounts.get(key)
 
-      if (mount) {
-        await this.updateMount(mount)
-      } else {
-        await this.mount(contribution)
-      }
+      if (mount) await this.updateMount(mount)
+      else await this.mount(contribution)
     }
   }
 
@@ -254,10 +272,25 @@ export class DesktopPluginUiController {
   }
 
   async dispose(): Promise<void> {
+    this.syncSequence++
     this.lastSyncSignature = ''
-    for (const [key, mount] of [...this.mounts]) {
-      await this.disposeMount(key, mount)
-    }
+    this.viewportUpdatePending = false
+    const disposing = [...this.mounts].map(([key, mount]) => this.disposeMount(key, mount))
+    this.openModals.clear()
+    this.modalReturnFocus.clear()
+    await Promise.all([...disposing, ...this.disposals.values()])
+  }
+
+  private isCurrentGeneration(mount: MountedPluginUi): boolean {
+    return mount.executionGeneration === this.runtime.generation?.(mount.contribution.pluginId)
+  }
+
+  private isCurrentMount(mount: MountedPluginUi): boolean {
+    return (
+      this.mounts.get(uiKey(mount.contribution)) === mount &&
+      this.isCurrentGeneration(mount) &&
+      (mount.contribution.scope !== 'document' || mount.documentId === this.documentId)
+    )
   }
 
   private async mount(contribution: PluginUiBinding): Promise<void> {
@@ -267,7 +300,6 @@ export class DesktopPluginUiController {
       return
     }
 
-    const generation = ++this.generation
     const container = this.root.ownerDocument.createElement(
       contribution.slot === 'document-toolbar' || contribution.slot === 'statusbar'
         ? 'span'
@@ -356,10 +388,10 @@ export class DesktopPluginUiController {
     }
 
     container.addEventListener('focusin', () => {
-      void this.sendLifecycle(contribution, 'focus')
+      void this.sendLifecycle(mount, 'focus')
     })
     container.addEventListener('focusout', () => {
-      void this.sendLifecycle(contribution, 'blur')
+      void this.sendLifecycle(mount, 'blur')
     })
     container.addEventListener(
       'click',
@@ -414,6 +446,7 @@ export class DesktopPluginUiController {
         true,
       )
     container.addEventListener('milkup-plugin-renderer-action', (event) => {
+      if (!this.isCurrentMount(mount)) return
       const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
       if (
         !detail ||
@@ -456,7 +489,7 @@ export class DesktopPluginUiController {
       ...(toggle ? { toggle } : {}),
       ...(resizeHandle ? { resizeHandle } : {}),
       documentId: this.documentId,
-      generation,
+      executionGeneration: this.runtime.generation?.(contribution.pluginId),
       renderSequence: 0,
       renderSignature: undefined,
       pendingFocusLabel: undefined as string | undefined,
@@ -476,7 +509,7 @@ export class DesktopPluginUiController {
         mount.modalFocusFrame = window?.requestAnimationFrame(() => {
           mount.modalFocusFrame = undefined
           if (
-            this.mounts.get(uiKey(contribution)) === mount &&
+            this.isCurrentMount(mount) &&
             this.isVisible(contribution) &&
             container.ownerDocument.activeElement === target
           )
@@ -530,10 +563,22 @@ export class DesktopPluginUiController {
   }
 
   private async renderMount(mount: MountedPluginUi, phase: 'mount' | 'update'): Promise<void> {
+    if (!this.isCurrentMount(mount)) return
     const formRevision = mount.forms.snapshot()
     const renderState: Readonly<Record<string, unknown>> = {
       documentId: this.documentId,
       ...this.renderState(),
+    }
+    const keyboardFocus = mount.virtualTreeFocus
+    if (
+      keyboardFocus &&
+      (keyboardFocus.documentId !== this.documentId ||
+        keyboardFocus.documentVersion !== renderState.documentVersion)
+    ) {
+      // App-scoped shells survive a document switch, but their deferred keyboard
+      // destination must not survive even when the new output is unchanged.
+      delete mount.virtualTreeFocus
+      this.resetVirtualScrollRequest(mount)
     }
     const scrollRequest = mount.virtualScrollRequest
     if (
@@ -547,11 +592,7 @@ export class DesktopPluginUiController {
     const renderSequence = ++mount.renderSequence
     const requestedKeyboardFocus = mount.virtualTreeFocus
     const isCurrentRequest = (): boolean => {
-      if (
-        this.mounts.get(uiKey(mount.contribution))?.generation !== mount.generation ||
-        renderSequence !== mount.renderSequence
-      )
-        return false
+      if (!this.isCurrentMount(mount) || renderSequence !== mount.renderSequence) return false
       if (
         requestedScroll &&
         requestedScroll.selectionRevision !== this.renderState().selectionRevision
@@ -704,10 +745,9 @@ export class DesktopPluginUiController {
     }
   }
 
-  private async sendLifecycle(
-    contribution: PluginUiBinding,
-    phase: 'focus' | 'blur',
-  ): Promise<void> {
+  private async sendLifecycle(mount: MountedPluginUi, phase: 'focus' | 'blur'): Promise<void> {
+    if (!this.isCurrentMount(mount)) return
+    const contribution = mount.contribution
     await this.runtime
       .renderUi(contribution.pluginId, contribution.id, phase, {
         documentId: this.documentId,
@@ -718,6 +758,7 @@ export class DesktopPluginUiController {
   }
 
   private async disposeMount(key: string, mount: MountedPluginUi): Promise<void> {
+    if (this.mounts.get(key) !== mount) return
     this.mounts.delete(key)
     this.collapsedSidebarPanels.delete(key)
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
@@ -752,12 +793,21 @@ export class DesktopPluginUiController {
       }
     }
     this.reorderSidebarPanels()
-    await this.runtime
+    // Revocation already disposes the isolated owner. Never route an old view's
+    // cleanup by plugin/view ID into a newly enabled instance with the same IDs.
+    if (!this.isCurrentGeneration(mount)) return
+    const disposal = this.runtime
       .renderUi(mount.contribution.pluginId, mount.contribution.id, 'dispose', {
         documentId: mount.documentId,
         visible: false,
       })
       .catch(() => undefined)
+    this.disposals.set(mount, disposal)
+    try {
+      await disposal
+    } finally {
+      this.disposals.delete(mount)
+    }
   }
 
   private holdPointerRender(mount: MountedPluginUi, event: PointerEvent): void {

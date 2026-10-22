@@ -1495,6 +1495,7 @@ const desktopPluginUi: DesktopPluginUiController = new DesktopPluginUiController
       const contributions = desktopPluginManager.state().contributions
       return pluginUiReady ? contributions : { ...contributions, ui: [] }
     },
+    generation: (pluginId) => desktopPluginManager.documentRendererGeneration(pluginId),
     renderUi: (pluginId, viewId, phase, uiState) =>
       desktopPluginManager.renderUi(pluginId, viewId, phase, uiState),
     resolveCommand: (rendererId, command) =>

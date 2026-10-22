@@ -40,6 +40,14 @@ for (const windowed of [false, true])
       await page.keyboard.press('Control+2')
       const picker = page.getByLabel('Code language', { exact: true })
       await expect(picker).toHaveValue('javascript')
+      // Source spans remain available for exact mapping/copy, but neither fence
+      // is painted beside the language control in Live mode.
+      await expect(page.locator('.milkup-code-source').first()).toHaveText('```js title="demo"')
+      await expect(page.locator('.milkup-code-source').first()).toBeHidden()
+      await expect(page.locator('.milkup-line[data-line="4"] .milkup-code-source')).toHaveText(
+        '```',
+      )
+      await expect(page.locator('.milkup-line[data-line="4"]')).toHaveCSS('height', '0px')
       await expect(page.locator('.milkup-code-token-keyword').first()).toHaveText('const')
       await expect(page.locator('.milkup-code-source').nth(1)).toHaveText(body)
       await expect(page.locator('.milkup-code-source img')).toHaveCount(0)
@@ -47,6 +55,7 @@ for (const windowed of [false, true])
       await expect(page.locator('.milkup-code-source').first()).toHaveText(
         '```typescript title="demo"',
       )
+      await expect(page.locator('.milkup-code-source').first()).toBeHidden()
       // Changing the picker returns to the retained document selection, including history shortcuts.
       await page.keyboard.press('Control+z')
       await expect(page.locator('.milkup-code-source').first()).toHaveText('```js title="demo"')
@@ -102,6 +111,9 @@ for (const windowed of [false, true])
         '```typescript title="demo"',
       )
       await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText(body)
+      await expect(page.locator('.milkup-line[data-line="1"]')).toBeVisible()
+      await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('```')
+      await expect(page.locator('.milkup-line[data-line="4"]')).toBeVisible()
       await expect(page.locator('.milkup-code-language')).toHaveCount(0)
     })
   }

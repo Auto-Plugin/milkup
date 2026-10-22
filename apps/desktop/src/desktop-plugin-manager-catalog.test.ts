@@ -17,12 +17,13 @@ vi.mock('./plugin-file-broker', async () => {
 })
 import { ActionRegistry } from '@milkup/core'
 import { copyPluginManagementSnapshot, parsePluginPackageArchive } from '@milkup/plugin'
-import type { PluginManifest, PluginPackageArchive } from '@milkup/plugin'
+import type { PluginManifest, PluginPackageArchive, PluginRenderer } from '@milkup/plugin'
 import {
   DesktopPluginManager,
   ReservedPluginMigrationError,
   createDesktopPluginActions,
   renderDesktopPluginManager,
+  type DesktopPluginModuleCapabilities,
 } from './desktop-plugin-manager'
 import { readFileSync } from 'node:fs'
 import type {
@@ -828,7 +829,8 @@ describe('P6 bounded management metadata', () => {
 describe('P6 mounted UI retirement', () => {
   async function mountedUi(stopFailure = false) {
     const catalog = new Catalog(),
-      render = vi.fn(() => ({ type: 'text', text: 'outline' })),
+      render = vi.fn<PluginRenderer>(() => ({ type: 'text', text: 'outline' })),
+      capabilities: DesktopPluginModuleCapabilities[] = [],
       activationDispose = vi.fn(),
       ownerDispose = vi.fn(async () => {
         if (stopFailure) throw Error('owner stop not confirmed')
@@ -853,14 +855,17 @@ describe('P6 mounted UI retirement', () => {
         selectManifestPath: async () => undefined,
         readManifestText: async () => JSON.stringify(pkg),
       },
-      loadModule: async () => ({
-        module: {
-          runtimeHost: 'isolated',
-          activate: () => ({ dispose: activationDispose }),
-          renderers: { 'outline-panel': render },
-        },
-        dispose: ownerDispose,
-      }),
+      loadModule: async (_manifest, _specifier, instance) => {
+        capabilities.push(instance!)
+        return {
+          module: {
+            runtimeHost: 'isolated',
+            activate: () => ({ dispose: activationDispose }),
+            renderers: { 'outline-panel': render },
+          },
+          dispose: ownerDispose,
+        }
+      },
     })
     await manager.ready
     await manager.installManifestPath('/outline.milkup-plugin')
@@ -868,7 +873,7 @@ describe('P6 mounted UI retirement', () => {
     await manager.approve(entry.id, entry.pending!.generation.capabilityFingerprint, entry.revision)
     await manager.enable(entry.id)
     await manager.renderUi(entry.id, 'outline-panel', 'mount')
-    return { manager, catalog, render, activationDispose, ownerDispose, id: entry.id }
+    return { manager, catalog, render, capabilities, activationDispose, ownerDispose, id: entry.id }
   }
   it('retires mounted UI without dispatching renderer RPC after epoch revocation', async () => {
     const s = await mountedUi()
@@ -890,6 +895,123 @@ describe('P6 mounted UI retirement', () => {
     expect(s.activationDispose).toHaveBeenCalledOnce()
     expect(s.manager.state().diagnostics?.join(' ')).toContain('owner stop not confirmed')
   })
+
+  describe.each(['disable', 'remove', 're-enable'] as const)(
+    'late UI response after %s',
+    (retire) => {
+      it.each(['mount', 'update'] as const)('rejects the retired %s result', async (phase) => {
+        const s = await mountedUi()
+        const oldGeneration = s.manager.documentRendererGeneration(s.id)
+        const retired = s.capabilities[0]!
+        let finish!: (value: unknown) => void
+        s.render.mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finish = resolve
+            }),
+        )
+        const result = s.manager.renderUi(s.id, 'outline-panel', phase)
+        const rejected = expect(result).rejects.toThrow('Plugin UI activation was revoked')
+
+        if (retire === 'remove') await s.manager.remove(s.id)
+        else await s.manager.disable(s.id)
+        expect(s.manager.state().contributions.ui).toEqual([])
+        expect(s.activationDispose).toHaveBeenCalledOnce()
+        expect(s.ownerDispose).toHaveBeenCalledOnce()
+        if (retire === 're-enable') {
+          await s.manager.enable(s.id)
+          await expect(s.manager.renderUi(s.id, 'outline-panel', 'mount')).resolves.toEqual({
+            type: 'text',
+            text: 'outline',
+          })
+        }
+        const nextGeneration = s.manager.documentRendererGeneration(s.id)
+        expect(nextGeneration).toBeGreaterThan(oldGeneration)
+
+        finish('obsolete UI output')
+        await rejected
+        retired.onDocumentRenderTimeout?.()
+        retired.onIsolationError?.(new Error('late retired isolation failure'))
+        expect(s.manager.documentRendererGeneration(s.id)).toBe(nextGeneration)
+        if (retire === 're-enable') {
+          expect(s.manager.state().records[0]).toMatchObject({ enabled: true, state: 'enabled' })
+          await expect(s.manager.renderUi(s.id, 'outline-panel', 'update')).resolves.toEqual({
+            type: 'text',
+            text: 'outline',
+          })
+          await s.manager.disable(s.id)
+        } else expect(s.manager.state().contributions.ui).toEqual([])
+      })
+    },
+  )
+
+  it('ignores a retired dispose rejection after the replacement UI has mounted', async () => {
+    const s = await mountedUi()
+    let fail!: (error: Error) => void
+    s.render.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject
+        }),
+    )
+    const retiredDispose = s.manager.renderUi(s.id, 'outline-panel', 'dispose')
+    await s.manager.disable(s.id)
+    await s.manager.enable(s.id)
+    await s.manager.renderUi(s.id, 'outline-panel', 'mount')
+    const generation = s.manager.documentRendererGeneration(s.id)
+
+    fail(new Error('late old disposal failure'))
+    await expect(retiredDispose).resolves.toBeUndefined()
+    expect(s.manager.documentRendererGeneration(s.id)).toBe(generation)
+    expect(s.manager.state().records[0]).toMatchObject({ enabled: true, state: 'enabled' })
+    await expect(s.manager.renderUi(s.id, 'outline-panel', 'update')).resolves.toEqual({
+      type: 'text',
+      text: 'outline',
+    })
+    expect(s.manager.state().diagnostics?.join(' ')).not.toContain('late old disposal failure')
+    await s.manager.disable(s.id)
+  })
+
+  it.each(['startupComplete', 'commit'] as const)(
+    'does not publish a revoked activation after delayed %s persistence',
+    async (persistedPhase) => {
+      const s = await mountedUi()
+      await s.manager.disable(s.id)
+      if (persistedPhase === 'commit') {
+        await s.manager.installManifestPath('/outline.milkup-plugin')
+        const entry = s.catalog.snapshot.entries[0]!
+        await s.manager.approve(
+          s.id,
+          entry.pending!.generation.capabilityFingerprint,
+          entry.revision,
+        )
+      }
+      const transition = s.catalog.transition.bind(s.catalog)
+      let release!: () => void
+      let started!: () => void
+      const waiting = new Promise<void>((resolve) => {
+        started = resolve
+      })
+      const persisted = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      vi.spyOn(s.catalog, 'transition').mockImplementation(async (id, revision, action) => {
+        const snapshot = await transition(id, revision, action)
+        if (action.type === persistedPhase) {
+          started()
+          await persisted
+        }
+        return snapshot
+      })
+      const enabling = s.manager.enable(s.id)
+      await waiting
+      s.capabilities.at(-1)!.onIsolationError!(new Error('isolation failed during persistence'))
+      expect(s.manager.state().contributions.ui).toEqual([])
+      release()
+      await expect(enabling).rejects.toThrow(/execution host failed|revoked/)
+      expect(s.manager.state().contributions.ui).toEqual([])
+    },
+  )
 })
 
 describe('P6 trusted manager action wiring', () => {

@@ -381,7 +381,10 @@ export class DesktopPluginManager {
   private catalogSnapshot: PluginCatalogSnapshot | undefined
   private readonly publishedGenerations = new Map<string, string>()
   private readonly executingRecords = new Map<string, PluginRegistryRecord>()
-  private readonly activationGates = new Map<string, { committed: boolean; violation?: Error }>()
+  private readonly activationGates = new Map<
+    string,
+    { readonly epoch: number; committed: boolean; violation?: Error }
+  >()
   private readonly managerDiagnostics: string[] = []
   private readonly pendingRuntimeCleanup = new Map<
     string,
@@ -692,6 +695,10 @@ export class DesktopPluginManager {
   ): PluginRegistryRecord {
     const gate = this.activationGates.get(pluginId)
     if (!gate) throw new Error('Activation epoch unavailable')
+    // Native commit/startup persistence can outlive the isolated instance.
+    // Never reopen a gate revoked while that response was in flight.
+    if (gate.epoch !== this.activationEpochs.get(pluginId))
+      throw new Error('Plugin activation was revoked')
     gate.committed = true
     try {
       this.runtime.publishPlugin(pluginId)
@@ -1270,9 +1277,12 @@ export class DesktopPluginManager {
 
       await this.unloadRuntimePlugin(pluginId)
       if (candidate) this.executingRecords.set(pluginId, candidate)
-      const gate: { committed: boolean; violation?: Error } = { committed: !this.catalog }
-      this.activationGates.set(pluginId, gate)
       const epoch = this.activationEpochs.get(pluginId) ?? 0
+      const gate: { readonly epoch: number; committed: boolean; violation?: Error } = {
+        epoch,
+        committed: !this.catalog,
+      }
+      this.activationGates.set(pluginId, gate)
       this.temporaryStorageStopped = false
       const main = record.manifest.main
 
