@@ -447,6 +447,54 @@ try {
         )
         await screenshot('external-static-worker-render')
         assert.equal(await readFile(diagramFile, 'utf8'), source)
+        const unsupportedFile = path.join(output, 'static-worker-unsupported-fence.md')
+        const unsupportedFence =
+          '```mermaid unsupported-option\nflowchart TD\nA[Start] --> B[End]\n```'
+        const unsupportedSource = '# Unsupported fence parameters\n\n' + unsupportedFence + '\n'
+        await writeFile(unsupportedFile, unsupportedSource, { flag: 'wx' })
+        await app.key('ctrl+o')
+        await ui.picker(unsupportedFile)
+        await app.key('ctrl+2')
+        await app.until(
+          async () => {
+            row.unsupportedFence = await app.execute(`
+              const visible=e=>{
+                if(!e)return false;const r=e.getBoundingClientRect();
+                if(!(r.width>0&&r.height>0&&r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight&&getComputedStyle(e).visibility==='visible'))return false;
+                if(!e.contains(document.elementFromPoint((r.left+r.right)/2,(r.top+r.bottom)/2)))return false;
+                for(let p=e.parentElement;p;p=p.parentElement){const s=getComputedStyle(p),q=p.getBoundingClientRect();
+                  if(s.overflowY!=='visible'&&(r.top<q.top||r.bottom>q.bottom))return false;
+                  if(s.overflowX!=='visible'&&(r.left<q.left||r.right>q.right))return false;
+                }
+                return true;
+              };
+              const notice=document.querySelector('[data-document-presentation-notice]');
+              const lines=[...document.querySelectorAll('.milkup-code-source')];
+              const nr=notice?.getBoundingClientRect(),editor=document.querySelector('.milkup-editor');
+              return {diagnostic:notice?.textContent,diagnosticVisible:visible(notice),
+                noticeRect:nr?.toJSON(),editorRect:editor?.getBoundingClientRect().toJSON(),editorScrollTop:editor?.scrollTop,
+                noticeHit:nr?document.elementFromPoint((nr.left+nr.right)/2,(nr.top+nr.bottom)/2)?.outerHTML.slice(0,1000):null,
+                lines:lines.map(e=>({text:e.textContent,visible:visible(e),rect:e.getBoundingClientRect().toJSON()})),
+                presentationCount:document.querySelectorAll('.milkup-document-presentation').length,
+                noticeHtml:notice?.outerHTML,sourceHtml:lines.map(e=>e.outerHTML)};
+            `)
+            const state = row.unsupportedFence
+            return (
+              state.diagnostic === '受限图表围栏参数暂不支持；已保留完整源码。' &&
+              state.diagnosticVisible &&
+              state.presentationCount === 0 &&
+              state.lines.length === 4 &&
+              state.lines.every((line) => line.visible) &&
+              state.lines.map((line) => line.text).join('\n') === unsupportedFence
+            )
+          },
+          'unsupported fence parameters show a visible diagnostic and retain the exact full fence',
+          20000,
+        )
+        assert.equal(await readFile(unsupportedFile, 'utf8'), unsupportedSource)
+        row.unsupportedFence.diskBytesUnchanged = true
+        row.unsupportedFence.source = unsupportedSource
+        await screenshot('external-static-worker-unsupported-fence')
         await app.key('ctrl+o')
         await ui.picker(file)
         await ui.list()

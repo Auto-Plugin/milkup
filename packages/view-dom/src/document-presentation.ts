@@ -983,10 +983,11 @@ export class DocumentPresentation {
       config = this.config,
       epoch = this.epoch
     // A notice participates in normal flow even before any preview is cached.
-    // Preserve reading position around its complete layout change; browsers that
-    // already anchor the insertion need no additional scroll correction.
+    // Preserve an already-scrolled reading position around its complete layout change.
+    // At the top, keep the new notice visible instead of scrolling it above the viewport;
+    // browsers that already anchor the insertion need no additional correction.
     const anchor =
-      !this.painting && !this.stopped && before.mode === 'live'
+      !this.painting && !this.stopped && before.mode === 'live' && this.root.scrollTop > 0
         ? this.captureScrollAnchor(before.selection)
         : undefined
     this.content.dataset.documentPresentationStatus = 'fallback'

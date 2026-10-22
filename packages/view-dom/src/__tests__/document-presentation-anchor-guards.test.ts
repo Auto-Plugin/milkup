@@ -77,6 +77,18 @@ function fixture(away = false) {
     },
   }
 }
+it('keeps an initial fallback notice visible when the document is at the top', async () => {
+  const f = fixture()
+  f.root.scrollTop = 0
+  const before = { ...f.snapshot.selection }
+  f.manager.schedule()
+  await settle()
+  expect(f.root.querySelector('[data-document-presentation-notice]')).not.toBeNull()
+  expect(f.root.scrollTop).toBe(0)
+  expect(f.content.children[0]!.getBoundingClientRect().top).toBe(30)
+  expect(f.snapshot.selection).toEqual(before)
+})
+
 for (const away of [false, true]) {
   it(`anchors notice layout without pulling an offscreen selection back (${away})`, async () => {
     const f = fixture(away)
