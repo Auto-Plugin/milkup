@@ -1,0 +1,82 @@
+2026-10-22T09:28:18.951Z NATIVE_STARTUP_WINDOW 1938ms
+PASS 001-frozen-beta5-open-document
+PASS 002-prepare-independent-milkup.diagrams
+PASS 003-bundled-formatting-1-0-1-is-discoverable
+PASS 004-flowchart-already-open-before-enable
+PASS 005-flowchart-enable-card-position-stable
+PASS 006-flowchart-return-immediate-preview
+PASS 007-flowchart-disable-card-position-stable
+PASS 008-flowchart-return-immediate-source
+PASS 009-flowchart-focused-inside-before-enable
+PASS 010-flowchart-enable-from-inside-caret
+PASS 011-flowchart-blurred-inside-caret-renders
+PASS 012-flowchart-focused-block-start
+PASS 013-flowchart-focused-body
+PASS 014-flowchart-focused-closing-fence
+PASS 015-flowchart-focused-exclusive-block-end
+PASS 016-flowchart-focused-outside
+PASS 017-flowchart-source-mode-complete
+PASS 018-flowchart-source-to-live-immediate
+PASS 019-flowchart-disable-before-sequence-open
+PASS 020-sequence-already-open-before-enable
+PASS 021-sequence-enable-card-position-stable
+PASS 022-sequence-return-immediate-preview
+PASS 023-sequence-disable-card-position-stable
+PASS 024-sequence-return-immediate-source
+PASS 025-sequence-focused-inside-before-enable
+PASS 026-sequence-enable-from-inside-caret
+PASS 027-sequence-blurred-inside-caret-renders
+PASS 028-sequence-focused-block-start
+PASS 029-sequence-focused-body
+PASS 030-sequence-focused-closing-fence
+PASS 031-sequence-focused-exclusive-block-end
+PASS 032-sequence-focused-outside
+PASS 033-sequence-source-mode-complete
+PASS 034-sequence-source-to-live-immediate
+PASS 035-noncollapsed-diagram-selection-stays-source
+PASS 036-unknown-mermaid-explicit-diagnostic
+PASS 037-unknown-diagnostic-survives-inside-selection-and-blur
+PASS 038-unknown-source-is-byte-exact
+PASS 039-table-open-outside-before-formatting-enable
+PASS 040-formatting-enable-card-position-stable
+PASS 041-formatting-outside-no-toolbar-or-blank-row
+PASS 042-formatting-enter-table-context
+PASS 043-formatting-add-row-real-toolbar-command
+PASS 044-formatting-add-row-undo
+PASS 045-formatting-leave-table-no-empty-row
+PASS 046-formatting-reenter-table
+PASS 047-formatting-switch-document-clears-context
+PASS 048-formatting-return-document-recaptures-context
+PASS 049-formatting-disable-with-active-table
+PASS 050-formatting-disabled-clears-toolbar-immediately
+PASS 051-formatting-reenable-with-current-table
+PASS 052-formatting-reenabled-restores-current-context
+PASS 053-formatting-source-mode-outside-clears-context
+PASS 054-code-source-complete-before-live
+PASS 055-code-live-picker-without-visible-fences
+PASS 056-code-live-full-selection-real-system-copy
+PASS 057-code-live-body-selection-real-system-copy
+FAIL 058-code-selection-edit-preserves-surrounding-source
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Code source mapping stays exact
++ actual - expected
+
++ 'console.log(名)'
+- '\r\n```\r\n\r\nAfter'
+
+    at codeLive (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:424:12)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:776:5
+    at async step (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:214:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:773:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'console.log(名)',
+  expected: '\r\n```\r\n\r\nAfter',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

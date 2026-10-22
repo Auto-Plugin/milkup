@@ -34,6 +34,10 @@ for (const record of proof.plugins) {
     assert.equal(source.version, '1.2.0')
     assert.equal(source.host, 'worker')
   }
+  if (source.id === 'milkup.formatting') {
+    assert.equal(source.version, '1.0.1')
+    assert.equal(source.host, 'worker')
+  }
   if (source.id === 'milkup.outline') assert.equal(source.version, '1.3.3')
   inventory.push({
     id: source.id,

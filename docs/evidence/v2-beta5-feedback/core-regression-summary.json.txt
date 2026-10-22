@@ -1,0 +1,114 @@
+{
+  "recorded_utc": "2026-10-22T08:35:28.590521+00:00",
+  "head": "0ba6b535f78e971a83a7673ea08510fc6db613c0",
+  "root": "/tmp/milkup-windows-manual-candidate",
+  "source_edited": false,
+  "timeout_or_assertions_changed": false,
+  "full_workspace_started": false,
+  "runtime": "v24.19.0",
+  "vitest_version": "3.2.6",
+  "cpu_cgroup_quota": "400000 100000 (4 CPU equivalents)",
+  "baseline": {
+    "log": "/tmp/milkup-windows-manual-candidate/docs/evidence/v2-beta5-checkpoint/workspace-test.log",
+    "archive": "/tmp/milkup-beta5-core-regression/original-workspace-test-failure.log",
+    "search_ms": 5474,
+    "default_timeout_ms": 5000,
+    "core_pass": 188,
+    "core_fail": 1,
+    "concurrent_workspace_packages_in_log": [
+      "assets",
+      "core",
+      "input",
+      "markdown"
+    ],
+    "concurrent_test_build_typecheck": "Reported by parent task; no CPU telemetry captured at failure"
+  },
+  "results": [
+    {
+      "log": "/tmp/milkup-beta5-core-regression/core-large-document-direct.log",
+      "scope": "core original large-document file",
+      "files_pass": 1,
+      "tests_pass": 4,
+      "search_ms": 719,
+      "exit_code": 0
+    },
+    {
+      "log": "/tmp/milkup-beta5-core-regression/core-package-isolated.log",
+      "scope": "complete core package, default Vitest workers",
+      "files_pass": 21,
+      "tests_pass": 189,
+      "search_ms": 723,
+      "exit_code": 0
+    },
+    {
+      "log": "/tmp/milkup-beta5-core-regression/view-document-presentation.log",
+      "scope": "view-dom document-presentation filename filter",
+      "files_pass": 8,
+      "tests_pass": 184,
+      "exit_code": 0
+    }
+  ],
+  "startup_failure": {
+    "log": "/tmp/milkup-beta5-core-regression/core-large-document-isolated.log",
+    "reason": "pnpm invoked dependency auto-install; cannot create /home/agent/.local/share/pnpm in sandbox",
+    "tests_started": false,
+    "fallback": "Direct installed node_modules/vitest/vitest.mjs; no dependency installation or source change"
+  },
+  "findings": [
+    "core source and tests are unchanged from HEAD^; only packages/core/package.json version differs.",
+    "The original 100 MiB search budget remains Vitest default 5000 ms; all original correctness and bounded-window assertions remain unchanged.",
+    "Both isolated-file and isolated-package runs pass with substantial margin; no product performance regression reproduced.",
+    "All four large-document cases were substantially slower in the original parallel run. This supports resource contention as the explanation; absence of original CPU telemetry prevents definitive attribution.",
+    "document-presentation.test.ts:675 inputDOM.focus() restores the real editing precondition. The old test still checks MathML removal, restoration of all collapsed source lines, preserved source text, and unchanged undo text.",
+    "document-presentation.ts:1351 distinguishes stale unfocused collapsed caret from an active editor caret. hot-focus tests independently cover unfocused enable, focus-to-source, blur-to-preview, and preserving the external button focus.",
+    "The adjusted two test cases exercise multiline MathML, not fenced-code hiding. No assertion weakening identified."
+  ],
+  "cpu_samples": [
+    {
+      "path": "/tmp/milkup-beta5-core-regression/core-large-document-direct-cpu.jsonl",
+      "elapsed_s": 3.079,
+      "cpu_seconds": 4.523,
+      "throttled_periods": 0,
+      "throttled_s": 0.0,
+      "load_before": "0.74 1.54 1.69 1/1368 179975",
+      "load_after": "0.74 1.54 1.69 1/1370 180060"
+    },
+    {
+      "path": "/tmp/milkup-beta5-core-regression/core-large-document-isolated-cpu.jsonl",
+      "elapsed_s": 3.209,
+      "cpu_seconds": 4.879,
+      "throttled_periods": 0,
+      "throttled_s": 0.0,
+      "load_before": "0.71 1.64 1.73 2/1367 179724",
+      "load_after": "0.73 1.63 1.72 2/1368 179784"
+    },
+    {
+      "path": "/tmp/milkup-beta5-core-regression/core-package-isolated-cpu.jsonl",
+      "elapsed_s": 4.188,
+      "cpu_seconds": 14.382,
+      "throttled_periods": 8,
+      "throttled_s": 0.183,
+      "load_before": "0.71 1.43 1.64 2/1369 180170",
+      "load_after": "1.22 1.52 1.67 1/1371 180537"
+    },
+    {
+      "path": "/tmp/milkup-beta5-core-regression/view-document-presentation-cpu.jsonl",
+      "elapsed_s": 7.396,
+      "cpu_seconds": 20.037,
+      "throttled_periods": 9,
+      "throttled_s": 0.164,
+      "load_before": "1.11 1.47 1.65 1/1371 180578",
+      "load_after": "1.18 1.48 1.65 1/1374 180766"
+    }
+  ],
+  "sha256": {
+    "packages/core/src/__tests__/large-document.test.ts": "a3e0c11d6afe8e29e5d9aa75ab9abee4f7bec10a2c8385a0663a4b65cc4a2158",
+    "packages/core/src/store/store-search.ts": "6fca737a0cef6fd612c1a7b89806a2790c87a50dda6c9733bdd1cce3698bd83c",
+    "packages/core/src/store/literal-search.ts": "5a3e39417592ca8c45556398a508ade4a7bb4c14db227a1ba2219f992deeb569",
+    "packages/core/vitest.config.ts": "2b682316528d9fd34c43c609fcd8fd5e53325b1fdb5a0589fca50166b832b73f",
+    "packages/view-dom/src/__tests__/document-presentation.test.ts": "119d53234e91df601e2004fa322ba9812dbc05a9bc4ac49367f3c33c52798426",
+    "packages/view-dom/src/__tests__/document-presentation-hot-focus.test.ts": "43ca97cc931153d43848177dd9fb01d8f8ea1ac1e8af96dbde6ed76e754cc107",
+    "packages/view-dom/src/document-presentation.ts": "e4c18a96f3dfd39671147b1704713a18f535d7e316fffc46c8778f422db1045a"
+  },
+  "remaining": "Wait for parent coordination after native compilation before running the complete workspace with package concurrency 1 and low Vitest worker count; retain original failure logs."
+}

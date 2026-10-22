@@ -14,33 +14,53 @@ test.afterEach(async ({ page }, info) => {
 
 const toolbar = (page: Page) => page.locator('[data-plugin-slot="document-toolbar"]')
 const modal = (page: Page) => page.getByRole('dialog', { name: '格式与表格', exact: true })
+const formattingCard = (page: Page) =>
+  page.locator('.plugin-summary-card[data-plugin-id="milkup.formatting"]')
 async function seed(page: Page, text: string) {
   await page.keyboard.press('Control+1')
   await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.press('Control+a')
   await page.keyboard.insertText(text)
   await page.keyboard.press('Control+a')
 }
-async function open(page: Page) {
-  await toolbar(page).getByRole('button', { name: '格式', exact: true }).click()
+async function openPlugins(page: Page) {
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+}
+async function open(page: Page, entry: 'card' | 'table-toolbar' = 'card') {
+  if (entry === 'card') {
+    await openPlugins(page)
+    await formattingCard(page)
+      .locator('[data-plugin-action="open-ui"][data-plugin-ui-id="formatting-modal"]')
+      .click()
+  } else {
+    await toolbar(page).getByRole('button', { name: '格式', exact: true }).click()
+  }
   await expect(modal(page)).toBeVisible()
   await expect(modal(page).getByRole('button', { name: '一级标题', exact: true })).toBeEnabled()
 }
-test('formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save', async ({
+test('formatting Worker preserves Unicode selection and supports modal toggle, undo and save', async ({
   page,
 }) => {
   await formattingFixture(page)
   await seed(page, '中文😀 text')
-  const bold = toolbar(page).getByRole('button', { name: '粗体', exact: true })
+  await expect(toolbar(page)).toBeHidden()
+  await open(page)
+  const bold = modal(page).getByRole('button', { name: '粗体', exact: true })
   await expect(bold).toBeEnabled()
   await bold.click()
   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('**中文😀 text**')
   await bold.click()
   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('中文😀 text')
+  await page.keyboard.press('Escape')
+  await expect(modal(page)).toBeHidden()
+  await page.locator('[data-menu-close]').click()
   await page.locator('.milkup-input-proxy').focus()
   await page.keyboard.press('Control+z')
   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('**中文😀 text**')
   await page.keyboard.press('Control+s')
   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  await expect(toolbar(page)).toBeHidden()
 })
 test('formatting modal applies headings and links through retained bounded snapshots', async ({
   page,
@@ -68,7 +88,7 @@ test('formatting table UI performs real row, column and alignment edits with one
   await page.keyboard.press('Control+Home')
   await page.keyboard.press('ArrowRight')
   await page.keyboard.press('ArrowRight')
-  await open(page)
+  await open(page, 'table-toolbar')
   await expect(modal(page).getByRole('button', { name: '删除行', exact: true })).toBeDisabled()
   await expect(modal(page).getByRole('button', { name: '删除列', exact: true })).toBeDisabled()
   await modal(page).getByRole('button', { name: '右侧加列', exact: true }).click()
@@ -84,23 +104,72 @@ test('formatting table UI performs real row, column and alignment edits with one
   await page.keyboard.press('Control+s')
   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
 })
+test('formatting toolbar follows table selection and clears when switching documents', async ({
+  page,
+}) => {
+  await formattingFixture(page)
+  const text = '正文中文😀\n\n| A | B |\n| --- | --- |\n| x | y |\n\n尾部正文'
+  await seed(page, text)
+  await page.keyboard.press('Control+Home')
+  await expect(toolbar(page)).toBeHidden()
+  const enterTable = async () => {
+    await page.keyboard.press('Control+Home')
+    for (let line = 0; line < 4; line++) await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Home')
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowRight')
+    await expect(toolbar(page).getByRole('button', { name: '下方加行', exact: true })).toBeEnabled()
+  }
+  await enterTable()
+  await page.keyboard.press('Control+End')
+  await expect(toolbar(page).locator('button')).toHaveCount(0)
+  await expect(toolbar(page)).toBeHidden()
+  await enterTable()
+  await page.keyboard.press('Control+n')
+  await page.getByRole('button', { name: '不保存并新建文档', exact: true }).click()
+  await expect(toolbar(page).locator('button')).toHaveCount(0)
+  await expect(toolbar(page)).toBeHidden()
+  await seed(page, '新文档中文😀')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('新文档中文😀')
+  await expect(toolbar(page)).toBeHidden()
+})
 test('disabling formatting removes its contributions and retains basic editing/history/save', async ({
   page,
 }) => {
   await formattingFixture(page)
-  await page.getByRole('button', { name: '菜单', exact: true }).click()
-  await page.getByRole('button', { name: '插件', exact: true }).click()
-  const card = page.getByRole('button', { name: 'Milkup Formatting 详情', exact: true })
-  if (await card.isVisible()) await card.click()
-  await page.getByRole('button', { name: '禁用', exact: true }).click()
-  await expect(toolbar(page).getByRole('button', { name: '格式', exact: true })).toHaveCount(0)
+  const table = '| A | B |\n| --- | --- |\n| x | y |'
+  await seed(page, table)
+  await page.keyboard.press('Control+Home')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(toolbar(page).getByRole('button', { name: '格式', exact: true })).toBeVisible()
+  await openPlugins(page)
+  const toggle = formattingCard(page).getByRole('switch')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  await expect(formattingCard(page).locator('[data-plugin-action="open-ui"]')).toHaveCount(0)
+  await expect(toolbar(page).locator('button')).toHaveCount(0)
+  await expect(toolbar(page)).toBeHidden()
   await page.locator('[data-menu-close]').click()
   await seed(page, 'without formatting')
   await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('| A | B |')
   await page.keyboard.press('Control+Shift+z')
   await page.keyboard.press('Control+s')
   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('without formatting')
   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  await openPlugins(page)
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  await page.locator('[data-menu-close]').click()
+  await expect(toolbar(page)).toBeHidden()
+  await seed(page, table)
+  await page.keyboard.press('Control+Home')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(toolbar(page).getByRole('button', { name: '下方加行', exact: true })).toBeEnabled()
 })
 test('formatting context menu submits its command before hiding and restores editor focus on Escape', async ({
   page,

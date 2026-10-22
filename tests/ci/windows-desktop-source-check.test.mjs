@@ -134,6 +134,19 @@ test('source script checks, tests and links actual production app without bundle
   assert.match(script, /RUST_TEST_THREADS\s*=\s*'1'/)
 })
 
+test('source tree phase records generated schemas through the shared strict gate', async () => {
+  const script = await read('scripts/ci/check-windows-desktop-source.ps1')
+  const phase = script.split("Invoke-Phase 'tracked-source-unchanged' {")[1]?.split('\n}')[0]
+  assert.ok(phase, 'The source-state phase must remain present')
+  assert.match(
+    phase,
+    /Invoke-Checked node @\('tests\/windows\/verify-build-tree\.mjs', \(Get-Location\)\.Path, \(Join-Path \$EvidenceDirectory 'source-build-tree\.json'\)\)/,
+  )
+  assert.match(phase, /Invoke-Checked git @\('diff', '--cached', '--exit-code'\)/)
+  assert.doesNotMatch(phase, /Invoke-Checked git @\('diff', '--exit-code'\)/)
+  assert.doesNotMatch(phase, /Invoke-Checked git @\('(?:reset|restore|clean)'/)
+})
+
 test('Windows updater dependency regressions cannot pass with an empty filter', async () => {
   const script = await read('scripts/ci/check-windows-desktop-source.ps1')
   const phase = script
@@ -267,16 +280,19 @@ test('version-gates candidate reuses the bounded source job on its isolated bran
   assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
 })
 
-test('beta4 feedback delivery is confined to its exact branch and verified beta3 ancestry', async () => {
+test('beta5 feedback delivery is confined to its exact branch and verified beta4 ancestry', async () => {
   const workflow = await read('.github/workflows/v2-windows-manual-candidate.yml')
   const source = await read('scripts/ci/check-windows-desktop-source.ps1')
   const packaging = await read('scripts/ci/build-windows-manual-candidate.ps1')
   for (const text of [workflow, source, packaging]) {
-    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta4-feedback'))
-    assert.ok(text.includes('f40ff18dba33b42754af160739342faa3b4359a2'))
+    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta5-feedback'))
+    assert.ok(text.includes('0e74d9fad211c304ef68449fa6becb7450dfffef'))
   }
-  assert.ok(workflow.includes('[windows-manual-beta4]'))
-  assert.ok(source.includes('[windows-manual-beta4]'))
+  assert.ok(workflow.includes('[windows-manual-beta5]'))
+  assert.match(
+    source,
+    /'refs\/heads\/dot\/milkup-v2-beta5-feedback' \{\s*\$baseline = '0e74d9fad211c304ef68449fa6becb7450dfffef'\s*\$marker = '\[windows-manual-beta5\]'\s*\}/,
+  )
   assert.match(workflow, /contents: read/)
   assert.match(workflow, /persist-credentials: false/)
   assert.match(workflow, /retention-days: 1/)

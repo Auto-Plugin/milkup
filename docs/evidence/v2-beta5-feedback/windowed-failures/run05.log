@@ -1,0 +1,36 @@
+2026-10-22T10:20:42.445Z NATIVE_STARTUP_WINDOW 2390ms
+PASS 01-frozen-beta5-and-already-enabled-windowed-profile
+PASS 02-flow-supported-renderer-before-disable
+PASS 03-flow-hot-disable
+PASS 04-flow-hot-enable
+PASS 05-sequence-supported-renderer-before-disable
+PASS 06-sequence-hot-disable
+PASS 07-sequence-hot-enable
+PASS 08-code-source-retains-fences-and-all-mounted-mappings
+PASS 09-code-live-hides-fences-with-exact-bounded-copy
+PASS 10-code-unicode-body-selection-survives-source-live
+PASS 11-windowed-edit-saves-entire-file-exactly
+PASS 12-windowed-undo-original
+PASS 13-windowed-redo-edited
+PASS 14-windowed-final-undo-original
+FAIL 15-front-table-bounded-formatting-command
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Native pointer target exists: [data-plugin-ui="milkup.formatting:formatting-toolbar"] [data-plugin-command="formatting.tableAddRow"]
+    at Object.pointer (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-beta5-fixture.mjs:19:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:653:7
+    at async step (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:409:7)
+    at async main (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:643:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:810:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

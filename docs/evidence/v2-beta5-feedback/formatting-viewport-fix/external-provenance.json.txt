@@ -1,0 +1,164 @@
+{
+  "scope": "Independent local Formatting plugin build; no install/network/application launch/Windows runtime claim",
+  "createdUtc": "2026-10-22T10:39:05.038226+00:00",
+  "sourceRepository": "/tmp/milkup-windows-manual-candidate",
+  "sourceCommit": "66ace39eca0df4be8083e34b53f6e2091aefa73a",
+  "sourceDirectory": "/tmp/milkup-windows-manual-candidate/plugins/formatting",
+  "externalDirectory": "/tmp/milkup-beta5-formatting-viewportfix-external",
+  "copiedDependenciesFrom": "/tmp/milkup-beta5-formatting-external/node_modules",
+  "sourceFilesSha256": {
+    "package.json": "2a18e9f2bd762a35020633d465a3b57eec27f9f6c13bc756f7d3299966b861dc",
+    "plugin.json": "dd1c1af6d51d6b52a617e56fba4bc204e87ea4b3d8fad08b28599ef3856cb41c",
+    "tsconfig.json": "3569c83dfcc17d27cfbed9289c8abf44076d0487b051ab15ef81fe22ff0ed125",
+    "vitest.config.ts": "ac04393f55d8fc13727ae90c6e253812904678a35d14e2c460360dbde68fed8f",
+    "pnpm-workspace.yaml": "683b2ab4e361bdd5f736ad10393f3bdbd414ee44f57702d219f561879d1959fa",
+    "README.md": "892a248c05dd7a6829bb6f279a10bc916d1f384a534a007c2c7a88315a975234",
+    "src/controller.test.ts": "29f4c9c82d6216bf27903d70bdd74b625dc95f5666d2a4ed6d14306d6d5c7c1d",
+    "src/controller.ts": "0f1b1ddd7f71d9314edcf5cadeb9385497c12a5f8dc7161edea55e47f82d2846",
+    "src/plugin.ts": "3382f1ad48816bd2f595fcc0aace87e458b7e09f3bb47f7c81b6756a9faf91d0",
+    "src/transforms.test.ts": "e0383f31bd987ad75136f3460ae726831161b41c8aa1a182de17f88f9b1b8e45",
+    "src/transforms.ts": "0d71ed0bf5ddc4ade797a5142871287194b9b339a77a6073711e9b0a93fb1d51",
+    "src/ui.test.ts": "f8035a8edc163b4d678df83136c884d02978cd3b139d3c12580fb373f39d3a3e",
+    "scripts/build.mjs": "36200ef2ba03a846bfd7aa18dbcda03517e186416453a11d14fe975e8f6a1331",
+    "scripts/verify-external.mjs": "572d511779d35c2432a61632c387ed7451b838b0ba51f7c995c8eb52852eaa59"
+  },
+  "packageJsonOnlyOverride": {
+    "devDependencies.@milkup/plugin-sdk": "file:/tmp/milkup-beta4-public-plugins-linux/sdk/milkup-plugin-sdk-0.3.8.tgz"
+  },
+  "externalPackageSha256": "62183dbfd7fdd604d434fef476e840948c60aea85b0083446e39374060b6bc66",
+  "packageLockSha256": "3ec309ce74f8f920b1f19dea97d917b80b7998621274058aad2a2fd2e59ab7ac",
+  "dependencyFileCount": 934,
+  "dependencyTreeSha256": "49582a15cbd3990b87e4d776b3cba05570862d1b8a9dc69e4ef34393a2fc7065",
+  "allCopiedDependencyFileHashesEqual": true,
+  "publicSdk": {
+    "archive": "/tmp/milkup-beta4-public-plugins-linux/sdk/milkup-plugin-sdk-0.3.8.tgz",
+    "sha256": "f8a53640bcb722b021b09afca72ae021beaa92cec72a38df7775cf6606064423",
+    "packageVersion": "0.3.8",
+    "installedFilesMatchArchive": true,
+    "filesSha256": {
+      "src/index.js": "08c69a21ee6cf0de394bef80f52d01a906ceeb9ba09ab09cf46c01f4b3a0d7cb",
+      "package.json": "bc1e34eff8977d36a35af767451ff473fe3d81a4a97c6209de1a139bf9338db6",
+      "README.md": "11f8056e350c305a20b132930ad7d03516a337bda689fd686f17b86b54807293",
+      "src/index.d.ts": "6d3692b271a6db1e8549c37a3d79b0480b3683c03883546e6fa0fdc1b6b7c669"
+    }
+  },
+  "previousArchive": {
+    "path": "/tmp/milkup-beta5-formatting-external/dist/milkup.formatting-1.0.1.milkup-plugin",
+    "size": 47002,
+    "sha256": "26d0684f3df4b2dc29710c52bdca9bb6c5e390035244bea8c51f715a9fe3a7e0"
+  },
+  "copyVerification": "passed",
+  "checks": [
+    {
+      "phase": "types",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.json"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 1.568,
+      "log": "/tmp/milkup-beta5-formatting-viewportfix-external/types.log"
+    },
+    {
+      "phase": "tests",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 2.401,
+      "log": "/tmp/milkup-beta5-formatting-viewportfix-external/tests.log"
+    },
+    {
+      "phase": "build",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "scripts/build.mjs"
+      ],
+      "exitCode": 0,
+      "durationSeconds": 0.096,
+      "log": "/tmp/milkup-beta5-formatting-viewportfix-external/build.log"
+    }
+  ],
+  "testCount": 54,
+  "archive": {
+    "path": "/tmp/milkup-beta5-formatting-viewportfix-external/dist/milkup.formatting-1.0.1.milkup-plugin",
+    "sha256": "4bce37c68e9cce6a93f8f3b416e7fb77bf0459bd45dca95111a6b554003d6b8f",
+    "size": 47309
+  },
+  "onlyPublicSdk": true,
+  "buildInputs": [
+    "node_modules/@milkup/plugin-sdk/src/index.js",
+    "src/transforms.ts",
+    "src/controller.ts",
+    "src/plugin.ts"
+  ],
+  "noRuntimeImports": true,
+  "sourceUnchangedAfterBuild": true,
+  "oldArchivePreserved": true,
+  "bundledReplacement": {
+    "path": "/tmp/milkup-windows-manual-candidate/apps/desktop/src/bundled-plugins/milkup.formatting-1.0.1.milkup-plugin",
+    "previous": {
+      "sha256": "26d0684f3df4b2dc29710c52bdca9bb6c5e390035244bea8c51f715a9fe3a7e0",
+      "size": 47002
+    },
+    "sha256": "4bce37c68e9cce6a93f8f3b416e7fb77bf0459bd45dca95111a6b554003d6b8f",
+    "size": 47309,
+    "ignoredAndUntracked": true
+  },
+  "status": "passed",
+  "ciLayoutReproduction": {
+    "status": "passed",
+    "method": "Local Linux build with copied existing dependencies and the SDK realpath layout observed in the existing beta4 Windows artifact; no Windows execution or network.",
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "scripts/build.mjs"
+    ],
+    "exitCode": 0,
+    "archive": {
+      "path": "/tmp/milkup-beta5-formatting-viewportfix-external/ci-layout-reproduction/dist/milkup.formatting-1.0.1.milkup-plugin",
+      "sha256": "1a69786b8443c4eb534ccc22fa221219d914792e74fdc4e95fe1b2adcc9967d9",
+      "size": 47387
+    },
+    "localNpmArchiveSha256": "4bce37c68e9cce6a93f8f3b416e7fb77bf0459bd45dca95111a6b554003d6b8f",
+    "onlyDifference": "Exact first-line public SDK source-path comment in the bundled plugin.js",
+    "npmSdkComment": "// node_modules/@milkup/plugin-sdk/src/index.js",
+    "pnpmSdkComment": "// node_modules/.pnpm/@milkup+plugin-sdk@file+..+sdk+milkup-plugin-sdk-0.3.8.tgz/node_modules/@milkup/plugin-sdk/src/index.js",
+    "originalPublicSdkSha256": "f8a53640bcb722b021b09afca72ae021beaa92cec72a38df7775cf6606064423"
+  },
+  "downloadVerifierControls": {
+    "status": "passed",
+    "pyCompile": "passed",
+    "scope": "Local verifier controls; beta5 downloaded artifact still pending",
+    "controls": [
+      {
+        "mode": "normal",
+        "exitCode": 0,
+        "log": "/tmp/milkup-beta5-evidence/formatting-viewportfix-verifier-normal.log",
+        "sha256": "8e2c79a83b9844943a710b593dcfe2c33b872af8434c5b10a34345ba0ea811eb"
+      },
+      {
+        "mode": "optimized",
+        "exitCode": 0,
+        "log": "/tmp/milkup-beta5-evidence/formatting-viewportfix-verifier-optimized.log",
+        "sha256": "8e2c79a83b9844943a710b593dcfe2c33b872af8434c5b10a34345ba0ea811eb"
+      }
+    ],
+    "tools": {
+      "verify-download.py": {
+        "sha256": "5f4c0057b5e2ce1d8e6ced99a21f4feebf781e4322c897d5123b43e1fd53e9c9",
+        "bytes": 23575
+      },
+      "extract-embedded.py": {
+        "sha256": "62b34c25c2678370b261c30fa5433f12c41c48a004972c74f22abb3a3ec0b1b2",
+        "bytes": 25969
+      }
+    }
+  }
+}

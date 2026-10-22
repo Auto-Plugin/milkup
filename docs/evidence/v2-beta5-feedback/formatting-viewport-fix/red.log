@@ -1,0 +1,363 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/plugins/formatting
+
+ ❯ src/ui.test.ts (17 tests | 3 failed | 14 skipped) 121ms
+   ↓ controlled formatting UI > contributes every rendered action and uses only the intended permissions and slots
+   ↓ controlled formatting UI > shows table controls with a reason when the selection is outside a table
+   ↓ controlled formatting UI > keeps header and minimum-column operations visibly disabled
+   ↓ controlled formatting UI > uses controlled fields and disables draft editing during a pending operation
+   ↓ controlled formatting UI > keeps error feedback near the final refresh control
+   ↓ controlled formatting UI > keeps toolbar feedback compact and preserves full details in the modal
+   ↓ controlled formatting UI > refreshes the toolbar after closing a modal without changing document selection
+   × contextual table toolbar lifecycle > keeps the current table snapshot across alternating layout-only viewports 65ms
+     → expected '' to deeply equal { type: 'element', tag: 'span', …(2) }
+   × contextual table toolbar lifecycle > does not restart a pending table capture when only the viewport changes 1ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × contextual table toolbar lifecycle > invalidates a table snapshot when its save location changes and rejects late reads 53ms
+     → expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+   ↓ contextual table toolbar lifecycle > renders no toolbar outside a table or before a capture completes
+   ↓ contextual table toolbar lifecycle > hides immediately on selection change and replaces an obsolete pending read
+   ↓ contextual table toolbar lifecycle > rejects a toolbar click from the previous document even before the next renderer update
+   ↓ contextual table toolbar lifecycle > clears immediately on disable and ignores a late capture
+   ↓ contextual table toolbar lifecycle > ignores old-document reads, disposal and clicks after switching documents
+   ↓ contextual table toolbar lifecycle > does not accept a capture for a different document than the rendered context
+   ↓ contextual table toolbar lifecycle > hides a loaded toolbar on disable and preserves a new activation from old disposal
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > keeps the current table snapshot across alternating layout-only viewports
+AssertionError: expected '' to deeply equal { type: 'element', tag: 'span', …(2) }
+
+- Expected: 
+{
+  "attributes": {
+    "class": "plugin-actions",
+  },
+  "children": [
+    {
+      "action": {
+        "command": "formatting.open",
+      },
+      "attributes": {
+        "aria-label": "格式",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "格式",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.bold",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "粗体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "粗体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.italic",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "斜体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "斜体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableAddRow",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "下方加行",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "下方加行",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableDeleteRow",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "删除行",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "删除行",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableAddColumn",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "右侧加列",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "右侧加列",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableDeleteColumn",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "删除列",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "删除列",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableExit",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "退出表格",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "退出表格",
+      "type": "element",
+    },
+  ],
+  "tag": "span",
+  "type": "element",
+}
+
++ Received: 
+""
+
+ ❯ src/ui.test.ts:182:78
+    180|       // viewport again. Neither layout changes the document or its se…
+    181|       for (const toLine of [33, 35, 33, 35, 33, 35]) {
+    182|         expect(toolbar({ ...node, viewport: { ...node.viewport, toLine…
+       |                                                                              ^
+    183|         await Promise.resolve()
+    184|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > does not restart a pending table capture when only the viewport changes
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ src/ui.test.ts:206:31
+    204|       const resized = { ...node, viewport: { ...node.viewport, toLine:…
+    205|       expect(toolbar(resized)).toBe('')
+    206|       expect(editing.capture).toHaveBeenCalledTimes(1)
+       |                               ^
+    207|       expect(signal.aborted).toBe(false)
+    208|       complete(tableSnapshot())
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > invalidates a table snapshot when its save location changes and rejects late reads
+AssertionError: expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+
+- Expected: 
+""
+
++ Received: 
+{
+  "attributes": {
+    "class": "plugin-actions",
+  },
+  "children": [
+    {
+      "action": {
+        "command": "formatting.open",
+      },
+      "attributes": {
+        "aria-label": "格式",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "格式",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.bold",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "粗体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "粗体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.italic",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "斜体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "斜体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableAddRow",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "下方加行",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "下方加行",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableDeleteRow",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "删除行",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "删除行",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableAddColumn",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "右侧加列",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "右侧加列",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableDeleteColumn",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "删除列",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "删除列",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableExit",
+        "input": {
+          "draft": true,
+          "snapshotId": "table",
+        },
+      },
+      "attributes": {
+        "aria-label": "退出表格",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "退出表格",
+      "type": "element",
+    },
+  ],
+  "tag": "span",
+  "type": "element",
+}
+
+ ❯ src/ui.test.ts:232:66
+    230|           }),
+    231|       )
+    232|       expect(toolbar({ ...initial, saveLocationGeneration: 1 })).toBe(…
+       |                                                                  ^
+    233|       editing.capture.mockResolvedValue({ ...tableSnapshot('relocated'…
+    234|       const relocated = { ...initial, saveLocationGeneration: 2 }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 14 skipped (17)
+   Start at  10:34:18
+   Duration  665ms (transform 152ms, setup 0ms, collect 182ms, tests 121ms, environment 0ms, prepare 111ms)
+

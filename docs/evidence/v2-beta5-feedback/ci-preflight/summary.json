@@ -1,0 +1,81 @@
+{
+  "sourceHead": "fa13f1667350c60ae38b04450b205c806950f5b9",
+  "scope": "Local static Windows packaging preflight only; no build, installer or Windows CI execution.",
+  "nodeVersion": "24.19.0",
+  "contract": {
+    "namedPassed": 12,
+    "failed": 0,
+    "logs": ["source-contract-explicit-12.log", "source-contract-default-reviewed.log"]
+  },
+  "packagingGates": {
+    "namedPassed": 10,
+    "failed": 0,
+    "log": "packaging-gates-10.log"
+  },
+  "reportingDifference": {
+    "sandboxDefault": "Reports one file only. The intentional negative control did execute its module and callback and returned exit 1.",
+    "sameDefaultCommandOutsideSandbox": "Reports all twelve named contract tests, exit 0; approved by automatic reviewer.",
+    "noIsolationInSandbox": "Reports all twelve named tests, exit 0; negative control returns exit 1 with its named assertion.",
+    "conclusion": "Executor sandbox reporting difference; precise internal cause is unproven. No evidence of skipped test callbacks or swallowed failures. Windows command remains unchanged."
+  },
+  "negativeControl": {
+    "expectedFailure": true,
+    "defaultExitCode": 1,
+    "noIsolationExitCode": 1,
+    "moduleAndCallbackSentinelsPresent": true,
+    "temporaryExecutableFixtureIncluded": false
+  },
+  "downloadToolChecks": "Both helpers passed py_compile/help/static checks; no beta.5 artifact pass claimed.",
+  "files": [
+    {
+      "name": "source-contract-default.log",
+      "bytes": 181,
+      "sha256": "813431e4952dbe6d0ee13829d8b016978275ec6a2a787184a11056f77cf24da1"
+    },
+    {
+      "name": "source-contract-explicit-12.log",
+      "bytes": 1239,
+      "sha256": "1220ca2add0c26f0ba8b936dba38ca4eebec4c0db5dc64afcbf1b4f3b5470c3b"
+    },
+    {
+      "name": "source-contract-default-reviewed.log",
+      "bytes": 1239,
+      "sha256": "6d9595166a3149cbb4cf862b551ff9005f689bba2a8f553c7a9f392024fc5cd0"
+    },
+    {
+      "name": "negative-control-default.log",
+      "bytes": 369,
+      "sha256": "6edfbf64e0c5e8ec8e351cba959ea72e603a24110e2708f96c3b89b7341d85a5"
+    },
+    {
+      "name": "negative-control-no-isolation.log",
+      "bytes": 934,
+      "sha256": "8af77e3939463b2ef3ed1aaeaf1937e40bbad03851efc100e6dca6f0a8431261"
+    },
+    {
+      "name": "negative-control-default-module.json.txt",
+      "bytes": 1309,
+      "sha256": "22b0d55f4d5dc129ad671e84d4b75357e9869e3c407a27f7c64ccc2c0cc74da4"
+    },
+    {
+      "name": "negative-control-default-callback.txt",
+      "bytes": 28,
+      "sha256": "4173c0ebd16b95cc0b4747856535289d038e75bb0c727d94131cc2363b299154"
+    },
+    {
+      "name": "negative-control-no-isolation-module.json.txt",
+      "bytes": 233,
+      "sha256": "1ff26f706613b7f8db50e567970f0223981bbd891188b75665f88358abd1b405"
+    },
+    {
+      "name": "negative-control-no-isolation-callback.txt",
+      "bytes": 28,
+      "sha256": "4173c0ebd16b95cc0b4747856535289d038e75bb0c727d94131cc2363b299154"
+    },
+    {
+      "name": "packaging-gates-10.log",
+      "bytes": 4390,
+      "sha256": "045e1ca954af341a72d5eb663df9775c3db3dbf2efbe0674f2b6da38c2cabe8a"
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (71 tests | 1 failed | 70 skipped) 27ms
+   × uses the host foreground for untoned vector text and preserves explicit tones 26ms
+     → expected [ null, …(2) ] to deeply equal [ 'currentColor', …(2) ]
+   ↓ keeps the reader's inner diagram position through provider refresh (false)
+   ↓ does not carry a prior diagram position across identity replacement (false)
+   ↓ does not carry a prior diagram position across version replacement (false)
+   ↓ does not carry a prior diagram position across config replacement (false)
+   ↓ does not carry a prior diagram position across semantic-content replacement (false)
+   ↓ resets a prior diagram reading position after mode changes (false)
+   ↓ resets a prior diagram reading position after selection changes (false)
+   ↓ keeps preview keyboard focus when the view refreshes its source DOM (false)
+   ↓ anchors an asynchronously growing preview above the visible selection (false)
+   ↓ refreshes selection-dependent third-party output without repaint loops (false)
+   ↓ cancels the old selection job and discards its late output (false)
+   ↓ uses real MathML, retains mapped source and reveals on selection (false)
+   ↓ keeps source literal and disable restores source without a transaction (false)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (false)
+   ↓ mounts a multiline block once and restores every original line (false)
+   ↓ renders the native CRLF matrix range without consuming its line ending (false)
+   ↓ uses accessible references without editing or swallowing keyboard activation (false)
+   ↓ preserves an ordinary task control alongside inline presentation (false)
+   ↓ rejects protected and malformed output while preserving editable source (false)
+   ↓ bounds requests before invoking a provider on a huge line (false)
+   ↓ discards old-document results while a fresh document remains editable (false)
+   ↓ discards an asynchronous result after disable (false)
+   ↓ keeps the reader's inner diagram position through source-window refresh (true)
+   ↓ keeps the reader's inner diagram position through provider refresh (true)
+   ↓ does not carry a prior diagram position across identity replacement (true)
+   ↓ does not carry a prior diagram position across version replacement (true)
+   ↓ does not carry a prior diagram position across config replacement (true)
+   ↓ does not carry a prior diagram position across semantic-content replacement (true)
+   ↓ does not carry a diagram position across a version change on the same source object
+   ↓ keeps a reader diagram mounted across repeated same-position editor scroll events
+   ↓ retries an anchor-owned failed navigation read on the next same-position scroll
+   ↓ loads a genuinely moved editor viewport after duplicate scroll notifications
+   ↓ resets a prior diagram reading position after mode changes (true)
+   ↓ resets a prior diagram reading position after selection changes (true)
+   ↓ keeps preview keyboard focus when the view refreshes its source DOM (true)
+   ↓ anchors an asynchronously growing preview above the visible selection (true)
+   ↓ refreshes selection-dependent third-party output without repaint loops (true)
+   ↓ cancels the old selection job and discards its late output (true)
+   ↓ uses real MathML, retains mapped source and reveals on selection (true)
+   ↓ keeps source literal and disable restores source without a transaction (true)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (true)
+   ↓ mounts a multiline block once and restores every original line (true)
+   ↓ renders the native CRLF matrix range without consuming its line ending (true)
+   ↓ uses accessible references without editing or swallowing keyboard activation (true)
+   ↓ preserves an ordinary task control alongside inline presentation (true)
+   ↓ rejects protected and malformed output while preserving editable source (true)
+   ↓ bounds requests before invoking a provider on a huge line (true)
+   ↓ discards old-document results while a fresh document remains editable (true)
+   ↓ discards an asynchronous result after disable (true)
+   ↓ constructs inert SVG and maps only validated MathML attribute names
+   ↓ checks the host navigation lease after asynchronous viewport loading
+   ↓ checks the host navigation assertion before changing selection
+   ↓ measures collapsed block continuation lines as zero and restores their heights
+   ↓ allows bounded host snapshot preparation beyond the renderer worker deadline
+   ↓ cancels a slow host preparation without waiting for its deadline
+   ↓ rejects a completed job if selection changed before the next synchronization
+   ↓ preserves the correct viewport anchor during preview growth (visible)
+   ↓ preserves the correct viewport anchor during preview growth (scrolled-away)
+   ↓ preserves the correct viewport anchor during preview growth (source)
+   ↓ preserves block focus across a viewport job without stealing a later external focus
+   ↓ preserves reference focus across a viewport job without stealing a later external focus
+   ↓ retains validated block during background refresh and clears failed or revoked results
+   ↓ retains validated reference during background refresh and clears failed or revoked results
+   ↓ preserves the pre-replacement selected-line anchor when a window reinstalls source DOM
+   ↓ preserves the pre-replacement reader-position anchor when a window reinstalls source DOM
+   ↓ preserves the pre-replacement new-document anchor when a window reinstalls source DOM
+   ↓ preserves the pre-replacement new-version anchor when a window reinstalls source DOM
+   ↓ preserves the pre-replacement source-mode anchor when a window reinstalls source DOM
+   ↓ preserves the pre-replacement missing-line anchor when a window reinstalls source DOM
+   ↓ publishes the source window range before measuring replacement preview lines
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > uses the host foreground for untoned vector text and preserves explicit tones
+AssertionError: expected [ null, …(2) ] to deeply equal [ 'currentColor', …(2) ]
+
+- Expected
++ Received
+
+  [
+-   "currentColor",
++   null,
+    "var(--milkup-presentation-muted, currentColor)",
+    "var(--milkup-presentation-accent, currentColor)",
+  ]
+
+ ❯ src/__tests__/document-presentation.test.ts:28:61
+     26|   }) as SVGElement
+     27|   const labels = [...svg.querySelectorAll('text')]
+     28|   expect(labels.map((label) => label.getAttribute('fill'))).toEqual([
+       |                                                             ^
+     29|     'currentColor',
+     30|     'var(--milkup-presentation-muted, currentColor)',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 70 skipped (71)
+   Start at  09:37:21
+   Duration  1.54s (transform 619ms, setup 0ms, collect 791ms, tests 27ms, environment 446ms, prepare 69ms)
+

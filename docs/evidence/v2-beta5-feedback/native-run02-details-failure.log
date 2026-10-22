@@ -1,0 +1,16 @@
+2026-10-22T08:55:35.100Z NATIVE_STARTUP_WINDOW 1874ms
+PASS 001-frozen-beta5-open-document
+PASS 002-prepare-independent-milkup.diagrams
+FAIL 003-bundled-formatting-1-0-1-is-discoverable
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Timeout: visible enabled control #plugin-detail-title
+    at Object.until (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-production.mjs:46:11)
+    at async Object.details (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-updates-fixture.mjs:209:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:539:5
+    at async step (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:212:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-lifecycle.mjs:538:3
+
+Node.js v24.19.0

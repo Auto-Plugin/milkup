@@ -1,0 +1,24 @@
+2026-10-22T10:17:37.020Z NATIVE_STARTUP_WINDOW 1901ms
+FAIL 01-frozen-beta5-and-already-enabled-windowed-profile
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Unobscured native pointer target: [data-menu-toggle]
+    at Object.pointer [as click] (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-beta5-fixture.mjs:67:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async click (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-updates-fixture.mjs:147:5)
+    at async Object.menu (file:///tmp/milkup-windows-manual-candidate/tests/helpers/native-updates-fixture.mjs:199:7)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:521:7
+    at async step (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:403:7)
+    at async main (file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:514:5)
+    at async file:///tmp/milkup-windows-manual-candidate/tests/native/tauri-beta5-windowed.mjs:778:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

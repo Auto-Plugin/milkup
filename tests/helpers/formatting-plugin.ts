@@ -1,10 +1,9 @@
-import { sealWorkerFixture } from './sealed-plugin-fixture'
 import { expect, test, type ConsoleMessage, type Page, type Worker } from '@playwright/test'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { build } from 'esbuild'
 
-// A genuine isolated Worker entry bundled solely through the public SDK.
+// Use the standalone package unchanged; the real host validates and activates its Worker.
 export async function formattingFixture(page: Page) {
   const started = performance.now()
   const phases: { phase: string; elapsedMs: number }[] = []
@@ -26,24 +25,47 @@ export async function formattingFixture(page: Page) {
   page.on('worker', onWorker)
   phase('fixture-started')
   try {
-    const manifest = JSON.parse(await readFile('plugins/formatting/plugin.json', 'utf8'))
-    phase('manifest-read')
-    const bundle = await build({
-      entryPoints: ['plugins/formatting/src/plugin.ts'],
-      bundle: true,
-      write: false,
-      format: 'esm',
-      platform: 'browser',
-      alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
-    })
-    phase('bundle-built')
-    await sealWorkerFixture(
-      page,
-      manifest,
-      '/plugins/formatting/plugin.json',
-      bundle.outputFiles[0]!.text,
+    const expected = JSON.parse(await readFile('plugins/formatting/plugin.json', 'utf8'))
+    const archivePath = resolve(
+      process.env.MILKUP_FORMATTING_PLUGIN_ARCHIVE ??
+        `plugins/formatting/dist/${expected.id}-${expected.version}.milkup-plugin`,
     )
-    phase('archive-route-sealed')
+    const archiveText = await readFile(archivePath, 'utf8').catch((cause) => {
+      throw new Error(
+        'Build the standalone Formatting package first, or set MILKUP_FORMATTING_PLUGIN_ARCHIVE to its .milkup-plugin archive.',
+        { cause },
+      )
+    })
+    const archive = JSON.parse(archiveText)
+    const manifest = archive.manifest
+    expect(archive.format).toBe('milkup-plugin')
+    expect(archive.version).toBe(1)
+    expect(manifest.id).toBe(expected.id)
+    expect(manifest.version).toBe(expected.version)
+    expect(manifest.host).toBe('worker')
+    await test.info().attach('formatting-package', {
+      body: JSON.stringify(
+        {
+          archivePath,
+          id: manifest.id,
+          version: manifest.version,
+          sha256: createHash('sha256').update(archiveText).digest('hex'),
+        },
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    })
+    phase('archive-read')
+    await page.route(/\/src\/bundled-plugin-catalog\.ts(?:\?|$)/, async (route) => {
+      await route.fulfill({
+        contentType: 'text/javascript',
+        body: `const catalog = new Map(${JSON.stringify([['/plugins/formatting/plugin.json', archiveText]])});
+export function bundledPluginPaths() { return [...catalog.keys()]; }
+export function readBundledPlugin(path) { return catalog.get(path); }`,
+      })
+    })
+    phase('archive-route-registered')
     await page.addInitScript((manifest) => {
       localStorage.setItem(
         'milkup.desktop.plugins.registry.v1',
@@ -85,14 +107,17 @@ export async function formattingFixture(page: Page) {
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
     await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
     phase('card-enable-completed')
+    await expect(
+      page.locator(
+        '.plugin-summary-card[data-plugin-id="milkup.formatting"] [data-plugin-action="open-ui"][data-plugin-ui-id="formatting-modal"]',
+      ),
+    ).toBeVisible()
     await page.locator('[data-menu-close]').click()
     phase('menu-close-clicked')
-    await expect(
-      page
-        .locator('[data-plugin-slot="document-toolbar"]')
-        .getByRole('button', { name: '格式', exact: true }),
-    ).toBeVisible()
-    phase('toolbar-visible')
+    const toolbar = page.locator('[data-plugin-slot="document-toolbar"]')
+    await expect(toolbar.locator('button')).toHaveCount(0)
+    await expect(toolbar).toBeHidden()
+    phase('empty-document-toolbar-hidden')
   } catch (error) {
     phase('fixture-failed')
     // Failure-only observation: never change activation, retry, or the original assertion.

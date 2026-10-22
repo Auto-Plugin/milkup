@@ -1,0 +1,41 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/desktop-plugin-manager-render.test.ts (11 tests | 1 failed) 18ms
+   ✓ plugin cards and information details > allows a disabled unapproved plugin to use the only lifecycle switch 2ms
+   ✓ plugin cards and information details > blocks unavailable disabled plugins but lets an enabled plugin turn off 1ms
+   ✓ plugin cards and information details > puts only this plugin live control panels and commands on its card, once 1ms
+   ✓ plugin cards and information details > does not expose inactive contributions or reload on a disabled card 0ms
+   ✓ plugin cards and information details > keeps enabled=false details free of lifecycle and approval UI 1ms
+   ✓ plugin cards and information details > keeps enabled=true details free of lifecycle and approval UI 0ms
+   ✓ plugin cards and information details > explains pending upgrades without a second approval or enable flow 1ms
+   ✓ shows a trusted bundled Worker upgrade without blocking on the installed DOM host 1ms
+   × shows the next enabled version on the card with 'a bundled upgrade superseding an olde…' 9ms
+     → expected '1.0.0 · 下次开启时应用' to be '随应用新版 1.0.1 · Worker · 下次开启时应用' // Object.is equality
+   ✓ shows the next enabled version on the card with 'only a pending version' 0ms
+   ✓ shows the next enabled version on the card with 'only a bundled upgrade' 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-render.test.ts > shows the next enabled version on the card with 'a bundled upgrade superseding an olde…'
+AssertionError: expected '1.0.0 · 下次开启时应用' to be '随应用新版 1.0.1 · Worker · 下次开启时应用' // Object.is equality
+
+Expected: "随应用新版 1.0.1 · Worker · 下次开启时应用"
+Received: "1.0.0 · 下次开启时应用"
+
+ ❯ apps/desktop/src/desktop-plugin-manager-render.test.ts:226:79
+    224|   }
+    225|   const card = renderDesktopPluginManager(upgradeState)
+    226|   expect(card.match(/<span class="plugin-card-update">([^<]+)<\/span>/…
+       |                                                                               ^
+    227|   if (pending && bundled) {
+    228|     const details = renderDesktopPluginManager(upgradeState, {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 passed (11)
+   Start at  09:55:31
+   Duration  2.83s (transform 1.70s, setup 0ms, collect 2.34s, tests 18ms, environment 0ms, prepare 160ms)
+
