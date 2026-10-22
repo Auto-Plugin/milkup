@@ -54,7 +54,15 @@ async function setup(
     }
   }
   const current = () => (view instanceof EditorView ? view.state : state)
-  return { view, edits, flush, current }
+  const history = async (direction: 'undo' | 'redo') => {
+    if (view instanceof EditorView) view.updateState(view.state[direction]())
+    else {
+      state = state[direction]()
+      view.updateSource(source())
+      await flush()
+    }
+  }
+  return { view, edits, flush, current, history }
 }
 
 for (const kind of ['ordinary', 'windowed'] as const) {
@@ -156,4 +164,106 @@ for (const kind of ['ordinary', 'windowed'] as const) {
     expect(rows[5]?.childElementCount).toBe(0)
     expect(s.view.contentDOM.querySelector('script')).toBeNull()
   })
+}
+
+for (const kind of ['ordinary', 'windowed'] as const) {
+  for (const [initial, selected, beforeCount, afterCount] of [
+    ['', 'javascript', 0, 1],
+    ['javascript', '', 1, 0],
+    ['unknown', 'javascript', 0, 1],
+  ] as const) {
+    it(`${kind} updates body highlighting for ${initial || 'plain'} to ${selected || 'plain'} and history`, async () => {
+      const body = 'const 名 = "😀 <img src=x>"; // 原文保持'
+      const text = '```' + initial + '\r\n' + body + '\r\n```\r\n\r\n**tail**\r\n'
+      const s = await setup(kind, text, Selection.cursor(0))
+      const keywordCount = () =>
+        s.view.contentDOM.querySelectorAll('.milkup-code-token-keyword').length
+      expect(keywordCount()).toBe(beforeCount)
+      const tail = s.view.contentDOM.querySelector('.milkup-line[data-line="5"]')!
+      const afterFence = s.view.contentDOM.querySelector('.milkup-line[data-line="4"]')!
+      expect(afterFence.querySelector('.milkup-code-source')).toBeNull()
+      const picker = s.view.contentDOM.querySelector<HTMLSelectElement>('.milkup-code-language')!
+      picker.value = selected
+      picker.dispatchEvent(new Event('change', { bubbles: true }))
+      await s.flush()
+      expect(keywordCount()).toBe(afterCount)
+      expect(s.current().doc.text).toBe(text.replace('```' + initial, '```' + selected))
+      expect(
+        s.view.contentDOM.querySelector('.milkup-line[data-line="2"] .milkup-code-source')
+          ?.textContent,
+      ).toBe(body)
+      const currentTail = s.view.contentDOM.querySelector<HTMLElement>(
+        '.milkup-line[data-line="5"]',
+      )!
+      if (kind === 'ordinary') {
+        expect(currentTail).toBe(tail)
+        expect(s.view.contentDOM.querySelector('.milkup-line[data-line="4"]')).toBe(afterFence)
+      }
+      expect(Number(currentTail.dataset.from)).toBe(s.current().doc.line(5).from)
+      const strong = currentTail.querySelector<HTMLElement>('.milkup-inline-strong')!
+      expect(Number(strong.dataset.from)).toBe(s.current().doc.text.indexOf('**tail**'))
+      await s.history('undo')
+      expect(keywordCount()).toBe(beforeCount)
+      expect(s.current().doc.text).toBe(text)
+      await s.history('redo')
+      expect(keywordCount()).toBe(afterCount)
+      expect(s.view.contentDOM.querySelector('img')).toBeNull()
+    })
+  }
+}
+
+for (const kind of ['ordinary', 'windowed'] as const) {
+  it(`${kind} retains later code nodes and remaps their picker after an earlier language edit`, async () => {
+    const text = '```\nconst first = 1;\n```\n\n```js\nconst second = 2;\n```'
+    const s = await setup(kind, text, Selection.cursor(0))
+    const later = s.view.contentDOM.querySelector('.milkup-line[data-line="6"]')!
+    let pickers = s.view.contentDOM.querySelectorAll<HTMLSelectElement>('.milkup-code-language')
+    pickers[0]!.value = 'javascript'
+    pickers[0]!.dispatchEvent(new Event('change', { bubbles: true }))
+    await s.flush()
+    if (kind === 'ordinary')
+      expect(s.view.contentDOM.querySelector('.milkup-line[data-line="6"]')).toBe(later)
+    pickers = s.view.contentDOM.querySelectorAll<HTMLSelectElement>('.milkup-code-language')
+    expect(Number(pickers[1]!.dataset.codeFrom)).toBe(s.current().doc.line(5).from)
+    pickers[1]!.value = 'python'
+    pickers[1]!.dispatchEvent(new Event('change', { bubbles: true }))
+    await s.flush()
+    expect(s.current().doc.text).toBe(
+      text.replace('```\n', '```javascript\n').replace('```js\n', '```python\n'),
+    )
+    expect(
+      s.view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="6"]')?.dataset
+        .codeLanguage,
+    ).toBe('python')
+    expect(
+      s.view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="2"]')?.dataset
+        .codeLanguage,
+    ).toBe('javascript')
+  })
+}
+
+for (const kind of ['ordinary', 'windowed'] as const) {
+  for (const [text, codeLines] of [
+    ['```js\nconst x = 1;\n```', [1, 2, 3]],
+    ['```js\n```', [1, 2]],
+    ['```js\n\n```\n\nparagraph', [1, 2, 3]],
+    ['```js\nconst x = 1;\n```\nparagraph', [1, 2, 3]],
+  ] as const) {
+    it(`${kind} respects exclusive code extent for ${JSON.stringify(text)}`, async () => {
+      const s = await setup(kind, text, Selection.cursor(0))
+      const renderedCodeLines = () =>
+        Array.from(s.view.contentDOM.querySelectorAll<HTMLElement>('.milkup-code-source'), (node) =>
+          Number(node.closest<HTMLElement>('.milkup-line')!.dataset.line),
+        )
+      expect(renderedCodeLines()).toEqual(codeLines)
+      const picker = s.view.contentDOM.querySelector<HTMLSelectElement>('.milkup-code-language')!
+      picker.value = ''
+      picker.dispatchEvent(new Event('change', { bubbles: true }))
+      await s.flush()
+      expect(renderedCodeLines()).toEqual(codeLines)
+      expect(s.current().doc.text).toBe(text.replace('```js', '```'))
+      await s.history('undo')
+      expect(renderedCodeLines()).toEqual(codeLines)
+    })
+  }
 }

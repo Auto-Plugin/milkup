@@ -1,0 +1,611 @@
+
+Running 84 tests using 2 workers
+
+(node:67946) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67947) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/desktop-plugin-cards.spec.ts:44:1 › plugin cards expose explicit details; keyboard detail and back restore focus (3.4s)
+  ✓   3 tests/e2e/desktop-plugin-cards.spec.ts:69:1 › plugin permission approval, enable, disable and uninstall remain inside details (4.9s)
+  ✓   2 tests/e2e/desktop-preferences.spec.ts:39:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset (10.8s)
+  ✓   4 tests/e2e/desktop-plugin-cards.spec.ts:90:1 › plugin detail controls and long metadata fit a narrow viewport (4.1s)
+  ✓   6 tests/e2e/desktop-plugin-cards.spec.ts:102:1 › new installation opens approval details; late and broken logos preserve fallback and focus (1.6s)
+  ✓   7 tests/e2e/desktop-plugin-cards.spec.ts:179:1 › background package restoration opens on the list and changed icons do not retain stale images (1.3s)
+  ✓   5 tests/e2e/desktop-preferences.spec.ts:82:1 › failed persistent writes retain the draft and allow cancel or retry without a false saved status (4.1s)
+  ✓   8 tests/e2e/desktop-plugin-cards.spec.ts:243:1 › beta3 card switch toggles in place without opening details (2.8s)
+  ✓  10 tests/e2e/desktop-plugin-cards.spec.ts:258:1 › beta3 switch rejects repeated activation while pending and reports failure in place (2.2s)
+  ✓  11 tests/e2e/desktop-shell.spec.ts:40:1 › desktop shell loads editor and tracks dirty session state (3.9s)
+  ✘   9 tests/e2e/desktop-preferences.spec.ts:119:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only (31.3s)
+(node:69827) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 tests/e2e/desktop-shell.spec.ts:152:1 › plugin manager restores, executes, disables, and reenables a Worker plugin (30.4s)
+(node:70154) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 tests/e2e/desktop-preferences.spec.ts:164:5 › ordinary source preview and commit preserve Unicode CRLF bytes, selection and document history (13.0s)
+  ✓  14 tests/e2e/desktop-shell.spec.ts:209:1 › desktop shell rejects image paste without approved plugin authority (7.0s)
+  ✓  16 tests/e2e/desktop-shell.spec.ts:222:1 › desktop search highlights matches and moves the active result (16.2s)
+  ✓  15 tests/e2e/desktop-preferences.spec.ts:164:5 › ordinary live preview and commit preserve Unicode CRLF bytes, selection and document history (22.0s)
+  ✓  17 tests/e2e/desktop-shell.spec.ts:245:1 › closing search cancels the active scan and clears highlights (13.8s)
+  ✓  18 tests/e2e/desktop-preferences.spec.ts:164:5 › windowed source preview and commit preserve Unicode CRLF bytes, selection and document history (18.4s)
+  ✓  19 tests/e2e/desktop-shell.spec.ts:271:1 › desktop shell routes primary shortcuts through active document actions (14.1s)
+  ✓  20 tests/e2e/desktop-preferences.spec.ts:164:5 › windowed live preview and commit preserve Unicode CRLF bytes, selection and document history (11.0s)
+  ✓  21 tests/e2e/desktop-shell.spec.ts:350:1 › desktop shell confirms before closing a dirty window (15.9s)
+  ✓  22 tests/e2e/desktop-preferences.spec.ts:253:1 › base host remains editable and saves with persistent storage access denied (12.3s)
+  ✓  23 tests/e2e/desktop-shell.spec.ts:414:3 › existing-file success keeps subsequent input and history dirty until their own save (6.5s)
+  ✓  25 tests/e2e/desktop-shell.spec.ts:414:3 › existing-file cancel keeps subsequent input and history dirty until their own save (3.5s)
+  ✘  24 tests/e2e/desktop-preferences.spec.ts:303:3 › ordinary live centered body focuses and selects from both editor gutters (12.6s)
+  ✓  26 tests/e2e/desktop-shell.spec.ts:414:3 › existing-file error keeps subsequent input and history dirty until their own save (3.6s)
+(node:71834) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  27 tests/e2e/desktop-shell.spec.ts:451:3 › dirty Control+n supports cancel, focus containment and explicit discard (3.9s)
+  ✓  29 tests/e2e/desktop-shell.spec.ts:451:3 › dirty Control+o supports cancel, focus containment and explicit discard (3.0s)
+  ✓  30 tests/e2e/desktop-shell.spec.ts:451:3 › dirty Control+w supports cancel, focus containment and explicit discard (2.8s)
+  ✘  28 tests/e2e/desktop-preferences.spec.ts:303:3 › windowed live centered body focuses and selects from both editor gutters (9.4s)
+(node:72141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  31 tests/e2e/desktop-shell.spec.ts:484:1 › save before new retains the draft after cancellation or failure and supports retry (3.7s)
+  ✓  32 tests/e2e/desktop-preferences.spec.ts:368:1 › responsive breakpoint preserves preferences select and input focus without editing the document (3.0s)
+  ✓  34 tests/e2e/desktop-preferences.spec.ts:436:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable (3.4s)
+  ✓  33 tests/e2e/desktop-shell.spec.ts:508:1 › cancelling a pending save continuation never navigates after the write completes (4.8s)
+  ✓  36 tests/e2e/desktop-shell.spec.ts:536:3 › opening cancel after discard preserves original content and history (5.2s)
+  ✓  37 tests/e2e/desktop-shell.spec.ts:536:3 › opening error after discard preserves original content and history (4.2s)
+  ✓  38 tests/e2e/desktop-shell.spec.ts:561:1 › ordinary save failures are visible without developer diagnostics and recover on retry (3.3s)
+  ✓  39 tests/e2e/desktop-shell.spec.ts:578:1 › browser reload cancellation keeps the unsaved editor alive (9.4s)
+  ✓  40 tests/e2e/desktop-shell.spec.ts:593:3 › synthetic composition cancellation preserves selected text and history in source (4.6s)
+  ✘  35 tests/e2e/desktop-shortcuts.spec.ts:96:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts (30.5s)
+(node:72949) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  41 tests/e2e/desktop-shell.spec.ts:593:3 › synthetic composition cancellation preserves selected text and history in live (7.5s)
+  ✓  43 tests/e2e/desktop-shell.spec.ts:648:1 › multiline code paste and following typing undo independently across mode changes (3.9s)
+  ✓  44 tests/e2e/desktop-shell.spec.ts:676:1 › typing after cursor movement restores only the local edit on undo (4.0s)
+  ✓  45 tests/e2e/desktop-shell.spec.ts:688:1 › cancelled and failed Save As preserve the path and dirty content (3.2s)
+  ✓  46 tests/e2e/desktop-shell.spec.ts:704:1 › windowed memory documents keep finalized composition separate from adjacent typing (3.9s)
+  ✓  47 tests/e2e/desktop-shell.spec.ts:785:1 › rejected synthetic image paste cannot inject references into a newly created document (2.5s)
+  ✓  48 tests/e2e/desktop-shell.spec.ts:803:3 › pending save reconciles modified events before allowing navigation (3.9s)
+  ✓  49 tests/e2e/desktop-shell.spec.ts:803:3 › pending save reconciles deleted events before allowing navigation (3.6s)
+  ✘  42 tests/e2e/desktop-shortcuts.spec.ts:119:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save (30.2s)
+(node:73679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  50 tests/e2e/desktop-shell.spec.ts:803:3 › pending save reconciles own-save events before allowing navigation (3.3s)
+  ✓  52 tests/e2e/desktop-shell.spec.ts:846:1 › saving after rejected synthetic image paste preserves the exact saved snapshot (4.1s)
+  ✘  51 tests/e2e/desktop-shortcuts.spec.ts:152:1 › persistence failure keeps old shortcut, shows bounded error and retains draft (30.5s)
+(node:75377) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  53 tests/e2e/desktop-shell.spec.ts:866:1 › browser image chooser failure and retry preserve the document and editable history (30.7s)
+(node:75783) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  55 tests/e2e/desktop-shell.spec.ts:906:3 › Unicode graphemes survive keyboard selection, deletion and undo in source (14.8s)
+  ✘  54 tests/e2e/desktop-shortcuts.spec.ts:169:3 › disabled and removed shortcuts plugin leaves source edit/history/save usable (31.1s)
+(node:77786) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  56 tests/e2e/desktop-shell.spec.ts:906:3 › Unicode graphemes survive keyboard selection, deletion and undo in live (14.4s)
+  ✓  58 tests/e2e/desktop-shell.spec.ts:931:3 › windowed source keyboard edits preserve whole graphemes and undo (15.6s)
+  ✘  57 tests/e2e/desktop-shortcuts.spec.ts:169:3 › disabled and removed shortcuts plugin leaves live edit/history/save usable (33.7s)
+(node:79454) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  59 tests/e2e/desktop-shell.spec.ts:931:3 › windowed live keyboard edits preserve whole graphemes and undo (20.9s)
+  ✓  61 tests/e2e/desktop-shell.spec.ts:963:1 › issue 255 bracket typing keeps its position after delayed rendering (16.6s)
+  ✓  62 tests/e2e/desktop-shell.spec.ts:980:1 › issue 255 single-space headings render immediately after an image line (12.1s)
+  ✘  60 tests/e2e/desktop-shortcuts.spec.ts:191:1 › shadowed plugin defaults retain their context after user rebinding and restart (31.2s)
+  ✓  63 tests/e2e/desktop-shell.spec.ts:996:3 › source list keyboard nesting, exit and undo survive mode changes (11.0s)
+  ✓  64 tests/e2e/desktop-shell.spec.ts:1018:3 › source code block Enter preserves literal markers and blank lines (5.4s)
+  ✓  65 tests/e2e/desktop-shell.spec.ts:996:3 › live list keyboard nesting, exit and undo survive mode changes (6.2s)
+  ✓  66 tests/e2e/desktop-shell.spec.ts:1018:3 › live code block Enter preserves literal markers and blank lines (4.0s)
+  ✘  67 tests/e2e/desktop-shell.spec.ts:1065:1 › live table navigation replaces one cell, keeps line breaks and supports undo (31.3s)
+(node:81750) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  68 tests/e2e/desktop-shell.spec.ts:1095:1 › table toolbar preserves row and column content through undo and redo (30.9s)
+(node:82404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  69 tests/e2e/desktop-shell.spec.ts:1128:1 › rendered table copy offers HTML and exact Markdown; source copy stays plain (6.2s)
+  ✘  70 tests/e2e/desktop-shell.spec.ts:1165:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable (30.2s)
+(node:83256) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  71 tests/e2e/desktop-shell.spec.ts:1190:1 › phase9 search updates queries and keeps keyboard navigation in the search box (5.7s)
+  ✓  72 tests/e2e/desktop-shell.spec.ts:1210:1 › phase9 outline updates renamed headings and highlights the current section (4.8s)
+  ✓  73 tests/e2e/desktop-shell.spec.ts:1234:1 › phase9 literal replacement preserves Unicode offsets and one undo boundary (5.2s)
+  ✓  74 tests/e2e/desktop-shell.spec.ts:1263:1 › phase9 replace all deletes literally and rejects a stale query (3.5s)
+  ✓  75 tests/e2e/desktop-shell.spec.ts:1282:1 › phase9 editing refreshes results without moving the caret and switching documents clears them (3.4s)
+  ✓  76 tests/e2e/desktop-shell.spec.ts:1307:1 › phase9 truncated results are explicit and cannot be replaced as a complete set (2.9s)
+  ✓  77 tests/e2e/desktop-shell.spec.ts:1320:1 › phase9 narrow search and outline stay reachable and source mode removes inline code styling (1.5s)
+  ✘  78 tests/e2e/desktop-shell.spec.ts:1388:1 › phase10 live table arrows skip delimiters and protect shifted cell selections (30.1s)
+(node:83742) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  79 tests/e2e/desktop-shell.spec.ts:1418:1 › phase16 modal menu contains keyboard focus and closes ahead of background search (3.0s)
+  ✓  80 tests/e2e/desktop-shell.spec.ts:1443:1 › phase16 F6 reaches shell without plugins and keeps basic table navigation and document text (2.9s)
+  ✓  81 tests/e2e/desktop-shell.spec.ts:1468:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport (2.6s)
+  ✓  82 tests/e2e/desktop-shell.spec.ts:1490:1 › phase18 theme follows system only when selected, persists explicit dark and keeps contrast (2.9s)
+  ✓  83 tests/e2e/desktop-shell.spec.ts:1565:1 › phase18 narrow sidebar overlays without shrinking text and search controls remain reachable (1.8s)
+  ✓  84 tests/e2e/desktop-shell.spec.ts:1613:1 › beta3 menu covers inert titlebar and retains an accessible close button (3.1s)
+
+
+  1) tests/e2e/desktop-preferences.spec.ts:119:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '菜单', exact: true })
+        - locator resolved to <button title="菜单" type="button" aria-label="菜单" data-menu-toggle="" aria-expanded="true" aria-haspopup="dialog" class="titlebar-menu-button">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <h2>菜单</h2> from <section class="app-menu" data-app-menu="">…</section> subtree intercepts pointer events
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - <h2>菜单</h2> from <section class="app-menu" data-app-menu="">…</section> subtree intercepts pointer events
+        - retrying click action
+          - waiting 100ms
+        44 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - <h2>菜单</h2> from <section class="app-menu" data-app-menu="">…</section> subtree intercepts pointer events
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+       8 |   view(page).getByRole('button', { name: label, exact: true })
+       9 | async function menu(page: Page) {
+    > 10 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+         |                                                               ^
+      11 | }
+      12 | async function open(page: Page) {
+      13 |   await menu(page)
+        at menu (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-preferences.spec.ts:10:63)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-preferences.spec.ts:130:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-preferences-closin-026e9--committed-preferences-only/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-preferences-closin-026e9--committed-preferences-only/error-context.md
+
+  2) tests/e2e/desktop-preferences.spec.ts:303:3 › ordinary live centered body focuses and selects from both editor gutters 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.milkup-input-proxy')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('.milkup-input-proxy')
+        14 × locator resolved to <textarea tabindex="0" autocomplete="off" spellcheck="false" aria-label="Markdown 编辑器" class="milkup-input-proxy"></textarea>
+           - unexpected value "inactive"
+
+
+      345 |       }
+      346 |     })
+    > 347 |     expect(geometry.left).toBeLessThan(geometry.contentLeft)
+          |                                                       ^
+      348 |     expect(geometry.right).toBeGreaterThan(geometry.contentRight)
+      349 |     await page.mouse.click(geometry.left, geometry.y)
+      350 |     await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-preferences.spec.ts:347:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-preferences-ordina-ea51b-ts-from-both-editor-gutters/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-preferences-ordina-ea51b-ts-from-both-editor-gutters/error-context.md
+
+  3) tests/e2e/desktop-preferences.spec.ts:303:3 › windowed live centered body focuses and selects from both editor gutters 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.milkup-input-proxy')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('.milkup-input-proxy')
+        14 × locator resolved to <textarea tabindex="0" autocomplete="off" spellcheck="false" aria-label="Markdown 编辑器" class="milkup-input-proxy"></textarea>
+           - unexpected value "inactive"
+
+
+      345 |       }
+      346 |     })
+    > 347 |     expect(geometry.left).toBeLessThan(geometry.contentLeft)
+          |                                                       ^
+      348 |     expect(geometry.right).toBeGreaterThan(geometry.contentRight)
+      349 |     await page.mouse.click(geometry.left, geometry.y)
+      350 |     await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-preferences.spec.ts:347:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-preferences-window-9afda-ts-from-both-editor-gutters/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-preferences-window-9afda-ts-from-both-editor-gutters/error-context.md
+
+  4) tests/e2e/desktop-shell.spec.ts:152:1 › plugin manager restores, executes, disables, and reenables a Worker plugin 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'E2E Tools', exact: true })
+
+
+      194 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+      195 |
+    > 196 |   await page.getByRole('button', { name: 'E2E Tools', exact: true }).click()
+          |                                                                      ^
+      197 |   await expect(page.getByRole('heading', { name: 'E2E Tools' })).toBeVisible()
+      198 |   await expect(page.locator('.plugin-state')).toHaveText('已启用')
+      199 |   await page.getByRole('button', { name: 'Plugin Hello' }).click()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:196:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-plugin-manag-4d794-d-reenables-a-Worker-plugin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-plugin-manag-4d794-d-reenables-a-Worker-plugin/error-context.md
+
+  5) tests/e2e/desktop-shell.spec.ts:866:1 › browser image chooser failure and retry preserve the document and editable history 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-plugin-menu-entry="milkup.images:images-panel"]')
+        - locator resolved to <button type="button" class="dialog-button" data-plugin-menu-entry="milkup.images:images-panel">图片与资源</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+          - waiting 100ms
+        3 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+          - waiting 500ms
+        - waiting for" http://127.0.0.1:1420/" navigation to finish...
+        - navigated to "http://127.0.0.1:1420/"
+        - waiting for element to be visible, enabled and stable
+      - element was detached from the DOM, retrying
+        2 × locator resolved to <button type="button" class="dialog-button" data-plugin-menu-entry="milkup.images:images-panel">图片与资源</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+          - waiting 100ms
+        39 × waiting for element to be visible, enabled and stable
+           - element is not visible
+         - retrying click action
+           - waiting 500ms
+        - waiting for element to be visible, enabled and stable
+
+
+      752 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+      753 |   if (
+    > 754 |     !(await page
+          |                 ^
+      755 |       .locator('[data-plugin-menu-group]')
+      756 |       .evaluate((group: HTMLDetailsElement) => group.open))
+      757 |   )
+        at openImagesPanel (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:754:79)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:876:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-browser-imag-92f43-cument-and-editable-history/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-browser-imag-92f43-cument-and-editable-history/error-context.md
+
+  6) tests/e2e/desktop-shell.spec.ts:1065:1 › live table navigation replaces one cell, keeps line breaks and supports undo 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:80
+
+      78 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+      79 |     phase('plugins-clicked')
+    > 80 |     await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                                ^
+      81 |     phase('plugin-details-clicked')
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:80:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1056:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1068:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-live-table-n-1f84f-ne-breaks-and-supports-undo/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-live-table-n-1f84f-ne-breaks-and-supports-undo/error-context.md
+
+  7) tests/e2e/desktop-shell.spec.ts:1095:1 › table toolbar preserves row and column content through undo and redo 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:80
+
+      78 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+      79 |     phase('plugins-clicked')
+    > 80 |     await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                                ^
+      81 |     phase('plugin-details-clicked')
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:80:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1056:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1096:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-table-toolba-5c7d4-ntent-through-undo-and-redo/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-table-toolba-5c7d4-ntent-through-undo-and-redo/error-context.md
+
+  8) tests/e2e/desktop-shell.spec.ts:1165:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:80
+
+      78 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+      79 |     phase('plugins-clicked')
+    > 80 |     await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                                ^
+      81 |     phase('plugin-details-clicked')
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:80:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1056:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1170:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-native-style-b25d4--and-table-exit-is-undoable/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-native-style-b25d4--and-table-exit-is-undoable/error-context.md
+
+  9) tests/e2e/desktop-shell.spec.ts:1388:1 › phase10 live table arrows skip delimiters and protect shifted cell selections 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:80
+
+      78 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+      79 |     phase('plugins-clicked')
+    > 80 |     await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                                ^
+      81 |     phase('plugin-details-clicked')
+      82 |     const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      83 |     if (await approve.isVisible()) await approve.click()
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:80:80)
+        at openEditableTable (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1056:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shell.spec.ts:1391:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shell-phase10-live-668fa-ect-shifted-cell-selections/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shell-phase10-live-668fa-ect-shifted-cell-selections/error-context.md
+
+  10) tests/e2e/desktop-shortcuts.spec.ts:96:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Shortcuts', exact: true })
+
+
+      73 |     return
+      74 |   }
+    > 75 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+         |                                                                      ^
+      76 |   await page.getByRole('button', { name: 'Milkup Shortcuts', exact: true }).click()
+      77 |   if (initial) {
+      78 |     await page.getByRole('button', { name: '批准能力', exact: true }).click()
+        at open (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:75:77)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:100:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shortcuts-standalo-bbeff-reserved-keys-and-conflicts/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shortcuts-standalo-bbeff-reserved-keys-and-conflicts/error-context.md
+
+  11) tests/e2e/desktop-shortcuts.spec.ts:119:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Shortcuts', exact: true })
+
+
+      73 |     return
+      74 |   }
+    > 75 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+         |                                                                      ^
+      76 |   await page.getByRole('button', { name: 'Milkup Shortcuts', exact: true }).click()
+      77 |   if (initial) {
+      78 |     await page.getByRole('button', { name: '批准能力', exact: true }).click()
+        at open (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:75:77)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:123:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shortcuts-saved-bi-acea4-al-editing-plus-global-save/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shortcuts-saved-bi-acea4-al-editing-plus-global-save/error-context.md
+
+  12) tests/e2e/desktop-shortcuts.spec.ts:152:1 › persistence failure keeps old shortcut, shows bounded error and retains draft 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Shortcuts', exact: true })
+        - waiting for navigation to finish...
+        - navigated to "http://127.0.0.1:1420/"
+
+
+      73 |     )
+      74 |       await page.locator('[data-plugin-menu-group] > summary').click()
+    > 75 |     await page.locator('[data-plugin-menu-entry="milkup.shortcuts:shortcuts-modal"]').click()
+         |                                                                             ^
+      76 |     await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
+      77 |     return
+      78 |   }
+        at open (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:75:77)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:156:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shortcuts-persiste-be60c-ded-error-and-retains-draft/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shortcuts-persiste-be60c-ded-error-and-retains-draft/error-context.md
+
+  13) tests/e2e/desktop-shortcuts.spec.ts:169:3 › disabled and removed shortcuts plugin leaves source edit/history/save usable 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Shortcuts', exact: true })
+
+
+      73 |     )
+      74 |       await page.locator('[data-plugin-menu-group] > summary').click()
+    > 75 |     await page.locator('[data-plugin-menu-entry="milkup.shortcuts:shortcuts-modal"]').click()
+         |                                                                             ^
+      76 |     await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
+      77 |     return
+      78 |   }
+        at open (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:75:77)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:173:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shortcuts-disabled-d92de-ce-edit-history-save-usable/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shortcuts-disabled-d92de-ce-edit-history-save-usable/error-context.md
+
+  14) tests/e2e/desktop-shortcuts.spec.ts:169:3 › disabled and removed shortcuts plugin leaves live edit/history/save usable 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Shortcuts', exact: true })
+
+
+      73 |     )
+      74 |       await page.locator('[data-plugin-menu-group] > summary').click()
+    > 75 |     await page.locator('[data-plugin-menu-entry="milkup.shortcuts:shortcuts-modal"]').click()
+         |                                                                             ^
+      76 |     await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
+      77 |     return
+      78 |   }
+        at open (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:75:77)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:173:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shortcuts-disabled-a8c70-ve-edit-history-save-usable/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shortcuts-disabled-a8c70-ve-edit-history-save-usable/error-context.md
+
+  15) tests/e2e/desktop-shortcuts.spec.ts:191:1 › shadowed plugin defaults retain their context after user rebinding and restart 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Shortcuts', exact: true })
+
+
+      73 |     )
+      74 |       await page.locator('[data-plugin-menu-group] > summary').click()
+    > 75 |     await page.locator('[data-plugin-menu-entry="milkup.shortcuts:shortcuts-modal"]').click()
+         |                                                                             ^
+      76 |     await expect(modal(page).getByLabel(/\(file.save\)/)).toBeVisible()
+      77 |     return
+      78 |   }
+        at open (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:75:77)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-shortcuts.spec.ts:251:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-shortcuts-shadowed-05c2e--user-rebinding-and-restart/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-shortcuts-shadowed-05c2e--user-rebinding-and-restart/error-context.md
+
+  15 failed
+    tests/e2e/desktop-preferences.spec.ts:119:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only 
+    tests/e2e/desktop-preferences.spec.ts:303:3 › ordinary live centered body focuses and selects from both editor gutters 
+    tests/e2e/desktop-preferences.spec.ts:303:3 › windowed live centered body focuses and selects from both editor gutters 
+    tests/e2e/desktop-shell.spec.ts:152:1 › plugin manager restores, executes, disables, and reenables a Worker plugin 
+    tests/e2e/desktop-shell.spec.ts:866:1 › browser image chooser failure and retry preserve the document and editable history 
+    tests/e2e/desktop-shell.spec.ts:1065:1 › live table navigation replaces one cell, keeps line breaks and supports undo 
+    tests/e2e/desktop-shell.spec.ts:1095:1 › table toolbar preserves row and column content through undo and redo 
+    tests/e2e/desktop-shell.spec.ts:1165:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable 
+    tests/e2e/desktop-shell.spec.ts:1388:1 › phase10 live table arrows skip delimiters and protect shifted cell selections 
+    tests/e2e/desktop-shortcuts.spec.ts:96:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts 
+    tests/e2e/desktop-shortcuts.spec.ts:119:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save 
+    tests/e2e/desktop-shortcuts.spec.ts:152:1 › persistence failure keeps old shortcut, shows bounded error and retains draft 
+    tests/e2e/desktop-shortcuts.spec.ts:169:3 › disabled and removed shortcuts plugin leaves source edit/history/save usable 
+    tests/e2e/desktop-shortcuts.spec.ts:169:3 › disabled and removed shortcuts plugin leaves live edit/history/save usable 
+    tests/e2e/desktop-shortcuts.spec.ts:191:1 › shadowed plugin defaults retain their context after user rebinding and restart 
+  69 passed (9.5m)

@@ -29,6 +29,10 @@ Linux生产构建准备曾遇历史release缓存坏软链；隔离target首次�
 
 ## 手测交付与边界
 
+追加检查发现两项回归，首个候选 `0c23f670e9eaa1df11f246bc297210f5c5034d28` 的 Windows run `39708703850` 已主动取消，终态 cancelled、0 artifacts，不能交付该候选。卡片操作中的原生 disabled 使键盘焦点丢失，改为可聚焦的 aria-disabled/aria-busy 并继续由每插件操作锁拒绝重复请求；新增焦点断言先失败后通过。Linux 生产代码块检查发现修改 fence 语言只重绘首行，正文仍用旧语言；扩大重绘到该代码块，并平移块后复用 DOM 的源位置。新增缺语言、已知语言、未知语言切换、Undo/Redo 及后续 picker 映射回归。
+
+首候选 Linux 原生通过菜单 32 个组合（100/125/150/200% 应用原生缩放、宽窄、source/live、浅深色）、真实侧栏指针拖动和 modal 焦点检查。工作区真实 GTK 选择目录、跨进程恢复最近文件、目录移走后有限失败与重新选择也通过；但所用外部 workspace 归档早于最后取消文案，因此保留该组合来源，最终重新构建全部独立插件及生产二进制后补验，不能把旧归档结果当作最终字节验证。上述 Linux 检查不代表 Windows 系统 DPI 或 GUI 手测。
+
 见[中文手测指南](manual-windows-beta3/README.md)和[反馈模板](manual-windows-beta3/FEEDBACK.md)。沿用beta.2用户数据时保留原插件/审批，Workspace旧1.0.0不会被静默覆盖；须从随包完整归档导入1.0.1并审阅启用。旧外部插件已丢失元数据时仍需重新导入；本轮不能凭空恢复其旧包。
 
 仅允许Auto-Plugin/milkup Actions artifact与本对话交付，小包、1天留存、既有50MiB界限。Windows DOM/PDF、真实升级安装/健康确认/自动回滚、系统IME和Windows系统DPI未验收；不以Linux或浏览器结果替代。

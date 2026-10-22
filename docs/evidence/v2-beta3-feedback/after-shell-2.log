@@ -1,0 +1,50 @@
+
+Running 8 tests using 1 worker
+
+(node:57801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/e2e/desktop-plugin-cards.spec.ts:44:1 › plugin cards expose explicit details; keyboard detail and back restore focus (1.4s)
+  ✓  2 tests/e2e/desktop-plugin-cards.spec.ts:69:1 › plugin permission approval, enable, disable and uninstall remain inside details (2.7s)
+  ✓  3 tests/e2e/desktop-plugin-cards.spec.ts:90:1 › plugin detail controls and long metadata fit a narrow viewport (1.1s)
+  ✓  4 tests/e2e/desktop-plugin-cards.spec.ts:102:1 › new installation opens approval details; late and broken logos preserve fallback and focus (1.1s)
+  ✓  5 tests/e2e/desktop-plugin-cards.spec.ts:179:1 › background package restoration opens on the list and changed icons do not retain stale images (794ms)
+  ✓  6 tests/e2e/desktop-plugin-cards.spec.ts:243:1 › beta3 card switch toggles in place without opening details (1.5s)
+  ✘  7 tests/e2e/desktop-plugin-cards.spec.ts:258:1 › beta3 switch rejects repeated activation while pending and reports failure in place (7.5s)
+(node:58837) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  8 tests/e2e/desktop-shell.spec.ts:1613:1 › beta3 menu covers inert titlebar and retains an accessible close button (1.0s)
+
+
+  1) tests/e2e/desktop-plugin-cards.spec.ts:258:1 › beta3 switch rejects repeated activation while pending and reports failure in place 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.plugin-errors')
+    Expected substring: "fixture activation failed"
+    Received string:    "[object Object]"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.plugin-errors')
+        14 × locator resolved to <div class="plugin-errors">[object Object]</div>
+           - unexpected value "[object Object]"
+
+
+      270 |   await expect(page.locator('.plugin-detail')).toHaveCount(0)
+      271 |   await card.getByRole('button', {name:'beta tools 详情'}).click()
+    > 272 |   await expect(page.locator('.plugin-errors')).toContainText('fixture activation failed')
+          |                                                ^
+      273 | })
+      274 |
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-plugin-cards.spec.ts:272:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta3-evidence/browser/desktop-plugin-cards-beta3-9c013-nd-reports-failure-in-place/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta3-evidence/browser/desktop-plugin-cards-beta3-9c013-nd-reports-failure-in-place/error-context.md
+
+  1 failed
+    tests/e2e/desktop-plugin-cards.spec.ts:258:1 › beta3 switch rejects repeated activation while pending and reports failure in place 
+  7 passed (22.0s)

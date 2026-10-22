@@ -1,0 +1,329 @@
+$ pnpm -r test
+Scope: 14 of 15 workspace projects
+packages/assets test$ vitest run
+packages/core test$ vitest run
+packages/input test$ vitest run
+packages/markdown test$ vitest run
+packages/assets test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/assets
+packages/markdown test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/markdown
+packages/input test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/input
+packages/core test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/core
+packages/assets test:  ✓ src/provider.test.ts (6 tests) 38ms
+packages/assets test:  Test Files  1 passed (1)
+packages/assets test:       Tests  6 passed (6)
+packages/assets test:    Start at  01:40:36
+packages/assets test:    Duration  1.34s (transform 213ms, setup 0ms, collect 215ms, tests 38ms, environment 0ms, prepare 378ms)
+packages/markdown test:  ✓ src/__tests__/window-context.test.ts (8 tests) 74ms
+packages/markdown test:  ✓ src/__tests__/window-parser.test.ts (3 tests) 35ms
+packages/markdown test:  ✓ src/__tests__/inline-parser.test.ts (39 tests) 91ms
+packages/assets test: Done
+packages/markdown test:  ✓ src/__tests__/block-parser.test.ts (55 tests) 74ms
+packages/core test:  ✓ src/__tests__/document-svg-image-elements.test.ts (3 tests) 909ms
+packages/core test:    ✓ charges present title and description elements even when their text is empty  642ms
+packages/markdown test:  ✓ src/__tests__/incremental-parser.test.ts (4 tests) 30ms
+packages/markdown test:  ✓ src/__tests__/table-boundaries.test.ts (4 tests) 53ms
+packages/input test:  ✓ src/paste.test.ts (8 tests) 159ms
+packages/core test:  ✓ src/__tests__/document-svg-image.test.ts (12 tests) 1773ms
+packages/core test:    ✓ closed SVG image document presentation contract > does not reset the charged-node budget for each SVG image  597ms
+packages/core test:    ✓ closed SVG image document presentation contract > shares the node budget with existing MathML and ordinary presentation nodes  438ms
+packages/core test:    ✓ closed SVG image document presentation contract > charges dash elements across styles and images against the shared node limit  518ms
+packages/markdown test:  ✓ src/__tests__/plugin-syntax.test.ts (2 tests) 19ms
+packages/markdown test:  ✓ src/__tests__/extension-safety.test.ts (3 tests) 11ms
+packages/input test:  Test Files  1 passed (1)
+packages/input test:       Tests  8 passed (8)
+packages/input test:    Start at  01:40:36
+packages/input test:    Duration  3.30s (transform 302ms, setup 0ms, collect 266ms, tests 159ms, environment 1.77s, prepare 369ms)
+packages/core test:  ✓ src/__tests__/document-svg-image-security.test.ts (26 tests) 349ms
+packages/markdown test:  ✓ src/__tests__/ast-stringify.test.ts (3 tests) 32ms
+packages/markdown test:  Test Files  9 passed (9)
+packages/markdown test:       Tests  121 passed (121)
+packages/markdown test:    Start at  01:40:36
+packages/markdown test:    Duration  3.53s (transform 814ms, setup 0ms, collect 2.11s, tests 420ms, environment 2ms, prepare 2.11s)
+packages/input test: Done
+packages/markdown test: Done
+packages/core test:  ✓ src/__tests__/document-svg-image-cost.test.ts (8 tests) 62ms
+packages/core test:  ✓ src/__tests__/document-svg-image-bounded-identity.test.ts (23 tests) 50ms
+packages/core test:  ✓ src/__tests__/document-svg-image-marker-paint.test.ts (4 tests) 61ms
+packages/core test:  ✓ src/__tests__/document-svg-image-raster.test.ts (7 tests) 45ms
+packages/core test:  ✓ src/__tests__/large-document.test.ts (4 tests) 2741ms
+packages/core test:    ✓ large document contracts > reads windows from a 10 MiB synthetic Markdown document  538ms
+packages/core test:    ✓ large document contracts > flushes a large edited document snapshot  464ms
+packages/core test:    ✓ large document contracts > searches a virtual 100 MiB synthetic Markdown document through line windows  1466ms
+packages/core test:  ✓ src/__tests__/document-svg-image-unresolved.test.ts (4 tests) 36ms
+packages/core test:  ✓ src/__tests__/action-registry.test.ts (8 tests) 19ms
+packages/core test:  ✓ src/__tests__/document-svg-image-marker-reference.test.ts (6 tests) 36ms
+packages/core test:  ✓ src/__tests__/large-edit-session.test.ts (13 tests) 45ms
+packages/core test:  ✓ src/__tests__/document-presentation-pending.test.ts (13 tests) 12ms
+packages/core test:  ✓ src/__tests__/store-search.test.ts (10 tests) 61ms
+packages/core test:  ✓ src/__tests__/memory-text-document.test.ts (16 tests) 8ms
+packages/core test:  ✓ src/__tests__/editor-history.test.ts (12 tests) 19ms
+packages/core test:  ✓ src/__tests__/document-store.test.ts (9 tests) 22ms
+packages/core test:  ✓ src/__tests__/literal-search.test.ts (3 tests) 6ms
+packages/core test:  ✓ src/__tests__/document-presentation-serializer-prefix.test.ts (1 test) 4ms
+packages/core test:  ✓ src/__tests__/large-file-policy.test.ts (5 tests) 10ms
+packages/core test:  ✓ src/__tests__/editor-document-source.test.ts (2 tests) 6ms
+packages/core test:  Test Files  21 passed (21)
+packages/core test:       Tests  189 passed (189)
+packages/core test:    Start at  01:40:36
+packages/core test:    Duration  7.26s (transform 1.74s, setup 0ms, collect 3.61s, tests 6.27s, environment 6ms, prepare 3.26s)
+packages/core test: Done
+packages/export test$ vitest run
+packages/mcp test$ vitest run
+packages/plugin-sdk test$ vitest run
+packages/tauri-bridge test$ vitest run
+packages/export test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/export
+packages/tauri-bridge test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/tauri-bridge
+packages/plugin-sdk test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/plugin-sdk
+packages/mcp test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/mcp
+packages/export test:  ✓ src/clipboard.test.ts (4 tests) 52ms
+packages/export test:  ✓ src/browser-print-pdf.test.ts (2 tests) 43ms
+packages/export test:  ✓ src/scoped-export.test.ts (12 tests) 39ms
+packages/tauri-bridge test:  ✓ src/file/file-watcher.test.ts (7 tests) 18ms
+packages/tauri-bridge test:  ✓ src/session/document-session.test.ts (22 tests) 43ms
+packages/export test:  ✓ src/static-html.test.ts (57 tests) 275ms
+packages/export test:  Test Files  4 passed (4)
+packages/export test:       Tests  75 passed (75)
+packages/export test:    Start at  01:40:44
+packages/export test:    Duration  2.73s (transform 1.66s, setup 0ms, collect 3.08s, tests 409ms, environment 1ms, prepare 1.21s)
+packages/tauri-bridge test:  ✓ src/session/v1-file-workflow-regressions.test.ts (4 tests) 34ms
+packages/mcp test:  ✓ src/projection.test.ts (5 tests) 57ms
+packages/mcp test:  ✓ src/server.test.ts (6 tests) 88ms
+packages/mcp test:  Test Files  2 passed (2)
+packages/mcp test:       Tests  11 passed (11)
+packages/mcp test:    Start at  01:40:44
+packages/mcp test:    Duration  2.49s (transform 1.01s, setup 0ms, collect 2.42s, tests 145ms, environment 1ms, prepare 613ms)
+packages/plugin-sdk test:  ✓ src/index.test.js (6 tests) 52ms
+packages/plugin-sdk test:  Test Files  1 passed (1)
+packages/plugin-sdk test:       Tests  6 passed (6)
+packages/plugin-sdk test:    Start at  01:40:44
+packages/plugin-sdk test:    Duration  2.80s (transform 1.20s, setup 0ms, collect 1.50s, tests 52ms, environment 4ms, prepare 374ms)
+packages/export test: Done
+packages/view-dom test$ vitest run
+packages/mcp test: Done
+packages/tauri-bridge test:  ✓ src/file/recent-files.test.ts (4 tests) 26ms
+packages/tauri-bridge test:  ✓ src/session/close-protection.test.ts (6 tests) 10ms
+packages/plugin-sdk test: Done
+packages/plugin test$ vitest run
+packages/tauri-bridge test:  ✓ src/file/reveal-target.test.ts (3 tests) 4ms
+packages/tauri-bridge test:  ✓ src/file/file-actions.test.ts (2 tests) 5ms
+packages/tauri-bridge test:  ✓ src/file/line-ending.test.ts (4 tests) 7ms
+packages/view-dom test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+packages/tauri-bridge test:  ✓ src/session/save-safety.test.ts (3 tests) 15ms
+packages/tauri-bridge test:  Test Files  9 passed (9)
+packages/tauri-bridge test:       Tests  55 passed (55)
+packages/tauri-bridge test:    Start at  01:40:44
+packages/tauri-bridge test:    Duration  4.48s (transform 1.47s, setup 0ms, collect 4.63s, tests 162ms, environment 2ms, prepare 2.40s)
+packages/plugin test:  RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/plugin
+packages/tauri-bridge test: Done
+packages/plugin test:  ✓ src/document-broker.test.ts (54 tests) 1080ms
+packages/plugin test:  ✓ src/management-schema.test.ts (4 tests) 1509ms
+packages/plugin test:    ✓ projects 512 valid long Unicode manifests into a bounded complete catalog  1417ms
+packages/plugin test:  ❯ src/document-render-rpc.test.ts (17 tests | 1 failed) 2432ms
+packages/plugin test:    ✓ bounded document render isolation > preserves preparation readiness through module validation and the RPC transport 78ms
+packages/plugin test:    ✓ bounded document render isolation > roundtrips through a declared provider and rejects late completion after deactivate 8ms
+packages/plugin test:    ✓ bounded document render isolation > requires both declaration and read permission 0ms
+packages/plugin test:    ✓ bounded document render isolation > cancels with realm-local signal and waits for remote settlement before advancing queue 22ms
+packages/plugin test:    ✓ bounded document render isolation > bounds queued work and disposes outstanding callers 1ms
+packages/plugin test:    ✓ bounded document render isolation > retains watchdog after caller cancellation of uncooperative work 8ms
+packages/plugin test:    ✓ bounded document render isolation > rejects malformed method payload without dispatch 5ms
+packages/plugin test:    ✓ bounded document render isolation > terminates an actual CPU-blocked worker, revokes capabilities and marks runtime disabled  2164ms
+packages/plugin test:    ✓ bounded document render isolation > stops an unresponsive owned sidecar and revokes the host on watchdog timeout 3ms
+packages/plugin test:    ✓ bounded document render isolation > serializes inert MathML/vectors and escapes text without plugin markup 1ms
+packages/plugin test:    ✓ bounded document render isolation > restores installed outline from 0.3.2 into 0.3.3 unchanged 42ms
+packages/plugin test:    ✓ bounded document render isolation > restores installed updates from 0.3.2 into 0.3.3 unchanged 6ms
+packages/plugin test:    × bounded document render isolation > restores installed workspace from 0.3.2 into 0.3.3 unchanged 46ms
+packages/plugin test:      → expected { manifest: { …(11) }, …(12) } to deeply equal { manifest: { …(11) }, …(12) }
+packages/plugin test:    ✓ bounded document render isolation > restores installed preferences from 0.3.2 into 0.3.3 unchanged 3ms
+packages/plugin test:    ✓ bounded document render isolation > restores installed shortcuts from 0.3.2 into 0.3.3 unchanged 9ms
+packages/plugin test:    ✓ bounded document render isolation > restores installed formatting from 0.3.2 into 0.3.3 unchanged 31ms
+packages/plugin test:    ✓ bounded document render isolation > restores installed images from 0.3.2 into 0.3.3 unchanged 1ms
+packages/plugin test:  ✓ src/storage-broker.test.ts (6 tests) 136ms
+packages/plugin test:  ✓ src/isolation-worker.test.ts (30 tests) 354ms
+packages/plugin test:  ✓ src/worker-supervisor-real.test.ts (2 tests) 6090ms
+packages/plugin test:    ✓ actual independently supervised Workers > accepts an already completed render after the main thread stalls beyond 2 seconds  3337ms
+packages/plugin test:    ✓ actual independently supervised Workers > terminates a real infinite loop while the main thread is still blocked  2744ms
+packages/plugin test:  ✓ src/document-navigation-rpc.test.ts (6 tests) 197ms
+packages/plugin test:  ✓ src/runtime.test.ts (20 tests) 191ms
+packages/plugin test:  ✓ src/workspace-rpc.test.ts (20 tests) 173ms
+packages/plugin test:  ✓ src/editing-resources.test.ts (17 tests) 150ms
+packages/plugin test:  ✓ src/document-render-contract.test.ts (15 tests) 145ms
+packages/plugin test:  ✓ src/releases-rpc.test.ts (20 tests) 56ms
+packages/plugin test:  ✓ src/output-isolation.test.ts (3 tests) 76ms
+packages/plugin test:  ❯ src/registry.test.ts (55 tests | 1 failed) 177ms
+packages/plugin test:    ✓ plugin registry > restores installed outline under SDK 0.3.2 without altering range, approvals or enable state 48ms
+packages/plugin test:    ✓ plugin registry > restores installed updates under SDK 0.3.2 without altering range, approvals or enable state 9ms
+packages/plugin test:    × plugin registry > restores installed workspace under SDK 0.3.2 without altering range, approvals or enable state 25ms
+packages/plugin test:      → expected '^0.3.8' to be '^0.3.0' // Object.is equality
+packages/plugin test:    ✓ plugin registry > restores installed preferences under SDK 0.3.2 without altering range, approvals or enable state 10ms
+packages/plugin test:    ✓ plugin registry > restores installed shortcuts under SDK 0.3.2 without altering range, approvals or enable state 4ms
+packages/plugin test:    ✓ plugin registry > revalidates restored enabled plugins against the upgraded application before loading 23ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.2.0 1ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.3.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.4.0 13ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.1.9 1ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 against 0.3.0-beta.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.3.0-beta.1 <0.4.0 against 0.3.0-beta.2 1ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2 <0.4.0 against 0.3.0 7ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4 against 0.3.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <garbage against 0.3.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.* against 0.3.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 || <0.4.0 against 0.3.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.2.0 <0.4.0 || * against 0.4.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.9 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.1 against 0.2.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.2 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.3 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^1.2.3 against 1.2.2 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^1.2.3 against 1.9.0 1ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^1.2.3 against 2.0.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.0 against 0.1.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.1.1 against 0.1.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=0.1.1 against 0.2.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1-beta 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^garbage against 0.1.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1 against 0.1.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1+build.2 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0-beta.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.4.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.1.0-beta.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^2.0.0-0 against 3.0.0 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range ^2.0.0 against 2.0.0-beta.1 0ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.10 1ms
+packages/plugin test:    ✓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.1 0ms
+packages/plugin test:    ✓ plugin registry > exposes pure host preflight without changing manifest, registry or approval state 3ms
+packages/plugin test:    ✓ plugin registry > preserves preflight behavior when target or engines are omitted 0ms
+packages/plugin test:    ✓ plugin registry > installs local plugins, persists enable state, and restores records 1ms
+packages/plugin test:    ✓ plugin registry > marks incompatible plugins as failed and keeps sidecar approval explicit 7ms
+packages/plugin test:    ✓ plugin registry > indexes enabled contributions and makes keymap priority deterministic 2ms
+packages/plugin test:    ✓ plugin registry > isolates plugin storage keys 0ms
+packages/plugin test:    ✓ P6 strict registry recovery > rejects duplicate IDs before replacing any existing records 6ms
+packages/plugin test:    ✓ P6 strict registry recovery > rejects malformed or expanded approved scope 1ms
+packages/plugin test:    ✓ P6 strict registry recovery > rejects malformed or expanded approved scope 0ms
+packages/plugin test:    ✓ P6 strict registry recovery > rejects malformed or expanded approved scope 0ms
+packages/plugin test:    ✓ P6 strict registry recovery > rejects malformed or expanded approved scope 0ms
+packages/plugin test:    ✓ P6 strict registry recovery > rejects malformed or expanded approved scope 0ms
+packages/view-dom test:  ✓ src/__tests__/editor-view.test.ts (123 tests) 6013ms
+packages/view-dom test:    ✓ EditorView > focuses from blank editor space and places the cursor by editor coordinates  359ms
+packages/view-dom test:    ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  4057ms
+packages/plugin test:  ✓ src/output-rpc.test.ts (10 tests) 140ms
+packages/plugin test:  ✓ src/management-broker.test.ts (5 tests) 34ms
+packages/plugin test:  ✓ src/isolation-module-host.test.ts (7 tests) 89ms
+packages/plugin test:  ✓ src/isolation-sidecar.test.ts (4 tests) 91ms
+packages/plugin test:  ✓ src/settings-rpc.test.ts (19 tests) 121ms
+packages/plugin test:  ✓ src/workspace-broker.test.ts (36 tests) 155ms
+packages/plugin test:  ✓ src/settings-broker.test.ts (21 tests) 95ms
+packages/plugin test:  ✓ src/management-rpc.test.ts (7 tests) 67ms
+packages/view-dom test:  ✓ src/__tests__/document-svg-image.test.ts (83 tests) 8926ms
+packages/view-dom test:    ✓ keeps full mapped source until decode, then mounts an inert owned image (false)  409ms
+packages/view-dom test:    ✓ does not accumulate heavy decoded fragments from separate validated generations beyond one shared old-layer budget  308ms
+packages/plugin test:  ✓ src/output-broker.test.ts (22 tests) 192ms
+packages/plugin test:  ✓ src/editing-isolation.test.ts (3 tests) 101ms
+packages/plugin test:  ✓ src/worker-supervisor.test.ts (14 tests) 126ms
+packages/plugin test:  ✓ src/preferences-isolation.test.ts (3 tests) 273ms
+packages/plugin test:  ✓ src/document-rpc.test.ts (1 test) 12ms
+packages/plugin test:  ✓ src/document-window.test.ts (11 tests) 78ms
+packages/plugin test:  ✓ src/isolation-rpc.test.ts (6 tests) 54ms
+packages/plugin test:  ✓ src/editing-ui-contract.test.ts (4 tests) 28ms
+packages/plugin test:  ✓ src/package-validation.test.ts (51 tests) 41ms
+packages/plugin test:  ✓ src/keymap-rpc.test.ts (13 tests) 124ms
+packages/plugin test:  ✓ src/filesystem-broker.test.ts (11 tests) 79ms
+packages/plugin test:  ✓ src/loader.test.ts (7 tests) 12ms
+packages/plugin test:  ✓ src/manifest.test.ts (25 tests) 44ms
+packages/plugin test:  ✓ src/ui-location.test.ts (4 tests) 14ms
+packages/view-dom test:  ✓ src/__tests__/document-presentation.test.ts (70 tests) 6386ms
+packages/view-dom test:    ✓ keeps the reader's inner diagram position through source-window refresh (true)  376ms
+packages/view-dom test:    ✓ keeps a reader diagram mounted across repeated same-position editor scroll events  334ms
+packages/view-dom test:    ✓ retries an anchor-owned failed navigation read on the next same-position scroll  755ms
+packages/plugin test:  ✓ src/isolation.test.ts (7 tests) 42ms
+packages/plugin test:  ✓ src/network-broker.test.ts (5 tests) 44ms
+packages/plugin test:  ✓ src/manifest-dom.test.ts (32 tests) 173ms
+packages/plugin test:  ✓ src/releases-broker.test.ts (3 tests) 31ms
+packages/plugin test:  ✓ src/package.test.ts (4 tests) 27ms
+packages/view-dom test:  ✓ src/__tests__/source-document-view.test.ts (64 tests) 3826ms
+packages/view-dom test:    ✓ SourceDocumentView > restores the source caret after a save lock rerenders the window  571ms
+packages/plugin test:  ✓ src/management-compatibility.test.ts (4 tests) 22ms
+packages/plugin test:  ✓ src/package-dom.test.ts (4 tests) 18ms
+packages/plugin test:  ✓ src/export-print-manifest.test.ts (1 test) 13ms
+packages/plugin test:  ✓ src/registry-dom.test.ts (2 tests) 15ms
+packages/plugin test:  ✓ src/editing-legacy-guard.test.ts (4 tests) 17ms
+packages/plugin test: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+packages/plugin test:  FAIL  src/document-render-rpc.test.ts > bounded document render isolation > restores installed workspace from 0.3.2 into 0.3.3 unchanged
+packages/plugin test: AssertionError: expected { manifest: { …(11) }, …(12) } to deeply equal { manifest: { …(11) }, …(12) }
+packages/plugin test: - Expected
+packages/plugin test: + Received
+packages/plugin test: @@ -7,12 +7,14 @@
+packages/plugin test:       "permissions": [
+packages/plugin test:         "workspace:read",
+packages/plugin test:       ],
+packages/plugin test:     },
+packages/plugin test:     "dataRoot": "milkup://plugin-data/milkup.workspace",
+packages/plugin test: -   "enabled": true,
+packages/plugin test: -   "errors": [],
+packages/plugin test: +   "enabled": false,
+packages/plugin test: +   "errors": [
+packages/plugin test: +     "Requires plugin SDK ^0.3.8",
+packages/plugin test: +   ],
+packages/plugin test:     "installedAt": 1,
+packages/plugin test:     "manifest": {
+packages/plugin test:       "contributes": {
+packages/plugin test:         "commands": [
+packages/plugin test:           {
+packages/plugin test: @@ -124,10 +126,10 @@
+packages/plugin test:       "version": "1.0.1",
+packages/plugin test:     },
+packages/plugin test:     "manifestPath": "/plugins/workspace/plugin.json",
+packages/plugin test:     "rootPath": "/plugins/workspace",
+packages/plugin test:     "sourcePath": "/plugins/workspace/plugin.json",
+packages/plugin test: -   "state": "enabled",
+packages/plugin test: +   "state": "failed",
+packages/plugin test:     "storageRoot": "milkup://plugin-storage/milkup.workspace",
+packages/plugin test:     "trust": "development",
+packages/plugin test:     "updatedAt": 1,
+packages/plugin test:   }
+packages/plugin test:  ❯ src/document-render-rpc.test.ts:357:43
+packages/plugin test:     355|         })
+packages/plugin test:     356|         upgraded.restore(before)
+packages/plugin test:     357|         expect(upgraded.get(manifest.id)).toEqual(old.get(manifest.id))
+packages/plugin test:        |                                           ^
+packages/plugin test:     358|       }
+packages/plugin test:     359|     },
+packages/plugin test: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+packages/plugin test:  FAIL  src/registry.test.ts > plugin registry > restores installed workspace under SDK 0.3.2 without altering range, approvals or enable state
+packages/plugin test: AssertionError: expected '^0.3.8' to be '^0.3.0' // Object.is equality
+packages/plugin test: Expected: "^0.3.0"
+packages/plugin test: Received: "^0.3.8"
+packages/plugin test:  ❯ src/registry.test.ts:28:42
+packages/plugin test:      26|               ? '^0.3.0'
+packages/plugin test:      27|               : '>=0.2.0 <0.4.0'
+packages/plugin test:      28|       expect(manifest.engines.pluginSdk).toBe(expectedRange)
+packages/plugin test:        |                                          ^
+packages/plugin test:      29|       for (const mode of ['unapproved', 'disabled', 'enabled']) {
+packages/plugin test:      30|         const old = new PluginRegistry({
+packages/plugin test: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+packages/plugin test:  Test Files  2 failed | 44 passed (46)
+packages/plugin test:       Tests  2 failed | 617 passed (619)
+packages/plugin test:    Start at  01:40:49
+packages/plugin test:    Duration  23.46s (transform 5.21s, setup 0ms, collect 17.89s, tests 15.14s, environment 29ms, prepare 11.34s)
+packages/view-dom test:  ✓ src/__tests__/p7-source-line-reuse.test.ts (26 tests) 17759ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1  2749ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1  1536ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1  1703ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 512  1271ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 512  1070ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 512  1109ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1024  2689ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1024  1270ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1024  1103ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > preserves a reversed selection in a retained later line and restores it through history  1332ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after grow  442ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after shrink  455ms
+packages/view-dom test:    ✓ ordinary source single-line rendering reuse > preserves outer and affected-line scroll when an edit leaves selection unchanged  333ms
+packages/plugin test: Failed
+/tmp/milkup-windows-manual-candidate/packages/plugin:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/plugin@2.0.0-beta.3 test: `vitest run`
+Exit status 1
+[ELIFECYCLE] Test failed. See above for more details.

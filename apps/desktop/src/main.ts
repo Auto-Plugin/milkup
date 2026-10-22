@@ -3801,7 +3801,8 @@ function renderPluginManager(): void {
     target.querySelectorAll<HTMLButtonElement>('[data-plugin-action="toggle"]'),
   )) {
     if (pendingPluginToggles.has(button.dataset.pluginId ?? '')) {
-      button.disabled = true
+      // Keep keyboard focus while the operation lock rejects further activation.
+      button.setAttribute('aria-disabled', 'true')
       button.setAttribute('aria-busy', 'true')
     }
   }

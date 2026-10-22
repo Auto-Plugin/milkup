@@ -105,3 +105,61 @@ for (const windowed of [false, true])
       await expect(page.locator('.milkup-code-language')).toHaveCount(0)
     })
   }
+
+for (const windowed of [false, true]) {
+  for (const [initial, selected, beforeCount, afterCount] of [
+    ['', 'javascript', 0, 1],
+    ['javascript', '', 1, 0],
+    ['unknown', 'javascript', 0, 1],
+  ] as const) {
+    test(`${windowed ? 'windowed' : 'ordinary'} refreshes code body for ${initial || 'plain'} to ${selected || 'plain'} and history`, async ({
+      page,
+    }, info) => {
+      const body = 'const 名 = "😀 <img src=x>"; // 原文保持'
+      const text =
+        '```' +
+        initial +
+        '\r\n' +
+        body +
+        '\r\n```\r\n' +
+        (windowed ? ('padding text '.repeat(8) + '\r\n').repeat(24000) : '')
+      await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+        const response = await route.fetch()
+        const body = (await response.text()).replace(
+          'function createDesktopFileService() {',
+          `function createDesktopFileService() {
+          const service = createMockFileService(); const text = ${JSON.stringify(text)};
+          service.getFileMetadata = async path => ({path,sizeBytes:new TextEncoder().encode(text).length,readonly:false});
+          service.openPath = async path => ({documentId:'code-refresh',file:{path},text,diskSnapshotHash:'initial'});
+          return service;`,
+        )
+        await route.fulfill({ response, body })
+      })
+      await page.goto('/')
+      await page.getByRole('button', { name: '菜单', exact: true }).click()
+      await page.getByRole('button', { name: '打开', exact: true }).click()
+      await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+      await expect(page.locator('.milkup-source-document-view')).toHaveCount(windowed ? 1 : 0)
+      await page.keyboard.press('Control+2')
+      const keywords = page.locator('.milkup-code-token-keyword')
+      const codeBody = page.locator('.milkup-line[data-line="2"]')
+      await expect(keywords).toHaveCount(beforeCount)
+      await page.getByLabel('Code language', { exact: true }).selectOption(selected)
+      await expect(keywords).toHaveCount(afterCount)
+      await expect(codeBody).toHaveAttribute('data-code-language', selected)
+      await expect(codeBody).toHaveText(body)
+      await page.screenshot({ path: info.outputPath('selected.png') })
+      await page.keyboard.press('Control+z')
+      await expect(keywords).toHaveCount(beforeCount)
+      await expect(codeBody).toHaveAttribute('data-code-language', initial)
+      await expect(codeBody).toHaveText(body)
+      await page.keyboard.press('Control+Shift+z')
+      await expect(keywords).toHaveCount(afterCount)
+      await expect(codeBody).toHaveAttribute('data-code-language', selected)
+      await expect(codeBody).toHaveText(body)
+      await page.keyboard.press('Control+1')
+      await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('```' + selected)
+      await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText(body)
+    })
+  }
+}

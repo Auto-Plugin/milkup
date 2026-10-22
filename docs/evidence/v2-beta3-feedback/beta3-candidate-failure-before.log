@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (29 tests | 1 failed | 28 skipped) 29ms
+   ↓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required
+   ↓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure
+   ↓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate
+   ↓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror
+   ↓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails
+   ↓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data
+   ↓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate
+   ↓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery
+   ↓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever
+   ↓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation
+   ↓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination
+   ↓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter
+   ↓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope
+   ↓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation
+   ↓ P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code
+   ↓ P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance
+   ↓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write
+   ↓ P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement
+   ↓ P6 bounded management metadata > lists all 512 valid native entries with long Unicode metadata and keeps differences exact
+   ↓ P6 mounted UI retirement > retires mounted UI without dispatching renderer RPC after epoch revocation
+   ↓ P6 mounted UI retirement > still rejects real owner stop failure when a UI was mounted
+   ↓ P6 trusted manager action wiring > rejects a candidate through ActionRegistry without changing old active approval or execution
+   ↓ P6 trusted manager action wiring > requires control permission and exact well-formed reviewed identity before rejection
+   ↓ P6 trusted manager action wiring > registers every fixed plugin action dispatched by the shipped manager click handler
+   ↓ P6 catalog activation error presentation > surfaces a readable Error through the real action while retaining the typed runtime cause and restored old instance
+   ↓ P6 activation error identity boundary > preserves existing Error and unknown values without reading diagnostic accessors
+   ↓ P6 trusted host complete catalog diagnostics > shows repeated native diagnostics after old-version recovery without leaking them into the public projection or list
+   ↓ P6 trusted host execution support explanation > explains sidecar and strict DOM limits in details and candidate review without making platform verification claims
+   × beta3 failed candidate recovery > keeps a first-install activation failure visible with diagnostics and permits explicit retry 28ms
+     → expected [] to have a length of 1 but got +0
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > beta3 failed candidate recovery > keeps a first-install activation failure visible with diagnostics and permits explicit retry
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:1080:39
+    1078|     await s.approve()
+    1079|     await expect(s.manager.enable('test.lifecycle')).rejects.toThrow('…
+    1080|     expect(s.manager.state().records).toHaveLength(1)
+       |                                       ^
+    1081|     expect(s.manager.state().records[0]).toMatchObject({ enabled: fals…
+    1082|     expect(s.manager.state().records[0]!.errors.join(' ')).toContain('…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 28 skipped (29)
+   Start at  01:30:56
+   Duration  2.30s (transform 1.36s, setup 0ms, collect 1.84s, tests 29ms, environment 0ms, prepare 87ms)
+

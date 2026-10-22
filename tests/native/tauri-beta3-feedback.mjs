@@ -21,6 +21,11 @@ const output = required('MILKUP_NATIVE_EVIDENCE_DIR')
 await mkdir(output, { recursive: true })
 const file = path.join(output, 'beta3-feedback.md')
 await writeFile(file, '# Beta3 feedback\n\n## Second heading\n\nNative fixture.\n', { flag: 'wx' })
+const matrixOnly = process.argv.includes('--matrix-only')
+const smokeOnly = process.argv.includes('--smoke-only')
+assert(!(matrixOnly && smokeOnly))
+const matrixZooms = process.env.MILKUP_NATIVE_ZOOMS?.split(',').map(Number) ?? [1, 1.25, 1.5, 2]
+assert(matrixZooms.every((zoom) => [1, 1.25, 1.5, 2].includes(zoom)))
 const results = []
 let app
 const ui = nativeFixture(() => app)
@@ -135,68 +140,96 @@ try {
   app = await startProduction(file, output, { diagnostics: false })
   for (const id of ['milkup.preferences', 'milkup.outline', 'milkup.workspace']) await activate(id)
   await closeOverlays()
-  await record('sidebar-pointer', async (row) => {
-    await app.key('ctrl+n')
-    await app.key('ctrl+o')
-    await ui.picker(file)
-    await app.until(
-      async () => (await app.probe()).path === file,
-      'document remounted through native file picker',
-    )
-    await ui.click('[data-sidebar-toggle]')
-    const panels = (await observe()).panels
-    assert(panels.length >= 2)
-    const selector = `[data-plugin-ui="${panels[0].id}"] .plugin-ui-panel-resize`
-    const before = panels[0].rect.height
-    const point = await pointerPoint(selector)
-    x('mousemove', '--window', ui.windowId(), String(point.x), String(point.y), 'mousedown', '1')
-    x('mousemove', '--window', ui.windowId(), String(point.x), String(point.y + 50))
-    await app.delay(100)
-    x('mouseup', '1')
-    row.before = panels
-    row.afterDrag = (await observe()).panels
-    assert(Math.abs(row.afterDrag[0].rect.height - before - 50 / point.zoom) <= 2)
-    await app.focus(selector)
-    await app.key('Down')
-    assert(
-      Math.abs((await observe()).panels[0].rect.height - row.afterDrag[0].rect.height - 16) <= 2,
-    )
-    await screenshot('sidebar-pointer-open')
-    await ui.click('[data-sidebar-toggle]')
-  })
-  for (const entry of ['details', 'group'])
-    await record('modal-' + entry, async (row) => {
-      await ui.details('milkup.preferences')
-      let opener = action('open-ui', 'milkup.preferences')
-      if (entry === 'group') {
-        await ui.list()
-        await pointerClick('[data-plugin-menu-group] > summary')
-        opener = '[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'
+  if (!matrixOnly) {
+    await record('card-toggle-focus', async (row) => {
+      await ui.list()
+      const selector = '.plugin-summary-card[data-plugin-id="milkup.outline"] [role="switch"]'
+      await ui.ready(selector)
+      await app.focus(selector)
+      row.transitions = []
+      for (const checked of ['false', 'true']) {
+        await app.key('Return')
+        await app.until(
+          () =>
+            app.execute(
+              'const e=document.querySelector(arguments[0]);return e.getAttribute("aria-checked")===arguments[1]&&e.getAttribute("aria-busy")!=="true"',
+              selector,
+              checked,
+            ),
+          'toggle completed',
+        )
+        const state = await app.execute(
+          'const e=document.querySelector(arguments[0]);return {checked:e.getAttribute("aria-checked"),focus:document.activeElement===e,disabled:e.disabled,menu:!!document.querySelector("[data-app-menu]").getClientRects().length}',
+          selector,
+        )
+        row.transitions.push(state)
+        assert(state.focus && state.menu && !state.disabled)
       }
-      await pointerClick(opener)
-      await app.until(
-        () => app.execute('return !!document.querySelector(".plugin-ui-modal")'),
-        'modal opened',
-      )
-      assert((await observe()).menuVisible)
-      await pointerClick('.plugin-ui-modal [data-plugin-field-control="editor.fontSize"]')
-      row.open = await observe()
-      await screenshot('modal-' + entry + '-open')
-      await app.key('Escape')
-      assert((await observe()).menuVisible)
-      assert(
-        await app.execute(
-          'return document.activeElement===document.querySelector(arguments[0])',
-          opener,
-        ),
-      )
       await closeOverlays()
     })
-  for (const value of ['light', 'dark']) {
+    await record('sidebar-pointer', async (row) => {
+      await app.key('ctrl+n')
+      await app.key('ctrl+o')
+      await ui.picker(file)
+      await app.until(
+        async () => (await app.probe()).path === file,
+        'document remounted through native file picker',
+      )
+      await ui.click('[data-sidebar-toggle]')
+      const panels = (await observe()).panels
+      assert(panels.length >= 2)
+      const selector = `[data-plugin-ui="${panels[0].id}"] .plugin-ui-panel-resize`
+      const before = panels[0].rect.height
+      const point = await pointerPoint(selector)
+      x('mousemove', '--window', ui.windowId(), String(point.x), String(point.y), 'mousedown', '1')
+      x('mousemove', '--window', ui.windowId(), String(point.x), String(point.y + 50))
+      await app.delay(100)
+      x('mouseup', '1')
+      row.before = panels
+      row.afterDrag = (await observe()).panels
+      assert(Math.abs(row.afterDrag[0].rect.height - before - 50 / point.zoom) <= 2)
+      await app.focus(selector)
+      await app.key('Down')
+      assert(
+        Math.abs((await observe()).panels[0].rect.height - row.afterDrag[0].rect.height - 16) <= 2,
+      )
+      await screenshot('sidebar-pointer-open')
+      await ui.click('[data-sidebar-toggle]')
+    })
+    for (const entry of ['details', 'group'])
+      await record('modal-' + entry, async (row) => {
+        await ui.details('milkup.preferences')
+        let opener = action('open-ui', 'milkup.preferences')
+        if (entry === 'group') {
+          await ui.list()
+          await pointerClick('[data-plugin-menu-group] > summary')
+          opener = '[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'
+        }
+        await pointerClick(opener)
+        await app.until(
+          () => app.execute('return !!document.querySelector(".plugin-ui-modal")'),
+          'modal opened',
+        )
+        assert((await observe()).menuVisible)
+        await pointerClick('.plugin-ui-modal [data-plugin-field-control="editor.fontSize"]')
+        row.open = await observe()
+        await screenshot('modal-' + entry + '-open')
+        await app.key('Escape')
+        assert((await observe()).menuVisible)
+        assert(
+          await app.execute(
+            'return document.activeElement===document.querySelector(arguments[0])',
+            opener,
+          ),
+        )
+        await closeOverlays()
+      })
+  }
+  for (const value of smokeOnly ? ['light'] : ['light', 'dark']) {
     await theme(value)
-    for (const mode of ['source', 'live'])
-      for (const width of [1280, 760])
-        for (const zoom of [1, 1.5]) {
+    for (const mode of smokeOnly ? ['live'] : ['source', 'live'])
+      for (const width of smokeOnly ? [1280] : [1280, 760])
+        for (const zoom of smokeOnly ? [1] : matrixZooms) {
           await record(`menu-${value}-${mode}-${width}-${zoom}`, async () => {
             await closeOverlays()
             await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
@@ -208,10 +241,16 @@ try {
                 ),
               'zoom reset',
             )
-            if (zoom === 1.5) {
+            for (let step = 0; step < [1, 1.25, 1.5, 2].indexOf(zoom); step++) {
               await app.key('ctrl+equal')
-              await app.delay(100)
-              await app.key('ctrl+equal')
+              await app.until(
+                () =>
+                  app.execute(
+                    'return Number(document.querySelector("#app").dataset.appearanceZoom)===arguments[0]',
+                    [1.25, 1.5, 2][step],
+                  ),
+                'native zoom increment',
+              )
             }
             x('windowsize', ui.windowId(), String(width), '800')
             await app.until(
@@ -235,32 +274,33 @@ try {
           })
         }
   }
-  await record('recovery-backup-not-save', async (row) => {
-    await closeOverlays()
-    await app.key('ctrl+0')
-    x('windowsize', ui.windowId(), '1280', '800')
-    await app.key('ctrl+1')
-    await app.focus('.milkup-input-proxy')
-    await app.text('Unsaved native recovery probe. ')
-    await app.until(
-      () =>
-        app.execute(
-          `const a=document.querySelector("#app");return a.dataset.recoveryPhase==="ready"&&Number(a.dataset.recoveryVersion)===Number(document.querySelector('[data-stat="version"]').textContent)`,
-        ),
-      'recovery backup complete',
-      30000,
-    )
-    row.state = await observe()
-    assert.equal(row.state.recovery.text, '')
-    assert.equal(row.state.recovery.hidden, true)
-    assert.equal((await app.probe()).dirty, true)
-    assert.equal(
-      await readFile(file, 'utf8'),
-      '# Beta3 feedback\n\n## Second heading\n\nNative fixture.\n',
-    )
-    await app.key('ctrl+s')
-    await app.until(async () => !(await app.probe()).dirty, 'explicit file save')
-  })
+  if (!matrixOnly)
+    await record('recovery-backup-not-save', async (row) => {
+      await closeOverlays()
+      await app.key('ctrl+0')
+      x('windowsize', ui.windowId(), '1280', '800')
+      await app.key('ctrl+1')
+      await app.focus('.milkup-input-proxy')
+      await app.text('Unsaved native recovery probe. ')
+      await app.until(
+        () =>
+          app.execute(
+            `const a=document.querySelector("#app");return a.dataset.recoveryPhase==="ready"&&Number(a.dataset.recoveryVersion)===Number(document.querySelector('[data-stat="version"]').textContent)`,
+          ),
+        'recovery backup complete',
+        30000,
+      )
+      row.state = await observe()
+      assert.equal(row.state.recovery.text, '')
+      assert.equal(row.state.recovery.hidden, true)
+      assert.equal((await app.probe()).dirty, true)
+      assert.equal(
+        await readFile(file, 'utf8'),
+        '# Beta3 feedback\n\n## Second heading\n\nNative fixture.\n',
+      )
+      await app.key('ctrl+s')
+      await app.until(async () => !(await app.probe()).dirty, 'explicit file save')
+    })
 } finally {
   await app?.close()
 }

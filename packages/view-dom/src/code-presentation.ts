@@ -43,7 +43,11 @@ export function codeBlockForLine(
   to: number,
 ): SyntaxNode | undefined {
   for (const block of blocks) {
-    if (block.from > from || block.to < to) continue
+    // CST ends are exclusive (including a closing fence's newline). A valid
+    // block must not claim the empty line immediately after it. An incomplete
+    // fence may still own the editable empty line at EOF.
+    if (block.from > from || block.to < to || (block.to === from && block.status === 'valid'))
+      continue
     if (block.type === 'fencedCode' || block.type === 'indentedCode') return block
     const nested = block.children && codeBlockForLine(block.children, from, to)
     if (nested) return nested

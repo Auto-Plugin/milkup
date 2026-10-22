@@ -441,6 +441,7 @@ export class EditorView {
     const documentChanged = transactions.some(transactionChangesDocument)
 
     if (documentChanged || previousState.doc.text !== state.doc.text) {
+      const previousRoot = this.markdownParseState.cache.root
       this.markdownParseState = updateEditorMarkdownParseState(
         this.markdownParseState,
         previousState,
@@ -448,7 +449,7 @@ export class EditorView {
         transactions,
         this.markdownSyntax,
       )
-      if (!this.renderChangedDocumentLines(previousState, state, transactions)) {
+      if (!this.renderChangedDocumentLines(previousState, state, transactions, previousRoot)) {
         this.render()
       }
     } else if (selectionChanged(previousState, state) && this.mode !== 'source') {
@@ -746,39 +747,112 @@ export class EditorView {
     previousState: EditorState,
     state: EditorState,
     transactions: readonly Transaction[],
+    previousRoot: SyntaxNode,
   ): boolean {
     if (this.mode === 'source') {
       return this.renderChangedSourceLine(previousState, state, transactions)
     }
 
-    const lineNumbers = changedDocumentLineNumbers(previousState, state, transactions)
+    let lineNumbers = changedDocumentLineNumbers(previousState, state, transactions)
+    if (!lineNumbers) return false
 
-    if (!lineNumbers) {
-      return false
+    const changedNumber = lineNumbers[0]!
+    const oldLine = previousState.doc.line(changedNumber)
+    const nextLine = state.doc.line(changedNumber)
+    const oldDOM = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${changedNumber}"]`,
+    )
+    let codeInfoChanged = false
+    // The opening fence's info string is a rendering dependency of every body
+    // line. Ordinary single-line typing keeps its existing one-row fast path.
+    if (
+      oldDOM?.classList.contains('milkup-code-opening') ||
+      /^ {0,3}(?:`{3,}|~{3,})/u.test(nextLine.text)
+    ) {
+      const previousCode = codeBlockForLine(previousRoot.children ?? [], oldLine.from, oldLine.to)
+      const nextCode = codeBlockForLine(
+        this.markdownParseState.cache.root.children ?? [],
+        nextLine.from,
+        nextLine.to,
+      )
+      codeInfoChanged =
+        (previousCode?.from === oldLine.from || nextCode?.from === nextLine.from) &&
+        previousCode?.data?.info !== nextCode?.data?.info
+      if (codeInfoChanged) {
+        const last = Math.max(
+          previousCode
+            ? previousState.doc.lineAt(Math.max(previousCode.from, previousCode.to - 1)).number
+            : changedNumber,
+          nextCode
+            ? state.doc.lineAt(Math.max(nextCode.from, nextCode.to - 1)).number
+            : changedNumber,
+        )
+        lineNumbers = Array.from(
+          { length: last - changedNumber + 1 },
+          (_, index) => changedNumber + index,
+        )
+      }
     }
 
+    const replacements: { previous: HTMLElement; next: HTMLElement; scrollLeft: number }[] = []
     for (const lineNumber of lineNumbers) {
-      const previousLineDOM = this.contentDOM.querySelector<HTMLElement>(
+      const previous = this.contentDOM.querySelector<HTMLElement>(
         `.milkup-line[data-line="${lineNumber}"]`,
       )
-
-      if (!previousLineDOM) {
-        return false
-      }
-
-      const nextLineDOM = renderMarkdownLine(
-        this.ownerDocument,
-        state,
-        this.mode,
-        this.markdownParseState.cache.root.children ?? [],
-        lineNumber,
-        { controlledRenderers: this.controlledRenderers },
-      )
-      const scrollLeft = previousLineDOM.scrollLeft
-      previousLineDOM.replaceWith(nextLineDOM)
-      nextLineDOM.scrollLeft = scrollLeft
+      if (!previous) return false
+      replacements.push({
+        previous,
+        next: renderMarkdownLine(
+          this.ownerDocument,
+          state,
+          this.mode,
+          this.markdownParseState.cache.root.children ?? [],
+          lineNumber,
+          { controlledRenderers: this.controlledRenderers },
+        ),
+        scrollLeft: previous.scrollLeft,
+      })
     }
-
+    const replace = () => {
+      for (const { previous, next, scrollLeft } of replacements) {
+        previous.replaceWith(next)
+        next.scrollLeft = scrollLeft
+      }
+      const delta = state.doc.length - previousState.doc.length
+      if (codeInfoChanged && delta !== 0) {
+        // Reuse unrelated row/token nodes, but move their absolute source ranges
+        // after the fence edit (including later code pickers and preview ranges).
+        const last = lineNumbers.at(-1)!
+        for (const line of Array.from(
+          this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'),
+        )) {
+          if (Number(line.dataset.line) <= last) continue
+          for (const element of [
+            line,
+            ...Array.from(
+              line.querySelectorAll<HTMLElement>(
+                '[data-from], [data-to], [data-code-from], [data-presentation-from], [data-presentation-to], [data-presentation-block-from], [data-presentation-block-to]',
+              ),
+            ),
+          ]) {
+            for (const key of [
+              'from',
+              'to',
+              'codeFrom',
+              'presentationBlockFrom',
+              'presentationBlockTo',
+              'presentationFrom',
+              'presentationTo',
+            ]) {
+              const value = element.dataset[key]
+              if (value !== undefined) element.dataset[key] = String(Number(value) + delta)
+            }
+          }
+        }
+      }
+    }
+    if (codeInfoChanged) this.documentPresentation.updateContent(replace)
+    else replace()
     this.renderSelectionAndCursor()
     return true
   }

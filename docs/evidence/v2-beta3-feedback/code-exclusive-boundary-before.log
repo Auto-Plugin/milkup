@@ -1,0 +1,101 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/code-presentation.test.ts (26 tests | 8 failed) 1141ms
+   ✓ ordinary highlights safe source text and changes only fence language with undo 75ms
+   ✓ windowed highlights safe source text and changes only fence language with undo 233ms
+   ✓ ordinary supports empty/incomplete fences and plain text without losing trailing metadata 12ms
+   ✓ ordinary isolates language history from typed Unicode and composition commits 21ms
+   ✓ ordinary read-only and stale detached controls cannot mutate text 7ms
+   ✓ ordinary bounds token nodes and keeps oversized and unknown language text intact 38ms
+   ✓ windowed supports empty/incomplete fences and plain text without losing trailing metadata 160ms
+   ✓ windowed isolates language history from typed Unicode and composition commits 123ms
+   ✓ windowed read-only and stale detached controls cannot mutate text 57ms
+   ✓ windowed bounds token nodes and keeps oversized and unknown language text intact 66ms
+   × ordinary updates body highlighting for plain to javascript and history 17ms
+     → expected <span …(3)></span> to be null
+   × ordinary updates body highlighting for javascript to plain and history 5ms
+     → expected <span …(3)></span> to be null
+   × ordinary updates body highlighting for unknown to javascript and history 5ms
+     → expected <span …(3)></span> to be null
+   × windowed updates body highlighting for plain to javascript and history 20ms
+     → expected <span …(3)></span> to be null
+   × windowed updates body highlighting for javascript to plain and history 17ms
+     → expected <span …(3)></span> to be null
+   × windowed updates body highlighting for unknown to javascript and history 21ms
+     → expected <span …(3)></span> to be null
+   ✓ ordinary retains later code nodes and remaps their picker after an earlier language edit 12ms
+   ✓ windowed retains later code nodes and remaps their picker after an earlier language edit 71ms
+   ✓ ordinary respects exclusive code extent for "```js\nconst x = 1;\n```" 8ms
+   ✓ ordinary respects exclusive code extent for "```js\n```" 7ms
+   × ordinary respects exclusive code extent for "```js\n\n```\n\nparagraph" 5ms
+     → expected [ 1, 2, 3, 4 ] to deeply equal [ 1, 2, 3 ]
+   ✓ ordinary respects exclusive code extent for "```js\nconst x = 1;\n```\nparagraph" 6ms
+   ✓ windowed respects exclusive code extent for "```js\nconst x = 1;\n```" 46ms
+   ✓ windowed respects exclusive code extent for "```js\n```" 48ms
+   × windowed respects exclusive code extent for "```js\n\n```\n\nparagraph" 15ms
+     → expected [ 1, 2, 3, 4 ] to deeply equal [ 1, 2, 3 ]
+   ✓ windowed respects exclusive code extent for "```js\nconst x = 1;\n```\nparagraph" 44ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary updates body highlighting for plain to javascript and history
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary updates body highlighting for javascript to plain and history
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary updates body highlighting for unknown to javascript and history
+ FAIL  src/__tests__/code-presentation.test.ts > windowed updates body highlighting for plain to javascript and history
+ FAIL  src/__tests__/code-presentation.test.ts > windowed updates body highlighting for javascript to plain and history
+ FAIL  src/__tests__/code-presentation.test.ts > windowed updates body highlighting for unknown to javascript and history
+AssertionError: expected <span …(3)></span> to be null
+
+- Expected: 
+null
+
++ Received: 
+<span
+  class="milkup-code-source"
+  data-from="47"
+  data-to="47"
+>
+  ​
+</span>
+
+ ❯ src/__tests__/code-presentation.test.ts:184:63
+    182|       const tail = s.view.contentDOM.querySelector('.milkup-line[data-…
+    183|       const afterFence = s.view.contentDOM.querySelector('.milkup-line…
+    184|       expect(afterFence.querySelector('.milkup-code-source')).toBeNull…
+       |                                                               ^
+    185|       const picker = s.view.contentDOM.querySelector<HTMLSelectElement…
+    186|       picker.value = selected
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/__tests__/code-presentation.test.ts > ordinary respects exclusive code extent for "```js\n\n```\n\nparagraph"
+ FAIL  src/__tests__/code-presentation.test.ts > windowed respects exclusive code extent for "```js\n\n```\n\nparagraph"
+AssertionError: expected [ 1, 2, 3, 4 ] to deeply equal [ 1, 2, 3 ]
+
+- Expected
++ Received
+
+  [
+    1,
+    2,
+    3,
++   4,
+  ]
+
+ ❯ src/__tests__/code-presentation.test.ts:255:35
+    253|       const s = await setup(kind, text, Selection.cursor(0))
+    254|       const renderedCodeLines = () => Array.from(s.view.contentDOM.que…
+    255|       expect(renderedCodeLines()).toEqual(codeLines)
+       |                                   ^
+    256|       const picker = s.view.contentDOM.querySelector<HTMLSelectElement…
+    257|       picker.value = ''
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 18 passed (26)
+   Start at  02:14:45
+   Duration  3.95s (transform 1.15s, setup 0ms, collect 1.19s, tests 1.14s, environment 803ms, prepare 294ms)
+

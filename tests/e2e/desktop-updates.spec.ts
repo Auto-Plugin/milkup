@@ -198,7 +198,9 @@ for (const mode of ['source', 'live'])
     await expect(page.locator('.plugin-state')).toHaveText('已禁用')
     await expect(page.getByRole('button', { name: '打开 软件更新', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: '移除', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Milkup Updates 详情', exact: true })).toHaveCount(0)
+    await expect(
+      page.getByRole('button', { name: 'Milkup Updates 详情', exact: true }),
+    ).toHaveCount(0)
     await page.keyboard.press('Escape')
     await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
     await page.locator('.milkup-editor').click()

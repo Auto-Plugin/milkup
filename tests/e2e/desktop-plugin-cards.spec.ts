@@ -256,6 +256,7 @@ test('beta3 card switch toggles in place without opening details', async ({ page
   await expect(page.locator('.plugin-detail')).toHaveCount(0)
   await card.getByRole('switch').click()
   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+  await expect(card.getByRole('switch')).toBeFocused()
   await expect(page.locator('.plugin-detail')).toHaveCount(0)
   await card.getByRole('switch').click()
   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
