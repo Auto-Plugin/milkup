@@ -165,6 +165,7 @@ try {
         row.transitions.push(state)
         assert(state.focus && state.menu && !state.disabled)
       }
+      await screenshot('card-toggle-active')
       await closeOverlays()
     })
     await record('sidebar-pointer', async (row) => {

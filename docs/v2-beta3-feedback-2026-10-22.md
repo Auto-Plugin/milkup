@@ -31,8 +31,16 @@ Linux生产构建准备曾遇历史release缓存坏软链；隔离target首次�
 
 追加检查发现两项回归，首个候选 `0c23f670e9eaa1df11f246bc297210f5c5034d28` 的 Windows run `39708703850` 已主动取消，终态 cancelled、0 artifacts，不能交付该候选。卡片操作中的原生 disabled 使键盘焦点丢失，改为可聚焦的 aria-disabled/aria-busy 并继续由每插件操作锁拒绝重复请求；新增焦点断言先失败后通过。Linux 生产代码块检查发现修改 fence 语言只重绘首行，正文仍用旧语言；扩大重绘到该代码块，并平移块后复用 DOM 的源位置。新增缺语言、已知语言、未知语言切换、Undo/Redo 及后续 picker 映射回归。
 
+最终修复还纠正 fence 半开范围：closing 之后的空行不再误归代码块。最后 817 项 view-dom 测试和 10 项真实 Chromium 代码块测试全部通过，26 项代码块单测含 EOF、空正文、内部空行、块后空行/段落和第二块 picker 位置。全仓 typecheck/build 通过；全仓格式检查发现一个旧测试调用换行，单独格式化后，最终全仓 Prettier 复验通过，Windows 全仓门禁仍保留。原始格式失败日志没有隐藏。
+
 首候选 Linux 原生通过菜单 32 个组合（100/125/150/200% 应用原生缩放、宽窄、source/live、浅深色）、真实侧栏指针拖动和 modal 焦点检查。工作区真实 GTK 选择目录、跨进程恢复最近文件、目录移走后有限失败与重新选择也通过；但所用外部 workspace 归档早于最后取消文案，因此保留该组合来源，最终重新构建全部独立插件及生产二进制后补验，不能把旧归档结果当作最终字节验证。上述 Linux 检查不代表 Windows 系统 DPI 或 GUI 手测。
+
+最终受测源码 `f40ff18dba33b42754af160739342faa3b4359a2`，Linux 生产二进制 SHA-256 `77ba1220e9501b7dd566d9c852b64199d05011fc4a2fe096db25b4a045d11242`（23,355,736 字节），最终 Workspace 1.0.1 归档 SHA-256 `701ba39d0d1b5ece557c4b46dbf6538a9b1eddd5459f3f08e289f768327c4931`。构建前后 79 项输入无漂移。新二进制 6 项交互 smoke 和 2 项严格代码检查通过：原生键鼠操作、语言与着色即时更新/清除、Undo/Redo、源码与 CRLF 落盘字节一致。另用最终归档做 4 项真实 workspace 补验通过（安装、无根失败、取消不重试、新进程恢复 recent）。两条 GTK picker 警告保留；不声称 stderr 无警告。新旧矩阵分别索引，不声称全部 32 格均在新二进制重跑。
 
 见[中文手测指南](manual-windows-beta3/README.md)和[反馈模板](manual-windows-beta3/FEEDBACK.md)。沿用beta.2用户数据时保留原插件/审批，Workspace旧1.0.0不会被静默覆盖；须从随包完整归档导入1.0.1并审阅启用。旧外部插件已丢失元数据时仍需重新导入；本轮不能凭空恢复其旧包。
 
 仅允许Auto-Plugin/milkup Actions artifact与本对话交付，小包、1天留存、既有50MiB界限。Windows DOM/PDF、真实升级安装/健康确认/自动回滚、系统IME和Windows系统DPI未验收；不以Linux或浏览器结果替代。
+
+## Windows 构建进行中
+
+最终产品源码 `f40ff18dba33b42754af160739342faa3b4359a2` 的 [run 39710566639](https://github.com/Auto-Plugin/milkup/actions/runs/39710566639) 已启动，当前未结束。此报告提交仅追加 Linux 证据和关闭菜单前的截图指令，不修改产品运行时代码、不触发新构建。安装器必须等 run 成功后下载回读、核对 ZIP/EXE/插件哈希才能交付。
