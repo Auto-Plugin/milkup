@@ -25,7 +25,7 @@
 
 ## 交付与未验收
 
-目标为 `2.0.0-beta.4` Windows x64 小型未签名 NSIS，沿用已批准的 Auto-Plugin/milkup Actions artifacts 和对话交付，保留一天；精确源码、EXE/ZIP 哈希、插件清单及实际下载链接将在终态交付记录补齐。手测指南和副本样本位于 `docs/manual-windows-beta4/`、`tests/fixtures/manual-beta4/`。
+目标为 `2.0.0-beta.4` Windows x64 小型未签名 NSIS，沿用已批准的 Auto-Plugin/milkup Actions artifacts 和对话交付，保留一天；精确源码、EXE/ZIP 哈希、插件清单及实际下载链接见文末最终 Windows 交付记录。手测指南和副本样本位于 `docs/manual-windows-beta4/`、`tests/fixtures/manual-beta4/`。
 
 不执行安装器，不上传到其他目的地。Windows GUI、IME、系统 DPI、实际升级/健康确认/回滚仍须真实验收；Linux Chromium/WebKit 结果不冒充 Windows。当前签名渠道未配置，Windows 独立 DOM/PDF 仍关闭；新版 Worker 不等于完整 Mermaid 支持。
 
@@ -43,10 +43,22 @@
 
 Linux release 二进制 SHA-256 `a31e3b2d222f7dbb69146cfb82b82f393d8504d4b75374793915633730c19301`，编译提交 d115364；其 520 项 Linux 构建输入与 7eee3944 候选逐字节相同。Windows Worker 平台归档单独重建验证。原生初轮 4 项通过后，测试错误地寻找 blob img，实际截图已经显示 typed SVG；保留失败并修正为精确向量节点/连线/标签/尺寸/可见性断言。新临时目录完整复验 38/38 通过，含 32 组 light/dark × source/live × 1280/760 宽 × 原生 100/125/150/200% 缩放，真实卡片动作、指针分隔条、About 和恢复备份不等于保存。
 
-最终 Worker 归档首次补验脚本报告 7/7，但随后像素复核推翻了诊断可见性的弱断言：提示虽有 DOM 高度，已被父编辑器滚动裁掉。完整四行源码、无错误图形替换、磁盘字节不变及合法向量断言仍有效；这次不能称为实际诊断可见性通过。只读六帧探针确认 notice top=8、editor top=37、scrollTop=29，提示中心命中标题栏。正在以原顶部不滚走新提示的最小修复补验；其他滚动位置仍保留原有阅读锚定。截图和只读 DOM 观察在 native-first/native-matrix/native-final，原失败没有覆盖。使用既有私有用户/挂载命名空间；初次嵌套沙箱因只读 uid_map 失败，获准在执行器启动同一隔离映射后成功，未关闭 WebKit 沙箱。所有这些是 Linux WebKit/X11 结果，不是 Windows GUI、OS DPI 或中文 IME 验收。
+最终 Worker 归档首次补验脚本报告 7/7，但随后像素复核推翻了诊断可见性的弱断言：提示虽有 DOM 高度，已被父编辑器滚动裁掉。完整四行源码、无错误图形替换、磁盘字节不变及合法向量断言仍有效；这次不能称为实际诊断可见性通过。只读六帧探针确认 notice top=8、editor top=37、scrollTop=29，提示中心命中标题栏。该轮转向以原顶部不滚走新提示的最小修复补验，最终结果见下文；其他滚动位置仍保留原有阅读锚定。截图和只读 DOM 观察在 native-first/native-matrix/native-final，原失败没有覆盖。使用既有私有用户/挂载命名空间；初次嵌套沙箱因只读 uid_map 失败，获准在执行器启动同一隔离映射后成功，未关闭 WebKit 沙箱。所有这些是 Linux WebKit/X11 结果，不是 Windows GUI、OS DPI 或中文 IME 验收。
 
-原生严格断言对第一版提示修复 `993b2a30` 再次报红：220 项局部测试虽通过，但只覆盖 provider reject 路径。真实错误 fragment 在 `paint()` 内调用 fallback，随后外层无条件恢复锚点，同样把提示滚走。此候选未推送/未跑 Windows CI；原生失败与像素保留于 native-notice-first-fix。必须覆盖真实 error fragment / incomplete 响应路径后重新构建验收，不能沿用局部测试绿灯声明已修复。
+原生严格断言对第一版提示修复 `993b2a30` 再次报红：220 项局部测试虽通过，但只覆盖 provider reject 路径。真实错误 fragment 在 `paint()` 内调用 fallback，随后外层无条件恢复锚点，同样把提示滚走。此候选当时未单独推送或运行 Windows CI，随后作为最终提交的祖先一并推送；原生失败与像素保留于 native-notice-first-fix。必须覆盖真实 error fragment / incomplete 响应路径后重新构建验收，不能沿用局部测试绿灯声明已修复。
 
 最终 `0e74d9fad211c304ef68449fa6becb7450dfffef` 补齐 paint 外层：只有初始顶部且实际产生 notice 时跳过该次阅读锚点恢复，成功预览和已滚动位置不变。error fragment/incomplete 两个回归先红后绿，225 项相关测试与类型检查通过。新 Linux release SHA-256 `c2ec837c2c24b14e426b52719f90cad48525402499f14855b1a5f86ac66ab754`，520 项输入与该提交无漂移。严格原生 38/38 通过；诊断真实像素显示、notice y=37..66.1875、editor y=37、scrollTop=0，命中自身且不受祖先裁切，源码和磁盘字节完整。已目视系统截图，不再依赖 DOM 存在作为可见性证明。最终 Windows run 39735106683 受测同一源码；此前 39733156227 因发现此缺陷主动取消，0 artifacts。
 
 最终同一二进制另通过 760×520 的 16 组 light/dark × source/live × 100/125/150/200% 窄窗矩阵。200% 下需要正常纵向滚动，不代表全部内容同屏。真实键盘补验确认 Tab 从开关进入卡片面板动作、Return 打开、Escape 还原可见焦点；原生滚轮使 About 完整未配置说明可读且中心命中自身。该补验首跑因测试脚本未等待缩放重置而失败，补齐与主矩阵相同的等待后通过，未更改产品；两次记录保留。新增测试参数与辅助脚本属于报告提交，不改变受测产品源代码。
+
+## 最终 Windows 交付
+
+[run 39735106683](https://github.com/Auto-Plugin/milkup/actions/runs/39735106683) 全成功，精确产品源码 `0e74d9fad211c304ef68449fa6becb7450dfffef`。15 个源码检查阶段全部通过：2703 项工作区 Vitest、4 项 DOM bootstrap JS、10 个独立插件合计 348 项测试、全仓/插件类型、前端构建、Windows all-targets、2 项更新启动测试、215 项 Rust library 测试和 release 编译链接。Rust 另有 3 个显式 ignored（两个被父测试调用的私有子进程 fixture，以及未运行的搜索基线），不冒称全都直接执行。全仓格式检查及后续修改文件格式检查在 Linux 完成。
+
+[下载 beta.4 测试 ZIP](https://github.com/Auto-Plugin/milkup/actions/runs/39735106683/artifacts/12407892111)，artifact `12407892111`，4,687,673 字节，到期 `2026-10-23 07:00:12 UTC`。唯一安装器 `milkup-2.0.0-beta.4-windows-x64-0e74d9fad211-setup.exe`，4,402,677 字节，SHA-256 `2becc80d9b5ad7e9e2b8a0f76130157d4a8af32102b65b33c221d334ff4838c4`；ZIP SHA-256 `2a70a9c6ebe8a90d75c3e0d02595c90270016ee4716a1f644d5937bf73b48e6f`。已实际下载回读，外层 digest、18 文件 CRC、17 内层 SHA、10 插件归档/manifest、源码与版本全部匹配。初次 gh 下载重定向 Forbidden，空文件被哈希门禁拒绝；随后从同一 Actions artifact 经授权 GitHub 连接器读取成功，没有另行上传。父线程也已独立下载核验并交付用户。
+
+预装 Diagrams 1.2.0、Footnotes 1.0.1、Formatting 1.0.0、Images 1.0.0、Management 1.0.0、Math 1.0.0、Outline 1.3.3、Preferences 1.0.0、Shortcuts 1.0.0、Workspace 1.0.1。没有 Updates 插件归档；最终 Windows Diagrams SHA 与实际 Linux 原生/Chromium 验证的独立归档完全一致。清单和全部校验和在 windows-delivery 下，不把 Windows 安装器或插件构建产物复制到源代码仓库。
+
+NSIS 载荷已从包中提取，验证为编译应用按既有 Tauri 2.11.4 唯一 UNK→NSS 的 3 字节预期转换结果；不是声称载荷与打包前 EXE 逐字节相同。安装器、打包前应用和提取载荷版本均为 beta.4，未签名状态准确保留。没有运行安装器，没有真实安装、GUI/IME、更新/回滚验收；About 签名更新渠道未配置，Windows DOM/PDF 安全门禁仍关闭。手测只使用随包样本副本，遇安全警告记录停止，不绕过防护。
+
+本轮源码阶段约 18 分 24 秒，其中 Rust release 编译链接约 8 分 31 秒、all-targets 约 3 分 22 秒、更新测试约 1 分 36 秒、全 Rust 测试约 1 分 3 秒；依赖恢复约 6 秒，10 插件构建测试约 57 秒。早期原始 parser 换行失败在昂贵编译前停止；两个被修复替代的候选主动取消。没有累计耗时停工，没有额外构建或上传。证据报告提交与受测产品源码区别记录；当前等待用户 Windows 复测，不继续扩展本轮。
