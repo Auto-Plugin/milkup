@@ -1,6 +1,12 @@
 # beta.5 插件即时生效与编辑完整性
 
-本轮本地生产交互验收已完成，正准备精确候选的 Windows 构建；尚未上传 Windows beta.5 安装包。最新产品修复提交 `66ace39eca0df4be8083e34b53f6e2091aefa73a`，来自已交付 beta.4 `0e74d9fad211c304ef68449fa6becb7450dfffef`；仅独立分支 `dot/milkup-v2-beta5-feedback`，无 main 合并或正式 Release。
+beta.5 测试包已完成构建、上传和实际下载回读：[下载 Actions artifact 12422035699](https://github.com/Auto-Plugin/milkup/actions/runs/39766759018/artifacts/12422035699)，到期时间 **2026-10-23 11:17:49 UTC**。精确受测源码为 `a85db767e405336e75741fb0a6555c38e411702d`，[Windows CI 39766759018](https://github.com/Auto-Plugin/milkup/actions/runs/39766759018) 一次成功。最新产品修复提交 `66ace39eca0df4be8083e34b53f6e2091aefa73a`，来自已交付 beta.4 `0e74d9fad211c304ef68449fa6becb7450dfffef`；仅独立分支 `dot/milkup-v2-beta5-feedback`，无 main 合并或正式 Release。
+
+安装器：`milkup-2.0.0-beta.5-windows-x64-a85db767e405-setup.exe`，4,404,846 bytes，SHA-256 `82acebfb58265ca68a9296370a08437f9816fe343d58e678e74569754d6a436c`。ZIP 为 4,694,776 bytes，SHA-256 `ff61e4b28aa363577c0a99e56ebfd5b73d1c31837b5e37420c67ac908e660d1c`，与 GitHub artifact 元数据相符。ZIP 内含中文 `README.md`、`FEEDBACK.md`、两个样例及哈希清单；[中文手测指南](manual-windows-beta5/README.md) 也保存在源码中。
+
+下载回读检查了全部 18 个文件的 CRC 和 17 项清单 SHA、10 个独立 Worker 插件、安装器/应用 PE 版本，以及实际内嵌前端。安装器解出的应用 SHA-256 为 `de56cca117b2934744f707d6fba861769cce1ebd06337f02c5c230b2fa29f41f`；唯一三字节 NSIS 标记转换与编译输出相符。静态解出 12 个前端资源，`index.html` 实际引用 `/assets/index-BVCjJ5Po.js`，其中包含 beta.5 版本及本轮界面标记，没有 beta.3/beta.4 版本字符串。这证明交付内容，不能代替真实 Windows GUI 执行。
+
+随包版本为 Diagrams 1.2.0、Footnotes 1.0.1、Formatting 1.0.1、Images 1.0.0、Management 1.0.0、Math 1.0.0、Outline 1.3.3、Preferences 1.0.0、Shortcuts 1.0.0、Workspace 1.0.1；均为 Worker，无 Updates 插件。实际 Windows Formatting 归档 SHA-256 `1a69786b8443c4eb534ccc22fa221219d914792e74fdc4e95fe1b2adcc9967d9`，精确匹配修复后 pnpm 路径布局复现；与 Linux 独立归档仅有已核验的首行 SDK 路径注释差异，其余 entry 和 manifest 一致，不是修复前的旧归档。
 
 ## 已确认的问题与修复
 
@@ -56,7 +62,15 @@ Linux release 使用既有工具链与缓存，538 项输入和提交逐字节�
 
 新构建窗口化首轮布局检查还记录了模式切换后尚未等待 Worker 图形挂载的前提失败（17 步后）；其 after 原始快照已出现目标，未加输入或改产品。仅补有界挂载等待，保留所有可见性/边界/源文断言，第二轮完整 30 步通过。窄窗 200% 的断言与截图证明可滚动访问和相交边界，不能声称整图/全部正文同时可见。旧 99 步证据保留在 `native-final`；新构建精确证据是 `migration-viewportfix` 与 `windowed-final`，两者不能混写为同一个构建。
 
-最终 Windows 精确 SHA/产物核验将在 CI 完成后追加。证据位于 `docs/evidence/v2-beta5-feedback/`，上一轮原始检查点仍保留于 `docs/evidence/v2-beta5-checkpoint/`。
+## 精确 Windows 候选结果
+
+受测提交 `a85db767e405336e75741fb0a6555c38e411702d` 的 15 个源码阶段全部通过：全仓 2,779 项测试（2,775 Vitest + 4 Node bootstrap）、14 个项目类型检查、前端构建、10 个独立插件构建/测试/类型检查、Rust all-targets、更新启动 2 项测试、原生库 215 项测试和 release 编译链接。原生库另有 3 项显式忽略：两个仅供进程/管道协议调用的私有 fixture，以及独立搜索性能基线；未把它们写成通过。源码/打包状态门禁通过，仍只允许已有的受限生成 schema/行尾变化规则，不能据此宣称所有 tracked 文件原字节不变。
+
+本轮 CI job 为 22 分 7 秒，无失败重跑。源码阶段 18 分 1 秒，其中 Rust all-targets 178 秒、更新测试编译/执行 103 秒、原生库编译/测试 62 秒、release 编译链接 503 秒；全仓测试 89 秒，10 个独立插件构建/测试 57 秒。随后 NSIS 构建/静态检查 2 分 45 秒、上传约 3 秒。原生构建占主要时间，没有为本轮扩展缓存工程或追加验收范围。GitHub 的旧工作流登记名称仍可能显示 beta2；版本判定使用精确提交、产物清单、PE 资源与实际内嵌前端，不使用登记名称。
+
+下载 CLI 在获网络授权后发生技术失败，只留下 0 字节临时文件；原始 stderr 未保留，不能补称为某个 HTTP 状态。随后通过已授权的同一 GitHub connector 取得实际下载引用，回读 ZIP 与官方 digest 完全一致。没有换上传目的地、执行安装器或运行 Windows 代码。
+
+证据位于 `docs/evidence/v2-beta5-feedback/`，其中 `windows-ci-final` 保留完整 CI 日志/阶段结果，`windows-delivery-final` 保留下载与内嵌资源核验；上一轮原始检查点仍保留于 `docs/evidence/v2-beta5-checkpoint/`。根代理另外重读实际 EXE 并重算其大小与 SHA-256，结果与独立回读一致。
 
 ## 保持的交付边界
 

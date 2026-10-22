@@ -18,10 +18,10 @@
     }
   ],
   "boundaries": [
-    "Linux native production and Chromium browser verification only; no Windows GUI/IME/system-DPI or installer execution.",
+    "Linux native production/Chromium browser interaction and actual Windows CI compile/tests passed; no Windows GUI/IME/system-DPI or installer execution.",
     "Original failure bytes retained; files suffixed .txt only change their names.",
     "Narrow 200% views require scrolling and do not prove all diagram content simultaneously visible.",
-    "Windows CI/artifact verification pending."
+    "Downloaded Actions artifact identity, checksums, NSIS image and embedded frontend statically verified; not real installation or update rollback acceptance."
   ],
   "files": [
     {
@@ -2805,6 +2805,101 @@
       "sha256": "310f91a0ac1d29ccbc75d35b78bbb11056a313b504426f3914331c136a03975f"
     },
     {
+      "path": "windows-ci-final/complete.log",
+      "bytes": 791081,
+      "sha256": "438c065ea4ba4d84d6f177913e3af9d6d79d9406641d6d3009d6b991f1cf3a8d"
+    },
+    {
+      "path": "windows-ci-final/copy-manifest.json.txt",
+      "bytes": 839,
+      "sha256": "14404aff034293631b4094959769c5c2ef0c97b6b9f678d1a0335507063ddd0d"
+    },
+    {
+      "path": "windows-ci-final/jobs.json.txt",
+      "bytes": 3588,
+      "sha256": "c9a9fd2d012ae0685221284fa02850b3306bfac1a4f9d8b51dacac25a28df635"
+    },
+    {
+      "path": "windows-ci-final/run.json.txt",
+      "bytes": 12428,
+      "sha256": "2a3a9eac4d74111852b8372ecdeb6afc8f6d89c301496e0848af16e3a0c4b07b"
+    },
+    {
+      "path": "windows-ci-final/source-summary.json.txt",
+      "bytes": 16704,
+      "sha256": "d31732de5c7df7cb43fd6480e187c7629342fa2b0ac29e07ce3f781f64f7670b"
+    },
+    {
+      "path": "windows-delivery-final/artifact-cli-download-error.json.txt",
+      "bytes": 985,
+      "sha256": "2fcc3931fb625599076cb469ae42104cb4f3b0be3b3df0de072bacb9fadc7d02"
+    },
+    {
+      "path": "windows-delivery-final/artifact-download-receipt.json.txt",
+      "bytes": 722,
+      "sha256": "cfc22541589815e5a27dc303e1c3b963522fbc6d697410690efc0d1cd9fb84e0"
+    },
+    {
+      "path": "windows-delivery-final/artifact-readback-summary.json.txt",
+      "bytes": 3425,
+      "sha256": "973f4e94ed18b232de6d27ec09118bae143ee11fe2c1dc5709b2d81658152961"
+    },
+    {
+      "path": "windows-delivery-final/artifact.json.txt",
+      "bytes": 844,
+      "sha256": "59849fb5c5dd576102d827e9796b5025062a60230920b5753370f6c756f34e2c"
+    },
+    {
+      "path": "windows-delivery-final/copy-manifest.json.txt",
+      "bytes": 2685,
+      "sha256": "3f2bfc570d8eac7d595fa6f6fa0a3f7abf478ac82e77d0d1f770f6b53b0e8bd6"
+    },
+    {
+      "path": "windows-delivery-final/deliverable/SHA256SUMS.txt",
+      "bytes": 1704,
+      "sha256": "1ab538d342692105a649105f779165b74b9ff3147cf83e453c34fc5ac8cb4089"
+    },
+    {
+      "path": "windows-delivery-final/deliverable/manifest.json.txt",
+      "bytes": 26460,
+      "sha256": "e98f6748d7a7826e79b91365fe905956b33fe4a5d23017a039353f422181fc4f"
+    },
+    {
+      "path": "windows-delivery-final/deliverable/plugins.json.txt",
+      "bytes": 4836,
+      "sha256": "a3d0d0f393ece6cb9e3c25771dfe64ffb773c4ce41e4710cc45374d2f61660a4"
+    },
+    {
+      "path": "windows-delivery-final/delivery-summary.json.txt",
+      "bytes": 12017,
+      "sha256": "9547d5528cfe3e1666100520312bc37d3bc8321c5e48d1f6a507d4938cd86a3a"
+    },
+    {
+      "path": "windows-delivery-final/download-verification.json.txt",
+      "bytes": 14100,
+      "sha256": "d20093fb9d049dc644ec5cf57c4bb7831b20c8106d027e4fe776a97b805b7304"
+    },
+    {
+      "path": "windows-delivery-final/embedded/embedded-frontend-proof.json.txt",
+      "bytes": 6633,
+      "sha256": "a5089a09f677fe17a170b87d5a57762daf9a468cf3c72259013ab417861ca48a"
+    },
+    {
+      "path": "windows-delivery-final/extract-embedded.log",
+      "bytes": 569,
+      "sha256": "9852c5ccce3724468687920a103a9a9b2085cd661f8e023ecab0eed20d143192"
+    },
+    {
+      "path": "windows-delivery-final/root-readback.json.txt",
+      "bytes": 619,
+      "sha256": "1a6392252f9d9551c96951a05a9df025b23b133349abf99a4e4207e80e8ab350"
+    },
+    {
+      "path": "windows-delivery-final/verify-download.log",
+      "bytes": 14100,
+      "sha256": "d20093fb9d049dc644ec5cf57c4bb7831b20c8106d027e4fe776a97b805b7304"
+    },
+    {
       "path": "workspace-summary.json.txt",
       "bytes": 5831,
       "sha256": "ccaf6520039d9a1deb556b0e8ef7c9dfcd53a884e670fc461673f4a7dc1ba090"
@@ -2819,5 +2914,19 @@
       "bytes": 1360,
       "sha256": "a59c11c3bdea53d0583d177387c84a88b1919db8a3336298ff354e49a60e32a3"
     }
-  ]
+  ],
+  "testedWindowsSource": "a85db767e405336e75741fb0a6555c38e411702d",
+  "windowsDelivery": {
+    "runId": 39766759018,
+    "artifactId": 12422035699,
+    "artifactUrl": "https://github.com/Auto-Plugin/milkup/actions/runs/39766759018/artifacts/12422035699",
+    "expiresAt": "2026-10-23T11:17:49Z",
+    "installer": {
+      "fileName": "milkup-2.0.0-beta.5-windows-x64-a85db767e405-setup.exe",
+      "bytes": 4404846,
+      "sha256": "82acebfb58265ca68a9296370a08437f9816fe343d58e678e74569754d6a436c",
+      "productVersion": "2.0.0-beta.5",
+      "signature": "NotSigned"
+    }
+  }
 }
