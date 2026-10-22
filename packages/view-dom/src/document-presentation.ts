@@ -202,6 +202,7 @@ interface SavedLine {
   readonly minHeight: string
 }
 interface PaintContext {
+  readonly sourceFocused: boolean
   readonly mode: PresentationSnapshot['mode']
   readonly sourceIdentity: object
   readonly sourceVersion: number
@@ -443,9 +444,13 @@ export class DocumentPresentation {
       event.target === this.root.querySelector('.milkup-input-proxy')
     )
       this.proxyNavigation = { element: origin.element, snapshot: this.snapshot() }
+    this.selectionChanged()
   }
   private readonly navigationFocusOut = (event: FocusEvent) => {
     if (event.target === this.root.querySelector('.milkup-input-proxy')) this.clearProxyNavigation()
+    // focusout fires before the next element owns focus. Repaint only after that
+    // handoff; an old caret in a blurred editor is not an active source edit.
+    queueMicrotask(() => this.selectionChanged())
   }
 
   constructor(
@@ -1344,7 +1349,12 @@ export class DocumentPresentation {
       const start = Math.min(selectionAnchor, head),
         end = Math.max(selectionAnchor, head)
       const candidates = response.result.fragments.filter(
-        (fragment) => !(start <= fragment.to && end >= fragment.from),
+        (fragment) =>
+          fragment.status === 'error' ||
+          !(start <= fragment.to && end >= fragment.from) ||
+          (fragment.layout === 'block' &&
+            start === end &&
+            (!context.sourceFocused || start === fragment.to)),
       )
       const fragments: DocumentPresentationFragment[] = []
       const blocks: { fromLine: number; toLine: number }[] = []
@@ -1648,7 +1658,11 @@ export class DocumentPresentation {
   }
   private paintContext(): PaintContext {
     const snapshot = this.snapshot()
+    const focused = this.root.ownerDocument.activeElement
     return {
+      sourceFocused:
+        this.root.contains(focused) &&
+        !(focused instanceof Element && focused.closest('[data-document-presentation]')),
       mode: snapshot.mode,
       sourceIdentity: snapshot.sourceIdentity,
       sourceVersion: snapshot.sourceVersion,
@@ -1659,6 +1673,7 @@ export class DocumentPresentation {
   }
   private samePaintContext(a: PaintContext, b: PaintContext): boolean {
     return (
+      a.sourceFocused === b.sourceFocused &&
       a.mode === b.mode &&
       a.sourceIdentity === b.sourceIdentity &&
       a.sourceVersion === b.sourceVersion &&

@@ -672,6 +672,7 @@ for (const windowed of [false, true]) {
     const view = await make('live', config, text)
     expect(view.contentDOM.querySelectorAll('math')).toHaveLength(1)
     expect(view.contentDOM.querySelectorAll('[data-presentation-collapsed="true"]')).toHaveLength(2)
+    view.inputDOM.focus()
     if (view instanceof SourceDocumentView) await view.revealSelection(2, Selection.cursor(5))
     else view.updateState(view.state.applyTransaction({ selection: Selection.cursor(5) }))
     await settle()

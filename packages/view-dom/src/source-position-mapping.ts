@@ -444,6 +444,7 @@ export function sourcePositionToVisualOffsetInLine(lineDOM: HTMLElement, positio
   const segments = visibleTextSourceSegments(lineDOM)
 
   if (segments.length === 0) {
+    if (lineDOM.querySelector('.milkup-code-source.milkup-marker-hidden')) return 0
     return clamp(position, lineFrom, lineTo) - lineFrom
   }
 

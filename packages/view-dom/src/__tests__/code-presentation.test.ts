@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EditorView } from '../editor-view'
 import { SourceDocumentView, type SourceDocumentEdit } from '../source-document-view'
+import { sourcePositionToVisualOffsetInLine } from '../source-position-mapping'
 
 const views: Array<EditorView | SourceDocumentView> = []
 afterEach(() => {
@@ -266,4 +267,176 @@ for (const kind of ['ordinary', 'windowed'] as const) {
       expect(renderedCodeLines()).toEqual(codeLines)
     })
   }
+}
+
+for (const kind of ['ordinary', 'windowed'] as const) {
+  it(`${kind} hides both fenced markers in live while source and copied Markdown stay exact`, async () => {
+    const text = 'before\r\n  ~~~~js title="原文😀"\r\nconst 名 = "😀"\r\n  ~~~~~  \r\nafter'
+    const s = await setup(kind, text, Selection.range(text.length, 0))
+    const fences = s.view.contentDOM.querySelectorAll<HTMLElement>(
+      '.milkup-code-opening .milkup-code-source, .milkup-code-closing .milkup-code-source',
+    )
+    expect(fences).toHaveLength(2)
+    for (const fence of Array.from(fences)) {
+      expect(fence.classList.contains('milkup-marker-hidden')).toBe(true)
+      expect(
+        sourcePositionToVisualOffsetInLine(fence.parentElement!, Number(fence.dataset.to)),
+      ).toBe(0)
+    }
+    expect(s.view.contentDOM.querySelector<HTMLElement>('.milkup-code-closing')!.style.height).toBe(
+      '0px',
+    )
+    const copied: string[] = []
+    const event = new Event('copy', { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'clipboardData', {
+      value: { setData: (_type: string, value: string) => copied.push(value) },
+    })
+    s.view.inputDOM.dispatchEvent(event)
+    await s.flush()
+    if (s.view instanceof EditorView) {
+      const range = s.view.state.selection.main
+      expect(s.view.state.doc.slice(range.from, range.to)).toBe(text)
+    } else expect(copied).toContain(text)
+    s.view.setMode('source')
+    await s.flush()
+    expect(s.view.contentDOM.querySelector('.milkup-code-language')).toBeNull()
+    expect(s.view.contentDOM.querySelector('.milkup-marker-hidden')).toBeNull()
+    expect(s.view.contentDOM.querySelector('.milkup-line[data-line="2"]')?.textContent).toBe(
+      '  ~~~~js title="原文😀"',
+    )
+    expect(s.current().doc.text).toBe(text)
+    expect(
+      s.view instanceof EditorView ? s.view.state.selection.main : s.view.selection.main,
+    ).toMatchObject({ anchor: text.length, head: 0 })
+  })
+
+  it(`${kind} arrows cross hidden fences without stopping and shift-copy keeps delimiters`, async () => {
+    const text = 'before\n```js\n名😀\n```\nafter'
+    const s = await setup(kind, text, Selection.cursor(6))
+    const key = async (key: string, shiftKey = false) => {
+      s.view.inputDOM.dispatchEvent(
+        new KeyboardEvent('keydown', { key, shiftKey, bubbles: true, cancelable: true }),
+      )
+      await s.flush()
+    }
+    const head = () =>
+      (s.view instanceof EditorView ? s.view.state.selection : s.view.selection).main.head
+    await key('ArrowRight')
+    expect(head()).toBe(text.indexOf('名'))
+    await key('End')
+    await key('ArrowRight', true)
+    expect(head()).toBe(text.indexOf('after'))
+    const selection = (s.view instanceof EditorView ? s.view.state.selection : s.view.selection)
+      .main
+    expect(s.current().doc.slice(selection.from, selection.to)).toBe('\n```\n')
+    await key('ArrowLeft')
+    expect(head()).toBe(text.indexOf('名') + '名😀'.length)
+    await key('ArrowUp')
+    expect(head()).toBeLessThanOrEqual(6)
+    expect(s.current().doc.text).toBe(text)
+  })
+}
+
+it('ordinary preview hides fenced source and retains the language picker', async () => {
+  const s = await setup('ordinary', '```python\nx = "中文😀"\n```')
+  s.view.setEditable(false)
+  expect(s.view.contentDOM.querySelector('.milkup-code-language')).not.toBeNull()
+  expect(
+    s.view.contentDOM.querySelectorAll('.milkup-code-source.milkup-marker-hidden'),
+  ).toHaveLength(2)
+})
+
+for (const kind of ['ordinary', 'windowed'] as const) {
+  for (const text of ['```js\n', '```js\n```', '~~~unknown\n中文😀', '```js\n~~~\n```']) {
+    it(`${kind} preserves empty/incomplete and literal fences: ${JSON.stringify(text)}`, async () => {
+      const s = await setup(kind, text, Selection.cursor(0))
+      expect(
+        s.view.contentDOM.querySelector('.milkup-code-opening .milkup-marker-hidden'),
+      ).not.toBeNull()
+      if (text.includes('\n~~~')) {
+        const literal = s.view.contentDOM.querySelector(
+          '.milkup-line[data-line="2"] .milkup-code-source',
+        )!
+        expect(literal.textContent).toBe('~~~')
+        expect(literal.classList.contains('milkup-marker-hidden')).toBe(false)
+      }
+      s.view.setMode('source')
+      await s.flush()
+      s.view.inputDOM.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }),
+      )
+      await s.flush()
+      expect(s.current().doc.text).toBe(text.slice(1))
+      await s.history('undo')
+      expect(s.current().doc.text).toBe(text)
+      s.view.setMode('live')
+      await s.flush()
+      expect(
+        s.view.contentDOM.querySelector('.milkup-code-opening .milkup-marker-hidden'),
+      ).not.toBeNull()
+    })
+  }
+
+  it(`${kind} exits an EOF closing fence back to a visible Unicode body boundary`, async () => {
+    const text = '```js\r\n名😀\r\n```'
+    const s = await setup(kind, text, Selection.cursor(text.indexOf('名') + '名😀'.length))
+    for (const key of ['ArrowRight', 'ArrowDown']) {
+      s.view.inputDOM.dispatchEvent(
+        new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+      )
+      await s.flush()
+      expect(
+        (s.view instanceof EditorView ? s.view.state.selection : s.view.selection).main.head,
+      ).toBe(text.indexOf('名') + '名😀'.length)
+    }
+  })
+}
+
+it('windowed keeps hidden fences and exact offsets after scrolling to a distant block', async () => {
+  const before = 'paragraph\r\n'.repeat(100)
+  const text = before + '~~~js\r\n名😀\r\n~~~\r\n' + 'tail\r\n'.repeat(100)
+  const s = await setup('windowed', text, Selection.cursor(before.length - 2))
+  const view = s.view as SourceDocumentView
+  view.inputDOM.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+  )
+  await s.flush()
+  expect(view.selection.main.head).toBe(text.indexOf('名'))
+  expect(view.contentDOM.querySelector('.milkup-code-opening .milkup-marker-hidden')).not.toBeNull()
+  await view.revealSelection(104, Selection.cursor(text.indexOf('tail')))
+  view.inputDOM.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
+  )
+  await s.flush()
+  expect(view.selection.main.head).toBe(text.indexOf('名') + '名😀'.length)
+  expect(view.contentDOM.querySelector<HTMLElement>('.milkup-code-closing')?.style.height).toBe(
+    '0px',
+  )
+  expect(s.current().doc.text).toBe(text)
+})
+
+for (const kind of ['ordinary', 'windowed'] as const) {
+  it(`${kind} exits to the editable final blank line after a closing fence newline`, async () => {
+    const text = '```js\r\n名😀\r\n```\r\n'
+    const s = await setup(kind, text, Selection.cursor(text.indexOf('名') + '名😀'.length))
+    s.view.inputDOM.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+    )
+    await s.flush()
+    expect(
+      (s.view instanceof EditorView ? s.view.state.selection : s.view.selection).main.head,
+    ).toBe(text.length)
+  })
+
+  it(`${kind} does not strand the caret in an empty closing fence at EOF`, async () => {
+    const text = 'before\n```js\n```'
+    const s = await setup(kind, text, Selection.cursor(6))
+    s.view.inputDOM.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+    )
+    await s.flush()
+    expect(
+      (s.view instanceof EditorView ? s.view.state.selection : s.view.selection).main.head,
+    ).toBe(6)
+  })
 }

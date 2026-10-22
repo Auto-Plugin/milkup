@@ -1,5 +1,7 @@
 import {
   codeBlockForLine,
+  codeFenceArrowTarget,
+  isPresentedCodeFence,
   renderCodeLine,
   codeLanguagePicker,
   codeLanguageEdit,
@@ -1446,6 +1448,26 @@ export class EditorView {
       next = nextGraphemePosition(this.currentState.doc, current)
     } else {
       next = this.moveCursorVertically(current, direction)
+    }
+
+    if (this.mode !== 'source') {
+      const forward = direction === 'right' || direction === 'down'
+      const visited = new Set<number>()
+      while (!visited.has(next)) {
+        visited.add(next)
+        const line = this.currentState.doc.lineAt(next)
+        const block = codeBlockForLine(
+          this.markdownParseState.cache.root.children ?? [],
+          line.from,
+          line.to,
+        )
+        const target =
+          block &&
+          codeFenceArrowTarget(block, line.from, line.to, forward, this.currentState.doc.length)
+        if (target === undefined) break
+        const clamped = Math.min(target, this.currentState.doc.length)
+        next = Math.min(clamped, this.currentState.doc.lineAt(clamped).to)
+      }
     }
 
     if (next === current && (extend || range.empty)) {
@@ -3273,7 +3295,10 @@ function buildRenderedLineProjection(
   const blocks = (root ?? parseMarkdown(state.doc.text).root).children ?? []
 
   if (!shouldRenderInlineDecorations(blocks, from, to)) {
-    return undefined
+    const code = codeBlockForLine(blocks, from, to)
+    return code && isPresentedCodeFence(code, from, to)
+      ? buildMarkerLineProjection(from, to)
+      : undefined
   }
 
   const heading = findBlockForLine(blocks, 'heading', from, to)

@@ -55,6 +55,40 @@ export function codeBlockForLine(
   return undefined
 }
 
+/** Only present fences whose bounded opener can carry a language control. */
+export function presentsCodeFences(block: SyntaxNode): boolean {
+  const content = block.contentRanges?.[0]
+  return (
+    block.type === 'fencedCode' && !!content && content.from - block.from <= maxHighlightLineLength
+  )
+}
+
+export function isPresentedCodeFence(block: SyntaxNode, from: number, to: number): boolean {
+  return (
+    presentsCodeFences(block) &&
+    !!block.markerRanges?.some((range) => range.from >= from && range.to <= to)
+  )
+}
+
+/** Keep arrow navigation out of the source-only fence and info-string positions. */
+export function codeFenceArrowTarget(
+  block: SyntaxNode,
+  from: number,
+  to: number,
+  forward: boolean,
+  documentLength: number,
+): number | undefined {
+  if (!isPresentedCodeFence(block, from, to)) return
+  const content = block.contentRanges![0]!
+  if (from === block.from) {
+    if (!forward && block.from > 0) return block.from - 1
+    return content.from === content.to && block.status === 'valid' ? block.to : content.from
+  }
+  if (forward && (block.to < documentLength || block.to > to)) return block.to
+  if (content.from === content.to) return Math.max(0, block.from - 1)
+  return Math.max(content.from, content.to - 1)
+}
+
 function languageName(info: unknown): string {
   const name = typeof info === 'string' ? info.trim().split(/\s/u, 1)[0]!.toLowerCase() : ''
   return aliases[name] ?? name
@@ -118,10 +152,21 @@ export function renderCodeLine(
       document.createTextNode(text.slice(cursor) || (text.length === 0 ? '\u200b' : '')),
     )
   }
-  if (marker && block.type === 'fencedCode' && from !== block.from)
-    lineDOM.classList.add('milkup-code-closing')
-  if (block.type !== 'fencedCode' || from !== block.from || text.length > maxHighlightLineLength)
-    return
+  if (isPresentedCodeFence(block, from, from + text.length)) {
+    // Keep exact source and offsets available for selection/copy; only presentation hides it.
+    content.classList.add('milkup-marker-hidden')
+    if (from !== block.from) {
+      lineDOM.classList.add('milkup-code-closing')
+      // The closing delimiter must not leave an empty code row in the rendered block.
+      Object.assign(lineDOM.style, {
+        height: '0px',
+        minHeight: '0px',
+        lineHeight: '0',
+        overflow: 'hidden',
+      })
+    }
+  }
+  if (!presentsCodeFences(block) || from !== block.from) return
   lineDOM.classList.add('milkup-code-opening')
   const picker = document.createElement('select')
   picker.className = 'milkup-code-language'

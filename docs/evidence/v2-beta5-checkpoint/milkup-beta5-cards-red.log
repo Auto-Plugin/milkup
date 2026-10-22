@@ -1,0 +1,129 @@
+
+Running 3 tests using 1 worker
+
+(node:170069) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-plugin-cards.spec.ts:584:1 › beta5 status notifications retain card nodes, order, scroll, focus and an open menu (6.5s)
+(node:170237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-plugin-cards.spec.ts:635:1 › beta5 detail notifications retain heading, focus and the currently selected plugin (3.5s)
+(node:170403) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 tests/e2e/desktop-plugin-cards.spec.ts:666:1 › beta5 rapid real card switches retain their DOM nodes after asynchronous activation failure (1.6s)
+
+
+  1) tests/e2e/desktop-plugin-cards.spec.ts:584:1 › beta5 status notifications retain card nodes, order, scroll, focus and an open menu 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 9
+    + Received  + 9
+
+      Object {
+    -   "checked": "true",
+    +   "checked": "false",
+        "count": 18,
+    -   "detachedCards": 0,
+    -   "focused": true,
+    -   "open": true,
+    -   "sameCards": true,
+    -   "sameExport": true,
+    -   "samePosition": true,
+    -   "sameScroll": true,
+    -   "sameToggle": true,
+    +   "detachedCards": 1,
+    +   "focused": false,
+    +   "open": false,
+    +   "sameCards": false,
+    +   "sameExport": false,
+    +   "samePosition": false,
+    +   "sameScroll": false,
+    +   "sameToggle": false,
+      }
+
+      627 |     }
+      628 |   })
+    > 629 |   expect(result).toEqual({
+          |                  ^
+      630 |     sameCards: true, sameToggle: true, sameExport: true, detachedCards: 0,
+      631 |     focused: true, sameScroll: true, samePosition: true, open: true, checked: 'true', count: 18,
+      632 |   })
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-plugin-cards.spec.ts:629:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta5-cards-browser/desktop-plugin-cards-beta5-331f4-roll-focus-and-an-open-menu/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta5-cards-browser/desktop-plugin-cards-beta5-331f4-roll-focus-and-an-open-menu/error-context.md
+
+  2) tests/e2e/desktop-plugin-cards.spec.ts:635:1 › beta5 detail notifications retain heading, focus and the currently selected plugin 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 4
+
+      Object {
+        "error": "asynchronous teardown failed",
+    -   "focused": true,
+    -   "sameDetail": true,
+    -   "sameExport": true,
+    -   "sameHeading": true,
+    +   "focused": false,
+    +   "sameDetail": false,
+    +   "sameExport": false,
+    +   "sameHeading": false,
+        "sameScroll": true,
+        "title": "Stable 10",
+      }
+
+      658 |     }
+      659 |   })
+    > 660 |   expect(result).toEqual({
+          |                  ^
+      661 |     sameDetail: true, sameHeading: true, sameExport: true, focused: true,
+      662 |     sameScroll: true, title: 'Stable 10', error: 'asynchronous teardown failed',
+      663 |   })
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-plugin-cards.spec.ts:660:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta5-cards-browser/desktop-plugin-cards-beta5-c5f92-e-currently-selected-plugin/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta5-cards-browser/desktop-plugin-cards-beta5-c5f92-e-currently-selected-plugin/error-context.md
+
+  3) tests/e2e/desktop-plugin-cards.spec.ts:666:1 › beta5 rapid real card switches retain their DOM nodes after asynchronous activation failure 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 3
+
+      Object {
+    -   "focused": true,
+    -   "sameCard": true,
+    -   "sameSwitch": true,
+    +   "focused": false,
+    +   "sameCard": false,
+    +   "sameSwitch": false,
+      }
+
+      681 |     sameSwitch: element.querySelector('[role="switch"]') === (window as any).originalSwitch,
+      682 |     focused: document.activeElement === (window as any).originalSwitch,
+    > 683 |   }))).toEqual({ sameCard: true, sameSwitch: true, focused: true })
+          |        ^
+      684 |   await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+      685 |   await expect(page.locator('.plugin-summary-card')).toHaveCount(2)
+      686 | })
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-plugin-cards.spec.ts:683:8
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta5-cards-browser/desktop-plugin-cards-beta5-0aea6-chronous-activation-failure/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta5-cards-browser/desktop-plugin-cards-beta5-0aea6-chronous-activation-failure/error-context.md
+
+  3 failed
+    tests/e2e/desktop-plugin-cards.spec.ts:584:1 › beta5 status notifications retain card nodes, order, scroll, focus and an open menu 
+    tests/e2e/desktop-plugin-cards.spec.ts:635:1 › beta5 detail notifications retain heading, focus and the currently selected plugin 
+    tests/e2e/desktop-plugin-cards.spec.ts:666:1 › beta5 rapid real card switches retain their DOM nodes after asynchronous activation failure 

@@ -1,0 +1,361 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/plugins/formatting
+
+ ✓ src/transforms.test.ts (24 tests) 18ms
+ ✓ src/controller.test.ts (13 tests) 72ms
+ ❯ src/ui.test.ts (11 tests | 4 failed) 304ms
+   ✓ controlled formatting UI > contributes every rendered action and uses only the intended permissions and slots 4ms
+   ✓ controlled formatting UI > shows table controls with a reason when the selection is outside a table 0ms
+   ✓ controlled formatting UI > keeps header and minimum-column operations visibly disabled 0ms
+   ✓ controlled formatting UI > uses controlled fields and disables draft editing during a pending operation 1ms
+   ✓ controlled formatting UI > keeps error feedback near the final refresh control 0ms
+   ✓ controlled formatting UI > keeps toolbar feedback compact and preserves full details in the modal 0ms
+   ✓ controlled formatting UI > refreshes the toolbar after closing a modal without changing document selection 155ms
+   × contextual table toolbar lifecycle > renders no toolbar outside a table or before a capture completes 26ms
+     → expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+   × contextual table toolbar lifecycle > hides immediately on selection change and replaces an obsolete pending read 55ms
+     → expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+   × contextual table toolbar lifecycle > rejects a toolbar click from the previous document even before the next renderer update 58ms
+     → expected "spy" to be called with arguments: [ { snapshotId: 'table', …(1) }, …(1) ]
+
+Received: 
+
+  1st spy call:
+
+  [
+    {
+      "operation": "add-row",
+-     "snapshotId": "table",
++     "snapshotId": "other",
+    },
+-   Any<Object>,
++   {
++     "signal": AbortSignal {
++       Symbol(kEvents): undefined,
++       Symbol(events.maxEventTargetListeners): 0,
++       Symbol(events.maxEventTargetListenersWarned): false,
++       Symbol(kHandlers): undefined,
++       Symbol(kAborted): false,
++       Symbol(kReason): undefined,
++       Symbol(kComposite): false,
++     },
++   },
+  ]
+
+
+Number of calls: 1
+
+   × contextual table toolbar lifecycle > clears immediately on disable and ignores a late capture 2ms
+     → expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > renders no toolbar outside a table or before a capture completes
+AssertionError: expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+
+- Expected: 
+""
+
++ Received: 
+{
+  "attributes": {
+    "class": "plugin-actions",
+  },
+  "children": [
+    {
+      "action": {
+        "command": "formatting.open",
+      },
+      "attributes": {
+        "aria-label": "格式",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "格式",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.bold",
+      },
+      "attributes": {
+        "aria-label": "粗体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "粗体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.italic",
+      },
+      "attributes": {
+        "aria-label": "斜体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "斜体",
+      "type": "element",
+    },
+  ],
+  "tag": "span",
+  "type": "element",
+}
+
+ ❯ src/ui.test.ts:150:35
+    148| describe('contextual table toolbar lifecycle', () => {
+    149|   it('renders no toolbar outside a table or before a capture completes…
+    150|     expect(renderToolbar(base())).toBe('')
+       |                                   ^
+    151|     const { toolbar } = lifecycle()
+    152|     try { expect(toolbar()).toBe('') } finally { plugin.deactivate() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > hides immediately on selection change and replaces an obsolete pending read
+AssertionError: expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+
+- Expected: 
+""
+
++ Received: 
+{
+  "attributes": {
+    "class": "plugin-actions",
+  },
+  "children": [
+    {
+      "action": {
+        "command": "formatting.open",
+      },
+      "attributes": {
+        "aria-label": "格式",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "格式",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.bold",
+      },
+      "attributes": {
+        "aria-label": "粗体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "粗体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.italic",
+      },
+      "attributes": {
+        "aria-label": "斜体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "斜体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableAddRow",
+      },
+      "attributes": {
+        "aria-label": "下方加行",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "下方加行",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableDeleteRow",
+      },
+      "attributes": {
+        "aria-label": "删除行",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "删除行",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableAddColumn",
+      },
+      "attributes": {
+        "aria-label": "右侧加列",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "右侧加列",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableDeleteColumn",
+      },
+      "attributes": {
+        "aria-label": "删除列",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "删除列",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.tableExit",
+      },
+      "attributes": {
+        "aria-label": "退出表格",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "退出表格",
+      "type": "element",
+    },
+  ],
+  "tag": "span",
+  "type": "element",
+}
+
+ ❯ src/ui.test.ts:162:32
+    160|       editing.capture.mockImplementationOnce(() => new Promise(resolve…
+    161|       const leaving = { ...context.node, selectionRevision: 2 }
+    162|       expect(toolbar(leaving)).toBe('')
+       |                                ^
+    163|       editing.capture.mockResolvedValue({ ...base().snapshot!, id: 'ou…
+    164|       const outside = { ...context.node, selectionRevision: 3 }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > rejects a toolbar click from the previous document even before the next renderer update
+AssertionError: expected "spy" to be called with arguments: [ { snapshotId: 'table', …(1) }, …(1) ]
+
+Received: 
+
+  1st spy call:
+
+  [
+    {
+      "operation": "add-row",
+-     "snapshotId": "table",
++     "snapshotId": "other",
+    },
+-   Any<Object>,
++   {
++     "signal": AbortSignal {
++       Symbol(kEvents): undefined,
++       Symbol(events.maxEventTargetListeners): 0,
++       Symbol(events.maxEventTargetListenersWarned): false,
++       Symbol(kHandlers): undefined,
++       Symbol(kAborted): false,
++       Symbol(kReason): undefined,
++       Symbol(kComposite): false,
++     },
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/ui.test.ts:181:29
+    179|       editing.table.mockRejectedValue(Object.assign(new Error('stale')…
+    180|       await plugin.commands[action.command]({}, action.input)
+    181|       expect(editing.table).toHaveBeenCalledWith({ snapshotId: 'table'…
+       |                             ^
+    182|       expect(editing.capture).toHaveBeenCalledTimes(1)
+    183|     } finally { plugin.deactivate() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/ui.test.ts > contextual table toolbar lifecycle > clears immediately on disable and ignores a late capture
+AssertionError: expected { type: 'element', tag: 'span', …(2) } to be '' // Object.is equality
+
+- Expected: 
+""
+
++ Received: 
+{
+  "attributes": {
+    "class": "plugin-actions",
+  },
+  "children": [
+    {
+      "action": {
+        "command": "formatting.open",
+      },
+      "attributes": {
+        "aria-label": "格式",
+        "class": "dialog-button secondary",
+      },
+      "disabled": false,
+      "tag": "button",
+      "text": "格式",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.bold",
+      },
+      "attributes": {
+        "aria-label": "粗体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "粗体",
+      "type": "element",
+    },
+    {
+      "action": {
+        "command": "formatting.italic",
+      },
+      "attributes": {
+        "aria-label": "斜体",
+        "class": "dialog-button secondary",
+      },
+      "disabled": true,
+      "tag": "button",
+      "text": "斜体",
+      "type": "element",
+    },
+  ],
+  "tag": "span",
+  "type": "element",
+}
+
+ ❯ src/ui.test.ts:191:23
+    189|     toolbar()
+    190|     plugin.deactivate()
+    191|     expect(toolbar()).toBe('')
+       |                       ^
+    192|     complete(tableSnapshot('late'))
+    193|     await vi.waitFor(() => expect(editing.release).toHaveBeenCalledWit…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  4 failed | 44 passed (48)
+   Start at  08:13:31
+   Duration  964ms (transform 439ms, setup 0ms, collect 653ms, tests 394ms, environment 1ms, prepare 403ms)
+

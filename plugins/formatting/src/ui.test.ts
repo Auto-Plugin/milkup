@@ -84,7 +84,11 @@ describe('controlled formatting UI', () => {
     expect(children[children.length - 1].text).toBe('重新读取选区')
   })
   it('keeps toolbar feedback compact and preserves full details in the modal', () => {
-    const state = { ...base(), error: '选区已经改变，请重新读取选区后再次提交。' }
+    const state = {
+      ...base(),
+      snapshot: tableSnapshot(),
+      error: '选区已经改变，请重新读取选区后再次提交。',
+    }
     const toolbar = elements(renderToolbar(state))
     expect(toolbar.find((node) => node.attributes?.role === 'alert')?.text).toBe(
       '操作未完成，请打开“格式”查看详情。',
@@ -95,7 +99,7 @@ describe('controlled formatting UI', () => {
   })
   it('refreshes the toolbar after closing a modal without changing document selection', async () => {
     const editing = {
-      capture: vi.fn().mockResolvedValue(base().snapshot),
+      capture: vi.fn().mockResolvedValue(tableSnapshot()),
       release: vi.fn().mockResolvedValue(undefined),
     }
     const context = {
@@ -118,6 +122,181 @@ describe('controlled formatting UI', () => {
       toolbar()
       expect(editing.capture).toHaveBeenCalledTimes(before + 1)
       await vi.waitFor(() => expect(toolbar().find((n) => n.text === '粗体')?.disabled).toBe(false))
+    } finally {
+      plugin.deactivate()
+    }
+  })
+})
+
+const tableSnapshot = (id = 'table', documentId = 'd', selectionRevision = 1) => ({
+  ...base().snapshot!,
+  id,
+  documentId,
+  selectionRevision,
+  lineCount: 4,
+  context: { kind: 'table', complete: true },
+  table: {
+    row: 0,
+    column: 0,
+    rowCount: 1,
+    columnCount: 2,
+    alignment: 'default' as const,
+    withinCell: true,
+  },
+})
+function lifecycle() {
+  const editing = {
+    capture: vi.fn().mockResolvedValue(tableSnapshot()),
+    release: vi.fn().mockResolvedValue(undefined),
+    table: vi.fn().mockResolvedValue({ documentId: 'd', version: 2 }),
+    apply: vi.fn().mockResolvedValue({ documentId: 'd', version: 2 }),
+  }
+  const context = {
+    host: { editing, ui: { requestUpdate: vi.fn().mockResolvedValue(undefined) } },
+    node: { documentId: 'd', documentVersion: 1, selectionRevision: 1 },
+  } as any
+  const activation = plugin.activate(context)
+  const toolbar = (node = context.node) => plugin.renderers['formatting-toolbar']({ node })
+  return { editing, context, toolbar, activation }
+}
+describe('contextual table toolbar lifecycle', () => {
+  it('renders no toolbar outside a table or before a capture completes', () => {
+    expect(renderToolbar(base())).toBe('')
+    const { toolbar } = lifecycle()
+    try {
+      expect(toolbar()).toBe('')
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('hides immediately on selection change and replaces an obsolete pending read', async () => {
+    const { editing, toolbar, context } = lifecycle()
+    try {
+      toolbar()
+      await vi.waitFor(() =>
+        expect(elements(toolbar()).some((n) => n.text === '下方加行')).toBe(true),
+      )
+      let late!: (value: any) => void
+      editing.capture.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            late = resolve
+          }),
+      )
+      const leaving = { ...context.node, selectionRevision: 2 }
+      expect(toolbar(leaving)).toBe('')
+      editing.capture.mockResolvedValue({
+        ...base().snapshot!,
+        id: 'outside',
+        selectionRevision: 3,
+      })
+      const outside = { ...context.node, selectionRevision: 3 }
+      expect(toolbar(outside)).toBe('')
+      await vi.waitFor(() => expect(editing.capture).toHaveBeenCalledTimes(3))
+      late(tableSnapshot('late', 'd', 2))
+      await vi.waitFor(() => expect(editing.release).toHaveBeenCalledWith('late'))
+      expect(toolbar(outside)).toBe('')
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('rejects a toolbar click from the previous document even before the next renderer update', async () => {
+    const { editing, toolbar } = lifecycle()
+    try {
+      toolbar()
+      await vi.waitFor(() =>
+        expect(elements(toolbar()).some((n) => n.text === '下方加行')).toBe(true),
+      )
+      const action = elements(toolbar()).find((n) => n.text === '下方加行').action
+      editing.capture.mockResolvedValue(tableSnapshot('other', 'other'))
+      editing.table.mockRejectedValue(Object.assign(new Error('stale'), { code: 'stale_snapshot' }))
+      await plugin.commands[action.command]({}, action.input)
+      expect(editing.table).toHaveBeenCalledWith(
+        { snapshotId: 'table', operation: 'add-row' },
+        expect.any(Object),
+      )
+      expect(editing.capture).toHaveBeenCalledTimes(1)
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('clears immediately on disable and ignores a late capture', async () => {
+    const { editing, toolbar } = lifecycle()
+    let complete!: (value: any) => void
+    editing.capture.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve
+        }),
+    )
+    toolbar()
+    plugin.deactivate()
+    expect(toolbar()).toBe('')
+    complete(tableSnapshot('late'))
+    await vi.waitFor(() => expect(editing.release).toHaveBeenCalledWith('late'))
+    expect(toolbar()).toBe('')
+  })
+  it('ignores old-document reads, disposal and clicks after switching documents', async () => {
+    const { editing, toolbar, context } = lifecycle()
+    try {
+      toolbar()
+      await vi.waitFor(() =>
+        expect(elements(toolbar()).some((n) => n.text === '下方加行')).toBe(true),
+      )
+      const action = elements(toolbar()).find((n) => n.text === '下方加行').action
+      let late!: (value: any) => void
+      editing.capture.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            late = resolve
+          }),
+      )
+      toolbar({ ...context.node, selectionRevision: 2 })
+      const next = { ...context.node, documentId: 'other' }
+      editing.capture.mockResolvedValue(tableSnapshot('other-table', 'other'))
+      expect(toolbar(next)).toBe('')
+      await vi.waitFor(() =>
+        expect(elements(toolbar(next)).some((n) => n.text === '下方加行')).toBe(true),
+      )
+      expect(toolbar({ documentId: 'd', phase: 'dispose' })).toBe('')
+      late(tableSnapshot('late', 'd', 2))
+      await vi.waitFor(() => expect(editing.release).toHaveBeenCalledWith('late'))
+      expect(elements(toolbar(next)).some((n) => n.text === '下方加行')).toBe(true)
+      await plugin.commands[action.command]({}, action.input)
+      expect(editing.table).not.toHaveBeenCalled()
+      expect(editing.capture).toHaveBeenCalledTimes(3)
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('does not accept a capture for a different document than the rendered context', async () => {
+    const { editing, toolbar } = lifecycle()
+    try {
+      editing.capture.mockResolvedValue(tableSnapshot('wrong', 'other'))
+      expect(toolbar()).toBe('')
+      await vi.waitFor(() => expect(editing.release).toHaveBeenCalledWith('wrong'))
+      expect(toolbar()).toBe('')
+    } finally {
+      plugin.deactivate()
+    }
+  })
+  it('hides a loaded toolbar on disable and preserves a new activation from old disposal', async () => {
+    const previous = lifecycle()
+    previous.toolbar()
+    await vi.waitFor(() =>
+      expect(elements(previous.toolbar()).some((n) => n.text === '下方加行')).toBe(true),
+    )
+    plugin.deactivate()
+    expect(previous.toolbar()).toBe('')
+    const current = lifecycle()
+    try {
+      current.toolbar()
+      await vi.waitFor(() =>
+        expect(elements(current.toolbar()).some((n) => n.text === '下方加行')).toBe(true),
+      )
+      previous.activation.dispose()
+      expect(elements(current.toolbar()).some((n) => n.text === '下方加行')).toBe(true)
+      expect(current.toolbar({ ...current.context.node, documentEditable: false })).toBe('')
     } finally {
       plugin.deactivate()
     }

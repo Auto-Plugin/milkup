@@ -114,6 +114,16 @@ class DesktopPluginManagerView {
 
   render(state: DesktopPluginManagerState): void {
     const previous = this.state
+    // Keep the first visible order across catalog active/pending projection changes.
+    // New installations append; removing a plugin really removes its card.
+    const records = new Map(state.records.map((record) => [record.manifest.id, record]))
+    const ordered =
+      previous?.records.flatMap((record) => {
+        const next = records.get(record.manifest.id)
+        records.delete(record.manifest.id)
+        return next ? [next] : []
+      }) ?? []
+    state = { ...state, records: [...ordered, ...records.values()] }
     const active = this.target.ownerDocument.activeElement
     const focused =
       active instanceof HTMLElement && this.target.contains(active) ? active : undefined
@@ -124,6 +134,7 @@ class DesktopPluginManagerView {
       !state.records.some((record) => record.manifest.id === this.selectedPluginId)
     const added =
       previous &&
+      focused?.dataset.pluginAction === 'install' &&
       this.target.getClientRects().length > 0 &&
       state.records.find(
         (record) => !previous.records.some((old) => old.manifest.id === record.manifest.id),
@@ -134,9 +145,10 @@ class DesktopPluginManagerView {
         entry.pending.transactionId !==
           previous?.catalogEntries?.find((old) => old.id === entry.id)?.pending?.transactionId,
     )
-    // A bundled upgrade staged by the card switch must keep that same control in place.
+    // Only a foreground installation may navigate to its candidate; background
+    // staging must not replace the list or a different plugin's current detail.
     const navigateToCandidate =
-      focused?.dataset.pluginAction !== 'toggle' ? candidateChanged : undefined
+      focused?.dataset.pluginAction === 'install' ? candidateChanged : undefined
     const newFailure = state.installFailures.find(
       (f) =>
         !previous?.installFailures.some(
@@ -144,9 +156,10 @@ class DesktopPluginManagerView {
         ),
     )
     this.state = state
-    if (newFailure && previous && this.target.getClientRects().length > 0) {
+    const navigateToFailure = focused?.dataset.pluginAction === 'install' ? newFailure : undefined
+    if (navigateToFailure && previous && this.target.getClientRects().length > 0) {
       this.selectedPluginId = undefined
-      this.selectedFailurePath = newFailure.sourcePath
+      this.selectedFailurePath = navigateToFailure.sourcePath
     } else if (navigateToCandidate && previous && this.target.getClientRects().length > 0) {
       this.selectedFailurePath = undefined
       this.selectedPluginId = navigateToCandidate.id
@@ -162,9 +175,9 @@ class DesktopPluginManagerView {
     }
     this.refreshIcons(state)
     this.paint()
-    if ((added || newFailure || navigateToCandidate) && focused) this.focusHeading()
+    if ((added || navigateToFailure || navigateToCandidate) && focused) this.focusHeading()
     else if (removed && focused) this.focusCard()
-    else if (focused) {
+    else if (focused && this.target.ownerDocument.activeElement !== focused) {
       const replacement = Array.from(
         this.target.querySelectorAll<HTMLElement>(
           '[data-plugin-action], [data-plugin-card-more-trigger]',
@@ -177,9 +190,9 @@ class DesktopPluginManagerView {
           element.dataset.pluginCommand === focused.dataset.pluginCommand &&
           element.dataset.pluginUiId === focused.dataset.pluginUiId,
       )
-      if (replacement) replacement.focus()
-      else if (this.selectedPluginId) this.focusHeading()
-      else this.focusCard()
+      if (replacement) replacement.focus({ preventScroll: true })
+      else if (this.selectedPluginId) this.focusHeading(true)
+      else this.focusCard(true)
     }
   }
 
@@ -194,20 +207,13 @@ class DesktopPluginManagerView {
   }
   private paint(): void {
     if (!this.state) return
-    const opened = new Set(
-      Array.from(
-        this.target.querySelectorAll<HTMLDetailsElement>('[data-plugin-card-more][open]'),
-      ).map((menu) => menu.dataset.pluginCardMore),
-    )
-    this.target.innerHTML = renderDesktopPluginManager(this.state, {
+    const template = this.target.ownerDocument.createElement('template')
+    template.innerHTML = renderDesktopPluginManager(this.state, {
       ...(this.selectedPluginId ? { selectedPluginId: this.selectedPluginId } : {}),
       icons: this.icons,
       ...(this.selectedFailurePath ? { selectedFailurePath: this.selectedFailurePath } : {}),
     })
-    for (const menu of Array.from(
-      this.target.querySelectorAll<HTMLDetailsElement>('[data-plugin-card-more]'),
-    ))
-      menu.open = opened.has(menu.dataset.pluginCardMore)
+    reconcileChildren(this.target, template.content)
   }
 
   private back(): void {
@@ -217,11 +223,11 @@ class DesktopPluginManagerView {
     this.focusCard()
   }
 
-  private focusHeading(): void {
-    this.target.querySelector<HTMLElement>('#plugin-detail-title')?.focus()
+  private focusHeading(preventScroll = false): void {
+    this.target.querySelector<HTMLElement>('#plugin-detail-title')?.focus({ preventScroll })
   }
 
-  private focusCard(): void {
+  private focusCard(preventScroll = false): void {
     const cards = Array.from(
       this.target.querySelectorAll<HTMLButtonElement>(
         '[data-plugin-action="details"], [data-plugin-action="failure-details"]',
@@ -232,7 +238,7 @@ class DesktopPluginManagerView {
       card ??
       cards[0] ??
       this.target.querySelector<HTMLButtonElement>('[data-plugin-action="install"]')
-    )?.focus()
+    )?.focus({ preventScroll })
   }
 
   private refreshIcons(state: DesktopPluginManagerState): void {
@@ -282,5 +288,67 @@ class DesktopPluginManagerView {
         this.icons.delete(id)
       }
     }
+  }
+}
+
+/** Reconcile only trusted manager markup; preserve live controls and disclosure state. */
+function reconcileChildren(current: Node, next: Node): void {
+  const available = new Map<string, Node[]>()
+  for (const child of Array.from(current.childNodes)) {
+    const key = nodeIdentity(child)
+    const matches = available.get(key) ?? []
+    matches.push(child)
+    available.set(key, matches)
+  }
+  const children = Array.from(next.childNodes).map((desired) => ({
+    desired,
+    retained: available.get(nodeIdentity(desired))?.shift(),
+  }))
+  // Remove obsolete controls first, so inserting/removing a reload or panel button
+  // never detaches the retained, possibly focused export/details/switch control.
+  for (const obsolete of available.values()) for (const node of obsolete) current.removeChild(node)
+  let cursor = current.firstChild
+  for (const { desired, retained } of children) {
+    const node = retained ?? desired
+    if (node !== cursor) current.insertBefore(node, cursor)
+    if (retained) reconcileNode(retained, desired)
+    cursor = node.nextSibling
+  }
+}
+
+function nodeIdentity(node: Node): string {
+  if (!(node instanceof Element)) return String(node.nodeType)
+  // Action identity prevents an inserted command from becoming a different button.
+  return JSON.stringify([
+    node.namespaceURI,
+    node.tagName,
+    node.id,
+    node.getAttribute('class'),
+    ...[
+      'data-plugin-id',
+      'data-plugin-action',
+      'data-plugin-command',
+      'data-plugin-ui-id',
+      'data-plugin-source',
+      'data-plugin-card-more',
+      'data-plugin-card-more-trigger',
+    ].map((name) => node.getAttribute(name)),
+  ])
+}
+
+function reconcileNode(current: Node, next: Node): void {
+  if (current.isEqualNode(next)) return
+  if (current instanceof Element && next instanceof Element) {
+    for (const attribute of Array.from(current.attributes)) {
+      if (current instanceof HTMLDetailsElement && attribute.name === 'open') continue
+      if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name)
+    }
+    for (const attribute of Array.from(next.attributes)) {
+      if (current.getAttribute(attribute.name) !== attribute.value)
+        current.setAttribute(attribute.name, attribute.value)
+    }
+    reconcileChildren(current, next)
+  } else if (current.nodeValue !== next.nodeValue) {
+    current.nodeValue = next.nodeValue
   }
 }

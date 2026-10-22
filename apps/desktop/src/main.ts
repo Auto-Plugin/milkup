@@ -1328,6 +1328,7 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   reservedPluginIds: ['milkup.updates'],
   bundledUpgradeSources: {
     'milkup.diagrams': ['bundled:milkup.diagrams-1.1.1.milkup-plugin'],
+    'milkup.formatting': ['bundled:milkup.formatting-1.0.0.milkup-plugin'],
   },
   executionUnavailableReason: (manifest) =>
     manifest.host === 'dom' && platform !== 'linux'

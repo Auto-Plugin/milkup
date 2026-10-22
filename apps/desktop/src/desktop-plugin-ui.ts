@@ -276,6 +276,7 @@ export class DesktopPluginUiController {
     container.className = `plugin-ui plugin-ui-${contribution.slot}`
     container.dataset.pluginUi = uiKey(contribution)
     container.tabIndex = -1
+    if (contribution.slot === 'document-toolbar') container.hidden = true
     container.setAttribute('aria-label', contribution.title)
     let body = container
     let toggle: HTMLButtonElement | undefined
@@ -590,6 +591,8 @@ export class DesktopPluginUiController {
         return
       }
 
+      if (mount.contribution.slot === 'document-toolbar') mount.container.hidden = output === ''
+
       const signature = controlledOutputSignature(output)
       if (signature === mount.renderSignature && !mount.body.querySelector('[data-plugin-field]')) {
         mount.container.dataset.uiState = 'ready'
@@ -691,6 +694,7 @@ export class DesktopPluginUiController {
       mount.container.dataset.uiState = 'ready'
     } catch (error) {
       if (!isCurrentRequest()) return
+      if (mount.contribution.slot === 'document-toolbar') mount.container.hidden = false
       mount.container.dataset.uiState = 'failed'
       const message = this.root.ownerDocument.createElement('span')
       message.className = 'plugin-ui-error'

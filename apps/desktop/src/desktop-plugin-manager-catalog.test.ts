@@ -251,6 +251,50 @@ function setup(
   return { catalog, manager, events, actions, approve, install }
 }
 describe('P6 authoritative catalog transactions', () => {
+  it('keeps pending and active cards in one stable order through first activation and failure', async () => {
+    const catalog = new Catalog()
+    let pkg = archive()
+    let fail = false
+    const manager = new DesktopPluginManager({
+      catalog,
+      actionRegistry: new ActionRegistry(),
+      permissions: [],
+      milkupVersion: '2.0.0',
+      pluginSdkVersion: '0.3.7',
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(pkg),
+      },
+      loadModule: async () => ({
+        module: {
+          runtimeHost: 'isolated',
+          activate: () => {
+            if (fail) throw new Error('activation failed')
+            return {}
+          },
+        },
+        dispose: () => undefined,
+      }),
+    })
+    await manager.ready
+    for (const id of ['cards.alpha', 'cards.beta']) {
+      pkg = { ...archive(), manifest: { ...manifest(), id } }
+      await manager.installManifestPath(`/${id}.milkup-plugin`)
+    }
+    const ids = () => manager.state().records.map((record) => record.manifest.id)
+    const initial = ids()
+    expect(initial).toEqual(['cards.alpha', 'cards.beta'])
+    const beta = catalog.snapshot.entries.find((entry) => entry.id === 'cards.beta')!
+    await manager.approve(beta.id, beta.pending!.generation.capabilityFingerprint, beta.revision)
+    await manager.enable(beta.id)
+    expect(ids()).toEqual(initial)
+    await manager.disable(beta.id)
+    expect(ids()).toEqual(initial)
+    fail = true
+    await manager.enable(beta.id).catch(() => undefined)
+    expect(ids()).toEqual(initial)
+    expect(new Set(ids()).size).toBe(2)
+  })
   it('stages without running or replacing old active approval; exact review is required', async () => {
     const s = setup()
     await s.manager.ready

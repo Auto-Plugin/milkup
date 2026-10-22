@@ -809,10 +809,6 @@ h1 {
   border-top: 1px solid var(--border);
 }
 
-.plugin-toolbar-slot:empty {
-  display: none;
-}
-
 .plugin-ui-document-toolbar,
 .plugin-ui-document-toolbar .plugin-actions {
   display: inline-flex;
@@ -820,6 +816,11 @@ h1 {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+}
+
+.plugin-toolbar-slot:not(:has(> .plugin-ui-document-toolbar:not([hidden]))),
+.plugin-ui-document-toolbar[hidden] {
+  display: none;
 }
 
 .plugin-ui-document-toolbar button {

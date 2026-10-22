@@ -1,9 +1,63 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { PluginContributionIndex } from '@milkup/plugin'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
+
+describe('generic contextual document toolbar', () => {
+  it('collapses empty contributions and the entire empty slot, restoring either when content returns', async () => {
+    document.body.innerHTML =
+      '<main><div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar"></div></main>'
+    const stylesheet = document.createElement('style')
+    stylesheet.textContent = readFileSync(resolve(__dirname, 'style.css'), 'utf8').match(
+      /\.plugin-toolbar-slot[\s\S]*?(?=\n\.plugin-ui \{)/,
+    )![0]
+    document.head.append(stylesheet)
+    const ui = ['first', 'second'].map((id) => ({
+      pluginId: 'example',
+      id,
+      title: id,
+      slot: 'document-toolbar' as const,
+      scope: 'document' as const,
+    }))
+    const runtime = createRuntime(ui, [])
+    const outputs = new Map<string, string>([
+      ['first', ''],
+      ['second', ''],
+    ])
+    runtime.renderUi = async (_plugin, id) => outputs.get(id) ?? ''
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    try {
+      await controller.sync('doc-a')
+      const slot = document.querySelector<HTMLElement>('.plugin-toolbar-slot')!
+      const first = slot.querySelector<HTMLElement>('[data-plugin-ui="example:first"]')!
+      const second = slot.querySelector<HTMLElement>('[data-plugin-ui="example:second"]')!
+      expect(first.hidden).toBe(true)
+      expect(second.hidden).toBe(true)
+      expect(getComputedStyle(slot).display).toBe('none')
+      outputs.set('first', 'Table tools')
+      await controller.invalidate('example', 'first')
+      expect(first.hidden).toBe(false)
+      expect(getComputedStyle(slot).display).not.toBe('none')
+      outputs.set('second', 'Other tools')
+      await controller.invalidate('example', 'second')
+      outputs.set('first', '')
+      await controller.invalidate('example', 'first')
+      expect(first.hidden).toBe(true)
+      expect(getComputedStyle(first).display).toBe('none')
+      expect(getComputedStyle(slot).display).not.toBe('none')
+      outputs.set('second', '')
+      await controller.invalidate('example', 'second')
+      expect(getComputedStyle(slot).display).toBe('none')
+    } finally {
+      await controller.dispose()
+      stylesheet.remove()
+    }
+  })
+})
 
 describe('generic virtual scroll scheduling', () => {
   it('publishes a near-edge range within one frame window during sustained scrolling', async () => {

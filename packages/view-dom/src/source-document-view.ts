@@ -1,5 +1,6 @@
 import {
   codeBlockForLine,
+  codeFenceArrowTarget,
   renderCodeLine,
   codeLanguagePicker,
   codeLanguageEdit,
@@ -1135,6 +1136,7 @@ export class SourceDocumentView {
       if (
         height > 0 ||
         row.classList.contains('milkup-table-delimiter') ||
+        row.classList.contains('milkup-code-closing') ||
         row.dataset.presentationCollapsed === 'true'
       )
         this.measuredHeights.set(Number(row.dataset.line), height)
@@ -2027,6 +2029,36 @@ export class SourceDocumentView {
       const verticalMove = await this.moveCursorVertically(current, direction)
       next = verticalMove.position
       targetLineNumber = verticalMove.lineNumber
+    }
+
+    if (this.mode === 'live') {
+      const forward = direction === 'right' || direction === 'down'
+      const visited = new Set<number>()
+      while (!visited.has(next)) {
+        visited.add(next)
+        const line =
+          targetLineNumber !== undefined
+            ? await this.readSourceLine(targetLineNumber)
+            : this.findRenderedSourceLineAtPosition(next)
+        if (!line) break
+        if (!/^ {0,3}(?:`{3,}|~{3,})/u.test(line.text)) break
+        const parsed = await this.parseLiveWindow(
+          Math.max(1, line.number - this.markdownContextLines),
+          Math.min(this.currentSource.lineCount, line.number + this.markdownContextLines),
+        )
+        const block = codeBlockForLine(parsed.root.children ?? [], line.from, line.to)
+        const length =
+          this.currentSource.length ?? (await this.readSourceLine(this.currentSource.lineCount)).to
+        const target = block && codeFenceArrowTarget(block, line.from, line.to, forward, length)
+        if (target === undefined) break
+        const clamped = Math.min(target, length)
+        const targetLine = [...parsed.window.lines]
+          .reverse()
+          .find((candidate) => candidate.from <= clamped)
+        if (!targetLine) break
+        next = Math.min(clamped, targetLine.to)
+        targetLineNumber = targetLine.number
+      }
     }
 
     if (next === current && (extend || range.from === range.to)) {

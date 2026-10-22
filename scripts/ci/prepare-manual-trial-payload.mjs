@@ -10,7 +10,7 @@ assert.ok(evidence && output)
 const json = async (file) => JSON.parse((await readFile(file, 'utf8')).replace(/^\uFEFF/, ''))
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const manifest = await json(path.join(output, 'manifest.json'))
-assert.equal(manifest.version, '2.0.0-beta.4')
+assert.equal(manifest.version, '2.0.0-beta.5')
 assert.equal(manifest.installerExecuted, false)
 const proof = await json(path.join(evidence, 'public-plugins/verification.json'))
 const staged = await json(path.join(evidence, 'public-plugins/staged-bundles.json'))
@@ -52,10 +52,10 @@ for (const record of proof.plugins) {
 }
 await writeFile(path.join(output, 'plugins.json'), JSON.stringify(inventory, null, 2) + '\n')
 for (const name of ['README.md', 'FEEDBACK.md'])
-  await copyFile(path.join(root, 'docs/manual-windows-beta4', name), path.join(output, name))
+  await copyFile(path.join(root, 'docs/manual-windows-beta5', name), path.join(output, name))
 await mkdir(path.join(output, 'samples'))
 await copyFile(
-  path.join(root, 'tests/fixtures/manual-beta4/basic.md'),
+  path.join(root, 'tests/fixtures/manual-beta5/basic.md'),
   path.join(output, 'samples/basic.md'),
 )
 let larger = '# 较大文档手测副本\n\n首部标记：START_ORIGINAL。\n\n'

@@ -544,3 +544,223 @@ test('beta4 trusted Worker upgrade stays on its card while a candidate is staged
   await expect(target.locator('.plugin-summary-card')).toHaveCount(1)
   await expect(target.locator('.plugin-detail')).toHaveCount(0)
 })
+
+async function mountStableCards(page: Page): Promise<void> {
+  await page.goto('/')
+  await page.evaluate(async () => {
+    const { renderDesktopPluginManagerElement } = await import(
+      /* @vite-ignore */ '/src/desktop-plugin-manager-ui.ts'
+    )
+    const target = document.createElement('div')
+    target.id = 'stable-cards-fixture'
+    target.style.cssText = 'position:fixed;inset:20px;z-index:10000;overflow:auto;background:white'
+    document.body.append(target)
+    const records = Array.from({ length: 18 }, (_, index) => ({
+      manifest: { id: `stable.${index}`, name: `Stable ${index}`, version: '1.0.0' },
+      manifestPath: `/plugins/${index}/plugin.json`,
+      rootPath: `/plugins/${index}`,
+      sourcePath: `/plugins/${index}/plugin.json`,
+      state: 'disabled',
+      enabled: false,
+      installedAt: 1,
+      updatedAt: 1,
+      trust: 'development',
+      dataRoot: '/data',
+      storageRoot: '/storage',
+      approvals: { permissions: [], hosts: ['worker'] },
+      errors: [],
+    }))
+    const state = {
+      records,
+      contributions: {
+        commands: [],
+        ui: [],
+        keymaps: [],
+        renderers: [],
+        markdownSyntax: [],
+        importers: [],
+        documentTypes: [],
+      },
+      auditCount: 0,
+      auditRecords: [],
+      installFailures: [],
+    }
+    renderDesktopPluginManagerElement(target, state)
+    ;(window as any).stableCards = {
+      target,
+      state,
+      original: Array.from(target.querySelectorAll('.plugin-summary-card')),
+      notify: (next: any) => renderDesktopPluginManagerElement(target, next),
+    }
+  })
+}
+
+test('beta5 status notifications retain card nodes, order, scroll, focus and an open menu', async ({
+  page,
+}) => {
+  await mountStableCards(page)
+  const result = await page.evaluate(async () => {
+    const f = (window as any).stableCards
+    const card = f.original[10] as HTMLElement
+    const toggle = card.querySelector<HTMLButtonElement>('[role="switch"]')!
+    const more = card.querySelector<HTMLDetailsElement>('details')!
+    const exportButton = card.querySelector('[data-plugin-action="export"]')!
+    more.open = true
+    toggle.focus()
+    const top = f.target.scrollTop
+    const y = toggle.getBoundingClientRect().top
+    let detachedCards = 0
+    const observer = new MutationObserver((changes) => {
+      for (const change of changes)
+        for (const removed of change.removedNodes)
+          if (f.original.some((node: Node) => removed === node || removed.contains(node)))
+            detachedCards++
+    })
+    observer.observe(f.target, { childList: true, subtree: true })
+    // Native catalog projection may reorder active/pending records on every publication.
+    // Exercise enable, asynchronous failure, retry, and an unrelated notification.
+    for (const [enabled, errors] of [
+      [true, []],
+      [false, ['activation failed']],
+      [true, []],
+      [true, []],
+    ] as const) {
+      f.notify({
+        ...f.state,
+        records: [...f.state.records]
+          .reverse()
+          .map((record: any) =>
+            record.manifest.id === 'stable.10'
+              ? { ...record, enabled, state: enabled ? 'enabled' : 'failed', errors }
+              : record,
+          ),
+        diagnostics: errors,
+        installFailures: errors.length
+          ? [{ sourcePath: '/background.milkup-plugin', at: 42, message: 'background failure' }]
+          : [],
+      })
+      await Promise.resolve()
+    }
+    observer.disconnect()
+    return {
+      sameCards: f.original.every(
+        (node: Element, index: number) =>
+          node === f.target.querySelectorAll('.plugin-summary-card')[index],
+      ),
+      sameToggle: toggle === f.target.querySelector('[data-plugin-id="stable.10"] [role="switch"]'),
+      sameExport:
+        exportButton ===
+        f.target.querySelector('[data-plugin-id="stable.10"] [data-plugin-action="export"]'),
+      detachedCards,
+      focused: document.activeElement === toggle,
+      sameScroll: top === f.target.scrollTop,
+      samePosition: y === toggle.getBoundingClientRect().top,
+      open: more.open && more.isConnected,
+      checked: toggle.getAttribute('aria-checked'),
+      count: f.target.querySelectorAll('.plugin-summary-card').length,
+    }
+  })
+  expect(result).toEqual({
+    sameCards: true,
+    sameToggle: true,
+    sameExport: true,
+    detachedCards: 0,
+    focused: true,
+    sameScroll: true,
+    samePosition: true,
+    open: true,
+    checked: 'true',
+    count: 18,
+  })
+})
+
+test('beta5 detail notifications retain heading, focus and the currently selected plugin', async ({
+  page,
+}) => {
+  await mountStableCards(page)
+  await page
+    .locator('#stable-cards-fixture [data-plugin-id="stable.10"] [data-plugin-action="details"]')
+    .click()
+  const result = await page.evaluate(() => {
+    const f = (window as any).stableCards
+    const detail = f.target.querySelector('.plugin-detail')!
+    const heading = f.target.querySelector('#plugin-detail-title')!
+    const exportButton = detail.querySelector('[data-plugin-action="export"]')!
+    ;(exportButton as HTMLElement).focus()
+    const top = f.target.scrollTop
+    f.notify({
+      ...f.state,
+      records: [...f.state.records]
+        .reverse()
+        .map((record: any) =>
+          record.manifest.id === 'stable.10'
+            ? { ...record, state: 'failed', errors: ['asynchronous teardown failed'] }
+            : record,
+        )
+        .concat({
+          ...f.state.records[0],
+          manifest: { id: 'stable.new', name: 'New', version: '1.0.0' },
+        }),
+      // Background candidate/failure notifications must not replace this detail.
+      catalogEntries: [
+        {
+          id: 'stable.2',
+          pending: {
+            transactionId: 'background-candidate',
+            generation: { manifest: { id: 'stable.2', name: 'Stable 2', version: '2.0.0' } },
+          },
+        },
+      ],
+      installFailures: [
+        { sourcePath: '/background.milkup-plugin', at: 42, message: 'background failure' },
+      ],
+    })
+    return {
+      sameDetail: detail === f.target.querySelector('.plugin-detail'),
+      sameHeading: heading === f.target.querySelector('#plugin-detail-title'),
+      sameExport: exportButton === f.target.querySelector('[data-plugin-action="export"]'),
+      focused: document.activeElement === exportButton,
+      sameScroll: top === f.target.scrollTop,
+      title: heading.textContent,
+      error: f.target.querySelector('.plugin-errors')?.textContent,
+    }
+  })
+  expect(result).toEqual({
+    sameDetail: true,
+    sameHeading: true,
+    sameExport: true,
+    focused: true,
+    sameScroll: true,
+    title: 'Stable 10',
+    error: 'asynchronous teardown failed',
+  })
+})
+
+test('beta5 rapid real card switches retain their DOM nodes after asynchronous activation failure', async ({
+  page,
+}) => {
+  await seed(
+    page,
+    'export default { async activate() { await new Promise(r => setTimeout(r, 80)); throw new Error("activation failed"); } }',
+  )
+  const card = page.locator('.plugin-summary-card[data-plugin-id="cards.beta"]')
+  await card.evaluate((element) => {
+    ;(window as any).originalCard = element
+    ;(window as any).originalSwitch = element.querySelector('[role="switch"]')
+    const toggle = (window as any).originalSwitch as HTMLButtonElement
+    toggle.focus()
+    toggle.click()
+    toggle.click()
+    toggle.click()
+  })
+  await expect(card.locator('.plugin-card-error')).toBeVisible()
+  expect(
+    await card.evaluate((element) => ({
+      sameCard: element === (window as any).originalCard,
+      sameSwitch: element.querySelector('[role="switch"]') === (window as any).originalSwitch,
+      focused: document.activeElement === (window as any).originalSwitch,
+    })),
+  ).toEqual({ sameCard: true, sameSwitch: true, focused: true })
+  await expect(card.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  await expect(page.locator('.plugin-summary-card')).toHaveCount(2)
+})

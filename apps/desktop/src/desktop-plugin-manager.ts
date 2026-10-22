@@ -891,30 +891,45 @@ export class DesktopPluginManager {
 
   state(): DesktopPluginManagerState {
     return Object.freeze({
-      records: Object.freeze([
-        ...this.registry.list().filter((record) => !this.reservedPluginIds.has(record.manifest.id)),
-        ...(this.catalogSnapshot?.entries.flatMap((entry) =>
-          this.reservedPluginIds.has(entry.id)
-            ? []
-            : entry.tombstone && entry.active && entry.diagnostics.length
-              ? [
-                  {
-                    ...this.generationRecord(entry, entry.active),
-                    state: 'failed' as const,
-                    errors: entry.diagnostics,
-                  },
-                ]
-              : !entry.active && entry.pending && !entry.tombstone
+      records: Object.freeze(
+        [
+          ...this.registry
+            .list()
+            .filter((record) => !this.reservedPluginIds.has(record.manifest.id)),
+          ...(this.catalogSnapshot?.entries.flatMap((entry) =>
+            this.reservedPluginIds.has(entry.id)
+              ? []
+              : entry.tombstone && entry.active && entry.diagnostics.length
                 ? [
                     {
-                      ...this.generationRecord(entry, entry.pending.generation),
-                      state: entry.diagnostics.length ? ('failed' as const) : ('disabled' as const),
+                      ...this.generationRecord(entry, entry.active),
+                      state: 'failed' as const,
                       errors: entry.diagnostics,
                     },
                   ]
-                : [],
-        ) ?? []),
-      ]),
+                : !entry.active && entry.pending && !entry.tombstone
+                  ? [
+                      {
+                        ...this.generationRecord(entry, entry.pending.generation),
+                        state: entry.diagnostics.length
+                          ? ('failed' as const)
+                          : ('disabled' as const),
+                        errors: entry.diagnostics,
+                      },
+                    ]
+                  : [],
+          ) ?? []),
+        ].sort((left, right) => {
+          // Native active and pending-only records share one identity order. A first
+          // activation must not move its card from the pending tail to the active head.
+          if (!this.catalogSnapshot) return 0
+          return left.manifest.id < right.manifest.id
+            ? -1
+            : left.manifest.id > right.manifest.id
+              ? 1
+              : 0
+        }),
+      ),
       ...(this.catalogSnapshot
         ? {
             catalogRevision: this.catalogSnapshot.revision,

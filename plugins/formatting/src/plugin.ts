@@ -11,6 +11,7 @@ let modalVisible = false
 let toolbarSignature = ''
 let contextVisible = false
 let modalEditable = true
+let documentId: string | undefined
 export const formatActions = [
   ['heading1', '一级标题'],
   ['heading2', '二级标题'],
@@ -51,15 +52,42 @@ const commands: Record<string, SdkPluginCommandHandler> = {
   },
   'formatting.field': (_context, input) => controller?.field(input),
   'formatting.refresh': () => controller?.load(),
-  'formatting.applyLink': () => controller?.execute('link', true),
-  'formatting.unlink': (_context, input) => controller?.execute('unlink', isDraft(input)),
-  'formatting.tableInsert': () => controller?.table('insert-table', true),
-  'formatting.tableSetCell': () => controller?.table('set-cell', true),
+  'formatting.applyLink': (_context, input) =>
+    controller?.execute('link', true, inputSnapshot(input)),
+  'formatting.unlink': (_context, input) =>
+    controller?.execute('unlink', isDraft(input), inputSnapshot(input)),
+  'formatting.tableInsert': (_context, input) =>
+    controller?.table('insert-table', true, inputSnapshot(input)),
+  'formatting.tableSetCell': (_context, input) =>
+    controller?.table('set-cell', true, inputSnapshot(input)),
 }
 for (const [id] of formatActions)
-  commands[`formatting.${id}`] = (_context, input) => controller?.execute(id, isDraft(input))
+  commands[`formatting.${id}`] = (_context, input) =>
+    controller?.execute(id, isDraft(input), inputSnapshot(input))
 for (const [id, , operation] of tableActions)
-  commands[`formatting.${id}`] = (_context, input) => controller?.table(operation, isDraft(input))
+  commands[`formatting.${id}`] = (_context, input) =>
+    controller?.table(operation, isDraft(input), inputSnapshot(input))
+function inputSnapshot(input: unknown): string | undefined {
+  return input &&
+    typeof input === 'object' &&
+    'snapshotId' in input &&
+    typeof input.snapshotId === 'string'
+    ? input.snapshotId
+    : undefined
+}
+function syncDocument(context: SdkPluginRendererContext): boolean {
+  if (!controller) return false
+  const next = context.node?.documentId
+  if (context.node?.phase === 'dispose') return next === undefined || next === documentId
+  if (next !== undefined && next !== documentId) {
+    documentId = next
+    toolbarSignature = ''
+    modalVisible = false
+    contextVisible = false
+    controller.cancel()
+  }
+  return true
+}
 function isDraft(input: unknown) {
   return !!input && typeof input === 'object' && 'draft' in input && input.draft === true
 }
@@ -70,6 +98,7 @@ export default definePlugin({
     toolbarSignature = ''
     contextVisible = false
     modalEditable = true
+    documentId = undefined
     const current = createController(context.host.editing, () => {
       if (current === controller) void context.host.ui?.requestUpdate().catch(() => undefined)
     })
@@ -96,6 +125,7 @@ export default definePlugin({
   commands,
   renderers: {
     'formatting-modal': (context: SdkPluginRendererContext) => {
+      if (!syncDocument(context)) return ''
       if (context.node?.phase === 'dispose') {
         modalVisible = false
         toolbarSignature = ''
@@ -104,16 +134,18 @@ export default definePlugin({
       }
       if (!modalVisible) {
         modalVisible = true
-        if (context.node?.documentEditable !== false) void controller?.load()
+        if (context.node?.documentEditable !== false) void controller?.load(context.node)
       } else if (!modalEditable && context.node?.documentEditable !== false) {
-        void controller?.load()
+        void controller?.load(context.node)
       }
       modalEditable = context.node?.documentEditable !== false
       return renderModal(stateFor(context))
     },
     'formatting-toolbar': (context: SdkPluginRendererContext) => {
+      if (!syncDocument(context)) return ''
       if (context.node?.phase === 'dispose') {
         toolbarSignature = ''
+        controller?.cancel()
         return ''
       }
       const signature = JSON.stringify([
@@ -126,20 +158,33 @@ export default definePlugin({
       ])
       if (!modalVisible && signature !== toolbarSignature) {
         toolbarSignature = signature
-        if (context.node?.documentEditable !== false) void controller?.load()
+        if (context.node?.documentEditable !== false) void controller?.load(context.node)
       }
-      return renderToolbar(stateFor(context))
+      const state = stateFor(context)
+      const snapshot = state.snapshot
+      const matches =
+        snapshot &&
+        context.node?.documentEditable !== false &&
+        (context.node?.documentId === undefined ||
+          snapshot.documentId === context.node.documentId) &&
+        (context.node?.documentVersion === undefined ||
+          snapshot.version === context.node.documentVersion) &&
+        (context.node?.selectionRevision === undefined ||
+          snapshot.selectionRevision === context.node.selectionRevision)
+      return renderToolbar(matches ? state : { ...state, snapshot: undefined })
     },
     'formatting-context': (context: SdkPluginRendererContext) => {
+      if (!syncDocument(context)) return ''
       if (context.node?.phase === 'dispose') {
         contextVisible = false
         return ''
       }
       const visible = context.node?.visible !== false
       if (visible && !contextVisible && !modalVisible && context.node?.documentEditable !== false)
-        void controller?.load()
+        void controller?.load(context.node)
       contextVisible = visible
       // Hiding the menu after a click does not cancel that submitted command.
+      const state = stateFor(context)
       return group([
         ...formatActions
           .filter(([id]) =>
@@ -155,7 +200,9 @@ export default definePlugin({
               'inlineCode',
             ].includes(id),
           )
-          .map(([id, title]) => button(id, title, stateFor(context).busy)),
+          .map(([id, title]) =>
+            button(id, title, state.busy || !state.snapshot, true, state.snapshot?.id),
+          ),
         ...(context.node?.documentEditable === false
           ? [text('文档只读或正在处理，格式操作暂不可用。')]
           : []),
@@ -179,14 +226,23 @@ const text = (value: string, role?: string): SdkRendererOutput => ({
   text: value,
   ...(role ? { attributes: { role } } : {}),
 })
-function button(id: string, title: string, disabled: boolean, draft = false): SdkRendererOutput {
+function button(
+  id: string,
+  title: string,
+  disabled: boolean,
+  draft = false,
+  snapshotId?: string,
+): SdkRendererOutput {
   return {
     type: 'element',
     tag: 'button',
     text: title,
     disabled,
     attributes: { class: 'dialog-button secondary', 'aria-label': title },
-    action: { command: `formatting.${id}`, ...(draft ? { input: { draft: true } } : {}) },
+    action: {
+      command: `formatting.${id}`,
+      ...(draft ? { input: { draft: true, ...(snapshotId ? { snapshotId } : {}) } } : {}),
+    },
   }
 }
 function group(children: SdkRendererOutput[], className = 'plugin-actions'): SdkRendererOutput {
@@ -208,19 +264,18 @@ function tableDescription(state: State): string {
   return `${table.row === 0 ? '表头' : `第 ${table.row} 行`} · 第 ${table.column + 1} 列。${!table.withinCell ? '请先选择单元格以修改结构。' : '表头不能删除，至少保留两列。'}`
 }
 export function renderToolbar(state: State): SdkRendererOutput {
+  if (!state.snapshot?.table) return ''
   return group([
     button('open', '格式', false),
-    button('bold', '粗体', state.busy || !state.snapshot),
-    button('italic', '斜体', state.busy || !state.snapshot),
-    ...(state.snapshot?.table
-      ? [
-          ...tableActions
-            .filter(([, , op]) =>
-              ['add-row', 'delete-row', 'add-column', 'delete-column', 'exit'].includes(op),
-            )
-            .map(([id, title, op]) => button(id, title, tableDisabled(state, op))),
-        ]
-      : []),
+    button('bold', '粗体', state.busy, true, state.snapshot.id),
+    button('italic', '斜体', state.busy, true, state.snapshot.id),
+    ...tableActions
+      .filter(([, , op]) =>
+        ['add-row', 'delete-row', 'add-column', 'delete-column', 'exit'].includes(op),
+      )
+      .map(([id, title, op]) =>
+        button(id, title, tableDisabled(state, op), true, state.snapshot?.id),
+      ),
     ...(state.error ? [text('操作未完成，请打开“格式”查看详情。', 'alert')] : []),
   ])
 }
@@ -233,7 +288,9 @@ export function renderModal(state: State): SdkRendererOutput {
     text(
       '复杂嵌套块、跨部分语法和代码内格式不直接转换。文本修改作为一次撤销步骤；选择表格不修改正文。',
     ),
-    group(formatActions.map(([id, title]) => button(id, title, disabled, true))),
+    group(
+      formatActions.map(([id, title]) => button(id, title, disabled, true, state.snapshot?.id)),
+    ),
     { type: 'element', tag: 'strong', text: '链接' },
     {
       type: 'field',
@@ -245,11 +302,15 @@ export function renderModal(state: State): SdkRendererOutput {
       placeholder: 'https://example.com 或 ./page.md',
       onChange: { command: 'formatting.field' },
     },
-    button('applyLink', '应用链接', disabled, true),
-    button('unlink', '取消链接', disabled, true),
+    button('applyLink', '应用链接', disabled, true, state.snapshot?.id),
+    button('unlink', '取消链接', disabled, true, state.snapshot?.id),
     { type: 'element', tag: 'strong', text: '表格' },
     text(tableDescription(state)),
-    group(tableActions.map(([id, title, op]) => button(id, title, tableDisabled(state, op), true))),
+    group(
+      tableActions.map(([id, title, op]) =>
+        button(id, title, tableDisabled(state, op), true, state.snapshot?.id),
+      ),
+    ),
     {
       type: 'field',
       key: 'cell',
@@ -260,7 +321,13 @@ export function renderModal(state: State): SdkRendererOutput {
       help: '替换当前单元格，管道符由宿主安全转义。',
       onChange: { command: 'formatting.field' },
     },
-    button('tableSetCell', '替换单元格内容', tableDisabled(state, 'set-cell'), true),
+    button(
+      'tableSetCell',
+      '替换单元格内容',
+      tableDisabled(state, 'set-cell'),
+      true,
+      state.snapshot?.id,
+    ),
     group(
       [
         {
@@ -290,7 +357,7 @@ export function renderModal(state: State): SdkRendererOutput {
       ],
       'plugin-form',
     ),
-    button('tableInsert', '插入表格', disabled, true),
+    button('tableInsert', '插入表格', disabled, true, state.snapshot?.id),
   ]
   if (state.busy) children.push(text('正在读取或应用格式…', 'status'))
   if (state.error) children.push(text(state.error, 'alert'))
