@@ -407,12 +407,42 @@ try {
         await app.key('ctrl+o')
         await ui.picker(diagramFile)
         await app.key('ctrl+2')
+        // This Worker returns typed vector primitives. The host creates an SVG;
+        // blob-backed <img> is reserved for the separate svg-image presentation type.
+        const vectorState = () =>
+          app.execute(`return [...document.querySelectorAll('.milkup-document-presentation')].map(e=>{
+            const svg=e.querySelector(':scope > svg'),r=svg?.getBoundingClientRect();
+            return {label:e.getAttribute('aria-label'),layout:e.dataset.documentPresentation,
+              viewBox:svg?.getAttribute('viewBox'),rect:r?.toJSON(),
+              visible:!!r&&r.width>0&&r.height>0&&r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight&&getComputedStyle(svg).visibility==='visible',
+              primitives:svg?[...svg.children].map(n=>({tag:n.localName,text:n.textContent,attrs:Object.fromEntries([...n.attributes].map(a=>[a.name,a.value]))})):[],
+              html:e.outerHTML.slice(0,6000)};
+          })`)
         await app.until(
-          () =>
-            app.execute(
-              'return [...document.querySelectorAll(".milkup-document-presentation img")].some(e=>e.complete&&e.naturalWidth>0&&e.src.startsWith("blob:"))',
-            ),
-          'bounded static image decoded',
+          async () => {
+            row.vector = await vectorState()
+            return row.vector.some(
+              (v) =>
+                v.label === '流程图与时序图（受限语法）' &&
+                v.layout === 'block' &&
+                v.visible &&
+                v.viewBox === '0 0 300 260' &&
+                v.primitives.map((n) => n.tag).join(',') === 'line,polygon,rect,text,rect,text' &&
+                v.primitives
+                  .filter((n) => n.tag === 'text')
+                  .map((n) => n.text)
+                  .join(',') === 'Start,End' &&
+                v.primitives
+                  .filter((n) => n.tag === 'rect')
+                  .every((n) => n.attrs.width === '240' && n.attrs.height === '60') &&
+                v.primitives[0].attrs.x1 === '150' &&
+                v.primitives[0].attrs.y1 === '90' &&
+                v.primitives[0].attrs.x2 === '150' &&
+                v.primitives[0].attrs.y2 === '170' &&
+                v.primitives[1].attrs.points === '150,170 154,161 146,161',
+            )
+          },
+          'bounded static vector visibly rendered with exact Start-to-End primitives',
           20000,
         )
         await screenshot('external-static-worker-render')

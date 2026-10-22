@@ -1,8 +1,14 @@
 import { expect, it } from 'vitest'
 import type { SdkDocumentPresentationRequest } from '@milkup/plugin-sdk'
 import { renderDocuments } from './renderer'
-function request(body: string, offset = 0, lineEnding = '\n'): SdkDocumentPresentationRequest {
-  const source = '```mermaid' + lineEnding + body + lineEnding + '```'
+function request(
+  body: string,
+  offset = 0,
+  lineEnding = '\n',
+  info = 'mermaid',
+): SdkDocumentPresentationRequest {
+  const opening = '```' + info
+  const source = opening + lineEnding + body + lineEnding + '```'
   return {
     documentId: 'test',
     version: 1,
@@ -21,8 +27,10 @@ function request(body: string, offset = 0, lineEnding = '\n'): SdkDocumentPresen
         complete: true,
         from: offset,
         to: offset + source.length,
-        info: 'mermaid',
-        contentRanges: [{ from: offset + 10 + lineEnding.length, to: offset + source.length - 3 }],
+        info,
+        contentRanges: [
+          { from: offset + opening.length + lineEnding.length, to: offset + source.length - 3 },
+        ],
       },
     ],
     selection: { anchor: offset + source.length, head: offset + source.length },
@@ -106,3 +114,29 @@ it('refuses aggregate output beyond the shared host budget without replacing sou
   })
   expect(result).toEqual({ fragments: [], complete: false })
 })
+
+it.each([
+  'mermaid unsupported-option',
+  ' mermaid\tunsupported-option ',
+  '\tmermaid  unsupported-option\t',
+  'mermaid\u00a0unsupported-option',
+])('preserves the exact fence and explicitly rejects extra fence parameters: %s', async (info) => {
+  const input = request('flowchart LR\r\nA[开始😀]-->B[结束]', 73, '\r\n', info)
+  const result = await render(input)
+  expect(result.fragments).toHaveLength(1)
+  expect(result.fragments[0]).toMatchObject({
+    from: 73,
+    to: input.to,
+    status: 'error',
+    content: { type: 'code', children: [{ type: 'text', text: input.source }] },
+  })
+  expect(result.fragments[0]?.message).toContain('围栏参数暂不支持')
+  expect(result.fragments[0]?.message).toContain('保留完整源码')
+})
+it.each(['mermaid', ' mermaid ', '\tmermaid\t', 'mermaid\u00a0'])(
+  'accepts only exact mermaid after trimming harmless surrounding whitespace: %s',
+  async (info) => {
+    const result = await render(request('flowchart LR\nA-->B', 0, '\n', info))
+    expect(result.fragments[0]).toMatchObject({ status: 'ready', content: { type: 'vector' } })
+  },
+)

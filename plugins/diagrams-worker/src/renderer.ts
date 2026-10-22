@@ -45,6 +45,8 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal }) 
     const source = request.source.slice(block.from - request.from, block.to - request.from)
     const input = request.source.slice(body.from - request.from, body.to - request.from)
     try {
+      if (block.info.trim() !== 'mermaid')
+        throw new Error('受限图表围栏参数暂不支持；已保留完整源码。')
       if (input.length > LIMITS.source)
         throw new Error('受限图表正文最多 8192 个 UTF-16 字符；已保留完整源码。')
       const content = compileDiagram(input)
