@@ -1,7 +1,11 @@
 import { MemoryDocumentSource } from '@milkup/core'
 import { afterEach, expect, it, vi } from 'vitest'
 import { SourceDocumentView } from '../source-document-view'
-import { DocumentPresentation, type PresentationSnapshot } from '../document-presentation'
+import {
+  DocumentPresentation,
+  type PresentationSnapshot,
+  type DocumentPresentationConfig,
+} from '../document-presentation'
 
 const managers: DocumentPresentation[] = []
 afterEach(() => {
@@ -87,6 +91,80 @@ it('keeps an initial fallback notice visible when the document is at the top', a
   expect(f.root.scrollTop).toBe(0)
   expect(f.content.children[0]!.getBoundingClientRect().top).toBe(30)
   expect(f.snapshot.selection).toEqual(before)
+})
+
+function paintedResponse(kind: 'error' | 'incomplete' | 'complete'): DocumentPresentationConfig {
+  return {
+    provide: async ({
+      sourceIdentity: _i,
+      sourceVersion: _v,
+      documentVersion: _d,
+      visibleFrom: _from,
+      visibleTo: _to,
+      ...window
+    }) => ({
+      declarations: [{ id: 'fixture', contexts: ['text'] }],
+      request: {
+        ...window,
+        documentId: 'fixture',
+        version: 1,
+        contextKnown: true,
+        protectedRanges: [],
+        blocks: [],
+        theme: 'light',
+        target: 'screen',
+      },
+      result: {
+        complete: kind !== 'incomplete',
+        fragments:
+          kind === 'error'
+            ? [
+                {
+                  from: 0,
+                  to: 1,
+                  layout: 'block',
+                  accessibleText: 'x',
+                  content: { type: 'text', text: 'x' },
+                  status: 'error',
+                  message: 'painted fragment failed',
+                },
+              ]
+            : [],
+      },
+    }),
+  }
+}
+for (const kind of ['error', 'incomplete'] as const)
+  for (const initial of [0, 50])
+    it(`preserves notice visibility or the existing reading position for a painted ${kind} result at ${initial}`, async () => {
+      const f = fixture()
+      f.root.scrollTop = initial
+      const anchor = f.content.children[3]!,
+        before = anchor.getBoundingClientRect().top
+      f.manager.setConfig(paintedResponse(kind))
+      await settle()
+      const notice = f.root.querySelector('[data-document-presentation-notice]')
+      expect(notice?.textContent).toBe(
+        kind === 'error'
+          ? 'painted fragment failed'
+          : '部分内容暂未生成预览，已保留对应 Markdown 源码。',
+      )
+      if (initial === 0) {
+        expect(f.root.scrollTop).toBe(0)
+        expect(f.content.children[0]!.getBoundingClientRect().top).toBe(30)
+      } else expect(anchor.getBoundingClientRect().top).toBe(before)
+    })
+it('retains successful paint anchoring at the top when no fallback notice appears', async () => {
+  const f = fixture()
+  f.root.scrollTop = 0
+  const anchor = f.content.children[3]!,
+    before = anchor.getBoundingClientRect().top
+  f.manager.setConfig(paintedResponse('complete'))
+  f.setLayout(f.grow)
+  await settle()
+  expect(f.root.querySelector('[data-document-presentation-notice]')).toBeNull()
+  expect(anchor.getBoundingClientRect().top).toBe(before)
+  expect(f.root.scrollTop).toBe(80)
 })
 
 for (const away of [false, true]) {

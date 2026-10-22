@@ -1293,6 +1293,7 @@ export class DocumentPresentation {
     }
     this.painting = true
     this.observer.disconnect()
+    const initiallyAtTop = this.root.scrollTop === 0
     const anchor = this.captureScrollAnchor(currentSelection)
     const focus = this.captureFocus()
     const previewScroll = this.capturePreviewScroll()
@@ -1454,7 +1455,9 @@ export class DocumentPresentation {
       for (const node of Array.from(this.content.querySelectorAll('[data-document-presentation]')))
         this.resize?.observe(node)
       this.layout()
-      this.restoreScrollAnchor(anchor)
+      // A fallback created during painting must remain visible at the document top.
+      // Keep normal anchoring for scrolled readers and successful preview-only paints.
+      if (!initiallyAtTop || !this.notice) this.restoreScrollAnchor(anchor)
       this.restoreFocus(focus)
       this.restorePreviewScroll(previewScroll, response)
       this.painted = {
