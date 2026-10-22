@@ -168,3 +168,67 @@ it('shows a trusted bundled Worker upgrade without blocking on the installed DOM
   expect(detail).toContain('随应用提供的新版')
   expect(detail).not.toMatch(forbidden)
 })
+
+it.each([
+  {
+    name: 'a bundled upgrade superseding an older pending version',
+    pending: true,
+    bundled: true,
+    label: '随应用新版 1.0.1 · Worker · 下次开启时应用',
+  },
+  {
+    name: 'only a pending version',
+    pending: true,
+    bundled: false,
+    label: '1.0.0 · 下次开启时应用',
+  },
+  {
+    name: 'only a bundled upgrade',
+    pending: false,
+    bundled: true,
+    label: '随应用新版 1.0.1 · Worker · 下次开启时应用',
+  },
+])('shows the next enabled version on the card with $name', ({ pending, bundled, label }) => {
+  const generation = {
+    id: 'g1',
+    manifest: record.manifest,
+    capabilityFingerprint: 'f1',
+    approvedFingerprint: null,
+    verified: false,
+    sourcePath: '/bundled-1.0.0',
+    packageRoot: '/g1',
+    manifestSha256: 'a',
+    contentSha256: 'b',
+  }
+  const entry: PluginCatalogEntry = {
+    id: record.manifest.id,
+    revision: 1,
+    active: pending ? null : generation,
+    previous: null,
+    pending: pending
+      ? { transactionId: 't1', phase: 'prepared', restoreEnabled: false, generation }
+      : null,
+    enabled: false,
+    diagnostics: [],
+    tombstone: false,
+    startAttempt: null,
+    dataRoot: '/data',
+    storageRoot: '/storage',
+  }
+  const upgradeState: DesktopPluginManagerState = {
+    ...state(),
+    catalogEntries: [entry],
+    bundledUpgradeOffers: bundled
+      ? { [record.manifest.id]: { ...record.manifest, version: '1.0.1', host: 'worker' } }
+      : {},
+  }
+  const card = renderDesktopPluginManager(upgradeState)
+  expect(card.match(/<span class="plugin-card-update">([^<]+)<\/span>/)?.[1]).toBe(label)
+  if (pending && bundled) {
+    const details = renderDesktopPluginManager(upgradeState, {
+      selectedPluginId: record.manifest.id,
+    })
+    expect(details).toContain('<h4>可用版本 1.0.0</h4>')
+    expect(details).toContain('<h4>随应用提供的新版 1.0.1</h4>')
+  }
+})
