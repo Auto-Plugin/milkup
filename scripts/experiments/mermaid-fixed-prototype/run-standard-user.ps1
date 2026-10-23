@@ -72,6 +72,7 @@ Assert-PlainPath $Evidence
 Assert-PlainPath $Runtime
 Assert-PlainPath $Binary
 . (Join-Path $PSScriptRoot 'visual-evidence.ps1')
+. (Join-Path $PSScriptRoot 'cleanup-diagnostics.ps1')
 Add-Type -Path (Join-Path $PSScriptRoot 'StandardUserProcess.cs')
 $runId = [guid]::NewGuid().ToString('N')
 $name = 'mkp' + $runId.Substring(0, 15)
@@ -170,6 +171,18 @@ try {
         $audit.executions += @{name=$case.name; result=$result}
         Write-Output ('MILKUP_SUPERVISOR_JSON ' + (@{name=$case.name; result=$result} | ConvertTo-Json -Depth 12 -Compress))
         Read-CaseSummary $output
+        if (-not $result.success -and $ownedProcessesCleared) {
+            try {
+                Write-OwnedCleanupDiagnosis -Output $output -PrivateTemp (Join-Path $stage 'state/temp') -OuterResult $result
+            } catch {
+                $message = $_.Exception.Message
+                $audit['readOnlyDiagnosticError'] = $message.Substring(0, [Math]::Min(512, $message.Length))
+                Write-Output ('MILKUP_CLEANUP_DIAGNOSTIC_ERROR ' + (@{
+                    runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; source=$env:GITHUB_SHA
+                    error=$audit.readOnlyDiagnosticError
+                } | ConvertTo-Json -Compress))
+            }
+        }
         if (-not $result.success -or -not $result.jobEmpty) { throw ('Standard-user ' + $case.name + ' failed; no subsequent dispatch') }
         $report = Get-Content -LiteralPath (Join-Path $output 'report.json') -Raw | ConvertFrom-Json
         if ($case.name -ceq 'positive' -and ($report.records.Count -ne 50 -or $report.acceptedAssertions -ne 50)) { throw 'Incomplete positive matrix' }

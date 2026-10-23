@@ -58,3 +58,19 @@ run, dimensions and hashes. Any blank areas, missing labels, clipping or
 rendering errors remain reported defects even if automatic PNG checks pass.
 This does not add ZenUML/tidy-tree or establish all-grammar, all-DPI, interactive
 link or OS-wide network-denial claims.
+
+The first capture run, `39928634251` at `565ac02d80173a0f888a87357b7a30bcbcfe9ca9`,
+failed before transport: its canary rendered, then native private-tree deletion
+returned Windows error 5. The native output was discarded and the positive
+matrix was not started. The outer supervisor subsequently deleted the account,
+actual Windows profile and full stage. That does not turn native cleanup into
+success, nor does it identify the failing child path or root cause.
+
+The follow-up adds only a bounded, read-only parent diagnostic for an explicitly
+retained case root immediately inside the current stage's private temp directory.
+After outer Job emptiness, it records at most 64 metadata entries, depth 8,
+2 KiB SDDL per entry and 64 KiB total. It does not follow reparse points, read
+file content, change permissions or retry Windows error 5. Truncation/errors and
+the original failure remain explicit. Renderer/native inputs remain locked to
+the successful baseline; a fresh successful run would not establish why the
+previous run encountered error 5.
