@@ -1,0 +1,17 @@
+export default {
+  testDir: '/tmp/milkup-windows-manual-candidate/tests/e2e',
+  testMatch: /desktop-host-context-menu\.spec\.ts/,
+  timeout: 60000,
+  expect: { timeout: 5000 },
+  use: {
+    browserName: 'chromium',
+    baseURL: 'http://127.0.0.1:1437',
+    launchOptions: { executablePath: '/usr/bin/chromium' },
+    viewport: { width: 1280, height: 720 },
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+  projects: [{ name: 'context-menu-browser' }],
+  reporter: [['line']],
+  outputDir: '/tmp/milkup-context-menu-e2e-results',
+}

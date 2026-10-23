@@ -1,0 +1,58 @@
+[WebServer] (node:250828) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:250878) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-floating-toolbar.spec.ts:342:1 › floating toolbar returns after closing the application menu without another editor event (8.7s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:342:1 › floating toolbar returns after closing the application menu without another editor event 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-plugin-slot="document-toolbar"]')
+    Expected: visible
+    Received: hidden
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-plugin-slot="document-toolbar"]')
+        14 × locator resolved to <div hidden="" role="toolbar" aria-label="文档上下文操作" data-plugin-slot="document-toolbar" class="plugin-toolbar-slot floating-document-toolbar">…</div>
+           - unexpected value "hidden"
+
+
+      373 |   await expect(page.locator('[data-app-menu]')).toBeHidden()
+      374 |   try {
+    > 375 |     await expect(toolbar(page)).toBeVisible()
+          |                                 ^
+      376 |   } finally {
+      377 |     await writeFile(
+      378 |       info.outputPath('application-menu-toolbar-state.json'),
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:375:33
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-menu-return-red/desktop-floating-toolbar-f-4b67e-ithout-another-editor-event/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "sample" [level=1]
+      - paragraph: D:/notes
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "源码"
+      - text: Markdown 8613 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-menu-return-red/desktop-floating-toolbar-f-4b67e-ithout-another-editor-event/error-context.md
+
+  1 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:342:1 › floating toolbar returns after closing the application menu without another editor event 

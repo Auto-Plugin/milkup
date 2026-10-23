@@ -1,0 +1,81 @@
+[WebServer] (node:229893) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:229925) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-floating-toolbar.spec.ts:136:9 › floating toolbar ordinary 1100x760 light 100% (8.4s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:136:9 › floating toolbar ordinary 1100x760 light 100% 
+
+    Error: expect(locator).toBeHidden() failed
+
+    Locator:  locator('[data-plugin-slot="document-toolbar"]')
+    Expected: hidden
+    Received: visible
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeHidden" with timeout 5000ms
+      - waiting for locator('[data-plugin-slot="document-toolbar"]')
+        14 × locator resolved to <div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar">…</div>
+           - unexpected value "visible"
+
+
+       at ../helpers/formatting-plugin.ts:119
+
+      117 |     const toolbar = page.locator('[data-plugin-slot="document-toolbar"]')
+      118 |     await expect(toolbar.locator('button')).toHaveCount(0)
+    > 119 |     await expect(toolbar).toBeHidden()
+          |                           ^
+      120 |     phase('empty-document-toolbar-hidden')
+      121 |   } catch (error) {
+      122 |     phase('fixture-failed')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:119:27)
+        at openDocument (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:33:3)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:139:11
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - text: hasToolbarContent is not defined
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-red/desktop-floating-toolbar-f-dc6d0-rdinary-1100x760-light-100-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - text: hasToolbarContent is not defined
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-red/desktop-floating-toolbar-f-dc6d0-rdinary-1100x760-light-100-/error-context.md
+
+  1 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:136:9 › floating toolbar ordinary 1100x760 light 100% 

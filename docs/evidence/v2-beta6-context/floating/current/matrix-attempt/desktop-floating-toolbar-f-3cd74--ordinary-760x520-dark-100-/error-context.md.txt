@@ -1,0 +1,220 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-floating-toolbar.spec.ts >> floating toolbar ordinary 760x520 dark 100%
+- Location: tests/e2e/desktop-floating-toolbar.spec.ts:137:9
+
+# Error details
+
+```
+TypeError: Cannot read properties of null (reading 'x')
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "未命名" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 未保存
+    - generic "窗口控制" [ref=e10]:
+      - button "最小化" [ref=e11] [cursor=pointer]
+      - button "最大化" [ref=e13] [cursor=pointer]
+      - button "关闭窗口" [ref=e15] [cursor=pointer]
+  - generic [ref=e19]:
+    - text: 写点什么吧...
+    - generic [ref=e20]:
+      - textbox [ref=e21]
+      - textbox "Markdown 编辑器" [active]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - button "侧栏" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+      - button "实时" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+    - generic [ref=e32]:
+      - generic [ref=e33]: 0 字符
+      - generic [ref=e36]: 已保存
+```
+
+# Test source
+
+```ts
+  116 | }
+  117 | 
+  118 | test.afterEach(async ({ page }, info) => {
+  119 |   if (info.status !== info.expectedStatus) {
+  120 |     await info.attach('floating-toolbar-state', {
+  121 |       body: await page.locator('body').ariaSnapshot(),
+  122 |       contentType: 'text/plain',
+  123 |     })
+  124 |     await page.screenshot({ path: info.outputPath('failure.png'), fullPage: true })
+  125 |   }
+  126 | })
+  127 | 
+  128 | // Native webview zoom reduces the CSS viewport. These 32 browser cases exercise
+  129 | // that layout equivalent, not Windows system DPI or actual native webview zoom.
+  130 | for (const windowed of [false, true])
+  131 |   for (const size of [
+  132 |     { width: 1100, height: 760 },
+  133 |     { width: 760, height: 520 },
+  134 |   ])
+  135 |     for (const theme of ['light', 'dark'])
+  136 |       for (const zoom of [1, 1.25, 1.5, 2])
+  137 |         test(`floating toolbar ${windowed ? 'windowed' : 'ordinary'} ${size.width}x${size.height} ${theme} ${zoom * 100}%`, async ({
+  138 |           page,
+  139 |         }, info) => {
+  140 |           await openDocument(page, windowed, theme)
+  141 |           await page.setViewportSize({
+  142 |             width: Math.floor(size.width / zoom),
+  143 |             height: Math.floor(size.height / zoom),
+  144 |           })
+  145 |           const before = await geometry(page)
+  146 |           await enterTable(page)
+  147 |           const entered = await geometry(page)
+  148 |           await info.attach('layout-before-and-after', {
+  149 |             body: JSON.stringify({ before, entered }, null, 2),
+  150 |             contentType: 'application/json',
+  151 |           })
+  152 |           await writeFile(
+  153 |             info.outputPath('layout-before-and-after.json'),
+  154 |             JSON.stringify({ before, entered }, null, 2),
+  155 |           )
+  156 |           expectSameLayout(before, entered)
+  157 |           expectBounded(entered)
+  158 |           // Center the selected row before scrolling; this avoids testing a
+  159 |           // permanently clamped top/bottom position in the small viewport.
+  160 |           await page.locator('.milkup-editor').evaluate((editor, tableRow) => {
+  161 |             const row = editor.querySelector(`.milkup-line[data-line="${tableRow}"]`)!
+  162 |             const r = row.getBoundingClientRect(),
+  163 |               e = editor.getBoundingClientRect()
+  164 |             editor.scrollTop += r.top - e.top - e.height / 2
+  165 |           }, tableRow)
+  166 |           await expect(toolbar(page)).toBeVisible()
+  167 |           await page.evaluate(
+  168 |             () =>
+  169 |               new Promise<void>((resolve) =>
+  170 |                 requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  171 |               ),
+  172 |           )
+  173 |           const centered = await geometry(page)
+  174 |           await page.locator('.milkup-editor').evaluate((editor) => {
+  175 |             editor.scrollTop += 20
+  176 |           })
+  177 |           await expect
+  178 |             .poll(async () => (await geometry(page)).toolbar.top)
+  179 |             .not.toBe(centered.toolbar.top)
+  180 |           const scrolled = await geometry(page)
+  181 |           expectSameLayout(before, scrolled)
+  182 |           expectBounded(scrolled)
+  183 |           await info.attach('scroll-following', {
+  184 |             body: JSON.stringify({ centered, scrolled }, null, 2),
+  185 |             contentType: 'application/json',
+  186 |           })
+  187 |           await writeFile(
+  188 |             info.outputPath('scroll-following.json'),
+  189 |             JSON.stringify({ centered, scrolled }, null, 2),
+  190 |           )
+  191 |           await page.screenshot({ path: info.outputPath('floating-toolbar.png') })
+  192 |           await page.locator('.milkup-editor').evaluate((editor) => {
+  193 |             editor.scrollTop += 900
+  194 |           })
+  195 |           await expect(toolbar(page)).toBeHidden()
+  196 |           expectSameLayout(before, await geometry(page))
+  197 |           await page.locator('.milkup-editor').evaluate((editor, top) => {
+  198 |             editor.scrollTop = top
+  199 |           }, scrolled.scrollTop)
+  200 |           await expect(toolbar(page)).toBeVisible()
+  201 |           expectBounded(await geometry(page))
+  202 |           const enabledButtons = toolbar(page).locator('button:not([disabled])')
+  203 |           const editorScroll = await page.locator('.milkup-editor').evaluate((editor) => ({
+  204 |             top: editor.scrollTop,
+  205 |             left: editor.scrollLeft,
+  206 |             pageTop: scrollY,
+  207 |             pageLeft: scrollX,
+  208 |           }))
+  209 |           for (let index = 0; index < (await enabledButtons.count()); index++) {
+  210 |             if (index === 0) await enabledButtons.first().focus()
+  211 |             else await page.keyboard.press('Tab')
+  212 |             const button = enabledButtons.nth(index)
+  213 |             await expect(button).toBeFocused()
+  214 |             const buttonBounds = await button.boundingBox()
+  215 |             const slotBounds = await toolbar(page).boundingBox()
+> 216 |             expect(buttonBounds!.x).toBeGreaterThanOrEqual(slotBounds!.x + 2)
+      |                                                                        ^ TypeError: Cannot read properties of null (reading 'x')
+  217 |             expect(buttonBounds!.x + buttonBounds!.width).toBeLessThanOrEqual(
+  218 |               slotBounds!.x + slotBounds!.width - 2,
+  219 |             )
+  220 |           }
+  221 |           expect(
+  222 |             await page.locator('.milkup-editor').evaluate((editor) => ({
+  223 |               top: editor.scrollTop,
+  224 |               left: editor.scrollLeft,
+  225 |               pageTop: scrollY,
+  226 |               pageLeft: scrollX,
+  227 |             })),
+  228 |           ).toEqual(editorScroll)
+  229 |           await input(page).focus()
+  230 |           await page.keyboard.press('Control+Home')
+  231 |           await expect(toolbar(page)).toBeHidden()
+  232 |           await expect(toolbar(page).locator('button')).toHaveCount(0)
+  233 |           expectSameLayout(before, await geometry(page))
+  234 |         })
+  235 | 
+  236 | for (const windowed of [false, true])
+  237 |   test(`floating toolbar ${windowed ? 'windowed' : 'ordinary'} commands retain editing and clear on disable/document switch`, async ({
+  238 |     page,
+  239 |   }) => {
+  240 |     await openDocument(page, windowed)
+  241 |     await enterTable(page)
+  242 |     await toolbar(page).getByRole('button', { name: '下方加行', exact: true }).click()
+  243 |     await expect(page.locator(`.milkup-line[data-line="${tableRow + 1}"]`)).toHaveText('|  |  |')
+  244 |     await expect(input(page)).toBeFocused()
+  245 |     await page.keyboard.insertText('新😀')
+  246 |     await expect(page.locator(`.milkup-line[data-line="${tableRow + 1}"]`)).toContainText('新😀')
+  247 |     await page.keyboard.press('Control+z')
+  248 |     await page.keyboard.press('Control+z')
+  249 |     await expect(page.locator(`.milkup-line[data-line="${tableRow}"]`)).toHaveText('| x | y |')
+  250 |     await expect(page.locator(`.milkup-line[data-line="${tableRow + 1}"]`)).toHaveText('')
+  251 |     await enterTable(page)
+  252 |     await toolbar(page).getByRole('button', { name: '下方加行', exact: true }).focus()
+  253 |     await page.keyboard.press('Enter')
+  254 |     await expect(page.locator(`.milkup-line[data-line="${tableRow + 1}"]`)).toHaveText('|  |  |')
+  255 |     await expect(input(page)).toBeFocused()
+  256 |     await page.keyboard.press('Control+z')
+  257 |     await expect(page.locator(`.milkup-line[data-line="${tableRow + 1}"]`)).toHaveText('')
+  258 |     await enterTable(page)
+  259 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+  260 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+  261 |     const toggle = page.locator(
+  262 |       '.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]',
+  263 |     )
+  264 |     await toggle.click()
+  265 |     await expect(toggle).toHaveAttribute('aria-checked', 'false')
+  266 |     await expect(toolbar(page).locator('button')).toHaveCount(0)
+  267 |     await expect(toolbar(page)).toBeHidden()
+  268 |     await toggle.click()
+  269 |     await expect(toggle).toHaveAttribute('aria-checked', 'true')
+  270 |     await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+  271 |     await page.locator('[data-menu-close]').click()
+  272 |     await enterTable(page)
+  273 |     await page.keyboard.press('Control+n')
+  274 |     const discard = page.getByRole('button', { name: '不保存并新建文档', exact: true })
+  275 |     if (await discard.isVisible()) await discard.click()
+  276 |     await expect(toolbar(page).locator('button')).toHaveCount(0)
+  277 |     await expect(toolbar(page)).toBeHidden()
+  278 |     await input(page).focus()
+  279 |     await page.keyboard.insertText('新文档保留😀')
+  280 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('新文档保留😀')
+  281 |     await expect(toolbar(page)).toBeHidden()
+  282 |   })
+  283 | 
+```

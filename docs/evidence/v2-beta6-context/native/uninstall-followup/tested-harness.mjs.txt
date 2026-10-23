@@ -1,0 +1,56 @@
+import assert from 'node:assert/strict'
+import {readFile,writeFile} from 'node:fs/promises'
+import {createHash} from 'node:crypto'
+import {execFileSync} from 'node:child_process'
+import {startProduction} from '/tmp/milkup-windows-manual-candidate/tests/helpers/native-production.mjs'
+import {beta5Fixture,observeBeta5} from '/tmp/milkup-windows-manual-candidate/tests/helpers/native-beta5-fixture.mjs'
+import {ownedApplication} from '/tmp/milkup-windows-manual-candidate/tests/helpers/native-owned-process.mjs'
+const out='/tmp/milkup-beta6-native-modefix/evidence-uninstall-followup'
+const prior=JSON.parse(await readFile('/tmp/milkup-beta6-native-modefix/evidence-keyboard-uninstall/context.json','utf8'))
+const hash=b=>createHash('sha256').update(b).digest('hex')
+assert.equal(process.env.MILKUP_NATIVE_BETA6_CONTEXT_RUN,'1')
+assert.equal(process.env.MILKUP_NATIVE_EXCLUSIVE_DISPLAY,'1')
+assert.equal(process.env.DISPLAY,':125')
+assert.equal(process.env.TAURI_APP_PATH,prior.binary)
+assert.equal(hash(await readFile(prior.binary)),prior.binarySha256)
+const report={sourceHead:'b7f9cdecfc02c2f0710fc9d6b71c12419364e644',binary:prior.binary,binarySha256:prior.binarySha256,prior:'/tmp/milkup-beta6-native-modefix/evidence-keyboard-uninstall/context.json',steps:[],boundary:'Targeted follow-up after successful uninstall. Does not turn the prior failed focus assertion into a 28-step pass. Native X11 input and observation-only DOM reads.'}
+const unchanged=async()=>{
+ const files=[]
+ for(const fixture of Object.values(prior.fixtures)){
+  assert(fixture.path.startsWith('/tmp/milkup-beta6-native-modefix/evidence-keyboard-uninstall/'))
+  const bytes=await readFile(fixture.path)
+  assert.equal(hash(bytes),fixture.sha256);assert.equal(bytes.length,fixture.bytes)
+  files.push({path:fixture.path,bytes:bytes.length,sha256:hash(bytes)})
+ }
+ return files
+}
+let app
+try{
+ report.beforeFiles=await unchanged()
+ app=await startProduction(prior.fixtures.windowed.path,out,{diagnostics:false})
+ report.owner=(await ownedApplication(prior.binary,prior.fixtures.windowed.path)).identity
+ const ui=beta5Fixture(app)
+ await ui.list()
+ await app.until(async()=>!(await ui.exists('.plugin-summary-card[data-plugin-id="milkup.formatting"]')),'uninstall remains absent after reopening')
+ report.steps.push('Formatting remains uninstalled after process restart')
+ await ui.closeMenu()
+ await ui.editorFocus()
+ assert((await observeBeta5(app)).focus.editor,'Trusted pointer returns focus to editor')
+ await app.key('shift+F10')
+ const inspect=()=>app.execute(`const m=document.querySelector('[data-editor-context-menu]'),h=m?.querySelector('[data-host-context-menu]');return {visible:!!m&&!m.hidden&&getComputedStyle(m).display!=='none',items:[...h?.children??[]].filter(e=>e.matches('button')).map(e=>({id:e.dataset.hostContextCommand,svg:!!e.querySelector('svg')})),pluginCommands:m?.querySelectorAll('[data-plugin-command]').length,toolbarCommands:document.querySelectorAll('[data-plugin-slot="document-toolbar"] [data-plugin-command]').length}`)
+ await app.until(async()=>(await inspect()).visible,'host keyboard context menu after uninstall')
+ report.menu=await inspect()
+ assert.deepEqual(report.menu.items.map(x=>x.id),['copy','cut','paste','select-all','undo','redo','insert'].map(x=>'host.'+x))
+ assert(report.menu.items.every(x=>x.svg));assert.equal(report.menu.pluginCommands,0);assert.equal(report.menu.toolbarCommands,0)
+ await app.shot('uninstalled-host-menu')
+ execFileSync('/usr/bin/import',['-display',':125','-window','root',out+'/uninstalled-host-menu-system.png'],{timeout:10000})
+ report.steps.push('Host menu, SVG icons and keyboard opening remain available; plugin output is gone')
+ await app.key('Escape');await app.key('ctrl+s')
+ await app.until(async()=>{const p=await app.probe();return !p.dirty&&!p.saving},'native save completes')
+ report.afterFiles=await unchanged()
+ assert.equal(hash(await readFile(prior.binary)),prior.binarySha256)
+ report.steps.push('Both complete CRLF/Unicode fixture files and frozen executable hashes remain exact')
+ report.passed=true
+}catch(error){report.error={message:String(error),stack:error.stack};throw error}
+finally{await writeFile(out+'/result.json',JSON.stringify(report,null,2)+'\n');await app?.close()}
+console.log('PASS targeted uninstall follow-up',report.steps)

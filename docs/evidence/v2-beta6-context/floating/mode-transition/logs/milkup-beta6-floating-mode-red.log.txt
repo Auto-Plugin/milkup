@@ -1,0 +1,98 @@
+[WebServer] (node:265498) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:265519) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-floating-toolbar.spec.ts:385:3 › floating toolbar ordinary source to live retires the previous mode before ready commands (3.5s)
+(node:265655) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-floating-toolbar.spec.ts:385:3 › floating toolbar windowed source to live retires the previous mode before ready commands (3.4s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:385:3 › floating toolbar ordinary source to live retires the previous mode before ready commands 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 8
+
+      492 |       // Old source commands must already be retired at this boundary, without
+      493 |       // a sleep, extra selection change, or synthetic render completion.
+    > 494 |       expect(transition.changed.sourceCommandsVisible).toBe(0)
+          |                                                        ^
+      495 |       const cell = page.locator(`.milkup-line[data-line="${tableRow}"] .milkup-table-cell`).first()
+      496 |       await expect(cell).toHaveText('x')
+      497 |       await expect(toolbar(page).locator('[data-ui-state="ready"]')).toBeVisible()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:494:56
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-mode-red/desktop-floating-toolbar-f-c7b17--mode-before-ready-commands/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "sample" [level=1]
+      - paragraph: D:/notes
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbox "Markdown 编辑器"
+      - toolbar "文档上下文操作":
+        - button "格式"
+        - button "粗体"
+        - button "斜体"
+        - button "下方加行"
+        - button "删除行"
+        - button "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-mode-red/desktop-floating-toolbar-f-c7b17--mode-before-ready-commands/error-context.md
+
+  2) tests/e2e/desktop-floating-toolbar.spec.ts:385:3 › floating toolbar windowed source to live retires the previous mode before ready commands 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 8
+
+      492 |       // Old source commands must already be retired at this boundary, without
+      493 |       // a sleep, extra selection change, or synthetic render completion.
+    > 494 |       expect(transition.changed.sourceCommandsVisible).toBe(0)
+          |                                                        ^
+      495 |       const cell = page.locator(`.milkup-line[data-line="${tableRow}"] .milkup-table-cell`).first()
+      496 |       await expect(cell).toHaveText('x')
+      497 |       await expect(toolbar(page).locator('[data-ui-state="ready"]')).toBeVisible()
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:494:56
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-mode-red/desktop-floating-toolbar-f-4f1a2--mode-before-ready-commands/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "sample" [level=1]
+      - paragraph: D:/notes
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbox "Markdown 编辑器"
+      - toolbar "文档上下文操作":
+        - button "格式"
+        - button "粗体"
+        - button "斜体"
+        - button "下方加行"
+        - button "删除行"
+        - button "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-mode-red/desktop-floating-toolbar-f-4f1a2--mode-before-ready-commands/error-context.md
+
+  2 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:385:3 › floating toolbar ordinary source to live retires the previous mode before ready commands 
+    tests/e2e/desktop-floating-toolbar.spec.ts:385:3 › floating toolbar windowed source to live retires the previous mode before ready commands 

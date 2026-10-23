@@ -1,0 +1,303 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-floating-toolbar.spec.ts >> floating toolbar windowed 760x520 dark 200%
+- Location: tests/e2e/desktop-floating-toolbar.spec.ts:137:9
+
+# Error details
+
+```
+Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  - 2
++ Received  + 2
+
+  Object {
+-   "bottom": 37,
+-   "height": 37,
++   "bottom": 80,
++   "height": 80,
+    "left": 0,
+    "right": 380,
+    "top": 0,
+    "width": 380,
+  }
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "sample" [level=1] [ref=e8]
+      - paragraph [ref=e9]: D:/notes
+    - generic "格式" [ref=e11]:
+      - generic [ref=e12]:
+        - button "格式" [ref=e13] [cursor=pointer]
+        - button "粗体" [ref=e14] [cursor=pointer]
+        - button "斜体" [ref=e15] [cursor=pointer]
+        - button "下方加行" [ref=e16] [cursor=pointer]
+        - button "删除行" [ref=e17] [cursor=pointer]
+        - button "右侧加列" [ref=e18] [cursor=pointer]
+        - button "删除列" [disabled] [ref=e19]
+        - button "退出表格" [ref=e20] [cursor=pointer]
+    - generic "窗口控制" [ref=e21]:
+      - button "最小化" [ref=e22] [cursor=pointer]
+      - button "最大化" [ref=e24] [cursor=pointer]
+      - button "关闭窗口" [ref=e26] [cursor=pointer]
+  - generic [ref=e31]:
+    - textbox [ref=e32]:
+      - generic [ref=e33]: 正文 1 中文😀
+      - generic [ref=e34]: 正文 2 中文😀
+      - generic [ref=e35]: 正文 3 中文😀
+      - generic [ref=e36]: 正文 4 中文😀
+      - generic [ref=e37]: 正文 5 中文😀
+      - generic [ref=e38]: 正文 6 中文😀
+      - generic [ref=e39]: 正文 7 中文😀
+      - generic [ref=e40]: 正文 8 中文😀
+      - generic [ref=e41]: "| A | B |"
+      - generic [ref=e42]: "| --- | --- |"
+      - generic [ref=e43]: "| x | y |"
+      - generic [ref=e45]: 尾部正文
+      - generic [ref=e46]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e47]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e48]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e49]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e50]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e51]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e52]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e53]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e54]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e55]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e56]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e57]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e58]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e59]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e60]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e61]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e62]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e63]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e64]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e65]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e66]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e67]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e68]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e69]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e70]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e71]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e72]: padding text padding text padding text padding text padding text padding text padding text padding text
+      - generic [ref=e73]: padding text padding text padding text padding text padding text padding text padding text padding text
+    - textbox "Markdown 编辑器" [active]
+  - generic [ref=e75]:
+    - generic [ref=e76]:
+      - button "侧栏" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+      - button "源码" [ref=e80] [cursor=pointer]:
+        - img [ref=e81]
+    - generic [ref=e85]:
+      - generic [ref=e86]: 2544133 字符
+      - generic [ref=e89]: 已保存
+```
+
+# Test source
+
+```ts
+  1   | import { expect, test, type Page } from '@playwright/test'
+  2   | import { writeFile } from 'node:fs/promises'
+  3   | import { formattingFixture } from '../helpers/formatting-plugin'
+  4   | 
+  5   | const toolbar = (page: Page) => page.locator('[data-plugin-slot="document-toolbar"]')
+  6   | const input = (page: Page) => page.locator('.milkup-input-proxy')
+  7   | const tableRow = 11
+  8   | 
+  9   | async function openDocument(page: Page, windowed: boolean, theme = 'light') {
+  10  |   const text =
+  11  |     Array.from({ length: 8 }, (_, index) => `正文 ${index + 1} 中文😀\r\n`).join('') +
+  12  |     '| A | B |\r\n| --- | --- |\r\n| x | y |\r\n\r\n尾部正文\r\n' +
+  13  |     ('padding text '.repeat(8) + '\r\n').repeat(windowed ? 24000 : 80)
+  14  |   await page.addInitScript(
+  15  |     (theme) =>
+  16  |       localStorage.setItem('milkup.desktop.appearance.v1', JSON.stringify({ theme, zoom: 1 })),
+  17  |     theme,
+  18  |   )
+  19  |   // Only the browser file transport is replaced. The actual editor selects its
+  20  |   // ordinary/windowed implementation from this document's measured UTF-8 size.
+  21  |   await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+  22  |     const response = await route.fetch()
+  23  |     const body = (await response.text()).replace(
+  24  |       'function createDesktopFileService() {',
+  25  |       `function createDesktopFileService() {
+  26  |         const service = createMockFileService(); const text = ${JSON.stringify(text)};
+  27  |         service.getFileMetadata = async path => ({path,sizeBytes:new TextEncoder().encode(text).length,readonly:false});
+  28  |         service.openPath = async path => ({documentId:'floating-toolbar-document',file:{path},text,diskSnapshotHash:'initial'});
+  29  |         return service;`,
+  30  |     )
+  31  |     expect(body).toContain("documentId:'floating-toolbar-document'")
+  32  |     await route.fulfill({ response, body })
+  33  |   })
+  34  |   await formattingFixture(page)
+  35  |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  36  |   await page.getByRole('button', { name: '打开', exact: true }).click()
+  37  |   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+  38  |   await expect(page.locator('.milkup-source-document-view')).toHaveCount(windowed ? 1 : 0)
+  39  |   await page.keyboard.press('Control+1')
+  40  |   await input(page).focus()
+  41  |   await page.keyboard.press('Control+Home')
+  42  |   await expect(toolbar(page)).toBeHidden()
+  43  | }
+  44  | 
+  45  | async function enterTable(page: Page) {
+  46  |   await input(page).focus()
+  47  |   await page.keyboard.press('Control+Home')
+  48  |   await page.locator(`.milkup-line[data-line="${tableRow}"]`).click({ position: { x: 20, y: 9 } })
+  49  |   await page.keyboard.press('Home')
+  50  |   await page.keyboard.press('ArrowRight')
+  51  |   await page.keyboard.press('ArrowRight')
+  52  |   await expect(toolbar(page).getByRole('button', { name: '下方加行', exact: true })).toBeEnabled()
+  53  |   await expect(toolbar(page)).toBeVisible()
+  54  | }
+  55  | 
+  56  | async function geometry(page: Page) {
+  57  |   return page.evaluate((tableRow) => {
+  58  |     const box = (selector: string) => {
+  59  |       const r = document.querySelector(selector)!.getBoundingClientRect()
+  60  |       return {
+  61  |         left: r.left,
+  62  |         right: r.right,
+  63  |         top: r.top,
+  64  |         bottom: r.bottom,
+  65  |         width: r.width,
+  66  |         height: r.height,
+  67  |       }
+  68  |     }
+  69  |     return {
+  70  |       titlebar: box('.titlebar'),
+  71  |       editor: box('.milkup-editor'),
+  72  |       host: box('[data-editor-host]'),
+  73  |       toolbar: box('[data-plugin-slot="document-toolbar"]'),
+  74  |       row: document.querySelector(`.milkup-line[data-line="${tableRow}"]`)
+  75  |         ? box(`.milkup-line[data-line="${tableRow}"]`)
+  76  |         : null,
+  77  |       viewport: { width: innerWidth, height: innerHeight },
+  78  |       position: getComputedStyle(document.querySelector('[data-plugin-slot="document-toolbar"]')!)
+  79  |         .position,
+  80  |       scrollTop: document.querySelector('.milkup-editor')!.scrollTop,
+  81  |     }
+  82  |   }, tableRow)
+  83  | }
+  84  | 
+  85  | function expectSameLayout(
+  86  |   before: Awaited<ReturnType<typeof geometry>>,
+  87  |   after: Awaited<ReturnType<typeof geometry>>,
+  88  | ) {
+> 89  |   expect(after.titlebar).toEqual(before.titlebar)
+      |                          ^ Error: expect(received).toEqual(expected) // deep equality
+  90  |   expect(after.editor).toEqual(before.editor)
+  91  |   expect(after.host).toEqual(before.host)
+  92  | }
+  93  | 
+  94  | function expectBounded(geometry: Awaited<ReturnType<typeof geometry>>) {
+  95  |   expect(geometry.position).toBe('fixed')
+  96  |   expect(geometry.toolbar.width).toBeGreaterThan(0)
+  97  |   expect(geometry.toolbar.height).toBeGreaterThan(0)
+  98  |   expect(geometry.toolbar.left).toBeGreaterThanOrEqual(Math.max(0, geometry.editor.left) - 1)
+  99  |   expect(geometry.toolbar.right).toBeLessThanOrEqual(
+  100 |     Math.min(geometry.viewport.width, geometry.editor.right) + 1,
+  101 |   )
+  102 |   expect(geometry.toolbar.top).toBeGreaterThanOrEqual(geometry.editor.top - 1)
+  103 |   expect(geometry.toolbar.bottom).toBeLessThanOrEqual(
+  104 |     Math.min(geometry.viewport.height, geometry.editor.bottom) + 1,
+  105 |   )
+  106 |   if (geometry.row) {
+  107 |     // The toolbar must follow a visible document anchor, rather than becoming
+  108 |     // another permanent strip at the top of the window.
+  109 |     const gap = Math.max(
+  110 |       geometry.toolbar.top - geometry.row.bottom,
+  111 |       geometry.row.top - geometry.toolbar.bottom,
+  112 |       0,
+  113 |     )
+  114 |     expect(gap).toBeLessThanOrEqual(40)
+  115 |   }
+  116 | }
+  117 | 
+  118 | test.afterEach(async ({ page }, info) => {
+  119 |   if (info.status !== info.expectedStatus) {
+  120 |     await info.attach('floating-toolbar-state', {
+  121 |       body: await page.locator('body').ariaSnapshot(),
+  122 |       contentType: 'text/plain',
+  123 |     })
+  124 |     await page.screenshot({ path: info.outputPath('failure.png'), fullPage: true })
+  125 |   }
+  126 | })
+  127 | 
+  128 | // Native webview zoom reduces the CSS viewport. These 32 browser cases exercise
+  129 | // that layout equivalent, not Windows system DPI or actual native webview zoom.
+  130 | for (const windowed of [false, true])
+  131 |   for (const size of [
+  132 |     { width: 1100, height: 760 },
+  133 |     { width: 760, height: 520 },
+  134 |   ])
+  135 |     for (const theme of ['light', 'dark'])
+  136 |       for (const zoom of [1, 1.25, 1.5, 2])
+  137 |         test(`floating toolbar ${windowed ? 'windowed' : 'ordinary'} ${size.width}x${size.height} ${theme} ${zoom * 100}%`, async ({
+  138 |           page,
+  139 |         }, info) => {
+  140 |           await openDocument(page, windowed, theme)
+  141 |           await page.setViewportSize({
+  142 |             width: Math.floor(size.width / zoom),
+  143 |             height: Math.floor(size.height / zoom),
+  144 |           })
+  145 |           const before = await geometry(page)
+  146 |           await enterTable(page)
+  147 |           const entered = await geometry(page)
+  148 |           await info.attach('layout-before-and-after', {
+  149 |             body: JSON.stringify({ before, entered }, null, 2),
+  150 |             contentType: 'application/json',
+  151 |           })
+  152 |           await writeFile(
+  153 |             info.outputPath('layout-before-and-after.json'),
+  154 |             JSON.stringify({ before, entered }, null, 2),
+  155 |           )
+  156 |           expectSameLayout(before, entered)
+  157 |           expectBounded(entered)
+  158 |           // Center the selected row before scrolling; this avoids testing a
+  159 |           // permanently clamped top/bottom position in the small viewport.
+  160 |           await page.locator('.milkup-editor').evaluate((editor, tableRow) => {
+  161 |             const row = editor.querySelector(`.milkup-line[data-line="${tableRow}"]`)!
+  162 |             const r = row.getBoundingClientRect(),
+  163 |               e = editor.getBoundingClientRect()
+  164 |             editor.scrollTop += r.top - e.top - e.height / 2
+  165 |           }, tableRow)
+  166 |           await expect(toolbar(page)).toBeVisible()
+  167 |           await expect
+  168 |             .poll(async () => {
+  169 |               const g = await geometry(page)
+  170 |               return g.row && Math.abs(g.row.top - g.editor.top - g.editor.height / 2)
+  171 |             })
+  172 |             .toBeLessThanOrEqual(2)
+  173 |           const centered = await geometry(page)
+  174 |           await page.locator('.milkup-editor').evaluate((editor) => {
+  175 |             editor.scrollTop += 20
+  176 |           })
+  177 |           await expect
+  178 |             .poll(async () => (await geometry(page)).toolbar.top)
+  179 |             .not.toBe(centered.toolbar.top)
+  180 |           const scrolled = await geometry(page)
+  181 |           expectSameLayout(before, scrolled)
+  182 |           expectBounded(scrolled)
+  183 |           await info.attach('scroll-following', {
+  184 |             body: JSON.stringify({ centered, scrolled }, null, 2),
+  185 |             contentType: 'application/json',
+  186 |           })
+  187 |           await writeFile(
+  188 |             info.outputPath('scroll-following.json'),
+  189 |             JSON.stringify({ centered, scrolled }, null, 2),
+```

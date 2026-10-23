@@ -1,0 +1,5 @@
+const root = '/tmp/milkup-windows-manual-candidate'
+export default {
+  resolve: { alias: Object.fromEntries(['assets','core','input','markdown','plugin','tauri-bridge','view-dom'].map(name => [`@milkup/${name}`,`${root}/packages/${name}/src/index.ts`])) },
+  test: { include: [`${root}/apps/desktop/src/desktop-plugin-ui.test.ts`, `${root}/apps/desktop/src/context-menu-plugins.test.ts`, `${root}/apps/desktop/src/editor-context-menu.test.ts`] },
+}

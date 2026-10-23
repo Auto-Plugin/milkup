@@ -1,0 +1,17 @@
+import { defineConfig, devices } from '/tmp/milkup-windows-manual-candidate/node_modules/@playwright/test/index.mjs'
+export default defineConfig({
+  testDir: '/tmp/milkup-windows-manual-candidate/tests/e2e',
+  testMatch: 'desktop-floating-toolbar.spec.ts',
+  timeout: 60000,
+  expect: { timeout: 5000 },
+  workers: 2,
+  use: {
+    ...devices['Desktop Chrome'],
+    baseURL: 'http://127.0.0.1:1436',
+    launchOptions: { executablePath: '/usr/bin/chromium' },
+    screenshot: 'only-on-failure',
+  },
+  webServer: {command:'node node_modules/vite/bin/vite.js apps/desktop --host 127.0.0.1 --port 1436 --config /tmp/milkup-beta6-provisional-vite.config.ts',cwd:'/tmp/milkup-windows-manual-candidate', url:'http://127.0.0.1:1436', reuseExistingServer: true},
+  outputDir: process.env.MILKUP_FLOATING_RESULTS ?? '/tmp/milkup-beta6-floating-browser',
+  reporter: [['list']],
+})

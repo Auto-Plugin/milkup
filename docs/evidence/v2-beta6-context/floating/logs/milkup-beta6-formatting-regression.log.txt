@@ -1,0 +1,315 @@
+
+Running 22 tests using 1 worker
+
+(node:238013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/desktop-formatting.spec.ts:42:1 › formatting Worker preserves Unicode selection and supports modal toggle, undo and save (10.7s)
+  ✘   2 tests/e2e/desktop-formatting.spec.ts:65:1 › formatting modal applies headings and links through retained bounded snapshots (1.0m)
+(node:239684) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   3 tests/e2e/desktop-formatting.spec.ts:83:1 › formatting table UI performs real row, column and alignment edits with one-step undo (9.1s)
+  ✓   4 tests/e2e/desktop-formatting.spec.ts:107:1 › formatting toolbar follows table selection and clears when switching documents (6.6s)
+  ✓   5 tests/e2e/desktop-formatting.spec.ts:136:1 › disabling formatting removes its contributions and retains basic editing/history/save (5.8s)
+  ✘   6 tests/e2e/desktop-formatting.spec.ts:174:1 › formatting context menu submits its command before hiding and restores editor focus on Escape (8.2s)
+(node:240446) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 light 100% (5.2s)
+  ✓   8 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 light 125% (4.1s)
+  ✓   9 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 light 150% (2.9s)
+  ✓  10 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 light 200% (3.6s)
+  ✓  11 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 dark 100% (3.4s)
+  ✓  12 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 dark 125% (3.3s)
+  ✓  13 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 dark 150% (2.9s)
+  ✓  14 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 1100x760 dark 200% (3.3s)
+  ✓  15 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 light 100% (3.5s)
+  ✓  16 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 light 125% (3.8s)
+  ✓  17 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 light 150% (4.6s)
+  ✓  18 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 light 200% (5.1s)
+  ✓  19 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 100% (4.2s)
+  ✘  20 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 125% (7.3s)
+(node:242015) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  21 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 150% (941ms)
+(node:242156) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  22 tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 200% (1.0s)
+
+
+  1) tests/e2e/desktop-formatting.spec.ts:65:1 › formatting modal applies headings and links through retained bounded snapshots 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: '插件', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:100
+
+       98 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+       99 |     phase('menu-clicked')
+    > 100 |     await page.getByRole('button', { name: '插件', exact: true }).click()
+          |                                                                 ^
+      101 |     phase('plugins-clicked')
+      102 |     const toggle = page.locator(
+      103 |       '.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]',
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:100:65)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:68:3
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-formatting-regression/desktop-formatting-formatt-332cc--retained-bounded-snapshots/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    Snapshot unavailable: Error: locator.ariaSnapshot: Target page, context or browser has been closed
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-formatting-regression/desktop-formatting-formatt-332cc--retained-bounded-snapshots/error-context.md
+
+  2) tests/e2e/desktop-formatting.spec.ts:174:1 › formatting context menu submits its command before hiding and restores editor focus on Escape 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('menu', { name: '编辑操作', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('menu', { name: '编辑操作', exact: true })
+
+
+      179 |   await page.keyboard.press('Shift+F10')
+      180 |   const menu = page.getByRole('menu', { name: '编辑操作', exact: true })
+    > 181 |   await expect(menu).toBeVisible()
+          |                      ^
+      182 |   await menu.getByRole('button', { name: '删除线', exact: true }).click()
+      183 |   await expect(menu).toBeHidden()
+      184 |   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('~~context 中文~~')
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:181:22
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-formatting-regression/desktop-formatting-formatt-119de-ores-editor-focus-on-Escape/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "源码"
+      - text: Markdown 10 字符 未保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-formatting-regression/desktop-formatting-formatt-119de-ores-editor-focus-on-Escape/error-context.md
+
+  3) tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 125% ────
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]')
+    Expected: "true"
+    Received: "false"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('.plugin-summary-card[data-plugin-id="milkup.formatting"] [role="switch"]')
+        14 × locator resolved to <button title="开启插件" type="button" role="switch" aria-checked="false" data-plugin-action="toggle" class="plugin-enable-switch" aria-label="Milkup Formatting 启用" data-plugin-id="milkup.formatting">…</button>
+           - unexpected value "false"
+
+
+       at ../helpers/formatting-plugin.ts:107
+
+      105 |     await toggle.click()
+      106 |     phase('card-enable-clicked')
+    > 107 |     await expect(toggle).toHaveAttribute('aria-checked', 'true')
+          |                          ^
+      108 |     await expect(toggle).not.toHaveAttribute('aria-busy', 'true')
+      109 |     phase('card-enable-completed')
+      110 |     await expect(
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:107:26)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:207:9
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-formatting-regression/desktop-formatting-formatt-72432--geometry-760x520-dark-125-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-formatting-regression/desktop-formatting-formatt-72432--geometry-760x520-dark-125-/error-context.md
+
+  4) tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 150% ────
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:1436/
+    Call log:
+      - navigating to "http://127.0.0.1:1436/", waiting until "load"
+
+
+       at ../helpers/formatting-plugin.ts:96
+
+      94 |     }, manifest)
+      95 |     phase('registry-seed-registered')
+    > 96 |     await page.goto('/')
+         |                ^
+      97 |     phase('page-loaded')
+      98 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+      99 |     phase('menu-clicked')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:96:16)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:207:9
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - heading "This site can’t be reached" [level=1]
+    - paragraph:
+      - strong: 127.0.0.1
+      - text: refused to connect.
+    - paragraph: "Try:"
+    - list:
+      - listitem: Checking the connection
+      - listitem:
+        - link "Checking the proxy and the firewall":
+          - /url: "#buttons"
+    - text: ERR_CONNECTION_REFUSED
+    ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-formatting-regression/desktop-formatting-formatt-263a8--geometry-760x520-dark-150-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - heading "This site can’t be reached" [level=1]
+    - paragraph:
+      - strong: 127.0.0.1
+      - text: refused to connect.
+    - paragraph: "Try:"
+    - list:
+      - listitem: Checking the connection
+      - listitem:
+        - link "Checking the proxy and the firewall":
+          - /url: "#buttons"
+    - text: ERR_CONNECTION_REFUSED
+    ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-formatting-regression/desktop-formatting-formatt-263a8--geometry-760x520-dark-150-/error-context.md
+
+  5) tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 200% ────
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:1436/
+    Call log:
+      - navigating to "http://127.0.0.1:1436/", waiting until "load"
+
+
+       at ../helpers/formatting-plugin.ts:96
+
+      94 |     }, manifest)
+      95 |     phase('registry-seed-registered')
+    > 96 |     await page.goto('/')
+         |                ^
+      97 |     phase('page-loaded')
+      98 |     await page.getByRole('button', { name: '菜单', exact: true }).click()
+      99 |     phase('menu-clicked')
+        at formattingFixture (/tmp/milkup-windows-manual-candidate/tests/helpers/formatting-plugin.ts:96:16)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-formatting.spec.ts:207:9
+
+    attachment #3: formatting-fixture-body (text/plain) ────────────────────────────────────────────
+    - heading "This site can’t be reached" [level=1]
+    - paragraph:
+      - strong: 127.0.0.1
+      - text: refused to connect.
+    - paragraph: "Try:"
+    - list:
+      - listitem: Checking the connection
+      - listitem:
+        - link "Checking the proxy and the firewall":
+          - /url: "#buttons"
+    - text: ERR_CONNECTION_REFUSED
+    ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-formatting-regression/desktop-formatting-formatt-83991--geometry-760x520-dark-200-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - heading "This site can’t be reached" [level=1]
+    - paragraph:
+      - strong: 127.0.0.1
+      - text: refused to connect.
+    - paragraph: "Try:"
+    - list:
+      - listitem: Checking the connection
+      - listitem:
+        - link "Checking the proxy and the firewall":
+          - /url: "#buttons"
+    - text: ERR_CONNECTION_REFUSED
+    ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-formatting-regression/desktop-formatting-formatt-83991--geometry-760x520-dark-200-/error-context.md
+
+  5 failed
+    tests/e2e/desktop-formatting.spec.ts:65:1 › formatting modal applies headings and links through retained bounded snapshots 
+    tests/e2e/desktop-formatting.spec.ts:174:1 › formatting context menu submits its command before hiding and restores editor focus on Escape 
+    tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 125% ─────
+    tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 150% ─────
+    tests/e2e/desktop-formatting.spec.ts:201:7 › formatting toolbar geometry 760x520 dark 200% ─────
+  17 passed (2.8m)

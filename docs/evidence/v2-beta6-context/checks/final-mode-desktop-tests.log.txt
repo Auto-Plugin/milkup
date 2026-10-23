@@ -1,0 +1,96 @@
+$ vitest run --passWithNoTests --exclude src-tauri/src/plugin_dom_bootstrap.test.mjs && node --experimental-vm-modules --test src-tauri/src/plugin_dom_bootstrap.test.mjs
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/apps/desktop
+
+ ✓ src/editor-context-menu.test.ts (24 tests) 363ms
+ ✓ src/source-focus-navigation.test.ts (6 tests) 756ms
+   ✓ host windowed source focus order > one Tab leaves the editor and preserves selection  428ms
+ ✓ src/desktop-focus.test.ts (5 tests) 444ms
+   ✓ desktop focus after editor or modal operations > follows visible forward and reverse tab order without changing textarea selection  333ms
+ ✓ src/context-menu-plugins.test.ts (10 tests) 169ms
+ ✓ src/editor-floating-toolbar-geometry.test.ts (3 tests) 380ms
+ ✓ src/controlled-tree-ui.test.ts (5 tests) 459ms
+   ✓ controlled tree keyboard > gives separate outline navigation and fold controls one tree stop and distinct actions  351ms
+ ✓ src/controlled-form-ui.test.ts (4 tests) 72ms
+ ✓ src/floating-document-toolbar.test.ts (7 tests) 50ms
+ ✓ src/desktop-plugin-ui.test.ts (95 tests) 6133ms
+   ✓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders  307ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  559ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  509ms
+ ✓ src/resource-save.test.ts (7 tests) 1347ms
+   ✓ resource service and save coordination > an acknowledgement failure retains copied files across plugin disposal and document release  1330ms
+ ✓ src/desktop-output-capabilities.test.ts (4 tests) 43ms
+ ✓ src/desktop-plugin-manager-catalog.test.ts (80 tests) 603ms
+ ✓ src/desktop-plugin-manager.test.ts (35 tests) 254ms
+ ✓ src/output-service.test.ts (22 tests) 343ms
+ ✓ src/document-presentation-service.test.ts (26 tests) 233ms
+ ✓ src/plugin-file-broker.test.ts (5 tests) 34ms
+ ✓ src/desktop-plugin-manager-dom.test.ts (10 tests) 142ms
+ ✓ src/host-context-actions.test.ts (47 tests) 240ms
+ ✓ src/clipboard-image-read.test.ts (16 tests) 106ms
+ ✓ src/output-presentations-readiness.test.ts (11 tests) 89ms
+ ✓ src/plugin-release-service.test.ts (19 tests) 154ms
+ ✓ src/editing-service.test.ts (29 tests) 61ms
+ ✓ src/output-presentations.test.ts (13 tests) 107ms
+ ✓ src/resource-service.test.ts (14 tests) 87ms
+ ✓ src/settings-service.test.ts (39 tests) 73ms
+ ✓ src/plugin-temporary-storage.test.ts (5 tests) 36ms
+ ✓ src/application-updates.test.ts (13 tests) 118ms
+ ✓ src/document-transition.test.ts (39 tests) 42ms
+ ✓ src/resource-reference-scan.test.ts (30 tests) 64ms
+ ✓ src/keymap-service.test.ts (28 tests) 62ms
+ ✓ src/desktop-editing-capabilities.test.ts (2 tests) 32ms
+ ✓ src/output-presentations-queue.test.ts (7 tests) 69ms
+ ✓ src/plugin-dom.test.ts (20 tests) 71ms
+ ✓ src/bundled-plugins.test.ts (18 tests) 45ms
+ ✓ src/plugin-workspace-service.test.ts (25 tests) 58ms
+ ✓ src/plugin-sidecar.test.ts (9 tests) 28ms
+ ✓ src/document-navigation.test.ts (4 tests) 20ms
+ ✓ src/file-service.test.ts (4 tests) 21ms
+ ✓ src/desktop-plugin-catalog.test.ts (25 tests) 31ms
+ ✓ src/recovery.test.ts (7 tests) 59ms
+ ✓ src/large-document-search.test.ts (5 tests) 39ms
+ ✓ src/desktop-settings-integration.test.ts (1 test) 60ms
+ ✓ src/protected-install.test.ts (9 tests) 29ms
+ ✓ src/application-updates-ui.test.ts (10 tests) 34ms
+ ✓ src/closed-worker-bundle.test.ts (10 tests) 443ms
+ ✓ src/desktop-plugin-manager-render.test.ts (11 tests) 65ms
+ ✓ src/desktop-large-open-flow.test.ts (2 tests) 64ms
+ ✓ src/large-document-source.test.ts (5 tests) 53ms
+ ✓ src/csp-worker.test.ts (3 tests) 12ms
+ ✓ src/desktop-document-search.test.ts (6 tests) 33ms
+ ✓ src/large-file-service.test.ts (1 test) 27ms
+ ✓ src/appearance.test.ts (5 tests) 19ms
+ ✓ src/large-document-editing.test.ts (4 tests) 13ms
+ ✓ src/document-loading-visibility.test.ts (4 tests) 24ms
+ ✓ src/desktop-open-policy.test.ts (6 tests) 11ms
+ ✓ src/asset-service.test.ts (3 tests) 8ms
+ ✓ src/apply-editor-settings.test.ts (2 tests) 18ms
+ ✓ src/large-document-conflict.test.ts (3 tests) 12ms
+ ✓ src/document-open-flow.test.ts (3 tests) 9ms
+ ✓ src/feedback-presentation.test.ts (10 tests) 7ms
+ ✓ src/open-stage-diagnostics.test.ts (2 tests) 5ms
+ ✓ src/editor-view-refresh.test.ts (3 tests) 7ms
+ ✓ src/desktop-search-navigation.test.ts (4 tests) 6ms
+ ✓ src/save-watch-reconciliation.test.ts (6 tests) 6ms
+ ✓ src/plugin-icon.test.ts (1 test) 3ms
+
+ Test Files  65 passed (65)
+      Tests  891 passed (891)
+   Start at  02:28:17
+   Duration  27.61s (transform 8.71s, setup 0ms, collect 22.05s, tests 14.50s, environment 7.15s, prepare 14.12s)
+
+(node:268172) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ actual SDK default definePlugin activation exposes only declared document renderers (13.90562ms)
+✔ named module exports and asynchronous render results obey the same wire contract (5.374159ms)
+✔ invalid default namespace is a lifecycle failure (3.924683ms)
+✔ oversize result fails as one whole result and cancellation waits for handler settlement (6.041202ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 134.792313

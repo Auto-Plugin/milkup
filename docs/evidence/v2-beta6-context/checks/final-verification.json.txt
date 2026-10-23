@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-23T02:14:44.310Z",
+  "frozenCommit": "b3962099939149abe930d42b8c57f0a79ba009ce",
+  "checkout": "/tmp/milkup-windows-manual-candidate",
+  "installedPnpmVersion": "11.25.0",
+  "packageManagerDeclaration": "pnpm@11.7.0",
+  "dependencyDownloads": false,
+  "productOrTestEdits": false,
+  "finalTrackedWorktreeChanges": false,
+  "outcome": "passed-with-recorded-sandbox-retry",
+  "totals": {
+    "workspacePackages": 14,
+    "vitestFiles": 205,
+    "vitestTests": 2886,
+    "nodeTests": 4,
+    "totalTests": 2890
+  },
+  "steps": [
+    {
+      "kind": "workspace-tests-initial",
+      "command": "pnpm_config_verify_deps_before_run=false pnpm -r --workspace-concurrency=1 test",
+      "log": "final-tests.log",
+      "exitCode": 1,
+      "result": "The first 11 packages passed. Desktop Vite config could not spawn the existing Node version-check process (EPERM in default sandbox); desktop/playground/cli remained to execute.",
+      "sha256": "8c46168156c576c89279308c7f4cd77f7f0c7b2cce0501831a90850b94fe09d4"
+    },
+    {
+      "kind": "workspace-tests-remaining",
+      "command": "pnpm_config_verify_deps_before_run=false pnpm -r --workspace-concurrency=1 --filter @milkup/desktop --filter @milkup/playground --filter @milkup/cli test",
+      "log": "final-tests-remaining-reviewed.log",
+      "exitCode": 0,
+      "result": "Reviewed escalation; all 3 remaining package scripts passed. Playground has no test files and uses --passWithNoTests.",
+      "sha256": "26058b23f5478e21dc704c7c2d551f313f0304f929cf1db3bba933ee12db40c1"
+    },
+    {
+      "kind": "workspace-typecheck",
+      "command": "pnpm_config_verify_deps_before_run=false pnpm -r typecheck",
+      "log": "final-typecheck.log",
+      "exitCode": 0,
+      "result": "All 14 package scripts passed, including SDK contract typecheck.",
+      "sha256": "2c3145c4ad8a6ec546a75bc77c084ebb9e2f69bd56afa5d05a3f0f5dc7996dc2"
+    },
+    {
+      "kind": "workspace-format",
+      "command": "node node_modules/prettier/bin/prettier.cjs --check .",
+      "log": "final-format.log",
+      "exitCode": 0,
+      "result": "All matched files use Prettier code style.",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    }
+  ]
+}

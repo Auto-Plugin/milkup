@@ -1,0 +1,128 @@
+{
+  "spec": "tests/e2e/desktop-floating-toolbar.spec.ts",
+  "environment": {
+    "browser": "Chromium 154.0.8037.57 Debian Linux",
+    "node": "v24.19.0",
+    "native": false,
+    "zoom": "CSS viewport equivalence, not system DPI/native zoom"
+  },
+  "formatting": {
+    "version": "1.0.1",
+    "archive": "/tmp/milkup-beta5-formatting-viewportfix-external/dist/milkup.formatting-1.0.1.milkup-plugin",
+    "sha256": "4bce37c68e9cce6a93f8f3b416e7fb77bf0459bd45dca95111a6b554003d6b8f",
+    "sourceVerification": "All plugin src files match the checked-out plugin SHA-256 hashes"
+  },
+  "baseline": {
+    "git": "7189a26a0cb055e96a72bd2655b673e067ba3012",
+    "method": "Temporary Vite load plugin substitutes only baseline main.ts, style.css and desktop-plugin-ui.ts, leaving collaboration working files untouched",
+    "config": "/tmp/milkup-beta6-floating-baseline-playwright.config.mjs",
+    "log": "/tmp/milkup-beta6-floating-baseline-red-stable.log",
+    "failedExpected": 2,
+    "geometry": [
+      {
+        "path": "/tmp/milkup-beta6-floating-baseline-red-stable/desktop-floating-toolbar-f-a9d29--windowed-760x520-dark-200-/layout-before-and-after.json",
+        "titlebarDelta": 43,
+        "editorHeightDelta": -43
+      },
+      {
+        "path": "/tmp/milkup-beta6-floating-baseline-red-stable/desktop-floating-toolbar-f-dc6d0-rdinary-1100x760-light-100-/layout-before-and-after.json",
+        "titlebarDelta": 43,
+        "editorHeightDelta": -43
+      }
+    ]
+  },
+  "current": {
+    "config": "/tmp/milkup-beta6-floating-playwright.config.mjs",
+    "matrix": {
+      "log": "/tmp/milkup-beta6-floating-green.log",
+      "passed": 33,
+      "hmrInterrupted": 1
+    },
+    "targeted": {
+      "log": "/tmp/milkup-beta6-floating-targeted.log",
+      "passed": 1
+    },
+    "live": {
+      "log": "/tmp/milkup-beta6-floating-live.log",
+      "passed": 2
+    },
+    "totalDistinctPassing": 39,
+    "menuReturn": {
+      "redLog": "/tmp/milkup-beta6-floating-menu-return-red.log",
+      "redArtifacts": "/tmp/milkup-beta6-floating-menu-return-red",
+      "failedExpected": 1,
+      "greenLog": "/tmp/milkup-beta6-floating-menu-return-green.log",
+      "greenArtifacts": "/tmp/milkup-beta6-floating-menu-return-green",
+      "passed": 1,
+      "beforeFix": "After ready + 200ms settle, only open/close app menu: same cursor 116, ready 8 buttons and editor non-inert, but toolbar remains hidden for 5s. Single navigation recorded; no HMR.",
+      "fix": "main.ts setMenuOpen clears background inert before toolbar geometry reconciliation",
+      "afterFix": "Same natural focus return to menu button and cursor 116; toolbar visible automatically, no further editor/scroll/resize events."
+    },
+    "modeTransition": {
+      "baseline": "b3962099",
+      "config": "/tmp/milkup-beta6-floating-mode-playwright.config.mjs",
+      "viteConfig": "/tmp/milkup-beta6-floating-mode-vite.config.mjs",
+      "port": 1441,
+      "redLog": "/tmp/milkup-beta6-floating-mode-red.log",
+      "redArtifacts": "/tmp/milkup-beta6-floating-mode-red",
+      "failedExpected": 2,
+      "greenLog": "/tmp/milkup-beta6-floating-mode-green.log",
+      "greenArtifacts": "/tmp/milkup-beta6-floating-mode-green",
+      "passed": 2,
+      "beforeFix": "Same version0/cursor116 source→live mutation retains 8 visible source commands in both ordinary statusbar click and windowed Ctrl+2. Real renderer/Worker unchanged; no arbitrary delay.",
+      "afterFix": [
+        {
+          "timeline": "/tmp/milkup-beta6-floating-mode-green/desktop-floating-toolbar-f-4f1a2--mode-before-ready-commands/source-to-live-toolbar-timeline.json",
+          "variant": "windowed",
+          "transitionVersion": "0",
+          "transitionCursor": "116",
+          "transitionOldCommandsVisible": 0,
+          "firstLiveReadyAfterMs": 264.8,
+          "visibleBeforeLiveReady": 0,
+          "emptyBeforeLiveReady": 1,
+          "sourceNodesVisibleAtFirstLiveReady": 0
+        },
+        {
+          "timeline": "/tmp/milkup-beta6-floating-mode-green/desktop-floating-toolbar-f-c7b17--mode-before-ready-commands/source-to-live-toolbar-timeline.json",
+          "variant": "ordinary",
+          "transitionVersion": "0",
+          "transitionCursor": "116",
+          "transitionOldCommandsVisible": 0,
+          "firstLiveReadyAfterMs": 255.2,
+          "visibleBeforeLiveReady": 0,
+          "emptyBeforeLiveReady": 1,
+          "sourceNodesVisibleAtFirstLiveReady": 0
+        }
+      ],
+      "editing": "Both variants wait current Live toolbar ready, mouse add-row, Unicode typing, undo typing then undo add-row; original table restored.",
+      "infra": "Initial sandbox server starts denied EPERM (spawnSync/version check and localhost listen); automatic escalation approved isolated local Playwright run. Those starts are not product test results.",
+      "command": "MILKUP_FORMATTING_PLUGIN_ARCHIVE=/tmp/milkup-beta5-formatting-viewportfix-external/dist/milkup.formatting-1.0.1.milkup-plugin MILKUP_FLOATING_RESULTS=/tmp/milkup-beta6-floating-mode-green node node_modules/@playwright/test/cli.js test --config=/tmp/milkup-beta6-floating-mode-playwright.config.mjs --grep \"source to live retires\""
+    }
+  },
+  "legacyFormatting": {
+    "initialLog": "/tmp/milkup-beta6-formatting-regression.log",
+    "initialPassed": 17,
+    "targetedLog": "/tmp/milkup-beta6-formatting-targeted.log",
+    "targetedPassed": 1,
+    "geometryTargetedLog": "/tmp/milkup-beta6-formatting-geometry-targeted.log",
+    "geometryTargetedPassed": 3,
+    "remaining": "Context menu case 6 delegated to context-menu agent for button→menuitem accessibility contract update and verification",
+    "infraFailures": "Preserved HMR interruption and last three tests connection refusal when shared first runner stopped its Vite server; targeted reruns use isolated server."
+  },
+  "coverage": [
+    "ordinary/windowed source; light/dark; 1100x760 and 760x520 CSS viewport divided by 1,1.25,1.5,2",
+    "toolbar/titlebar/editor host geometry unchanged on entry/exit",
+    "anchor adjacency and boundaries; scroll follow; offscreen hide and return",
+    "Tab every enabled toolbar command scrolls only overlay",
+    "mouse and Enter add-row commands preserve editor focus; direct Unicode typing; undo",
+    "disable/re-enable and new-document clear",
+    "ordinary/windowed Live table DOM and mouse edit/history path",
+    "closing the main menu restores the existing floating toolbar without any extra editor event",
+    "ordinary statusbar / windowed Ctrl+2 source→Live mode switch: synchronous retirement mutation/frame timeline, same document/version/selection, current Live command edit and undo"
+  ],
+  "scope": [
+    "No commit/push/CI",
+    "No dependencies added",
+    "Browser in-memory file adapter; no native/system save claim"
+  ]
+}

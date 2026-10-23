@@ -1,0 +1,17 @@
+import base from '/tmp/milkup-windows-manual-candidate/apps/desktop/vite.config.ts'
+import { readFileSync } from 'node:fs'
+const main = '/tmp/milkup-windows-manual-candidate/apps/desktop/src/main.ts'
+export default { ...base, plugins: [{ name: 'provisional-toolbar-geometry', enforce: 'pre', load(id) {
+  if (id.split('?')[0] !== main) return null
+  let source = readFileSync(main, 'utf8')
+  source = source.replace("import './style.css'", "import './style.css'\nimport './floating-document-toolbar.css'")
+  source = source.replace('      <div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar"></div>\n', '')
+  source = source.replace('    <div class="editor-context-menu"', '    <div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar" hidden></div>\n    <div class="editor-context-menu"')
+  source = source.replace('  getPluginUiRenderState,\n)', `  getPluginUiRenderState,
+  { documentToolbar: {
+    geometry: () => { const editor = editorRoot.querySelector('.milkup-editor'); const caret = editorRoot.querySelector('.milkup-cursor'); if(!editor || !caret) return undefined; return { documentId: session.documentId, anchor: caret.getBoundingClientRect(), boundary: editor.getBoundingClientRect() } },
+    observe: [editorRoot], restoreEditorFocus: () => focusActiveView(),
+  } },
+)`)
+  return source
+} }] }

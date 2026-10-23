@@ -1,0 +1,8 @@
+import base from '/tmp/milkup-windows-manual-candidate/apps/desktop/vite.config.ts'
+import { readFileSync } from 'node:fs'
+const replacements = new Map([
+  ['/tmp/milkup-windows-manual-candidate/apps/desktop/src/main.ts', '/tmp/milkup-beta6-baseline-main.ts'],
+  ['/tmp/milkup-windows-manual-candidate/apps/desktop/src/desktop-plugin-ui.ts', '/tmp/milkup-beta6-baseline-desktop-plugin-ui.ts'],
+  ['/tmp/milkup-windows-manual-candidate/apps/desktop/src/style.css', '/tmp/milkup-beta6-baseline-style.css'],
+])
+export default { ...base, plugins: [{ name: 'baseline-source', enforce: 'pre', load(id) { const file = replacements.get(id.split('?')[0]); return file ? readFileSync(file, 'utf8') : null } }] }

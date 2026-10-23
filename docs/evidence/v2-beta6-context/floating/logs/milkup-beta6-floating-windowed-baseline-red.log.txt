@@ -1,0 +1,66 @@
+[WebServer] (node:230928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:230959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-floating-toolbar.spec.ts:136:9 › floating toolbar windowed 760x520 dark 200% (3.3s)
+
+
+  1) tests/e2e/desktop-floating-toolbar.spec.ts:136:9 › floating toolbar windowed 760x520 dark 200% 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "bottom": 37,
+    -   "height": 37,
+    +   "bottom": 80,
+    +   "height": 80,
+        "left": 0,
+        "right": 380,
+        "top": 0,
+        "width": 380,
+      }
+
+      86 |   after: Awaited<ReturnType<typeof geometry>>,
+      87 | ) {
+    > 88 |   expect(after.titlebar).toEqual(before.titlebar)
+         |                          ^
+      89 |   expect(after.editor).toEqual(before.editor)
+      90 |   expect(after.host).toEqual(before.host)
+      91 | }
+        at expectSameLayout (/tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:88:26)
+        at /tmp/milkup-windows-manual-candidate/tests/e2e/desktop-floating-toolbar.spec.ts:151:11
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milkup-beta6-floating-windowed-baseline-red/desktop-floating-toolbar-f-a9d29--windowed-760x520-dark-200-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: floating-toolbar-state (text/plain) ─────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "sample" [level=1]
+      - paragraph: D:/notes
+      - button "格式"
+      - button "粗体"
+      - button "斜体"
+      - button "下方加行"
+      - button "删除行"
+      - button "右侧加列"
+      - button "删除列" [disabled]
+      - button "退出表格"
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox
+      - textbo...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-beta6-floating-windowed-baseline-red/desktop-floating-toolbar-f-a9d29--windowed-760x520-dark-200-/error-context.md
+
+  1 failed
+    tests/e2e/desktop-floating-toolbar.spec.ts:136:9 › floating toolbar windowed 760x520 dark 200% ─

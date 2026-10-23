@@ -679,7 +679,24 @@ return {menu:{visible:visible(menu),busy:menu?.getAttribute('aria-busy'),rect:re
       const before = await state()
       await ui.list()
       await ui.pointer(`.plugin-summary-card[data-plugin-id="${formattingId}"] summary`)
-      await ui.pointer(action('remove', formattingId))
+      // Exercise the shipped keyboard path: the generic pointer helper can
+      // target a scroll container's centre below the native window boundary.
+      const remove = action('remove', formattingId)
+      const commandCount = await app.execute(
+        'return document.querySelectorAll(arguments[0]).length',
+        `.plugin-summary-card[data-plugin-id="${formattingId}"] .plugin-card-menu button`,
+      )
+      let removalFocused = false
+      for (let index = 0; index <= commandCount; index++) {
+        await app.key('Tab')
+        removalFocused = await app.execute(
+          'return document.activeElement?.matches(arguments[0]) === true',
+          remove,
+        )
+        if (removalFocused) break
+      }
+      assert(removalFocused, 'Native Tab reaches the actual plugin removal action')
+      await app.key('Return')
       await app.until(
         async () => !(await ui.exists(formattingToggle)),
         'normal UI removes Formatting',
@@ -689,6 +706,10 @@ return {menu:{visible:visible(menu),busy:menu?.getAttribute('aria-busy'),rect:re
       const after = await state()
       stableEditor(before, after)
       assert.equal(after.toolbar.commands.length, 0)
+      await ui.pointer(`.milkup-table-cell[data-from="${after.extra.liveCell.from}"]`, {
+        left: true,
+      })
+      assert((await state()).focus.editor, 'Focus the editor before its keyboard context menu')
       await openContext()
       assert.deepEqual(
         (await state()).extra.menu.top.map((item) => item.id),
