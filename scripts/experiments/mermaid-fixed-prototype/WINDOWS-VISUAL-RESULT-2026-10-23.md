@@ -1,5 +1,12 @@
 # Windows visual follow-up: preparation and cleanup remain blockers
 
+> **Historical checkpoints through run 39936547225.** The subsequent
+> [latest partial result](WINDOWS-VISUAL-PARTIAL-2026-10-23.md) actually retains
+> and visually inspects five Windows PNGs from run 39939237277. The other 45
+> fixed cases remain without retained Windows pixel review. Old proposed-probe,
+> unexecuted-diagnostic and no-viewed-PNG statements below describe only the
+> earlier runs, not the latest state. The latest run still failed native cleanup.
+
 ## Latest run: preparation timeout, no PNG
 
 [Run 39936547225](https://github.com/Auto-Plugin/milkup/actions/runs/39936547225)

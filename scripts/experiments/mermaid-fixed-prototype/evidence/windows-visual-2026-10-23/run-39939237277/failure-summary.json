@@ -1,0 +1,685 @@
+{
+  "schema": 1,
+  "runId": 39939237277,
+  "source": "5da5f27499286606ab644c8b699133b8942f3e7b",
+  "runUrl": "https://github.com/Auto-Plugin/milkup/actions/runs/39939237277",
+  "conclusion": "failure",
+  "status": "partial-failed",
+  "complete": false,
+  "canaryPassed": true,
+  "positivePassed": 5,
+  "positiveFailed": 1,
+  "positiveUnreached": 44,
+  "exportedPngCount": 5,
+  "exportedPngTotalBytes": 30169,
+  "artifactCount": 0,
+  "windowsRustTests": {
+    "passed": 12,
+    "failed": 0,
+    "actuallyExecuted": true
+  },
+  "preparationProjectionPreflight": "Actual Windows execution passed including all 19 phase mappings, unknown-content omission and negative/budget checks.",
+  "compiler": {
+    "lines": [
+      "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "binary: rustc",
+      "commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67",
+      "commit-date: 2026-10-13",
+      "host: x86_64-pc-windows-msvc",
+      "release: 1.99.1",
+      "LLVM version: 23.1.1"
+    ],
+    "source": "5da5f27499286606ab644c8b699133b8942f3e7b",
+    "runId": "39939237277"
+  },
+  "execution": {
+    "exactSource": "5da5f27499286606ab644c8b699133b8942f3e7b",
+    "runId": "39939237277",
+    "attempt": "1",
+    "baseline": "b7f9cdecfc02c2f0710fc9d6b71c12419364e644",
+    "runtime": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\155.0.4283.62",
+    "runtimeFileVersion": {
+      "directoryVersion": "155.0.4283.62",
+      "readSucceeded": true,
+      "fileVersion": "155.0.4283.62",
+      "productVersion": "155.0.4283.62",
+      "errorType": null
+    },
+    "binaryBytes": 7752192,
+    "binarySha256": "156370e8e956493ee789f85d6b38ba5f3837d1ffb8e0938fb6fc7494e2a524af",
+    "fixedEngineBytes": 5494801,
+    "executableIsPrototypeNotInstaller": true,
+    "nativeNetworkGuarantee": false,
+    "captureVisualEvidence": true,
+    "renderingInputsBaseline": "82fb49e95caf99ea45654f552992eff81f72bee9",
+    "nativeSourceBaseline": "7aa222e85859d217c33eedcb244e89ca1089ebbb",
+    "nativeSourceByteIdenticalToRenderingBaseline": false,
+    "standardUserAcceptance": "Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment"
+  },
+  "canaryPreparation": {
+    "ready": {
+      "phase": "ready",
+      "engine": "12.2.0",
+      "browserProcessId": 5828
+    },
+    "prepareElapsedMs": 4201,
+    "readyWaitElapsedMs": 4201,
+    "prepareDeadlineMs": 10000,
+    "renderDeadlineMs": 2000,
+    "parentTimeOrigin": "Immediately before ResumeThread; original ready recv wait unchanged",
+    "helperTimeOrigin": "engine::run entry; helper initialization deadline still starts after COM",
+    "ipcThreadsCompleted": true,
+    "stderrExceededBudget": false,
+    "preStopJob": {
+      "active": 8,
+      "peakJobMemoryBytes": 173142016,
+      "peakProcessMemoryBytes": 82214912,
+      "jobMemoryLimitBytes": 536870912,
+      "activeProcessLimit": 16,
+      "limitFlags": 8712,
+      "inspectionFailed": false,
+      "memberCount": 8,
+      "membersTruncated": false,
+      "members": [
+        {
+          "pid": 3568,
+          "image": "mermaid-fixed-prototype.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 5620,
+          "image": "<unrecognized-image>",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 5828,
+          "image": "msedgewebview2.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 7040,
+          "image": "msedgewebview2.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 6468,
+          "image": "msedgewebview2.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 7160,
+          "image": "msedgewebview2.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 5304,
+          "image": "msedgewebview2.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        },
+        {
+          "pid": 1716,
+          "image": "msedgewebview2.exe",
+          "inspectionFailed": false,
+          "isAppContainer": true,
+          "elevated": false,
+          "capabilityCount": 0,
+          "seDebugPresent": false
+        }
+      ]
+    },
+    "stderr": {
+      "utf8BytesAfterLossyDecode": 841,
+      "sha256AfterLossyDecode": "134bea3a6d267e7d782df0c5cd1f4f1c64d78ca10c43b082a5ec53b096eb16ec",
+      "lines": [
+        "MILKUP_PHASE helper-enter elapsedUs=3",
+        "MILKUP_PHASE token-before elapsedUs=118",
+        "MILKUP_PHASE token-ok elapsedUs=1087",
+        "MILKUP_PHASE com-start elapsedUs=1133",
+        "MILKUP_PHASE com-returned elapsedUs=3432 hresult=0x00000000",
+        "MILKUP_PHASE environment-call-start elapsedUs=3604",
+        "MILKUP_PHASE environment-callback-ok elapsedUs=1283480",
+        "MILKUP_PHASE environment-call-returned elapsedUs=1283578",
+        "MILKUP_PHASE controller-call-start elapsedUs=1284834",
+        "MILKUP_PHASE controller-call-returned elapsedUs=1644177",
+        "MILKUP_PHASE controller-callback-ok elapsedUs=3337704",
+        "MILKUP_PHASE controls-installed elapsedUs=3391288",
+        "MILKUP_PHASE navigate-start elapsedUs=3391319",
+        "MILKUP_PHASE navigate-returned elapsedUs=3391390",
+        "MILKUP_PHASE bootstrap-ready-validated elapsedUs=4184115",
+        "MILKUP_PHASE ready-frame-start elapsedUs=4184167",
+        "MILKUP_PHASE ready-frame-flushed elapsedUs=4184252"
+      ],
+      "unknownLinesOmitted": 0,
+      "truncated": false,
+      "rawTextEmitted": false
+    },
+    "projectionTruncated": false
+  },
+  "failedCase": {
+    "fixture": "gitGraph",
+    "ok": false,
+    "error": null,
+    "rawRenderSucceeded": false,
+    "expectedRejection": false,
+    "observationOnly": false,
+    "executionFailure": false,
+    "pngValidation": {
+      "error": "Invalid PNG header or length"
+    },
+    "registrationMatches": false,
+    "standardUserEvidence": true,
+    "hostToken": {
+      "administratorsGroupAttributes": null,
+      "administratorsGroupPresentIncludingDenyOnly": false,
+      "appContainerSid": null,
+      "capabilities": [],
+      "capabilityCount": 0,
+      "elevated": false,
+      "elevationType": 1,
+      "integrityRid": 8192,
+      "isAppContainer": false,
+      "seDebugPrivilege": {
+        "attributes": null,
+        "enabled": false,
+        "enabledByDefault": false,
+        "present": false,
+        "readOnlyObservation": true
+      },
+      "standardUserTokenEvidence": true,
+      "userSid": "<temporary-user-sid>"
+    },
+    "suspendedToken": {
+      "administratorsGroupAttributes": null,
+      "administratorsGroupPresentIncludingDenyOnly": false,
+      "appContainerSid": "<appcontainer-sid>",
+      "capabilities": [],
+      "capabilityCount": 0,
+      "elevated": false,
+      "elevationType": 1,
+      "integrityRid": 4096,
+      "isAppContainer": true,
+      "seDebugPrivilege": {
+        "attributes": null,
+        "enabled": false,
+        "enabledByDefault": false,
+        "present": false,
+        "readOnlyObservation": true
+      },
+      "standardUserTokenEvidence": true,
+      "userSid": "<temporary-user-sid>"
+    },
+    "browserToken": {
+      "administratorsGroupAttributes": null,
+      "administratorsGroupPresentIncludingDenyOnly": false,
+      "appContainerSid": "<appcontainer-sid>",
+      "capabilities": [],
+      "capabilityCount": 0,
+      "elevated": false,
+      "elevationType": 1,
+      "integrityRid": 4096,
+      "isAppContainer": true,
+      "seDebugPrivilege": {
+        "attributes": null,
+        "enabled": false,
+        "enabledByDefault": false,
+        "present": false,
+        "readOnlyObservation": true
+      },
+      "standardUserTokenEvidence": true,
+      "userSid": "<temporary-user-sid>"
+    },
+    "browserProcessInOwnedJob": true,
+    "rendererError": null,
+    "rendererMetadata": {
+      "captureObservation": {
+        "activeLinkElements": 0,
+        "executableElements": 0,
+        "interactionAttempted": false,
+        "phase": "capture-ready",
+        "policyObservations": [],
+        "strippedLinkTargets": 0
+      },
+      "controls": {
+        "deniedNavigations": 0,
+        "deniedPermissions": 0,
+        "deniedRequests": 0,
+        "downloads": 0,
+        "externalSchemes": 0,
+        "newWindows": 0
+      },
+      "engine": "12.2.0",
+      "height": 178,
+      "hiddenCaptureVisuallyVerified": false,
+      "osAllNetworkDenied": false,
+      "pngBytes": 6856,
+      "rendered": {
+        "boundary": "Measured viewport candidate; visual full-ink/no-clipping validation still required",
+        "diagramType": "gitGraph",
+        "height": 178,
+        "phase": "rendered",
+        "requestId": "gitGraph",
+        "svgBBox": {
+          "height": 158.4670867919922,
+          "width": 199.6796875,
+          "x": -99.6796875,
+          "y": -12.5
+        },
+        "svgViewBox": "-107.6796875 -20.5 215.6796875 174.4670867919922",
+        "width": 1280
+      },
+      "requestId": "gitGraph",
+      "status": "ok",
+      "width": 1280
+    },
+    "cleanupErrors": ["Private tree deletion: Access is denied. (os error 5)"],
+    "jobActiveAfterStop": 0,
+    "profileDeletedAndFolderAbsent": true,
+    "privateTreeRemoved": false,
+    "privateTreeDeleteAttempts": [
+      {
+        "attempt": 1,
+        "osError": 5,
+        "retryableSharingOrLockViolation": false
+      }
+    ],
+    "cleanupAccessObservation": {
+      "aclOrTokenChanged": false,
+      "deleteDispositionSet": false,
+      "elapsedMicros": 931,
+      "enumerationPerformed": false,
+      "fileContentsRead": false,
+      "fileOpenLimit": 7,
+      "jsonByteLimit": 4096,
+      "omittedOpenResults": 0,
+      "openAttempts": 7,
+      "opens": [
+        {
+          "access": 65536,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 28,
+          "flags": 35651584,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": ".",
+          "right": "DELETE",
+          "share": 7,
+          "startedAtMicros": 202
+        },
+        {
+          "access": 1,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 18,
+          "flags": 35651584,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": ".",
+          "right": "FILE_LIST_DIRECTORY",
+          "share": 7,
+          "startedAtMicros": 235
+        },
+        {
+          "access": 65536,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 16,
+          "flags": 35651584,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": "code",
+          "right": "DELETE",
+          "share": 7,
+          "startedAtMicros": 382
+        },
+        {
+          "access": 1,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 18,
+          "flags": 35651584,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": "code",
+          "right": "FILE_LIST_DIRECTORY",
+          "share": 7,
+          "startedAtMicros": 403
+        },
+        {
+          "access": 65536,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 43,
+          "flags": 2097152,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": "code/mermaid-fixed-prototype.exe",
+          "right": "DELETE",
+          "share": 7,
+          "startedAtMicros": 582
+        },
+        {
+          "access": 65536,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 31,
+          "flags": 35651584,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": "state",
+          "right": "DELETE",
+          "share": 7,
+          "startedAtMicros": 808
+        },
+        {
+          "access": 1,
+          "attempted": true,
+          "close": {
+            "rawOsError": null,
+            "succeeded": true
+          },
+          "creation": 3,
+          "elapsedMicros": 20,
+          "flags": 35651584,
+          "inheritable": false,
+          "opened": true,
+          "rawOsError": null,
+          "relative": "state",
+          "right": "FILE_LIST_DIRECTORY",
+          "share": 7,
+          "startedAtMicros": 844
+        }
+      ],
+      "originalOsError": 5,
+      "pinsAlreadyReleasedRequired": true,
+      "processToken": {
+        "close": {
+          "rawOsError": null,
+          "succeeded": true
+        },
+        "status": "present",
+        "summary": {
+          "errors": {},
+          "impersonationLevel": null,
+          "isAppContainer": false,
+          "userSid": "<temporary-user-sid>"
+        }
+      },
+      "readOnly": true,
+      "schema": 1,
+      "threadToken": {
+        "openAsSelf": true,
+        "rawOsError": 1008,
+        "status": "none"
+      },
+      "truncated": false
+    },
+    "preparation": {
+      "ready": {
+        "phase": "ready",
+        "engine": "12.2.0",
+        "browserProcessId": 1508
+      },
+      "prepareElapsedMs": 743,
+      "readyWaitElapsedMs": 742,
+      "prepareDeadlineMs": 10000,
+      "renderDeadlineMs": 2000,
+      "parentTimeOrigin": "Immediately before ResumeThread; original ready recv wait unchanged",
+      "helperTimeOrigin": "engine::run entry; helper initialization deadline still starts after COM",
+      "ipcThreadsCompleted": true,
+      "stderrExceededBudget": false,
+      "preStopJob": {
+        "active": 8,
+        "peakJobMemoryBytes": 171286528,
+        "peakProcessMemoryBytes": 79400960,
+        "jobMemoryLimitBytes": 536870912,
+        "activeProcessLimit": 16,
+        "limitFlags": 8712,
+        "inspectionFailed": false,
+        "memberCount": 8,
+        "membersTruncated": false,
+        "members": [
+          {
+            "pid": 7104,
+            "image": "mermaid-fixed-prototype.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 3000,
+            "image": "<unrecognized-image>",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 1508,
+            "image": "msedgewebview2.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 7716,
+            "image": "msedgewebview2.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 4576,
+            "image": "msedgewebview2.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 8572,
+            "image": "msedgewebview2.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 9564,
+            "image": "msedgewebview2.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          },
+          {
+            "pid": 4176,
+            "image": "msedgewebview2.exe",
+            "inspectionFailed": false,
+            "isAppContainer": true,
+            "elevated": false,
+            "capabilityCount": 0,
+            "seDebugPresent": false
+          }
+        ]
+      },
+      "stderr": {
+        "utf8BytesAfterLossyDecode": 824,
+        "sha256AfterLossyDecode": "2401b07e30cb3695ed63086d93d9f862904649dbac4325cbeb0fc8976c6ce7b0",
+        "lines": [
+          "MILKUP_PHASE helper-enter elapsedUs=3",
+          "MILKUP_PHASE token-before elapsedUs=103",
+          "MILKUP_PHASE token-ok elapsedUs=1070",
+          "MILKUP_PHASE com-start elapsedUs=1088",
+          "MILKUP_PHASE com-returned elapsedUs=2601 hresult=0x00000000",
+          "MILKUP_PHASE environment-call-start elapsedUs=2755",
+          "MILKUP_PHASE environment-callback-ok elapsedUs=9297",
+          "MILKUP_PHASE environment-call-returned elapsedUs=9345",
+          "MILKUP_PHASE controller-call-start elapsedUs=10138",
+          "MILKUP_PHASE controller-call-returned elapsedUs=12603",
+          "MILKUP_PHASE controller-callback-ok elapsedUs=326903",
+          "MILKUP_PHASE controls-installed elapsedUs=336405",
+          "MILKUP_PHASE navigate-start elapsedUs=336431",
+          "MILKUP_PHASE navigate-returned elapsedUs=336485",
+          "MILKUP_PHASE bootstrap-ready-validated elapsedUs=727859",
+          "MILKUP_PHASE ready-frame-start elapsedUs=727993",
+          "MILKUP_PHASE ready-frame-flushed elapsedUs=728135"
+        ],
+        "unknownLinesOmitted": 0,
+        "truncated": false,
+        "rawTextEmitted": false
+      },
+      "projectionTruncated": false
+    },
+    "cleanupSupervisorSid": "<cleanup-supervisor-sid>",
+    "stopMatrixAfterThisCase": true
+  },
+  "outerAccount": {
+    "schema": 1,
+    "source": "5da5f27499286606ab644c8b699133b8942f3e7b",
+    "userName": "<temporary-user>",
+    "userSid": "<temporary-user-sid>",
+    "runId": "39939237277",
+    "attempt": "1",
+    "cleanupSupervisorSid": "<cleanup-supervisor-sid>",
+    "accountCreated": true,
+    "accountDeleted": true,
+    "profileDeleted": true,
+    "stage": "<owned-stage>",
+    "stageRemoved": true,
+    "executions": [
+      {
+        "result": {
+          "success": true,
+          "resumed": true,
+          "jobAssigned": true,
+          "jobEmpty": true,
+          "inheritedParentEnvironment": false,
+          "existingDesktopAclChanged": false,
+          "pid": 1632,
+          "suspendedToken": {
+            "sid": "<temporary-user-sid>",
+            "elevated": false,
+            "elevationType": 1,
+            "administratorsGroupPresentIncludingDenyOnly": false,
+            "seDebugPrivilegePresent": false,
+            "standardUser": true
+          },
+          "exitCode": 0,
+          "cleanupErrors": []
+        },
+        "name": "canary"
+      },
+      {
+        "result": {
+          "success": false,
+          "resumed": true,
+          "jobAssigned": true,
+          "jobEmpty": true,
+          "inheritedParentEnvironment": false,
+          "existingDesktopAclChanged": false,
+          "pid": 2120,
+          "suspendedToken": {
+            "sid": "<temporary-user-sid>",
+            "elevated": false,
+            "elevationType": 1,
+            "administratorsGroupPresentIncludingDenyOnly": false,
+            "seDebugPrivilegePresent": false,
+            "standardUser": true
+          },
+          "exitCode": 1,
+          "cleanupErrors": []
+        },
+        "name": "positive"
+      }
+    ],
+    "cleanupErrors": [],
+    "passwordInLogsFilesArgumentsOrEnvironment": false,
+    "changedFirewallOrUac": false,
+    "changedExistingDesktopAcl": false,
+    "newRuntimeOrDependency": false,
+    "productIntegrated": false,
+    "artifactUpload": false,
+    "captureVisualEvidence": true,
+    "visualEvidenceEmitted": true,
+    "localGroupSids": ["S-1-5-32-545"],
+    "canaryAcceptedAssertions": 1,
+    "failure": "Standard-user positive failed; no subsequent dispatch",
+    "actualWindowsProfile": "<temporary-user-profile>",
+    "visualEvidenceStatus": "partial-failed"
+  },
+  "interpretation": "gitGraph supplied successful renderer metadata but its original native cleanup failed with OS5, discarded the PNG and stopped the matrix. All seven later same-thread access probes opened and closed successfully. They do not exercise disposition, identify the failed child operation, or prove OS5 was repaired. Thread token absence was observed later, not at the exact failed operation.",
+  "defaultConsumerRejectedFailedCi": true,
+  "explicitPartialConsumerVerified": true,
+  "normalizedCompleteJobLogSha256": "cc5c62197bec5363e2e74150a49feb84de4400b564fa7d904d84ae069725b0a4",
+  "productIntegrated": false,
+  "furtherRunStarted": false
+}
