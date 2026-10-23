@@ -280,18 +280,18 @@ test('version-gates candidate reuses the bounded source job on its isolated bran
   assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
 })
 
-test('beta6 UI delivery is confined to its exact branch and verified context checkpoint', async () => {
+test('beta7 delivery is confined to its exact branch and reviewed editor and appearance checkpoint', async () => {
   const workflow = await read('.github/workflows/v2-windows-manual-candidate.yml')
   const source = await read('scripts/ci/check-windows-desktop-source.ps1')
   const packaging = await read('scripts/ci/build-windows-manual-candidate.ps1')
   for (const text of [workflow, source, packaging]) {
-    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta6-ui-candidate'))
-    assert.ok(text.includes('7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'))
+    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta7-appearance-menu'))
+    assert.ok(text.includes('cc2cfc1d44b937e56cfcbd6e8f3cdcf3ded10189'))
   }
-  assert.ok(workflow.includes('[windows-manual-beta6]'))
+  assert.ok(workflow.includes('[windows-manual-beta7]'))
   assert.match(
     source,
-    /'refs\/heads\/dot\/milkup-v2-beta6-ui-candidate' \{\s*\$baseline = '7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'\s*\$marker = '\[windows-manual-beta6\]'\s*\}/,
+    /'refs\/heads\/dot\/milkup-v2-beta7-appearance-menu' \{\s*\$baseline = 'cc2cfc1d44b937e56cfcbd6e8f3cdcf3ded10189'\s*\$marker = '\[windows-manual-beta7\]'\s*\}/,
   )
   assert.match(workflow, /contents: read/)
   assert.match(workflow, /persist-credentials: false/)

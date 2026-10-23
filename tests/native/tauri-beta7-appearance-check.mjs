@@ -372,6 +372,33 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
       if (!(await alive(identity))) return
       const argv = (await readFile(`/proc/${identity.pid}/cmdline`, 'utf8')).split('\0')
       if (!(await alive(identity))) return
+      if (argv.length === 1 && argv[0] === '') {
+        // During exit, cmdline can empty before the observed state becomes Z/X.
+        // Empty argv never authorizes a signal: only wait for this exact process
+        // generation to end, and retain a failure if that cannot be established.
+        cleanup.push({
+          phase: 'empty-cmdline-exit-observation',
+          pid: identity.pid,
+          birth: identity.birth,
+          at: new Date().toISOString(),
+        })
+        const started = Date.now()
+        while (Date.now() - started < 1000) {
+          await new Promise((resolve) => setTimeout(resolve, 50))
+          if (!(await alive(identity))) {
+            cleanup.push({
+              phase: 'owned-generation-ended-without-signal',
+              pid: identity.pid,
+              birth: identity.birth,
+              at: new Date().toISOString(),
+            })
+            return
+          }
+        }
+        throw new Error(
+          'Refusing to signal: empty cmdline but the same process generation remains live after 1000ms',
+        )
+      }
       assert.deepEqual(argv, identity.argv, 'Recheck exact owned launch argv before signalling')
       assert.equal(argv[0], binary)
       assert(argv.includes(documentPath))

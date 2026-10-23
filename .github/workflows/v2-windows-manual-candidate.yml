@@ -1,25 +1,25 @@
-name: Windows beta6 context UI manual trial
-# Verify host context actions and floating controls while retaining beta.5 regressions.
+name: Windows beta7 editor and appearance manual trial
+# Verify incremental input, CSS appearance and usable titlebar menus while retaining prior UI regressions.
 # Full official Mermaid remains incomplete; no renderer prototype enters this UI package.
 on:
   push:
-    branches: [dot/milkup-v2-beta6-ui-candidate]
+    branches: [dot/milkup-v2-beta7-appearance-menu]
     paths:
       - .github/workflows/v2-windows-manual-candidate.yml
 permissions:
   contents: read
 concurrency:
-  group: milkup-windows-beta6-manual-delivery
+  group: milkup-windows-beta7-manual-delivery
   cancel-in-progress: false
 jobs:
   package:
     if: >-
       github.repository == 'Auto-Plugin/milkup' &&
-      github.ref == 'refs/heads/dot/milkup-v2-beta6-ui-candidate' &&
+      github.ref == 'refs/heads/dot/milkup-v2-beta7-appearance-menu' &&
       github.event.repository.private == false &&
       github.event.deleted == false &&
       github.run_attempt == 1 &&
-      contains(github.event.head_commit.message, '[windows-manual-beta6]')
+      contains(github.event.head_commit.message, '[windows-manual-beta7]')
     runs-on: windows-2025
     timeout-minutes: 60
     defaults:
@@ -46,7 +46,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $head = @(git rev-parse HEAD)
           if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Source SHA mismatch/read failed' }
-          git merge-base --is-ancestor 7cc4edc6747abf5fbc31b60cccf4bd73174af6f8 HEAD
+          git merge-base --is-ancestor cc2cfc1d44b937e56cfcbd6e8f3cdcf3ded10189 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Wrong validated baseline' }
           foreach ($file in @('update_handoff.rs','update_identity.rs','update_transaction.rs','update_health_contract.rs')) {
             if (Test-Path "apps/desktop/src-tauri/src/$file") { throw 'Unaccepted experiment in product candidate' }
@@ -58,7 +58,7 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Dirty or unreadable candidate' }
           node scripts/check-versions.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Version mismatch' }
-          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.6') { throw 'Wrong beta' }
+          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.7') { throw 'Wrong beta' }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
@@ -93,7 +93,7 @@ jobs:
           $mt = @(Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/mt.exe" -File)
           if ($mt.Count -eq 0) { throw 'Windows SDK manifest tool unavailable' }
           $mt.FullName | Write-Host
-          foreach ($file in @('docs/manual-windows-beta6/README.md','docs/manual-windows-beta6/FEEDBACK.md','docs/manual-windows-beta6/samples/basic.md')) {
+          foreach ($file in @('docs/manual-windows-beta7/README.md','docs/manual-windows-beta7/FEEDBACK.md','docs/manual-windows-beta7/samples/basic.md')) {
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing manual trial material: $file" }
           }
           node --check scripts/ci/prepare-manual-trial-payload.mjs
@@ -101,13 +101,13 @@ jobs:
           node --test tests/windows/verify-build-tree.test.mjs scripts/ci/verify-nsis-image.test.mjs tests/ci/windows-desktop-source-check.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Source-state gate regressions failed' }
       - name: Full Windows source and independent plugin checks
-        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta6-source" -FailFast
+        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta7-source" -FailFast
       - name: Build and inspect unsigned NSIS without installation
-        run: ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta6-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta6-deliverable"
+        run: ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta7-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta7-deliverable"
       - name: Record source checks and delivery boundary
         if: always()
         run: |
-          foreach ($path in @('manual-beta6-source/phases.json','manual-beta6-source/rust-test-result.json','manual-beta6-deliverable/manifest.json','manual-beta6-deliverable/plugins.json','manual-beta6-deliverable/SHA256SUMS.txt')) {
+          foreach ($path in @('manual-beta7-source/phases.json','manual-beta7-source/rust-test-result.json','manual-beta7-deliverable/manifest.json','manual-beta7-deliverable/plugins.json','manual-beta7-deliverable/SHA256SUMS.txt')) {
             $file = Join-Path $env:RUNNER_TEMP $path
             if (Test-Path $file) { Write-Host "::group::$path"; Get-Content $file | Write-Host; Write-Host '::endgroup::' }
           }
@@ -116,8 +116,8 @@ jobs:
         id: upload
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-2.0.0-beta.6-windows-x64-${{ github.sha }}
-          path: ${{ runner.temp }}/manual-beta6-deliverable/
+          name: milkup-2.0.0-beta.7-windows-x64-${{ github.sha }}
+          path: ${{ runner.temp }}/manual-beta7-deliverable/
           retention-days: 1
           if-no-files-found: error
           compression-level: 6

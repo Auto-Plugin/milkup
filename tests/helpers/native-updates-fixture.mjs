@@ -17,8 +17,35 @@ export const updateView = '[data-plugin-ui="milkup.updates:updates-modal"]'
 export const action = (kind, id = updateId) =>
   `[data-plugin-action="${kind}"][data-plugin-id="${id}"]`
 export const updateCheck = `${updateView} [data-plugin-command="updates.check"]`
-export const x = (...args) =>
-  execFileSync('xdotool', args, { encoding: 'utf8', env: process.env }).trim()
+export function x(...args) {
+  const visibleApplicationSearch =
+    args.length === 4 &&
+    args[0] === 'search' &&
+    args[1] === '--onlyvisible' &&
+    args[2] === '--class' &&
+    args[3] === 'milkup-desktop'
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      return execFileSync('xdotool', args, { encoding: 'utf8', env: process.env }).trim()
+    } catch (error) {
+      const stderr = String(error.stderr ?? '')
+      // A child window can disappear during the global tree scan. Repeat only
+      // this exact read-only query and observed X error, never an input action.
+      if (
+        !visibleApplicationSearch ||
+        error.status !== 1 ||
+        error.signal !== null ||
+        !/X Error of failed request:\s+BadWindow \(invalid Window parameter\)/.test(stderr) ||
+        !/Major opcode of failed request:\s+15 \(X_QueryTree\)/.test(stderr)
+      )
+        throw error
+      console.error(
+        `${new Date().toISOString()} X11_READ_ONLY_SEARCH_RACE attempt=${attempt}/3 ${attempt < 3 ? 'retrying' : 'exhausted'}\n${stderr}`,
+      )
+      if (attempt === 3) throw error
+    }
+  }
+}
 
 /** Small deterministic PNG fixture; no permissions or host-specific feature code. */
 export async function writeLogoFixture(output) {

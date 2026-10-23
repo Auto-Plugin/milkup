@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-    $env:GITHUB_REF -cne 'refs/heads/dot/milkup-v2-beta6-ui-candidate' -or
+    $env:GITHUB_REF -cne 'refs/heads/dot/milkup-v2-beta7-appearance-menu' -or
     $env:GITHUB_RUN_ATTEMPT -ne '1') { throw 'Outside approved manual-candidate scope' }
 function Checked([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
@@ -34,7 +34,7 @@ $source = Get-Content (Join-Path $EvidenceDirectory 'source.json') -Raw | Conver
 $phases = @(Get-Content (Join-Path $EvidenceDirectory 'phases.json') -Raw | ConvertFrom-Json)
 if ($source.commit -cne $sha -or $phases.Count -lt 15 -or @($phases | Where-Object status -ne 'passed').Count) { throw 'Complete exact-source Windows checks required' }
 $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-if ($version -cne '2.0.0-beta.6') { throw 'Unexpected manual candidate version' }
+if ($version -cne '2.0.0-beta.7') { throw 'Unexpected manual candidate version' }
 $config = Get-Content apps/desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
 if ($env:TAURI_CONFIG -or $config.bundle.windows.PSObject.Properties.Name -contains 'webviewInstallMode' -or
     (Test-Path apps/desktop/src-tauri/tauri.windows.conf.json)) { throw 'Retain existing small-package WebView2 mode' }
@@ -73,7 +73,7 @@ Copy-Item -LiteralPath $installers[0].FullName -Destination (Join-Path $OutputDi
 $installerRecord['deliveredName'] = $name
 $manifest = [ordered]@{
     status='built-for-user-manual-trial'; commit=$sha; version=$version; platform='windows-x86_64'
-    baseline='7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'; runId=$env:GITHUB_RUN_ID
+    baseline='cc2cfc1d44b937e56cfcbd6e8f3cdcf3ded10189'; runId=$env:GITHUB_RUN_ID
     runUrl="https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     installer=$installerRecord; compiledApplication=$appRecord; application=$payloadRecord; extractedApplication=$payloadRecord
     nsisImageVerification=$imageProof

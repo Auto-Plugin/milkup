@@ -7,6 +7,10 @@ $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows) { throw 'Desktop source check requires actual Windows' }
 if ($env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup') { throw 'Unexpected source-check repository' }
 switch -CaseSensitive ($env:GITHUB_REF) {
+    'refs/heads/dot/milkup-v2-beta7-appearance-menu' {
+        $baseline = 'cc2cfc1d44b937e56cfcbd6e8f3cdcf3ded10189'
+        $marker = '[windows-manual-beta7]'
+    }
     'refs/heads/dot/milkup-v2-beta6-ui-candidate' {
         $baseline = '7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'
         $marker = '[windows-manual-beta6]'
