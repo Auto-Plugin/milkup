@@ -1,29 +1,47 @@
 # Fixed synthetic PNGs only. No environment/window screenshots or arbitrary paths.
-function Write-PositivePngEvidence([string]$Output, [string]$Manifest, $Report) {
+function Read-PositivePngEvidence([string]$Output, [string]$Manifest, $Report, [switch]$PartialFailed) {
     Assert-PlainPath $Output
     Assert-PlainPath $Manifest
     $fixtures = @((Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json).fixtures)
-    if ($fixtures.Count -ne 50 -or $Report.records.Count -ne 50 -or $Report.acceptedAssertions -ne 50) {
-        throw 'Visual evidence requires the complete fixed positive matrix'
-    }
+    $records = @($Report.records)
     $ids = @($fixtures | ForEach-Object { $_.id })
-    if (@($ids | Sort-Object -Unique).Count -ne 50 -or
+    if ($fixtures.Count -ne 50 -or @($ids | Sort-Object -Unique).Count -ne 50 -or
         @($ids | Where-Object { $_ -cnotmatch '^[A-Za-z0-9_-]{1,80}$' }).Count) {
         throw 'Unexpected positive fixture identities'
     }
-    $records = @($Report.records)
-    if (@($records.fixture | Sort-Object -Unique).Count -ne 50 -or
-        @(Compare-Object ($ids | Sort-Object) ($records.fixture | Sort-Object)).Count) {
-        throw 'Visual report fixture set differs'
+    $failedIds = @(); $unreachedIds = @()
+    if ($PartialFailed) {
+        if ($records.Count -lt 2 -or $records.Count -gt 50 -or $Report.acceptedAssertions -ne $records.Count - 1) {
+            throw 'Partial evidence requires successful cases followed by one native cleanup failure'
+        }
+        $failed = $records[-1]
+        $native = $failed.launcher
+        if ($failed.ok -ne $false -or $native.success -ne $false -or
+            $native.stopMatrixAfterThisCase -ne $true -or $native.privateTreeRemoved -ne $false -or
+            $native.jobActiveAfterStop -ne 0 -or $native.profileDeletedAndFolderAbsent -ne $true -or
+            $native.cleanupErrors.Count -lt 1) {
+            throw 'Partial evidence does not match a stopped native tree-cleanup failure'
+        }
+        $failedIds = @($failed.fixture)
+        $unreachedIds = @($ids | Select-Object -Skip $records.Count)
+    } elseif ($records.Count -ne 50 -or $Report.acceptedAssertions -ne 50) {
+        throw 'Visual evidence requires the complete fixed positive matrix'
     }
+    # The native report retains dispatch order. A partial set must be the exact
+    # manifest prefix ending with its failed case, never a cherry-picked subset.
+    for ($index=0; $index -lt $records.Count; $index++) {
+        if ($records[$index].fixture -cne $ids[$index]) { throw 'Visual report dispatch order differs' }
+    }
+    $acceptedCount = $records.Count - $(if ($PartialFailed) { 1 } else { 0 })
+    $acceptedFixtures = @($fixtures | Select-Object -First $acceptedCount)
     $pngNames = @(Get-ChildItem -LiteralPath $Output -Filter '*.png' -File | ForEach-Object { $_.Name })
-    $expectedNames = @($ids | ForEach-Object { $_ + '.png' })
+    $expectedNames = @($acceptedFixtures | ForEach-Object { $_.id + '.png' })
     if (@(Compare-Object ($expectedNames | Sort-Object) ($pngNames | Sort-Object)).Count) {
         throw 'Visual output image set differs'
     }
     $checked = @()
     $total = 0
-    foreach ($fixture in $fixtures) {
+    foreach ($fixture in $acceptedFixtures) {
         $id = $fixture.id
         $record = @($records | Where-Object { $_.fixture -ceq $id })[0]
         $native = $record.launcher
@@ -63,10 +81,18 @@ function Write-PositivePngEvidence([string]$Output, [string]$Manifest, $Report) 
         $total += $length
         $checked += @{id=$id; bytes=$bytes; size=$length; sha256=$digest; width=$width; height=$height}
     }
-    # Validate the entire set before emitting the first image. Only positive
-    # images are exported; the canary is a separate run with no PNG stream.
+    # Cache only validated synthetic bytes before stage deletion. The caller
+    # may emit this bundle only after every outer cleanup gate has passed.
+    return @{
+        checked=$checked; totalBytes=$total; complete=(-not $PartialFailed.IsPresent)
+        status=$(if ($PartialFailed) { 'partial-failed' } else { 'complete' })
+        failedFixtures=$failedIds; unreachedFixtures=$unreachedIds
+    }
+}
+
+function Write-PositivePngEvidence($Bundle) {
     $files = @()
-    foreach ($item in $checked) {
+    foreach ($item in $Bundle.checked) {
         $base64 = [Convert]::ToBase64String($item.bytes)
         $count = [int][Math]::Ceiling($base64.Length / 4096.0)
         $identity = [ordered]@{
@@ -87,11 +113,13 @@ function Write-PositivePngEvidence([string]$Output, [string]$Manifest, $Report) 
         Write-Output ('MILKUP_PNG_END ' + ($header | ConvertTo-Json -Compress))
         $files += $header
     }
-    # Transfer completion is not execution acceptance. The consumer must also
-    # require the same run's final account/profile/stage cleanup and CI success.
+    # Partial transport never changes the original failed run to success. The
+    # consumer independently requires the corresponding failure and final cleanup.
     $transportManifest = [ordered]@{
         schema=1; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; source=$env:GITHUB_SHA
-        execution='positive'; count=$files.Count; totalBytes=$total; files=$files
+        execution='positive'; count=$files.Count; totalBytes=$Bundle.totalBytes; files=$files
+        status=$Bundle.status; complete=$Bundle.complete
+        failedFixtures=@($Bundle.failedFixtures); unreachedFixtures=@($Bundle.unreachedFixtures)
         capturesEnvironmentScreens=$false; artifactUpload=$false
     }
     Write-Output ('MILKUP_PNG_MANIFEST ' + ($transportManifest | ConvertTo-Json -Depth 8 -Compress))

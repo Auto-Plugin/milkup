@@ -43,13 +43,22 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $root = 'scripts/experiments/mermaid-fixed-prototype'
-          foreach ($name in @('run-reviewed-windows.ps1','run-standard-user.ps1','visual-evidence.ps1','cleanup-diagnostics.ps1')) {
+          foreach ($name in @('run-reviewed-windows.ps1','run-standard-user.ps1','visual-evidence.ps1','cleanup-diagnostics.ps1','test-visual-evidence.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD "$root/$name"), [ref]$tokens, [ref]$errors) | Out-Null
             if ($errors.Count) { throw ($errors | Out-String) }
           }
           Add-Type -Path "$root/StandardUserProcess.cs"
+          . (Join-Path $PWD "$root/cleanup-diagnostics.ps1")
+          $parent = 'D:\owned-test\temp'
+          foreach ($candidate in @('D:\owned-test\temp\milkup-fixed-mermaid-1-2','\\?\D:\owned-test\temp\milkup-fixed-mermaid-1-2')) {
+            if (-not (Test-OwnedCleanupPath $candidate $parent)) { throw 'Owned path representation regression' }
+          }
+          foreach ($candidate in @('D:\other\temp\milkup-fixed-mermaid-1-2','\\?\D:\other\temp\milkup-fixed-mermaid-1-2','\\.\D:\owned-test\temp\milkup-fixed-mermaid-1-2','\\server\share\milkup-fixed-mermaid-1-2','D:\owned-test\temp\child\milkup-fixed-mermaid-1-2','D:\owned-test\temp\unexpected')) {
+            if (Test-OwnedCleanupPath $candidate $parent) { throw 'Out-of-scope diagnostic path accepted' }
+          }
+          & (Join-Path $PWD "$root/test-visual-evidence.ps1")
       - name: Run reviewed fixed code and data corpus
         id: run
         run: ./scripts/experiments/mermaid-fixed-prototype/run-reviewed-windows.ps1

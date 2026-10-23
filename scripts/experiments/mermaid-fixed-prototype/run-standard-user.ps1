@@ -100,6 +100,7 @@ $creationAttempted = $false
 $stageCreated = $false
 $ownedProcessesCleared = $true
 $failure = $null
+$visualBundle = $null
 try {
     if (Get-LocalUser -Name $name -ErrorAction SilentlyContinue) { throw 'Generated account already exists' }
     # Directly append random characters to SecureString: no managed plaintext password.
@@ -183,14 +184,30 @@ try {
                 } | ConvertTo-Json -Compress))
             }
         }
-        if (-not $result.success -or -not $result.jobEmpty) { throw ('Standard-user ' + $case.name + ' failed; no subsequent dispatch') }
+        if (-not $result.success -or -not $result.jobEmpty) {
+            if ($CaptureVisualEvidence -and $case.name -ceq 'positive' -and $ownedProcessesCleared -and
+                $result.resumed -and $result.jobAssigned -and $result.exitCode -ne 0) {
+                try {
+                    $reportPath = Join-Path $output 'report.json'
+                    Assert-PlainPath $reportPath
+                    if ((Get-Item -LiteralPath $reportPath).Length -gt 4194304) { throw 'Oversized visual report' }
+                    $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+                    $visualBundle = Read-PositivePngEvidence -Output $output -Manifest $manifest -Report $report -PartialFailed
+                } catch {
+                    # Preserve the original native failure even if evidence is
+                    # missing or rejected. No rejected bytes can be exported.
+                    $visualBundle = $null
+                    $audit['visualEvidencePreparationError'] = $_.Exception.Message
+                }
+            }
+            throw ('Standard-user ' + $case.name + ' failed; no subsequent dispatch')
+        }
         $report = Get-Content -LiteralPath (Join-Path $output 'report.json') -Raw | ConvertFrom-Json
         if ($case.name -ceq 'positive' -and ($report.records.Count -ne 50 -or $report.acceptedAssertions -ne 50)) { throw 'Incomplete positive matrix' }
         if ($case.name -ceq 'negative' -and ($report.records.Count -ne 5 -or $report.acceptedAssertions -ne 4)) { throw 'Incomplete negative matrix' }
         $audit[($case.name + 'AcceptedAssertions')] = $report.acceptedAssertions
         if ($CaptureVisualEvidence -and $case.name -ceq 'positive') {
-            Write-PositivePngEvidence -Output $output -Manifest $manifest -Report $report
-            $audit.visualEvidenceEmitted = $true
+            $visualBundle = Read-PositivePngEvidence -Output $output -Manifest $manifest -Report $report
         }
     }
 } catch {
@@ -240,6 +257,20 @@ try {
             $audit.stageRemoved = $true
         } catch { $audit.cleanupErrors += 'Stage cleanup failed: ' + $_.Exception.Message }
     }
+    # Emit synthetic bytes only after all real cleanup has completed. A native
+    # failure stays failed; outer cleanup never replaces the failed case result.
+    if ($null -ne $visualBundle -and $ownedProcessesCleared -and $audit.accountDeleted -and
+        $audit.profileDeleted -and $audit.stageRemoved -and $audit.cleanupErrors.Count -eq 0) {
+        try {
+            Write-PositivePngEvidence -Bundle $visualBundle
+            $audit.visualEvidenceEmitted = $true
+            $audit['visualEvidenceStatus'] = $visualBundle.status
+        } catch {
+            $audit['visualEvidenceEmissionError'] = $_.Exception.Message
+            if ($null -eq $failure) { $failure = $_; $audit['failure'] = $_.Exception.Message }
+        }
+    }
+    $visualBundle = $null
     # Persist and print only after attempting every owned-resource cleanup.
     $json = $audit | ConvertTo-Json -Depth 20
     $json | Set-Content -LiteralPath (Join-Path $Evidence 'standard-user.json')

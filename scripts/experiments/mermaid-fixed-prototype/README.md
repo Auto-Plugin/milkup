@@ -1,3 +1,10 @@
+> **Historical preparation document.** The body below describes the initial
+> candidate, not current execution or authorization. Windows standard-user tests
+> have since run; see [the recorded result](WINDOWS-STANDARD-USER-RESULT-2026-10-23.md)
+> and [bounded visual evidence follow-up](VISUAL-EVIDENCE.md). Current runs upload
+> **zero Actions artifacts**; only bounded synthetic PNGs may be transferred in
+> logs. The fixed official renderer remains an isolated, unintegrated prototype.
+
 # Fixed Mermaid 12.2.0 Windows prototype candidate
 
 This is an isolated, reviewable experiment based on `b7f9cdecfc02c2f0710fc9d6b71c12419364e644`, on branch `dot/milkup-v2-mermaid-prototype`. It is not linked into Milk up, a plugin distribution, or a release package. The user approved a bounded independent fixed-renderer experiment, including the explicitly disclosed residual network risk. No Windows execution, workflow installation, CI run, installer, elevation, account change, Runtime installation, firewall change, or product gate change occurred while preparing this candidate.

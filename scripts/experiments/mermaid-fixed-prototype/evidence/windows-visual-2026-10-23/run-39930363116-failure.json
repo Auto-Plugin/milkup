@@ -1,0 +1,210 @@
+{
+  "schema": 1,
+  "runId": 39930363116,
+  "source": "1e77a15693ca8076aa36b67f5cb69f569142491e",
+  "conclusion": "failure",
+  "reason": "Native private-tree deletion returned Windows error 5 after flow-wide rendering; bounded diagnostic rejected extended path spelling before traversal. Exact child operation/root cause remain unknown.",
+  "caseRows": 43,
+  "positiveAccepted": 41,
+  "failedFixtures": ["flow-wide"],
+  "failedCases": [
+    {
+      "fixture": "flow-wide",
+      "ok": false,
+      "error": null,
+      "rawRenderSucceeded": false,
+      "expectedRejection": false,
+      "observationOnly": false,
+      "executionFailure": false,
+      "pngValidation": {
+        "error": "Invalid PNG header or length"
+      },
+      "registrationMatches": false,
+      "standardUserEvidence": true,
+      "hostToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": null,
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 8192,
+        "isAppContainer": false,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "S-1-5-21-3776380004-1005456608-3524014338-1003"
+      },
+      "suspendedToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": "S-1-15-2-3638486636-2239799821-1050334766-2632557927-1577146139-3141071720-3784190466",
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 4096,
+        "isAppContainer": true,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "S-1-5-21-3776380004-1005456608-3524014338-1003"
+      },
+      "browserToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": "S-1-15-2-3638486636-2239799821-1050334766-2632557927-1577146139-3141071720-3784190466",
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 4096,
+        "isAppContainer": true,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "S-1-5-21-3776380004-1005456608-3524014338-1003"
+      },
+      "browserProcessInOwnedJob": true,
+      "rendererError": null,
+      "rendererMetadata": {
+        "captureObservation": {
+          "activeLinkElements": 0,
+          "executableElements": 0,
+          "interactionAttempted": false,
+          "phase": "capture-ready",
+          "policyObservations": [],
+          "strippedLinkTargets": 0
+        },
+        "controls": {
+          "deniedNavigations": 0,
+          "deniedPermissions": 0,
+          "deniedRequests": 0,
+          "downloads": 0,
+          "externalSchemes": 0,
+          "newWindows": 0
+        },
+        "engine": "12.2.0",
+        "height": 30,
+        "hiddenCaptureVisuallyVerified": false,
+        "osAllNetworkDenied": false,
+        "pngBytes": 4325,
+        "rendered": {
+          "boundary": "Measured viewport candidate; visual full-ink/no-clipping validation still required",
+          "diagramType": "flowchart-v2",
+          "height": 30,
+          "phase": "rendered",
+          "requestId": "flow-wide",
+          "svgBBox": {
+            "height": 54,
+            "width": 3480,
+            "x": 12,
+            "y": 12
+          },
+          "svgViewBox": "4 4 3496 70",
+          "width": 1280
+        },
+        "requestId": "flow-wide",
+        "status": "ok",
+        "width": 1280
+      },
+      "cleanupErrors": ["Private tree deletion: Access is denied. (os error 5)"],
+      "jobActiveAfterStop": 0,
+      "profileDeletedAndFolderAbsent": true,
+      "privateTreeRemoved": false,
+      "privateTreeDeleteAttempts": [
+        {
+          "attempt": 1,
+          "osError": 5,
+          "retryableSharingOrLockViolation": false
+        }
+      ],
+      "cleanupSupervisorSid": "S-1-5-21-3776380004-1005456608-3524014338-500",
+      "stopMatrixAfterThisCase": true
+    }
+  ],
+  "outerSupervisors": [
+    {
+      "result": {
+        "success": true,
+        "resumed": true,
+        "jobAssigned": true,
+        "jobEmpty": true,
+        "inheritedParentEnvironment": false,
+        "existingDesktopAclChanged": false,
+        "pid": 1432,
+        "suspendedToken": {
+          "sid": "S-1-5-21-3776380004-1005456608-3524014338-1003",
+          "elevated": false,
+          "elevationType": 1,
+          "administratorsGroupPresentIncludingDenyOnly": false,
+          "seDebugPrivilegePresent": false,
+          "standardUser": true
+        },
+        "exitCode": 0,
+        "cleanupErrors": []
+      },
+      "name": "canary"
+    },
+    {
+      "result": {
+        "success": false,
+        "resumed": true,
+        "jobAssigned": true,
+        "jobEmpty": true,
+        "inheritedParentEnvironment": false,
+        "existingDesktopAclChanged": false,
+        "pid": 6108,
+        "suspendedToken": {
+          "sid": "S-1-5-21-3776380004-1005456608-3524014338-1003",
+          "elevated": false,
+          "elevationType": 1,
+          "administratorsGroupPresentIncludingDenyOnly": false,
+          "seDebugPrivilegePresent": false,
+          "standardUser": true
+        },
+        "exitCode": 1,
+        "cleanupErrors": []
+      },
+      "name": "positive"
+    }
+  ],
+  "finalCleanup": {
+    "accountDeleted": true,
+    "profileDeleted": true,
+    "stageRemoved": true,
+    "cleanupErrors": [],
+    "visualEvidenceEmitted": false,
+    "failure": "Standard-user positive failed; no subsequent dispatch"
+  },
+  "diagnosticErrors": [
+    {
+      "source": "1e77a15693ca8076aa36b67f5cb69f569142491e",
+      "attempt": "1",
+      "runId": "39930363116",
+      "error": "Diagnostic root is not an immediate owned temporary case directory"
+    }
+  ],
+  "imageBytesExported": 0,
+  "artifactCount": 0,
+  "normalizedLogSha256": "2c5a9388870b0c9cac7c8474eb15678a59c62a6ce8a8447356c01762cf7575b1",
+  "runtimeVersion": "155.0.4283.62",
+  "renderingInputsBaseline": "82fb49e95caf99ea45654f552992eff81f72bee9",
+  "nativeCleanupCauseEstablished": false
+}

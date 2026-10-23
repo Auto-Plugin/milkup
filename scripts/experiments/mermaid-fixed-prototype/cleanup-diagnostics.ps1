@@ -1,12 +1,24 @@
 # Read-only, bounded metadata for a failed case's newly owned private tree.
 # This never retries deletion, changes ACLs, reads residual file contents or marks success.
+function Test-OwnedCleanupPath([string]$Root, [string]$PrivateTemp) {
+    $expected = [IO.Path]::GetFullPath($PrivateTemp).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    # The runner stage is a drive-absolute path. Accept only its exact ordinary
+    # spelling or the exact extended spelling produced by Rust canonicalize.
+    # No generic prefix stripping, UNC/device namespace or sibling is accepted.
+    if ($expected -cnotmatch '^[A-Za-z]:\\' -or $expected.StartsWith('\\')) { return $false }
+    $candidate = [IO.Path]::GetFullPath($Root)
+    if ([IO.Path]::GetFileName($candidate) -cnotmatch '^milkup-fixed-mermaid-[0-9]+-[0-9]+$') { return $false }
+    $parent = [IO.Path]::GetDirectoryName($candidate)
+    return [String]::Equals($parent, $expected, [StringComparison]::OrdinalIgnoreCase) -or
+        [String]::Equals($parent, '\\?\' + $expected, [StringComparison]::OrdinalIgnoreCase)
+}
+
 function Write-OwnedCleanupDiagnosis([string]$Output, [string]$PrivateTemp, $OuterResult) {
     if (-not $OuterResult.jobEmpty -or $OuterResult.cleanupErrors.Count -ne 0) {
         throw 'Owned process emptiness is not established for diagnostic traversal'
     }
     Assert-PlainPath $Output
     Assert-PlainPath $PrivateTemp
-    $expectedParent = [IO.Path]::GetFullPath($PrivateTemp).TrimEnd([IO.Path]::DirectorySeparatorChar)
     $files = @(Get-ChildItem -LiteralPath $Output -File -Filter '*.json' | Where-Object { $_.Name -cne 'report.json' } | Select-Object -First 52)
     if ($files.Count -gt 51) { throw 'Diagnostic report count exceeds matrix budget' }
     $failed = @()
@@ -24,13 +36,18 @@ function Write-OwnedCleanupDiagnosis([string]$Output, [string]$PrivateTemp, $Out
         $native = $record['launcher']
         $root = [IO.Path]::GetFullPath([string]$native['privateRoot'])
         $leaf = [IO.Path]::GetFileName($root)
-        if ($leaf -cnotmatch '^milkup-fixed-mermaid-[0-9]+-[0-9]+$' -or
-            -not [String]::Equals([IO.Path]::GetDirectoryName($root), $expectedParent, [StringComparison]::OrdinalIgnoreCase)) {
+        if (-not (Test-OwnedCleanupPath $root $PrivateTemp)) {
             throw 'Diagnostic root is not an immediate owned temporary case directory'
         }
+        # Once exact parent/leaf equivalence is proven, use the ordinary owned
+        # path for PowerShell-provider metadata calls. This changes no file path
+        # supplied to the renderer and does not normalize arbitrary paths.
+        $observedExtendedPrefix = $root.StartsWith('\\?\', [StringComparison]::Ordinal)
+        $root = [IO.Path]::Combine([IO.Path]::GetFullPath($PrivateTemp), $leaf)
         $diagnostic = [ordered]@{
             schema=1; runId=$env:GITHUB_RUN_ID; attempt=$env:GITHUB_RUN_ATTEMPT; source=$env:GITHUB_SHA
             fixture=$record['fixture']; privateRootLeaf=$leaf
+            observedExtendedLengthPrefix=$observedExtendedPrefix; exactOwnedParentAndLeafVerified=$true
             originalCleanupErrors=$native['cleanupErrors']; originalDeleteAttempts=$native['privateTreeDeleteAttempts']
             nativeJobActiveAfterStop=$native['jobActiveAfterStop']; outerJobEmpty=$OuterResult.jobEmpty
             originalErrorNamesSpecificChild=$false; causeEstablished=$false; residualFileContentsRead=$false; aclsChanged=$false
