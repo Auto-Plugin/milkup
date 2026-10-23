@@ -292,6 +292,26 @@ export function domRectForLineSourcePosition(
     return sourceRect
   }
 
+  // Empty task content has a zero-width mapped text anchor after its checkbox.
+  // Its element box also locates that boundary when native Range measurement
+  // is unavailable; never infer the checkbox's width or CSS spacing.
+  const emptyListContent = Array.from(
+    lineDOM.querySelectorAll<HTMLElement>('.milkup-list-content[data-from][data-to]'),
+  ).find(
+    (content) =>
+      Number(content.dataset.from) === position && Number(content.dataset.to) === position,
+  )
+  if (emptyListContent) {
+    const rect = emptyListContent.getBoundingClientRect()
+    if (rect.height > 0 && Number.isFinite(rect.left) && Number.isFinite(rect.top))
+      return viewRectFromClientRect(
+        rect,
+        referenceDOM,
+        lineDOM.getBoundingClientRect(),
+        options.fallbackLineHeight,
+      )
+  }
+
   const rect = domRectForLineVisualOffset(
     document,
     lineDOM,

@@ -2656,7 +2656,12 @@ function collectListItemLinePieces(
       const pieceFrom = clamp(contentFrom, from, to)
       const pieceTo = clamp(range.to, from, to)
 
-      if (pieceTo > pieceFrom) {
+      // Keep an empty task's content position after its checkbox. Otherwise
+      // source-to-DOM mapping falls back to the text before the empty button.
+      if (
+        pieceTo > pieceFrom ||
+        (taskMarker?.to === pieceFrom && pieceFrom === pieceTo && pieceTo === to)
+      ) {
         pieces.push({
           from: pieceFrom,
           to: pieceTo,

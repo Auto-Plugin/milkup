@@ -581,6 +581,10 @@ return {editor:rect(root),cursor:rect(cursor),focus:document.activeElement?.matc
         assert.equal(line.tasks[0].from, current.base + 2)
         assert.equal(line.tasks[0].to, current.base + 6)
         assert(
+          r.left >= line.tasks[0].rect.right - 1,
+          'Empty task caret follows its actual checkbox instead of preceding it',
+        )
+        assert(
           line.markers[0].classes.includes('milkup-marker-hidden'),
           'Task does not show a second bullet',
         )

@@ -4171,7 +4171,11 @@ function collectListItemLinePieces(
     const pieceFrom = clamp(contentFrom, line.from, line.to)
     const pieceTo = clamp(range.to, line.from, line.to)
 
-    if (pieceTo > pieceFrom) {
+    // Keep the source EOL addressable after an otherwise textless checkbox.
+    if (
+      pieceTo > pieceFrom ||
+      (taskMarker?.to === pieceFrom && pieceFrom === pieceTo && pieceTo === line.to)
+    ) {
       pieces.push({
         from: pieceFrom,
         to: pieceTo,

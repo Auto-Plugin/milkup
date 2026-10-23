@@ -8,7 +8,10 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EditorView } from '../editor-view'
 import { SourceDocumentView, type SourceDocumentEdit } from '../source-document-view'
-import { sourcePositionToVisualOffsetInLine } from '../source-position-mapping'
+import {
+  domRectForLineSourcePosition,
+  sourcePositionToVisualOffsetInLine,
+} from '../source-position-mapping'
 
 const views: Array<EditorView | SourceDocumentView> = []
 afterEach(() => {
@@ -126,6 +129,96 @@ describe('ordinary empty-task projection fallback', () => {
     },
   )
 })
+
+// Exercise the actual rendered nodes. Model the native observation: the gap
+// before the checkbox ends at x=29, the checkbox spans 30..44, and its following
+// text starts at 49 after the existing CSS margin/gap. No source text is faked.
+function mockEmptyTaskGeometry(textRanges: boolean) {
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    if (this.classList.contains('milkup-marker-hidden')) return new DOMRect()
+    if (this.classList.contains('milkup-task-marker')) return new DOMRect(30, 12, 14, 14)
+    if (this.classList.contains('milkup-line')) return new DOMRect(26, 10, 200, 21)
+    if (this.classList.contains('milkup-list-content'))
+      return new DOMRect(49, 10, (Number(this.dataset.to) - Number(this.dataset.from)) * 8, 16)
+    if (this.dataset.from === '1' && this.dataset.to === '2') return new DOMRect(26, 10, 3, 16)
+    return new DOMRect()
+  })
+  const createRange = document.createRange.bind(document)
+  vi.spyOn(document, 'createRange').mockImplementation(() => {
+    const range = createRange()
+    range.getBoundingClientRect = () => {
+      if (!textRanges) return new DOMRect()
+      const parent = range.startContainer.parentElement!
+      const element = parent.closest<HTMLElement>('.milkup-list-content') ?? parent
+      const rect = element.getBoundingClientRect()
+      const width = element.classList.contains('milkup-list-content') ? 8 : 3
+      return new DOMRect(rect.left + range.startOffset * width, 10, 0, 16)
+    }
+    range.getClientRects = () => [range.getBoundingClientRect()] as unknown as DOMRectList
+    return range
+  })
+}
+
+for (const kind of ['ordinary', 'windowed'] as const)
+  for (const textRanges of [true, false])
+    it.each([' ', 'x', 'X'])(
+      `${kind} empty [%s] caret follows the checkbox with ${textRanges ? 'native text ranges' : 'element geometry fallback'}`,
+      async (check) => {
+        mockEmptyTaskGeometry(textRanges)
+        const s = await setup(kind)
+        await s.type(`- [${check}] `)
+        const line = () => s.view.contentDOM.querySelector<HTMLElement>('[data-line="1"]')!
+        const cursor = () => s.view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')!
+        const assertEmptyCaret = () => {
+          const task = line().querySelector<HTMLElement>('[role="checkbox"]')!
+          expect(s.current().selection.main.head).toBe(6)
+          expect(Number(cursor().dataset.position)).toBe(6)
+          expect(Number.parseFloat(cursor().style.left)).toBe(49)
+          expect(Number.parseFloat(cursor().style.left)).toBeGreaterThan(
+            task.getBoundingClientRect().right,
+          )
+          const anchor = line().querySelector<HTMLElement>('.milkup-list-content')!
+          expect([anchor.dataset.from, anchor.dataset.to]).toEqual(['6', '6'])
+          expect(
+            domRectForLineSourcePosition(document, line(), s.view.cursorLayerDOM, 6, {
+              allowGeometryFallback: true,
+            })?.left,
+          ).toBe(49)
+        }
+        assertEmptyCaret()
+
+        // Pointer mapping through that empty DOM anchor must stay at source EOL.
+        line()
+          .querySelector<HTMLElement>('.milkup-list-content')!
+          .dispatchEvent(
+            new MouseEvent(kind === 'ordinary' ? 'mousedown' : 'pointerdown', {
+              bubbles: true,
+              button: 0,
+              clientX: 49,
+              clientY: 18,
+            }),
+          )
+        await s.flush()
+        assertEmptyCaret()
+        expect(s.current().doc.text).toBe(`- [${check}] `)
+        expect(s.current().doc.text).not.toContain('\u200b')
+
+        if (textRanges) {
+          await s.key('a')
+          expect(s.current().doc.text).toBe(`- [${check}] a`)
+          expect(Number.parseFloat(cursor().style.left)).toBe(57)
+          await s.key('Backspace')
+          assertEmptyCaret()
+          await s.replaceState(s.current().undo())
+          expect(s.current().doc.text).toBe(`- [${check}] a`)
+          expect(Number.parseFloat(cursor().style.left)).toBe(57)
+          await s.replaceState(s.current().redo())
+          assertEmptyCaret()
+        }
+      },
+    )
 
 for (const kind of ['ordinary', 'windowed'] as const) {
   describe(`${kind} list input presentation`, () => {
