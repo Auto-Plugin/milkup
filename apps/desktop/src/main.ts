@@ -5258,6 +5258,7 @@ function renderSession(): void {
     session.documentId,
     session.documentVersion,
     sourceView?.selection.main.head ?? state.selection.main.head,
+    session.viewMode,
   ])
   if (lastNavigationSignature !== navigationSignature) {
     lastNavigationSignature = navigationSignature

@@ -635,7 +635,11 @@ return {menu:{visible:visible(menu),busy:menu?.getAttribute('aria-busy'),rect:re
         await step(name + '-live-geometry-' + width + '-' + Math.round(zoom * 100), async (row) => {
           x('windowsize', ui.windowId(), String(width), '800')
           await app.key('ctrl+0')
-          for (let index = 0; index < zoomSteps; index++) await app.key('ctrl+equal')
+          await wait((s) => s.zoom === 1, 'native application zoom reset')
+          for (let index = 0; index < zoomSteps; index++) {
+            await app.key('ctrl+equal')
+            await wait((s) => s.zoom === [1.25, 1.5, 2][index], 'native application zoom increment')
+          }
           await wait((s) => s.zoom === zoom, 'real native application zoom')
           await ui.position(originals[name], originals[name].indexOf('Alpha'))
           await table(true)
@@ -655,6 +659,7 @@ return {menu:{visible:visible(menu),busy:menu?.getAttribute('aria-busy'),rect:re
         })
       }
       await app.key('ctrl+0')
+      await wait((s) => s.zoom === 1, 'native application zoom reset')
       x('windowsize', ui.windowId(), '1280', '800')
       await step(name + '-disable-removes-floating-content-without-edit', async () => {
         await ui.position(originals[name], originals[name].indexOf('Alpha'))

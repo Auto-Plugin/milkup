@@ -574,6 +574,7 @@ describe('contextual toolbar invalidation', () => {
     document.body.innerHTML = '<div data-plugin-slot="document-toolbar"></div>'
     let output: unknown = 'Tools'
     let selectionRevision = 1
+    let viewMode = 'source'
     const runtime = createRuntime(
       [
         {
@@ -589,6 +590,7 @@ describe('contextual toolbar invalidation', () => {
     runtime.renderUi = async () => output
     const controller = new DesktopPluginUiController(document.body, runtime, () => ({
       selectionRevision,
+      viewMode,
     }))
     return {
       controller,
@@ -598,6 +600,9 @@ describe('contextual toolbar invalidation', () => {
       },
       select: () => {
         selectionRevision++
+      },
+      setMode: (mode: string) => {
+        viewMode = mode
       },
       shell: () => document.querySelector<HTMLElement>('[data-plugin-ui]')!,
     }
@@ -665,6 +670,54 @@ describe('contextual toolbar invalidation', () => {
     expect(render).toHaveBeenCalledTimes(1)
     button.click()
     expect(f.runtime.runCommand).not.toHaveBeenCalled()
+    await f.controller.dispose()
+  })
+
+  it('retires the previous view mode synchronously during same-document sync', async () => {
+    const f = fixture()
+    f.setOutput({
+      type: 'element',
+      tag: 'button',
+      text: 'Source tools',
+      action: { command: 'example.run' },
+    })
+    const render = vi.spyOn(f.runtime, 'renderUi')
+    await f.controller.sync('doc-a')
+    const sourceButton = f.shell().querySelector('button')!
+    f.setMode('live')
+    const syncing = f.controller.sync('doc-a')
+    const hiddenBeforeYield = f.shell().hidden
+    sourceButton.click()
+    await syncing
+    expect(hiddenBeforeYield).toBe(true)
+    expect(f.runtime.runCommand).not.toHaveBeenCalled()
+    expect(render).toHaveBeenCalledTimes(1)
+    f.setOutput('Live tools')
+    await f.controller.updateViewport()
+    expect(f.shell().hidden).toBe(false)
+    expect(f.shell().textContent).toBe('Live tools')
+    await f.controller.dispose()
+  })
+
+  it('rejects a delayed source-mode render before the live-mode refresh starts', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    let resolve!: (value: unknown) => void
+    f.runtime.renderUi = () =>
+      new Promise((finish) => {
+        resolve = finish
+      })
+    const updating = f.controller.invalidate('example')
+    f.setMode('live')
+    await f.controller.sync('doc-a')
+    resolve('Obsolete source tools')
+    await updating
+    expect(f.shell().hidden).toBe(true)
+    expect(f.shell().textContent).not.toContain('Obsolete')
+    f.runtime.renderUi = async () => 'Current live tools'
+    await f.controller.updateViewport()
+    expect(f.shell().hidden).toBe(false)
+    expect(f.shell().textContent).toBe('Current live tools')
     await f.controller.dispose()
   })
 

@@ -717,7 +717,8 @@ export class DesktopPluginUiController {
       }
       if (
         mount.contribution.slot === 'document-toolbar' &&
-        renderState.selectionRevision !== this.renderState().selectionRevision
+        (renderState.selectionRevision !== this.renderState().selectionRevision ||
+          renderState.viewMode !== this.renderState().viewMode)
       ) {
         mount.container.hidden = true
         this.documentToolbar?.refresh()
@@ -919,7 +920,12 @@ export class DesktopPluginUiController {
   }
 
   private toolbarContext(state = this.renderState()): string {
-    return JSON.stringify([this.documentId, state.documentVersion, state.selectionRevision])
+    return JSON.stringify([
+      this.documentId,
+      state.documentVersion,
+      state.selectionRevision,
+      state.viewMode,
+    ])
   }
 
   private contextMenuContext(state = this.renderState()): string {

@@ -380,3 +380,140 @@ test('floating toolbar returns after closing the application menu without anothe
     )
   }
 })
+
+for (const windowed of [false, true])
+  test(`floating toolbar ${windowed ? 'windowed' : 'ordinary'} source to live retires the previous mode before ready commands`, async ({
+    page,
+  }, info) => {
+    await openDocument(page, windowed)
+    await enterTable(page)
+    await expect(toolbar(page).locator('[data-ui-state="ready"]')).toBeVisible()
+    await page.evaluate(() => {
+      const slot = document.querySelector<HTMLElement>('[data-plugin-slot="document-toolbar"]')!
+      const editor = document.querySelector<HTMLElement>('.milkup-editor')!
+      const sourceButtons = Array.from(slot.querySelectorAll<HTMLElement>('[data-plugin-command]'))
+      const visible = (element: HTMLElement) =>
+        element.isConnected &&
+        !element.closest('[hidden], [inert]') &&
+        element.getClientRects().length > 0 &&
+        getComputedStyle(element).visibility !== 'hidden'
+      const samples: {
+        at: number
+        reason: string
+        mode?: string
+        renderMode?: string
+        version: string | null
+        cursorPosition?: string
+        toolbarVisible: boolean
+        commandCount: number
+        sourceCommandsVisible: number
+        state?: string
+      }[] = []
+      const sample = (reason: string) => {
+        if (samples.length >= 250) return
+        samples.push({
+          at: performance.now(),
+          reason,
+          mode: editor.dataset.mode,
+          renderMode: editor.querySelector<HTMLElement>('[data-render-mode]')?.dataset.renderMode,
+          version: document.querySelector('[data-stat="version"]')?.textContent ?? null,
+          cursorPosition: editor.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position,
+          toolbarVisible: visible(slot),
+          commandCount: slot.querySelectorAll('[data-plugin-command]').length,
+          sourceCommandsVisible: sourceButtons.filter(visible).length,
+          state: slot.querySelector<HTMLElement>('[data-ui-state]')?.dataset.uiState,
+        })
+      }
+      const observer = new MutationObserver((records) =>
+        sample(
+          records.some(
+            (record) =>
+              record.target === editor &&
+              record.attributeName === 'data-mode' &&
+              record.oldValue === 'source',
+          )
+            ? 'source-to-live mutation'
+            : 'mutation',
+        ),
+      )
+      observer.observe(editor, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeOldValue: true,
+        attributeFilter: ['data-mode', 'data-render-mode', 'data-position'],
+      })
+      observer.observe(slot, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeOldValue: true,
+        attributeFilter: ['hidden', 'data-ui-state'],
+      })
+      let frame = 0
+      const nextFrame = () => {
+        sample('frame')
+        frame = requestAnimationFrame(nextFrame)
+      }
+      sample('before')
+      frame = requestAnimationFrame(nextFrame)
+      Reflect.set(window, '__floatingModeTrace', {
+        samples,
+        stop() {
+          observer.disconnect()
+          cancelAnimationFrame(frame)
+          sample('finished')
+          return samples
+        },
+      })
+    })
+    try {
+      if (windowed) await page.keyboard.press('Control+2')
+      else await page.locator('[data-mode-toggle]').click()
+      const transition = await page.evaluate(() => {
+        const { samples } = Reflect.get(window, '__floatingModeTrace')
+        return {
+          before: samples[0] as { version: string; cursorPosition: string },
+          changed: samples.find(
+            (sample: { reason: string }) => sample.reason === 'source-to-live mutation',
+          ) as {
+            mode: string
+            version: string
+            cursorPosition: string
+            sourceCommandsVisible: number
+          },
+        }
+      })
+      expect(transition.changed).toBeDefined()
+      expect(transition.changed.mode).toBe('live')
+      expect(transition.changed.version).toBe(transition.before.version)
+      expect(transition.changed.cursorPosition).toBe(transition.before.cursorPosition)
+      // A mode attribute mutation runs before any new Worker response task.
+      // Old source commands must already be retired at this boundary, without
+      // a sleep, extra selection change, or synthetic render completion.
+      expect(transition.changed.sourceCommandsVisible).toBe(0)
+      const cell = page.locator(`.milkup-line[data-line="${tableRow}"] .milkup-table-cell`).first()
+      await expect(cell).toHaveText('x')
+      await expect(toolbar(page).locator('[data-ui-state="ready"]')).toBeVisible()
+      const addRow = toolbar(page).getByRole('button', { name: '下方加行', exact: true })
+      await expect(addRow).toBeEnabled()
+      await addRow.click()
+      const newCells = page.locator(`.milkup-line[data-line="${tableRow + 1}"] .milkup-table-cell`)
+      await expect(newCells).toHaveCount(2)
+      await expect(input(page)).toBeFocused()
+      await page.keyboard.insertText('模式切换😀')
+      await expect(newCells.first()).toHaveText('模式切换😀')
+      await page.keyboard.press('Control+z')
+      await page.keyboard.press('Control+z')
+      await expect(newCells).toHaveCount(0)
+      await expect(cell).toHaveText('x')
+    } finally {
+      const samples = await page.evaluate(() => Reflect.get(window, '__floatingModeTrace').stop())
+      const body = JSON.stringify(samples, null, 2)
+      await writeFile(info.outputPath('source-to-live-toolbar-timeline.json'), body)
+      await info.attach('source-to-live-toolbar-timeline', {
+        body,
+        contentType: 'application/json',
+      })
+    }
+  })
