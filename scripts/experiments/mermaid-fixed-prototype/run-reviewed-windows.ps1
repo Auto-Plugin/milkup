@@ -23,6 +23,16 @@ foreach ($file in $changed) {
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Dirty or unreadable prototype checkout' }
 $root = $PSScriptRoot
+$captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]')
+$renderingBaseline = '82fb49e95caf99ea45654f552992eff81f72bee9'
+if ($captureVisual) {
+    # Evidence transport may change, but the successful rendering inputs must not.
+    $protected = @('src','assets','fixtures','fixtures-negative','Cargo.toml','Cargo.lock','build.rs',
+        'fixtures-manifest.json','negative-fixtures-manifest.json','StandardUserProcess.cs') |
+        ForEach-Object { 'scripts/experiments/mermaid-fixed-prototype/' + $_ }
+    git diff --exit-code $renderingBaseline HEAD -- $protected
+    if ($LASTEXITCODE -ne 0) { throw 'Visual evidence requires unchanged successful rendering inputs' }
+}
 $engine = Join-Path $root 'assets/mermaid-12.2.0.min.js'
 if ((Get-Item $engine).Length -ne 5494801 -or
     (Get-FileHash $engine -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f') {
@@ -66,6 +76,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Offline build failed; no dependency-fetch fall
 $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-mermaid-fixed-prototype.exe'
 $execution = [ordered]@{
     exactSource = $env:GITHUB_SHA
+    runId = $env:GITHUB_RUN_ID
+    attempt = $env:GITHUB_RUN_ATTEMPT
     baseline = 'b7f9cdecfc02c2f0710fc9d6b71c12419364e644'
     runtime = $runtime
     binaryBytes = (Get-Item $binary).Length
@@ -73,10 +85,12 @@ $execution = [ordered]@{
     fixedEngineBytes = (Get-Item $engine).Length
     executableIsPrototypeNotInstaller = $true
     nativeNetworkGuarantee = $false
+    captureVisualEvidence = $captureVisual
+    renderingInputsBaseline = $(if ($captureVisual) { $renderingBaseline } else { $null })
     standardUserAcceptance = 'Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment'
 }
 $execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
 Write-Output ('MILKUP_EXECUTION_JSON ' + ($execution | ConvertTo-Json -Depth 5 -Compress))
-& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof
+& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }

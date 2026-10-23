@@ -1,5 +1,10 @@
 # Authorized temporary standard-user retry
 
+This document records the initial zero-image-transfer retry. The separately
+authorized [visual evidence follow-up](VISUAL-EVIDENCE.md) preserves bounded
+self-authored PNGs through logs while keeping zero Actions artifacts and the
+same account/process cleanup gates.
+
 This test-only follow-up retains the fixed Mermaid 12.2.0 bundle, the 50 positive
 fixtures (37 built-in registration IDs), the five negative/observation fixtures,
 and the existing zero-capability AppContainer, network-policy and process gates.

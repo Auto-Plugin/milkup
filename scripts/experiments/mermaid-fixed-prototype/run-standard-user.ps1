@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)][string]$Binary,
     [Parameter(Mandatory)][string]$Runtime,
-    [Parameter(Mandatory)][string]$Evidence
+    [Parameter(Mandatory)][string]$Evidence,
+    [switch]$CaptureVisualEvidence
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -70,6 +71,7 @@ Assert-PlainPath $PSScriptRoot
 Assert-PlainPath $Evidence
 Assert-PlainPath $Runtime
 Assert-PlainPath $Binary
+. (Join-Path $PSScriptRoot 'visual-evidence.ps1')
 Add-Type -Path (Join-Path $PSScriptRoot 'StandardUserProcess.cs')
 $runId = [guid]::NewGuid().ToString('N')
 $name = 'mkp' + $runId.Substring(0, 15)
@@ -82,12 +84,14 @@ if ($supervisorSid -cnotmatch '^S-1-5-21-[1-9][0-9]*-[1-9][0-9]*-[1-9][0-9]*-[1-
 }
 $audit = [ordered]@{
     schema = 1; source = $env:GITHUB_SHA; userName = $name; userSid = $null
+    runId = $env:GITHUB_RUN_ID; attempt = $env:GITHUB_RUN_ATTEMPT
     cleanupSupervisorSid = $supervisorSid
     accountCreated = $false; accountDeleted = $false; profileDeleted = $false
     stage = $stage; stageRemoved = $false; executions = @(); cleanupErrors = @()
     passwordInLogsFilesArgumentsOrEnvironment = $false
     changedFirewallOrUac = $false; changedExistingDesktopAcl = $false
     newRuntimeOrDependency = $false; productIntegrated = $false; artifactUpload = $false
+    captureVisualEvidence = $CaptureVisualEvidence.IsPresent; visualEvidenceEmitted = $false
 }
 $password = [Security.SecureString]::new()
 $user = $null
@@ -150,9 +154,11 @@ try {
     )
     $cases = @(
         @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000},
-        @{name='positive'; manifest='fixtures-manifest.json'; selector=''; timeout=600000},
-        @{name='negative'; manifest='negative-fixtures-manifest.json'; selector=''; timeout=180000}
+        @{name='positive'; manifest='fixtures-manifest.json'; selector=''; timeout=600000}
     )
+    if (-not $CaptureVisualEvidence) {
+        $cases += @{name='negative'; manifest='negative-fixtures-manifest.json'; selector=''; timeout=180000}
+    }
     foreach ($case in $cases) {
         $output = Join-Path $stage ('outputs/' + $case.name)
         $manifest = Join-Path $stage $case.manifest
@@ -169,6 +175,10 @@ try {
         if ($case.name -ceq 'positive' -and ($report.records.Count -ne 50 -or $report.acceptedAssertions -ne 50)) { throw 'Incomplete positive matrix' }
         if ($case.name -ceq 'negative' -and ($report.records.Count -ne 5 -or $report.acceptedAssertions -ne 4)) { throw 'Incomplete negative matrix' }
         $audit[($case.name + 'AcceptedAssertions')] = $report.acceptedAssertions
+        if ($CaptureVisualEvidence -and $case.name -ceq 'positive') {
+            Write-PositivePngEvidence -Output $output -Manifest $manifest -Report $report
+            $audit.visualEvidenceEmitted = $true
+        }
     }
 } catch {
     $failure = $_

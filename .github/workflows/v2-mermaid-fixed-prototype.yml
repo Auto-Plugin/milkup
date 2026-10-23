@@ -43,7 +43,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $root = 'scripts/experiments/mermaid-fixed-prototype'
-          foreach ($name in @('run-reviewed-windows.ps1','run-standard-user.ps1')) {
+          foreach ($name in @('run-reviewed-windows.ps1','run-standard-user.ps1','visual-evidence.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD "$root/$name"), [ref]$tokens, [ref]$errors) | Out-Null
@@ -54,4 +54,5 @@ jobs:
         id: run
         run: ./scripts/experiments/mermaid-fixed-prototype/run-reviewed-windows.ps1
       # This authorized retry emits only synthetic JSON into Actions logs/summary.
-      # No PNG, executable, installer, profile or credential artifact is uploaded.
+      # Explicit visual-evidence runs emit only bounded synthetic PNG chunks in
+      # logs. No Actions artifact, executable, installer, profile or credential.
