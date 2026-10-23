@@ -817,6 +817,10 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
       Number.isFinite(backgroundLuminance) && backgroundLuminance >= 0 && backgroundLuminance <= 1,
     )
     const invertForOcr = backgroundLuminance < 0.5
+    // In the recorded dark output the mid-gray frame becomes about 53% gray
+    // after inversion, while the light glyph cores become about 20%. Retaining
+    // everything below 60% also retained that frame; 40% separates the two.
+    const ocrThreshold = invertForOcr ? '40%' : '60%'
     execFileSync(
       '/usr/bin/convert',
       [
@@ -825,7 +829,7 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
         'Gray',
         ...(invertForOcr ? ['-negate'] : []),
         '-threshold',
-        '60%',
+        ocrThreshold,
         normalizedOcrImage,
       ],
       { timeout: 10000 },
@@ -908,7 +912,7 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
         sha256: hash(await readFile(normalizedOcrImage)),
         backgroundLuminance,
         inverted: invertForOcr,
-        threshold: '60%',
+        threshold: ocrThreshold,
         connectorUsesOriginalPixels: true,
       },
       ocr: { file: name + '-graph-ocr.tsv', sha256: hash(tsv), words },
@@ -929,6 +933,128 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
       30000,
     )
     expectedText = text
+  }
+  const responsiveGeometry = (selector) =>
+    app.execute(
+      `const panel=document.querySelector('[data-menu-panel="appearance"]'),target=document.querySelector(arguments[0]),toggle=document.querySelector('[data-menu-toggle]');
+const rect=e=>e?.getBoundingClientRect().toJSON()??null;
+const interactive=target?.closest('button')??target,r=target?.getBoundingClientRect();
+const x=r?(r.left+r.right)/2:0,y=r?(r.top+r.bottom)/2:0,hit=document.elementFromPoint(x,y);
+return {width:innerWidth,height:innerHeight,dpr:devicePixelRatio,cssZoom:getComputedStyle(document.documentElement).zoom,documentScrollWidth:document.documentElement.scrollWidth,zoom:Number(document.querySelector('#app').dataset.appearanceZoom),
+panel:{rect:rect(panel),scrollTop:panel.scrollTop,scrollWidth:panel.scrollWidth,clientWidth:panel.clientWidth,scrollHeight:panel.scrollHeight,clientHeight:panel.clientHeight},
+toggle:{rect:rect(toggle),expanded:toggle.getAttribute('aria-expanded'),label:toggle.getAttribute('aria-label'),disabled:toggle.disabled},
+target:target?{rect:rect(target),x,y,hit:!!hit&&interactive.contains(hit),disabled:!!interactive.disabled}:null,
+items:[...panel.querySelectorAll('button,.theme-preview')].map(e=>({kind:e.dataset.themeMode??(e.hasAttribute('data-theme-import')?'import':e.hasAttribute('data-theme-open')?'open':e.hasAttribute('data-theme-reset')?'reset':'preview'),rect:rect(e),scrollWidth:e.scrollWidth,clientWidth:e.clientWidth}))};`,
+      selector,
+    )
+  const revealAppearanceControl = async (selector) => {
+    // Vertical scrolling is allowed, including cards taller than the viewport.
+    // Reach the target's center through native wheel input; never assign scrollTop.
+    for (let attempt = 0; attempt < 48; attempt++) {
+      const observed = await responsiveGeometry(selector)
+      const target = observed.target,
+        bounds = observed.panel.rect
+      assert(target?.rect.width > 0 && target.rect.height > 0 && bounds.height > 0)
+      assert(!target.disabled, 'Responsive control enabled')
+      const top = Math.max(0, bounds.top) + 3,
+        bottom = Math.min(observed.height, bounds.bottom) - 3
+      const geometry = x('getwindowgeometry', '--shell', ui.windowId()),
+        scale = Number(/WIDTH=(\d+)/.exec(geometry)[1]) / observed.width
+      assert(Number.isFinite(scale) && scale > 0)
+      if (target.hit && target.y >= top && target.y <= bottom) {
+        await app.delay(160)
+        const stable = await responsiveGeometry(selector)
+        if (!stable.target?.hit || Math.abs(stable.target.y - target.y) > 0.5) continue
+        x(
+          'mousemove',
+          '--window',
+          ui.windowId(),
+          String(Math.round(target.x * scale)),
+          String(Math.round(target.y * scale)),
+        )
+        const pointer = x('getmouselocation', '--shell')
+        const coordinate = (text, key) =>
+          Number(new RegExp('^' + key + '=(-?\\d+)$', 'm').exec(text)?.[1])
+        const actualX = (coordinate(pointer, 'X') - coordinate(geometry, 'X')) / scale,
+          actualY = (coordinate(pointer, 'Y') - coordinate(geometry, 'Y')) / scale
+        assert(Number.isFinite(actualX) && Number.isFinite(actualY))
+        assert(
+          await app.execute(
+            'const e=document.querySelector(arguments[0]),r=e?.getBoundingClientRect(),button=e?.closest("button")??e,hit=document.elementFromPoint(arguments[1],arguments[2]);return !!r&&arguments[1]>=r.left&&arguments[1]<=r.right&&arguments[2]>=r.top&&arguments[2]<=r.bottom&&!!hit&&button.contains(hit)',
+            selector,
+            actualX,
+            actualY,
+          ),
+          'Actual native pointer reaches responsive target',
+        )
+        stable.actualPointer = { x: actualX, y: actualY }
+        inputs.push({
+          at: new Date().toISOString(),
+          generation,
+          kind: 'XTest-responsive-control-hover',
+          selector,
+        })
+        return stable
+      }
+      const direction = target.y < top ? '4' : '5'
+      inputs.push({
+        at: new Date().toISOString(),
+        generation,
+        kind: 'XTest-responsive-panel-wheel',
+        selector,
+        direction,
+        scrollTop: observed.panel.scrollTop,
+      })
+      x(
+        'mousemove',
+        '--window',
+        ui.windowId(),
+        String(Math.round(((bounds.left + bounds.right) / 2) * scale)),
+        String(Math.round(((top + bottom) / 2) * scale)),
+        'click',
+        direction,
+      )
+      await app.delay(140)
+    }
+    assert.fail('Native wheel could not reach appearance control ' + selector)
+  }
+  const assertResponsiveWidth = (observed) => {
+    assert(Number(observed.cssZoom) === 1, 'Use native WebView zoom, never CSS zoom')
+    assert(observed.documentScrollWidth <= observed.width + 1, 'No document horizontal overflow')
+    assert(
+      observed.panel.scrollWidth <= observed.panel.clientWidth + 1,
+      'Appearance panel needs no horizontal scrolling',
+    )
+    const left = Math.max(0, observed.panel.rect.left),
+      right = Math.min(observed.width, observed.panel.rect.right)
+    for (const item of observed.items) {
+      assert(
+        item.rect.width > 0 && item.rect.left >= left - 1 && item.rect.right <= right + 1,
+        'No horizontally clipped appearance ' + item.kind,
+      )
+      if (item.kind !== 'preview')
+        assert(
+          item.scrollWidth <= item.clientWidth + 1,
+          'Button content fits horizontally: ' + item.kind,
+        )
+    }
+    const back = observed.toggle
+    assert(!back.disabled && back.expanded === 'true' && back.label === '返回正文')
+    assert(
+      back.rect.left >= 0 &&
+        back.rect.right <= observed.width &&
+        back.rect.top >= 0 &&
+        back.rect.bottom <= observed.height,
+      'Titlebar Back remains within the real viewport',
+    )
+  }
+  const setAcceptanceZoom = async (target) => {
+    await app.key('ctrl+0')
+    await wait((s) => s.zoom === 1, 'Responsive native zoom reset')
+    for (const level of [1.25, 1.5, 2].filter((value) => value <= target)) {
+      await app.key('ctrl+plus')
+      await wait((s) => s.zoom === level, 'Responsive native zoom ' + level)
+    }
   }
   const signature = (s) => ({
     style: s.appearance.styleHash,
@@ -1241,6 +1367,100 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
       await mode('dark')
       await assertImported()
       assertPreviews(await state())
+    })
+    await step('native-responsive-menu-two-windows-four-zooms-light-dark', async (row) => {
+      row.boundary =
+        'Native application WebView zoom only; operating-system DPI remains untested. Vertical scrolling is expected and is exercised with XTest wheel input.'
+      row.configurations = []
+      let matrixFailure
+      try {
+        for (const [width, height] of [
+          [760, 520],
+          [1280, 800],
+        ]) {
+          x('windowsize', '--sync', ui.windowId(), String(width), String(height))
+          inputs.push({
+            at: new Date().toISOString(),
+            generation,
+            kind: 'X11-window-resize',
+            width,
+            height,
+          })
+          const geometry = x('getwindowgeometry', '--shell', ui.windowId())
+          assert.equal(Number(/WIDTH=(\d+)/.exec(geometry)[1]), width)
+          assert.equal(Number(/HEIGHT=(\d+)/.exec(geometry)[1]), height)
+          for (const zoom of [1, 1.25, 1.5, 2]) {
+            await setAcceptanceZoom(zoom)
+            for (const value of ['light', 'dark']) {
+              const config = { width, height, zoom, theme: value, passed: false }
+              row.configurations.push(config)
+              await openAppearance()
+              const selector = `[data-theme-mode="${value}"]`
+              await revealAppearanceControl(selector)
+              await ui.pointer(selector, { scroll: false })
+              await wait(
+                (s) => s.theme === value && s.appearance.controls.every((c) => !c.disabled),
+                'Responsive theme ' + value,
+              )
+              await assertImported()
+              config.preview = await revealAppearanceControl(selector + ' .theme-preview')
+              assert.equal(config.preview.zoom, zoom)
+              assertResponsiveWidth(config.preview)
+              assertPreviews(await state())
+              const name = `${row.name}-${width}x${height}-${zoom * 100}-${value}`
+              config.previewScreenshots = await screen(name + '-preview')
+              config.importControl = await revealAppearanceControl('[data-theme-import]')
+              assertResponsiveWidth(config.importControl)
+              config.openControl = await revealAppearanceControl('[data-theme-open]')
+              assertResponsiveWidth(config.openControl)
+              config.actionScreenshots = await screen(name + '-actions')
+              const beforeEdit = await state()
+              assert.equal(beforeEdit.file.sha256, hash(original))
+              assert.equal(beforeEdit.probe.dirty, false)
+              await ui.pointer('[data-menu-toggle]', { scroll: false })
+              await wait(
+                (s) =>
+                  s.appearance.menuHidden &&
+                  s.appearance.phase === 'closed' &&
+                  !s.appearance.focusInert,
+                'Responsive Back returns to document',
+              )
+              await ui.editorFocus()
+              await app.key('ctrl+End')
+              await wait(
+                (s) => s.cursor === original.length && s.focus.editor,
+                'Responsive editor accepts native caret input',
+              )
+              await app.text('R')
+              await save(original + 'R')
+              await app.key('ctrl+z')
+              await save(original)
+              config.editorAfterUndo = await state()
+              assert.equal(config.editorAfterUndo.probe.path, documentPath)
+              assert.equal(config.editorAfterUndo.file.sha256, hash(original))
+              assert.equal(config.editorAfterUndo.probe.dirty, false)
+              config.passed = true
+              await persist()
+            }
+          }
+        }
+      } catch (error) {
+        matrixFailure = error
+        row.matrixFailure = { message: String(error), stack: error.stack }
+        throw error
+      } finally {
+        try {
+          x('windowsize', '--sync', ui.windowId(), '1280', '800')
+          await setAcceptanceZoom(1)
+          row.restored = await state()
+        } catch (error) {
+          row.restorationFailure = { message: String(error), stack: error.stack }
+          if (!matrixFailure) throw error
+        }
+      }
+      await openAppearance()
+      await assertImported()
+      assert.equal((await state()).theme, 'dark')
     })
     await step('picker-cancel-preserves-current-theme', async () => {
       await openAppearance()
