@@ -16,6 +16,7 @@ import { createDesktopPluginWorker } from './plugin-worker-factory'
 import { loadDesktopPluginIcon } from './plugin-icon'
 import { zoomLevels, type ThemePreference } from './appearance'
 import { createAppearancePanel } from './appearance-panel'
+import { applyCompiledThemeStyle } from './appearance-style-policy'
 import {
   browserThemeBackend,
   createThemeStyleController,
@@ -1777,7 +1778,6 @@ view = createEditorView()
 
 const themeStyleElement = document.createElement('style')
 themeStyleElement.dataset.appearanceTheme = 'true'
-document.head.append(themeStyleElement)
 let appearanceDisposed = false
 refreshAppearanceViews = async () => {
   if (appearanceDisposed) return
@@ -1802,7 +1802,7 @@ const themeStyles = createThemeStyleController({
   supports: (property, value) => CSS.supports(property, value),
   apply: async ({ css }) => {
     const previous = themeStyleElement.textContent
-    themeStyleElement.textContent = css
+    applyCompiledThemeStyle(themeStyleElement, css)
     try {
       themeLayoutPending = refreshAppearanceViews!()
       await themeLayoutPending

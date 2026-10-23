@@ -27,7 +27,7 @@ export default defineConfig({
     {
       name: 'desktop-msedge',
       testMatch:
-        /desktop-(?:appearance-host|appearance-theme|menu-titlebar|shell|sidebar-resize|code-blocks|visual-fixes|updates|plugin-cards|plugin-tree|plugin-forms|workspace|preferences|shortcuts|formatting|floating-toolbar|host-context-menu|images|markdown-extensions)\.spec\.ts/,
+        /desktop-(?:appearance-csp|appearance-host|appearance-theme|menu-titlebar|shell|sidebar-resize|code-blocks|visual-fixes|updates|plugin-cards|plugin-tree|plugin-forms|workspace|preferences|shortcuts|formatting|floating-toolbar|host-context-menu|images|markdown-extensions)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:1420',

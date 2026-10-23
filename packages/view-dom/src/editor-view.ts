@@ -8,6 +8,7 @@ import {
 } from './code-presentation'
 import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
 import { mapLineSourceRanges } from './source-range-mapping'
+import { isUnfinishedBulletMarker, presentedTaskMarkerLength } from './list-presentation'
 import { createControlledRendererNodes } from './controlled-renderer'
 import { ImagePasteSession, ImagePresentation } from './image-presentation'
 import {
@@ -89,6 +90,8 @@ import {
   lineElementFromEvent,
   sourcePositionFromPoint,
 } from './source-position-mapping'
+
+import { renderCompositionOverlay } from './composition-overlay'
 
 const defaultViewMetrics: ViewMetrics = Object.freeze({
   charWidth: 8,
@@ -239,10 +242,12 @@ export class EditorView {
   private readonly handleCompositionStartEvent = (): void => {
     this.composing = true
     this.compositionText = ''
+    this.renderCompositionText()
   }
   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
     this.composing = true
     this.compositionText = event.data
+    this.renderCompositionText()
   }
   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
     this.commitComposition(event.data)
@@ -540,6 +545,10 @@ export class EditorView {
     this.editable = editable
     this.dom.dataset.editable = String(editable)
     this.inputDOM.readOnly = !editable
+    if (this.mode === 'live') {
+      this.renderSelectionChangedLines(this.currentState, this.currentState)
+      this.renderSelectionAndCursor()
+    }
     syncTaskAvailability(this.contentDOM, editable)
   }
 
@@ -550,6 +559,7 @@ export class EditorView {
       pos,
       this.presentationMetrics(metrics),
       this.markdownParseState.cache.root,
+      this.editable,
     )
   }
 
@@ -560,6 +570,7 @@ export class EditorView {
       coordinate,
       this.presentationMetrics(metrics),
       this.markdownParseState.cache.root,
+      this.editable,
     )
   }
 
@@ -584,6 +595,7 @@ export class EditorView {
       this.mode,
       this.currentState.selection.main.head,
       this.markdownParseState.cache.root,
+      this.editable,
     )
 
     if (measuredRect) {
@@ -607,6 +619,7 @@ export class EditorView {
       ...(options?.scrollPadding === undefined ? {} : { scrollPadding: options.scrollPadding }),
       metrics: this.presentationMetrics(options?.metrics),
       root: this.markdownParseState.cache.root,
+      editable: this.editable,
     })
 
     this.dom.scrollTop = nextScrollTop
@@ -655,6 +668,7 @@ export class EditorView {
           : renderMarkdownLines(this.ownerDocument, this.currentState, this.mode, {
               root: this.markdownParseState.cache.root,
               controlledRenderers: this.controlledRenderers,
+              editable: this.editable,
             })),
       )
     })
@@ -662,18 +676,21 @@ export class EditorView {
       ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
         metrics: this.presentationMetrics(),
+        editable: this.editable,
       }),
     )
     this.cursorLayerDOM.replaceChildren(
       ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
         metrics: this.presentationMetrics(),
+        editable: this.editable,
       }),
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
     this.renderSearchHighlights()
     this.syncInputProxyToCursor()
+    this.renderCompositionText()
   }
 
   private renderSelectionAndCursor(): void {
@@ -682,18 +699,21 @@ export class EditorView {
       ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
         metrics: this.presentationMetrics(),
+        editable: this.editable,
       }),
     )
     this.cursorLayerDOM.replaceChildren(
       ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
         metrics: this.presentationMetrics(),
+        editable: this.editable,
       }),
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
     this.renderSearchHighlights()
     this.syncInputProxyToCursor()
+    this.renderCompositionText()
   }
 
   private renderSearchHighlights(): void {
@@ -718,6 +738,7 @@ export class EditorView {
         highlight.from,
         highlight.to,
         this.markdownParseState.cache.root,
+        this.editable,
       )
 
       if (rects.length === 0) {
@@ -778,7 +799,7 @@ export class EditorView {
         this.mode,
         this.markdownParseState.cache.root.children ?? [],
         line.number,
-        { controlledRenderers: this.controlledRenderers },
+        { controlledRenderers: this.controlledRenderers, editable: this.editable },
       )
       const scrollLeft = previousLineDOM.scrollLeft
       previousLineDOM.replaceWith(nextLineDOM)
@@ -854,7 +875,7 @@ export class EditorView {
           this.mode,
           this.markdownParseState.cache.root.children ?? [],
           lineNumber,
-          { controlledRenderers: this.controlledRenderers },
+          { controlledRenderers: this.controlledRenderers, editable: this.editable },
         ),
         scrollLeft: previous.scrollLeft,
       })
@@ -997,6 +1018,7 @@ export class EditorView {
         from,
         to,
         this.markdownParseState.cache.root,
+        this.editable,
       )
 
       if (rects.length === 0) {
@@ -1044,6 +1066,7 @@ export class EditorView {
         this.mode,
         position,
         this.markdownParseState.cache.root,
+        this.editable,
       )
 
       if (!rect) {
@@ -1059,6 +1082,17 @@ export class EditorView {
       cursor.style.top = `${rect.top}px`
       cursor.style.height = `${rect.height}px`
     }
+  }
+
+  private renderCompositionText(): void {
+    // The real textarea stays focused at the native IME anchor. Its text is
+    // transparent, so paint the uncommitted candidate in the existing overlay
+    // without changing document content, selection, history, or input identity.
+    renderCompositionOverlay(
+      this.cursorLayerDOM,
+      this.contentDOM,
+      this.composing ? this.compositionText : '',
+    )
   }
 
   private syncInputProxyToCursor(): void {
@@ -1143,6 +1177,7 @@ export class EditorView {
     this.composing = false
     this.compositionText = ''
     this.inputDOM.value = ''
+    this.renderCompositionText()
 
     if (!this.editable) {
       return
@@ -1719,6 +1754,7 @@ export class EditorView {
       line.from,
       line.to,
       position,
+      this.editable ? this.currentState.selection : undefined,
     )
   }
 
@@ -1983,6 +2019,7 @@ export interface RenderMarkdownLinesOptions {
   readonly root?: SyntaxNode
   readonly controlledRenderers?: readonly ControlledRenderer[]
   readonly markdownSyntax?: readonly ControlledMarkdownSyntax[]
+  readonly editable?: boolean
 }
 
 export function renderMarkdownLines(
@@ -2106,7 +2143,7 @@ function renderMarkdownLine(
       ),
     )
   } else if (listItem) {
-    lineDOM.classList.add('milkup-block-list')
+    lineDOM.classList.toggle('milkup-block-list', !isUnfinishedBulletMarker(line.text))
     lineDOM.replaceChildren(
       ...renderListItemLineDecorations(
         document,
@@ -2115,6 +2152,7 @@ function renderMarkdownLine(
         listItem,
         line.from,
         line.to,
+        options.editable !== false,
       ),
     )
   } else {
@@ -2519,8 +2557,15 @@ function renderListItemLineDecorations(
   listItem: SyntaxNode,
   from: number,
   to: number,
+  editable: boolean,
 ): readonly Node[] {
-  const pieces = collectListItemLinePieces(source, listItem, from, to)
+  const pieces = collectListItemLinePieces(
+    source,
+    listItem,
+    from,
+    to,
+    editable ? selection : undefined,
+  )
 
   if (pieces.length === 0) {
     return renderInlineDecorations(document, source, selection, from, to)
@@ -2577,7 +2622,11 @@ function collectListItemLinePieces(
   listItem: SyntaxNode,
   from: number,
   to: number,
+  editingSelection?: Selection,
 ): readonly InlinePiece[] {
+  if (isUnfinishedBulletMarker(source.slice(from, to))) {
+    return [{ from, to, kind: 'content' }]
+  }
   const pieces: InlinePiece[] = []
 
   for (const range of listItem.markerRanges ?? []) {
@@ -2592,7 +2641,7 @@ function collectListItemLinePieces(
 
   for (const range of listItem.contentRanges ?? []) {
     if (rangesIntersect(range.from, range.to, from, to)) {
-      const taskMarker = taskMarkerRange(source, range.from, range.to)
+      const taskMarker = taskMarkerRange(source, range.from, range.to, editingSelection)
 
       if (taskMarker && rangesIntersect(taskMarker.from, taskMarker.to, from, to)) {
         pieces.push({
@@ -2756,15 +2805,10 @@ function taskMarkerRange(
   source: string,
   from: number,
   to: number,
+  editingSelection?: Selection,
 ): { readonly from: number; readonly to: number } | undefined {
-  const text = source.slice(from, to)
-  const match = /^(\s*\[[ xX]\]\s*)/u.exec(text)
-
-  if (!match) {
-    return undefined
-  }
-
-  return { from, to: from + (match[1]?.length ?? 0) }
+  const length = presentedTaskMarkerLength(source.slice(from, to), from, editingSelection)
+  return length === undefined ? undefined : { from, to: from + length }
 }
 
 function normalizeListSyntaxPosition(
@@ -2773,7 +2817,9 @@ function normalizeListSyntaxPosition(
   lineFrom: number,
   lineTo: number,
   position: number,
+  editingSelection?: Selection,
 ): number {
+  if (isUnfinishedBulletMarker(source.slice(lineFrom, lineTo))) return position
   const contentRange = (listItem.contentRanges ?? []).find((range) =>
     rangesIntersect(range.from, range.to, lineFrom, lineTo),
   )
@@ -2782,7 +2828,7 @@ function normalizeListSyntaxPosition(
     return position
   }
 
-  const taskMarker = taskMarkerRange(source, contentRange.from, contentRange.to)
+  const taskMarker = taskMarkerRange(source, contentRange.from, contentRange.to, editingSelection)
   const contentStart = taskMarker ? taskMarker.to : contentRange.from
 
   if (position < contentStart) {
@@ -3084,6 +3130,7 @@ function buildListItemLineProjection(
   listItem: SyntaxNode,
   from: number,
   to: number,
+  editable: boolean,
 ): LineProjection {
   const segments: LineProjectionSegment[] = []
   let visualPos = 0
@@ -3111,7 +3158,13 @@ function buildListItemLineProjection(
     visualPos = visualTo
   }
 
-  for (const piece of collectListItemLinePieces(source, listItem, from, to)) {
+  for (const piece of collectListItemLinePieces(
+    source,
+    listItem,
+    from,
+    to,
+    editable ? selection : undefined,
+  )) {
     if (piece.kind === 'content') {
       const contentProjection = buildLineProjection(source, selection, piece.from, piece.to)
 
@@ -3254,9 +3307,10 @@ function positionToVisualLineOffset(
   mode: ViewMode,
   pos: number,
   root?: SyntaxNode,
+  editable = true,
 ): PositionLineOffset {
   const line = state.doc.lineAt(pos)
-  const projection = buildRenderedLineProjection(state, mode, line.from, line.to, root)
+  const projection = buildRenderedLineProjection(state, mode, line.from, line.to, root, editable)
 
   return Object.freeze({
     line,
@@ -3271,8 +3325,9 @@ function visualLineLength(
   from: number,
   to: number,
   root?: SyntaxNode,
+  editable = true,
 ): number {
-  const projection = buildRenderedLineProjection(state, mode, from, to, root)
+  const projection = buildRenderedLineProjection(state, mode, from, to, root, editable)
 
   return projection === undefined ? Math.max(0, to - from) : projection.visualLength
 }
@@ -3284,6 +3339,7 @@ function lineVisualOffsetToSourcePosition(
   to: number,
   visualOffset: number,
   root?: SyntaxNode,
+  editable = true,
 ): number {
   const lineLength = Math.max(0, to - from)
 
@@ -3291,7 +3347,7 @@ function lineVisualOffsetToSourcePosition(
     return to
   }
 
-  const projection = buildRenderedLineProjection(state, mode, from, to, root)
+  const projection = buildRenderedLineProjection(state, mode, from, to, root, editable)
 
   if (projection === undefined) {
     return from + clamp(visualOffset, 0, lineLength)
@@ -3306,6 +3362,7 @@ function buildRenderedLineProjection(
   from: number,
   to: number,
   root?: SyntaxNode,
+  editable = true,
 ): LineProjection | undefined {
   if (mode === 'source' || to <= from) {
     return undefined
@@ -3349,7 +3406,14 @@ function buildRenderedLineProjection(
   }
 
   if (listItem) {
-    return buildListItemLineProjection(state.doc.text, state.selection, listItem, from, to)
+    return buildListItemLineProjection(
+      state.doc.text,
+      state.selection,
+      listItem,
+      from,
+      to,
+      editable,
+    )
   }
 
   return buildLineProjection(state.doc.text, state.selection, from, to)
@@ -3369,9 +3433,10 @@ function positionToRectForMode(
   pos: number,
   metrics?: Partial<ViewMetrics>,
   root?: SyntaxNode,
+  editable = true,
 ): ViewRect {
   const resolvedMetrics = resolveViewMetrics(metrics)
-  const { line, offset } = positionToVisualLineOffset(state, mode, pos, root)
+  const { line, offset } = positionToVisualLineOffset(state, mode, pos, root, editable)
   const left = offset * resolvedMetrics.charWidth
   const top = (line.number - 1) * resolvedMetrics.lineHeight
 
@@ -3399,6 +3464,7 @@ function coordinateToPositionForMode(
   coordinate: ViewCoordinate,
   metrics?: Partial<ViewMetrics>,
   root?: SyntaxNode,
+  editable = true,
 ): number {
   const resolvedMetrics = resolveViewMetrics(metrics)
   const lineNumber = clamp(
@@ -3407,14 +3473,14 @@ function coordinateToPositionForMode(
     state.doc.lineCount,
   )
   const line = state.doc.line(lineNumber)
-  const lineLength = visualLineLength(state, mode, line.from, line.to, root)
+  const lineLength = visualLineLength(state, mode, line.from, line.to, root, editable)
   const offset = clamp(Math.round(coordinate.x / resolvedMetrics.charWidth), 0, lineLength)
 
   if (mode === 'source') {
     return line.from + offset
   }
 
-  return lineVisualOffsetToSourcePosition(state, mode, line.from, line.to, offset, root)
+  return lineVisualOffsetToSourcePosition(state, mode, line.from, line.to, offset, root, editable)
 }
 
 function resolveViewMetrics(metrics?: Partial<ViewMetrics>): ViewMetrics {
@@ -3451,8 +3517,9 @@ function domRectForSourcePosition(
   mode: ViewMode,
   position: number,
   root?: SyntaxNode,
+  editable = true,
 ): ViewRect | undefined {
-  const { line, offset } = positionToVisualLineOffset(state, mode, position, root)
+  const { line, offset } = positionToVisualLineOffset(state, mode, position, root, editable)
   const lineDOM = contentDOM.querySelector<HTMLElement>(`.milkup-line[data-line="${line.number}"]`)
 
   if (!lineDOM) {
@@ -3484,6 +3551,7 @@ function domRectsForSourceRange(
   from: number,
   to: number,
   root?: SyntaxNode,
+  editable = true,
 ): readonly ViewRect[] {
   const rects: ViewRect[] = []
   const rangeFrom = clamp(from, 0, state.doc.length)
@@ -3513,8 +3581,8 @@ function domRectsForSourceRange(
       continue
     }
 
-    const startOffset = positionToVisualLineOffset(state, mode, lineFrom, root).offset
-    const endOffset = positionToVisualLineOffset(state, mode, lineTo, root).offset
+    const startOffset = positionToVisualLineOffset(state, mode, lineFrom, root, editable).offset
+    const endOffset = positionToVisualLineOffset(state, mode, lineTo, root, editable).offset
     rects.push(...domRectsForLineVisualRange(document, lineDOM, layerDOM, startOffset, endOffset))
   }
 
@@ -3539,7 +3607,11 @@ export function scrollPositionIntoView(config: ScrollPositionIntoViewConfig): nu
 }
 
 function scrollPositionIntoViewForMode(
-  config: ScrollPositionIntoViewConfig & { readonly mode: ViewMode; readonly root?: SyntaxNode },
+  config: ScrollPositionIntoViewConfig & {
+    readonly mode: ViewMode
+    readonly root?: SyntaxNode
+    readonly editable?: boolean
+  },
 ): number {
   const viewportHeight =
     config.viewportHeight && config.viewportHeight > 0 ? config.viewportHeight : 200
@@ -3550,6 +3622,7 @@ function scrollPositionIntoViewForMode(
     config.position,
     config.metrics,
     config.root,
+    config.editable,
   )
   const visibleTop = config.currentScrollTop + scrollPadding
   const visibleBottom = config.currentScrollTop + viewportHeight - scrollPadding
@@ -3661,6 +3734,7 @@ function shouldScrollSelectionIntoView(transactions: readonly Transaction[]): bo
 export interface RenderOverlayOptions {
   readonly metrics?: Partial<ViewMetrics>
   readonly root?: SyntaxNode
+  readonly editable?: boolean
 }
 
 export function renderCursorOverlay(
@@ -3672,7 +3746,13 @@ export function renderCursorOverlay(
   return Object.freeze(
     state.selection.ranges.map((range, index) => {
       const position = range.head
-      const { line, offset } = positionToVisualLineOffset(state, mode, position, options.root)
+      const { line, offset } = positionToVisualLineOffset(
+        state,
+        mode,
+        position,
+        options.root,
+        options.editable,
+      )
       const cursor = document.createElement('div')
       cursor.className = 'milkup-cursor'
       cursor.dataset.index = String(index)
@@ -3698,8 +3778,14 @@ export function renderSelectionOverlay(
     state.selection.ranges
       .filter((range) => !range.empty)
       .map((range, index) => {
-        const from = positionToVisualLineOffset(state, mode, range.from, options.root)
-        const to = positionToVisualLineOffset(state, mode, range.to, options.root)
+        const from = positionToVisualLineOffset(
+          state,
+          mode,
+          range.from,
+          options.root,
+          options.editable,
+        )
+        const to = positionToVisualLineOffset(state, mode, range.to, options.root, options.editable)
         const selection = document.createElement('div')
         selection.className = 'milkup-selection'
         selection.dataset.index = String(index)

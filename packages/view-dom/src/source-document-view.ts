@@ -7,6 +7,8 @@ import {
 } from './code-presentation'
 import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
 import { mapLineSourceRanges } from './source-range-mapping'
+import { renderCompositionOverlay } from './composition-overlay'
+import { isUnfinishedBulletMarker, presentedTaskMarkerLength } from './list-presentation'
 import {
   applyPresentation,
   validatePresentation,
@@ -819,6 +821,18 @@ export class SourceDocumentView {
     // Saving can rerender the window while editing is locked. Restore the
     // existing caret on unlock even when no text or selection changes follow.
     this.renderCursor()
+    if (this.mode === 'live')
+      void this.renderLiveSyntaxAroundPositions(this.cursorPosition, this.cursorPosition).then(
+        () => {
+          if (this.destroyed) return
+          this.renderSelection()
+          this.renderCursor()
+        },
+        (error: unknown) => {
+          if (!this.destroyed)
+            this.dom.dispatchEvent(new CustomEvent('milkup-input-error', { detail: error }))
+        },
+      )
   }
 
   setMode(mode: ViewMode): void {
@@ -1451,6 +1465,7 @@ export class SourceDocumentView {
             renderLiveLine(this.ownerDocument, line, blocks, {
               cursorPosition: this.cursorPosition,
               selection: this.currentSelection(),
+              editable: this.editable,
             }),
           ),
       ),
@@ -1753,6 +1768,7 @@ export class SourceDocumentView {
     to: number,
     text: string,
     historyGroup?: 'isolate',
+    focusInput = true,
   ): Promise<void> {
     const table = this.localTable()
     await this.applyVisibleEdit(
@@ -1765,6 +1781,8 @@ export class SourceDocumentView {
           )
         : text,
       historyGroup,
+      undefined,
+      focusInput,
     )
   }
 
@@ -1897,7 +1915,9 @@ export class SourceDocumentView {
     }
 
     const range = this.getSelectedRange()
-    await this.applyTextInput(range.from, range.to, data, 'isolate')
+    // The native input survives rendering. Finalizing an IME after blur must
+    // retain the user's new focus, including while this async edit is queued.
+    await this.applyTextInput(range.from, range.to, data, 'isolate', false)
   }
 
   private handleEditingKey(event: KeyboardEvent): boolean {
@@ -2045,6 +2065,7 @@ export class SourceDocumentView {
             this.findRenderedSourceLineAtPosition(this.cursorPosition) ??
             (await this.currentSource.lineAtPosition(this.cursorPosition))
           if (this.destroyed || documentId !== this.currentSource.documentId) return
+          const previousPosition = this.cursorPosition
           const table = this.localTable()
           this.cursorPosition = table?.context.withinCell
             ? table.offset + (event.key === 'End' ? table.context.cell.to : table.context.cell.from)
@@ -2053,6 +2074,7 @@ export class SourceDocumentView {
               : line.from
           if (!event.shiftKey) this.selectionAnchor = this.cursorPosition
           await this.ensureCursorRendered(line.number)
+          await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
           this.renderSelection()
           this.renderCursor()
         })
@@ -2437,6 +2459,7 @@ export class SourceDocumentView {
     insert: string,
     historyGroup?: 'isolate',
     selectionAfter = Selection.cursor(from + insert.length),
+    focusInput = true,
   ): Promise<void> {
     if (!this.onEdit) {
       return
@@ -2504,6 +2527,7 @@ export class SourceDocumentView {
           ?.replaceWith(
             renderLiveLine(this.ownerDocument, line, parsed.root.children ?? [], {
               selection: this.currentSelection(),
+              editable: this.editable,
             }),
           )
       } else this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
@@ -2531,7 +2555,7 @@ export class SourceDocumentView {
       }
     }
 
-    this.inputDOM.focus({ preventScroll: true })
+    if (focusInput) this.inputDOM.focus({ preventScroll: true })
   }
 
   private updateOptimisticSourceWindow(
@@ -2604,6 +2628,7 @@ export class SourceDocumentView {
         renderLiveLine(this.ownerDocument, line, blocks, {
           cursorPosition: this.cursorPosition,
           selection: this.currentSelection(),
+          editable: this.editable,
         }),
       )
     } else {
@@ -3009,7 +3034,13 @@ export class SourceDocumentView {
     }
 
     const line = this.findRenderedSourceLineAtPosition(position)
-    const contentStart = line ? listSyntaxContentStart(line.text, line.from) : undefined
+    const contentStart = line
+      ? listSyntaxContentStart(
+          line.text,
+          line.from,
+          this.editable ? this.currentSelection() : undefined,
+        )
+      : undefined
 
     if (contentStart === undefined || position >= contentStart) {
       return position
@@ -3470,25 +3501,11 @@ export class SourceDocumentView {
   }
 
   private renderCompositionText(): void {
-    this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-composition')?.remove()
-
-    if (!this.composing || this.compositionText.length === 0) {
-      return
-    }
-
-    const cursor = this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')
-
-    if (!cursor) {
-      return
-    }
-
-    const composition = this.ownerDocument.createElement('span')
-    composition.className = 'milkup-composition'
-    composition.textContent = this.compositionText
-    composition.style.left = cursor.style.left
-    composition.style.top = cursor.style.top
-    composition.style.minHeight = cursor.style.height
-    this.cursorLayerDOM.append(composition)
+    renderCompositionOverlay(
+      this.cursorLayerDOM,
+      this.contentDOM,
+      this.composing ? this.compositionText : '',
+    )
   }
 
   private syncInputProxyToCursor(): void {
@@ -3549,7 +3566,8 @@ export class SourceDocumentView {
     const source = this.currentSource,
       version = source.version,
       revision = this.editRevision,
-      selectionRevision = this.selectionGeneration
+      selectionRevision = this.selectionGeneration,
+      editable = this.editable
     const replacement =
       this.mode === 'live'
         ? await this.renderSingleLiveLine(lineNumber)
@@ -3562,6 +3580,7 @@ export class SourceDocumentView {
       version === source.version &&
       revision === this.editRevision &&
       selectionRevision === this.selectionGeneration &&
+      editable === this.editable &&
       this.contentDOM.contains(current)
     ) {
       const scrollLeft = current.scrollLeft
@@ -3664,6 +3683,7 @@ export class SourceDocumentView {
       ? renderLiveLine(this.ownerDocument, line, parsed.root.children ?? [], {
           cursorPosition: this.cursorPosition,
           selection: this.currentSelection(),
+          editable: this.editable,
         })
       : undefined
   }
@@ -3696,7 +3716,11 @@ function renderLiveLine(
   document: Document,
   line: SourceLine,
   blocks: readonly SyntaxNode[],
-  options: { readonly cursorPosition?: number; readonly selection?: Selection } = {},
+  options: {
+    readonly cursorPosition?: number
+    readonly selection?: Selection
+    readonly editable?: boolean
+  } = {},
 ): HTMLElement {
   const lineDOM = createLineElement(document, line)
   lineDOM.classList.add('milkup-line-live')
@@ -3760,8 +3784,10 @@ function renderLiveLine(
       ),
     )
   } else if (listItem) {
-    lineDOM.classList.add('milkup-block-list')
-    lineDOM.replaceChildren(...renderListItemLinePieces(document, line, selection, listItem))
+    lineDOM.classList.toggle('milkup-block-list', !isUnfinishedBulletMarker(line.text))
+    lineDOM.replaceChildren(
+      ...renderListItemLinePieces(document, line, selection, listItem, options.editable !== false),
+    )
   } else {
     lineDOM.replaceChildren(
       ...renderInlineDecorations(document, line, selection, line.from, line.to),
@@ -4058,8 +4084,9 @@ function renderListItemLinePieces(
   line: SourceLine,
   selection: Selection,
   listItem: SyntaxNode,
+  editable: boolean,
 ): readonly Node[] {
-  const pieces = collectListItemLinePieces(line, listItem)
+  const pieces = collectListItemLinePieces(line, listItem, editable ? selection : undefined)
 
   if (pieces.length === 0) {
     return renderInlineDecorations(document, line, selection, line.from, line.to)
@@ -4105,7 +4132,14 @@ function renderListItemLinePieces(
   return Object.freeze(rendered)
 }
 
-function collectListItemLinePieces(line: SourceLine, listItem: SyntaxNode): readonly InlinePiece[] {
+function collectListItemLinePieces(
+  line: SourceLine,
+  listItem: SyntaxNode,
+  editingSelection?: Selection,
+): readonly InlinePiece[] {
+  if (isUnfinishedBulletMarker(line.text)) {
+    return [{ from: line.from, to: line.to, kind: 'content' }]
+  }
   const pieces: InlinePiece[] = []
 
   for (const range of listItem.markerRanges ?? []) {
@@ -4123,7 +4157,7 @@ function collectListItemLinePieces(line: SourceLine, listItem: SyntaxNode): read
       continue
     }
 
-    const taskMarker = taskMarkerRange(line, range.from, range.to)
+    const taskMarker = taskMarkerRange(line, range.from, range.to, editingSelection)
 
     if (taskMarker && rangesIntersect(taskMarker.from, taskMarker.to, line.from, line.to)) {
       pieces.push({
@@ -4368,15 +4402,10 @@ function taskMarkerRange(
   line: SourceLine,
   from: number,
   to: number,
+  editingSelection?: Selection,
 ): { readonly from: number; readonly to: number } | undefined {
-  const text = sourceSlice(line, from, to)
-  const match = /^(\s*\[[ xX]\]\s*)/u.exec(text)
-
-  if (!match) {
-    return undefined
-  }
-
-  return { from, to: from + (match[1]?.length ?? 0) }
+  const length = presentedTaskMarkerLength(sourceSlice(line, from, to), from, editingSelection)
+  return length === undefined ? undefined : { from, to: from + length }
 }
 
 function listContinuationPrefix(lineText: string): string | undefined {
@@ -4402,16 +4431,19 @@ function listContinuationPrefix(lineText: string): string | undefined {
   }`
 }
 
-function listSyntaxContentStart(lineText: string, lineFrom: number): number | undefined {
-  const unordered = /^(\s*)([-+*])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
-
-  if (unordered) {
-    return lineFrom + (unordered[0]?.length ?? 0)
-  }
-
-  const ordered = /^(\s*)(\d{1,9})([.)])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
-
-  return ordered ? lineFrom + (ordered[0]?.length ?? 0) : undefined
+function listSyntaxContentStart(
+  lineText: string,
+  lineFrom: number,
+  editingSelection?: Selection,
+): number | undefined {
+  const prefix = /^(\s*)(?:[-+*]|\d{1,9}[.)])[ \t]+/u.exec(lineText)
+  if (!prefix) return undefined
+  const from = prefix[0].length
+  return (
+    lineFrom +
+    from +
+    (presentedTaskMarkerLength(lineText.slice(from), lineFrom + from, editingSelection) ?? 0)
+  )
 }
 
 function isCompositionKeyEvent(event: KeyboardEvent): boolean {

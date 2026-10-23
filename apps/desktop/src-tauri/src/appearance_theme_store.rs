@@ -85,15 +85,37 @@ pub struct CandidateCommit {
     pub expected_digest: String,
     pub expected_revision: String,
 }
+struct StoreLock {
+    file: std::fs::File,
+    owner_pid: u32,
+}
+impl StoreLock {
+    fn new(file: std::fs::File) -> Self {
+        Self {
+            file,
+            owner_pid: std::process::id(),
+        }
+    }
+}
+impl Drop for StoreLock {
+    fn drop(&mut self) {
+        // CLOEXEC closes an inherited descriptor only after exec. An unrelated
+        // concurrent spawn can otherwise extend this lock beyond Store's life.
+        // Release it explicitly, but never from a forked copy of the owner.
+        if self.owner_pid == std::process::id() {
+            let _ = fs2::FileExt::unlock(&self.file);
+        }
+    }
+}
 pub struct Store {
     dir: Dir,
     root: PathBuf,
-    _lock: std::fs::File,
+    _lock: StoreLock,
 }
 impl Store {
     pub fn open(root: &Path) -> Result<Self> {
         let dir = Dir::open(root, true)?;
-        let lock = dir.lock()?;
+        let lock = StoreLock::new(dir.lock()?);
         if !dir.exists(DEFAULT)? {
             dir.create(DEFAULT, DEFAULT_TEXT.as_bytes())?;
         }
@@ -532,6 +554,114 @@ mod tests {
         assert_eq!(store.snapshot().unwrap().revision, "absent");
         drop(store);
         assert!(Store::open(&f.root()).unwrap().reset("absent").is_ok());
+    }
+    #[cfg(unix)]
+    #[test]
+    fn inherited_descriptor_does_not_extend_a_dropped_store_lock() {
+        use std::io::Write;
+        use std::os::fd::{AsRawFd, FromRawFd};
+
+        fn pipe() -> (std::fs::File, std::fs::File) {
+            let mut fds = [-1; 2];
+            assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0);
+            let pair = unsafe {
+                (
+                    std::fs::File::from_raw_fd(fds[0]),
+                    std::fs::File::from_raw_fd(fds[1]),
+                )
+            };
+            for fd in fds {
+                assert_eq!(
+                    unsafe { libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) },
+                    0
+                );
+            }
+            pair
+        }
+
+        // Keep this deliberate fork/exec gap out of the parallel runner's
+        // unrelated locks. The probe is still a real process, not a mock or a
+        // serialization gate around the test suite.
+        const PROBE: &str = "MILKUP_THEME_TEST_INHERITED_LOCK_PROBE";
+        if std::env::var_os(PROBE).as_deref() != Some(std::ffi::OsStr::new("1")) {
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .arg("--exact")
+                .arg("appearance_theme_store::tests::inherited_descriptor_does_not_extend_a_dropped_store_lock")
+                .arg("--nocapture")
+                .env(PROBE, "1")
+                .status()
+                .unwrap();
+            assert!(status.success());
+            return;
+        }
+        let f = Fixture::new();
+        let store = Store::open(&f.root()).unwrap();
+        let (mut ready_read, ready_write) = pipe();
+        let (release_read, mut release_write) = pipe();
+        let ready_read_fd = ready_read.as_raw_fd();
+        let ready_write_fd = ready_write.as_raw_fd();
+        let release_read_fd = release_read.as_raw_fd();
+        let release_write_fd = release_write.as_raw_fd();
+        let pid = unsafe { libc::fork() };
+        assert!(pid >= 0);
+        if pid == 0 {
+            // A multithreaded test runner may have forked while other tests hold
+            // locks. Use only async-signal-safe syscalls before _exit, no Rust
+            // destructors/allocator and no application work in this child.
+            unsafe {
+                libc::close(ready_read_fd);
+                libc::close(release_write_fd);
+                let ready = [1u8];
+                if libc::write(ready_write_fd, ready.as_ptr().cast(), 1) != 1 {
+                    libc::_exit(2);
+                }
+                let mut wait = libc::pollfd {
+                    fd: release_read_fd,
+                    events: libc::POLLIN,
+                    revents: 0,
+                };
+                let signalled =
+                    libc::poll(&mut wait, 1, 5000) == 1 && wait.revents & libc::POLLIN != 0;
+                libc::_exit(if signalled { 0 } else { 3 });
+            }
+        }
+        drop(ready_write);
+        drop(release_read);
+        let mut ready = [0u8];
+        let mut wait = libc::pollfd {
+            fd: ready_read_fd,
+            events: libc::POLLIN,
+            revents: 0,
+        };
+        let ready_result = if unsafe { libc::poll(&mut wait, 1, 5000) } == 1 {
+            ready_read.read_exact(&mut ready)
+        } else {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "inherited descriptor probe did not become ready",
+            ))
+        };
+        let blocked_while_owned = Store::open(&f.root()).is_err();
+        drop(store);
+        // The child still owns its inherited CLOEXEC descriptor. The old
+        // close-only release reliably returns EAGAIN at this point.
+        let reopened = Store::open(&f.root());
+        let release_result = release_write.write_all(&[1]);
+        let mut status = 0;
+        let waited = unsafe { libc::waitpid(pid, &mut status, 0) };
+        // Reap the bounded child before reporting any failed assertion.
+        ready_result.unwrap();
+        assert_eq!(ready, [1]);
+        assert!(blocked_while_owned);
+        release_result.unwrap();
+        assert_eq!(waited, pid);
+        assert!(libc::WIFEXITED(status));
+        assert_eq!(libc::WEXITSTATUS(status), 0);
+        let reopened = reopened.expect("inherited descriptor must not extend Store lifetime");
+        // Closing the old inherited descriptor cannot release this new lock.
+        assert!(Store::open(&f.root()).is_err());
+        drop(reopened);
+        assert!(Store::open(&f.root()).is_ok());
     }
     #[test]
     fn selected_raw_css_is_not_cached_as_verified_and_open_is_revision_bound() {
