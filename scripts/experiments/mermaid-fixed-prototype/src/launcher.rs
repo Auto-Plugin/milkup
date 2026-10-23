@@ -1,5 +1,7 @@
 //! Native ownership and bounded IPC for the separately authorized fixed-code prototype.
 //! This is not an OS-wide no-network guarantee. No product entry point uses this module.
+mod cleanup_observation;
+
 use crate::Result;
 use serde_json::{json, Value};
 use std::{
@@ -1097,7 +1099,18 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
         report["privateTreeRemoved"] = json!(false);
         match crate::cleanup::remove_owned_tree(&root, &mut delete_attempts) {
             Ok(()) => report["privateTreeRemoved"] = json!(true),
-            Err(error) => cleanup_errors.push(format!("Private tree deletion: {error}")),
+            Err(error) => {
+                cleanup_errors.push(format!("Private tree deletion: {error}"));
+                // Observe only after the original failure, on this same thread.
+                // No deletion, token adjustment, fallback or new retry follows.
+                if error.raw_os_error() == Some(5)
+                    && ipc_threads_completed
+                    && report["profileDeletedAndFolderAbsent"] == true
+                {
+                    report["cleanupAccessObservation"] =
+                        cleanup_observation::observe(&root, error.raw_os_error());
+                }
+            }
         }
         report["privateTreeDeleteAttempts"] = json!(delete_attempts);
     } else {
