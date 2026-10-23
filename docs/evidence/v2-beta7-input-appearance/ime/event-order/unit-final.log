@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ✓ src/__tests__/input-boundaries.test.ts (6 tests) 493ms
+ ❯ src/__tests__/ime-preedit.test.ts (20 tests | 2 failed) 1295ms
+   ✓ ordinary before-end commit handles late final input notifications exactly once 223ms
+   ✓ ordinary before-end cancel handles late final input notifications exactly once 63ms
+   ✓ ordinary after-end commit handles late final input notifications exactly once 69ms
+   ✓ ordinary after-end cancel handles late final input notifications exactly once 26ms
+   × windowed before-end commit handles late final input notifications exactly once 191ms
+     → expected <textarea …(5)></textarea> to be <button></button> // Object.is equality
+   ✓ windowed before-end cancel handles late final input notifications exactly once 72ms
+   × windowed after-end commit handles late final input notifications exactly once 70ms
+     → expected <textarea …(5)></textarea> to be <button></button> // Object.is equality
+   ✓ windowed after-end cancel handles late final input notifications exactly once 34ms
+   ✓ ordinary source paragraph displays preedit without editing or replacing its native input 52ms
+   ✓ ordinary source code displays preedit without editing or replacing its native input 90ms
+   ✓ ordinary source clears cancelled preedit and retains the exact Unicode selection/history 23ms
+   ✓ ordinary live paragraph displays preedit without editing or replacing its native input 77ms
+   ✓ ordinary live code displays preedit without editing or replacing its native input 44ms
+   ✓ ordinary live clears cancelled preedit and retains the exact Unicode selection/history 11ms
+   ✓ windowed source paragraph displays preedit without editing or replacing its native input 45ms
+   ✓ windowed source code displays preedit without editing or replacing its native input 44ms
+   ✓ windowed source clears cancelled preedit and retains the exact Unicode selection/history 28ms
+   ✓ windowed live paragraph displays preedit without editing or replacing its native input 47ms
+   ✓ windowed live code displays preedit without editing or replacing its native input 56ms
+   ✓ windowed live clears cancelled preedit and retains the exact Unicode selection/history 28ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/ime-preedit.test.ts > windowed before-end commit handles late final input notifications exactly once
+ FAIL  src/__tests__/ime-preedit.test.ts > windowed after-end commit handles late final input notifications exactly once
+AssertionError: expected <textarea …(5)></textarea> to be <button></button> // Object.is equality
+
+- Expected
++ Received
+
+- <button />
++ <textarea
++   aria-label="Markdown 编辑器"
++   autocomplete="off"
++   class="milkup-input-proxy"
++   style="left: 8px; top: 0px; height: 21px;"
++   tabindex="0"
++ />
+
+ ❯ src/__tests__/ime-preedit.test.ts:123:40
+    121|         expect(s.view.inputDOM).toBe(input)
+    122|         expect(input.value).toBe('')
+    123|         expect(document.activeElement).toBe(other)
+       |                                        ^
+    124| 
+    125|         // Refocusing and committing the same character is a new trans…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 24 passed (26)
+   Start at  07:47:00
+   Duration  4.55s (transform 1.32s, setup 0ms, collect 2.53s, tests 1.79s, environment 1.62s, prepare 511ms)
+

@@ -1,0 +1,73 @@
+
+ RUN  v3.2.6 /tmp/milkup-windows-manual-candidate/packages/view-dom
+
+ ❯ src/__tests__/ime-preedit.test.ts (12 tests | 6 failed) 779ms
+   × ordinary source paragraph displays preedit without editing or replacing its native input 206ms
+     → expected undefined to be 'n' // Object.is equality
+   × ordinary source code displays preedit without editing or replacing its native input 21ms
+     → expected undefined to be 'n' // Object.is equality
+   × ordinary source clears cancelled preedit and retains the exact Unicode selection/history 24ms
+     → expected undefined to be 'zhong' // Object.is equality
+   × ordinary live paragraph displays preedit without editing or replacing its native input 18ms
+     → expected undefined to be 'n' // Object.is equality
+   × ordinary live code displays preedit without editing or replacing its native input 24ms
+     → expected undefined to be 'n' // Object.is equality
+   × ordinary live clears cancelled preedit and retains the exact Unicode selection/history 42ms
+     → expected undefined to be 'zhong' // Object.is equality
+   ✓ windowed source paragraph displays preedit without editing or replacing its native input 77ms
+   ✓ windowed source code displays preedit without editing or replacing its native input 71ms
+   ✓ windowed source clears cancelled preedit and retains the exact Unicode selection/history 55ms
+   ✓ windowed live paragraph displays preedit without editing or replacing its native input 118ms
+   ✓ windowed live code displays preedit without editing or replacing its native input 90ms
+   ✓ windowed live clears cancelled preedit and retains the exact Unicode selection/history 31ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/ime-preedit.test.ts > ordinary source paragraph displays preedit without editing or replacing its native input
+ FAIL  src/__tests__/ime-preedit.test.ts > ordinary source code displays preedit without editing or replacing its native input
+ FAIL  src/__tests__/ime-preedit.test.ts > ordinary live paragraph displays preedit without editing or replacing its native input
+ FAIL  src/__tests__/ime-preedit.test.ts > ordinary live code displays preedit without editing or replacing its native input
+AssertionError: expected undefined to be 'n' // Object.is equality
+
+- Expected: 
+"n"
+
++ Received: 
+undefined
+
+ ❯ src/__tests__/ime-preedit.test.ts:84:44
+     82|           await s.flush()
+     83|           if (candidate) {
+     84|             expect(overlay()?.textContent).toBe(candidate)
+       |                                            ^
+     85|             const cursor = s.view.cursorLayerDOM.querySelector<HTMLEle…
+     86|             expect(overlay()?.style.left).toBe(cursor.style.left)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/__tests__/ime-preedit.test.ts > ordinary source clears cancelled preedit and retains the exact Unicode selection/history
+ FAIL  src/__tests__/ime-preedit.test.ts > ordinary live clears cancelled preedit and retains the exact Unicode selection/history
+AssertionError: expected undefined to be 'zhong' // Object.is equality
+
+- Expected: 
+"zhong"
+
++ Received: 
+undefined
+
+ ❯ src/__tests__/ime-preedit.test.ts:130:87
+    128|       input.value = 'zhong'
+    129|       input.dispatchEvent(new CompositionEvent('compositionupdate', { …
+    130|       expect(s.view.cursorLayerDOM.querySelector('.milkup-composition'…
+       |                                                                                       ^
+    131|       input.dispatchEvent(new CompositionEvent('compositionend', { dat…
+    132|       await s.flush()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 6 passed (12)
+   Start at  07:16:51
+   Duration  2.56s (transform 668ms, setup 0ms, collect 872ms, tests 779ms, environment 590ms, prepare 88ms)
+
