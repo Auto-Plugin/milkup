@@ -58,7 +58,7 @@ import {
   type SyntaxNode,
 } from '@milkup/markdown'
 
-import { createInputProxy, getVisibleLineWindow } from './editor-view'
+import { createInputProxy, getVisibleLineWindow, readEditorLayoutMetrics } from './editor-view'
 import { boundedScrollGeometry, maxVirtualContentHeight } from './bounded-scroll'
 import {
   nextGraphemeOffset,
@@ -158,6 +158,7 @@ export class SourceDocumentView {
   private readonly virtualViewport: Required<Pick<VirtualViewportConfig, 'enabled'>> &
     Omit<VirtualViewportConfig, 'enabled'>
   private presentation: EditorPresentation | undefined
+  private layoutLineHeight: number | undefined
   private presentationLayoutRevision = 0
   private currentSource: EditorDocumentSource
   private readonly measuredHeights = new MeasuredLineHeights()
@@ -640,6 +641,7 @@ export class SourceDocumentView {
       this.presentation = validatePresentation(config.presentation)
       applyPresentation(this.dom, this.presentation)
     }
+    this.readLayoutMetrics()
     void this.renderVisibleWindow()
   }
 
@@ -680,19 +682,45 @@ export class SourceDocumentView {
       this.presentation = next
       return
     }
-    const firstLine = this.visibleLineRange.fromLine
-    const layoutRevision = ++this.presentationLayoutRevision
     this.presentation = next
     applyPresentation(this.dom, next)
+    await this.refreshLayout()
+  }
+
+  /** Remeasure current root CSS on this view. This does not commit, cancel or
+   * replace active input. Source rows require uniform root line-height; Live
+   * remeasures only the bounded rendered rows, not arbitrary offscreen CSS. */
+  async refreshLayout(): Promise<void> {
+    if (this.destroyed) return
+    const firstLine = this.visibleLineRange.fromLine
+    const oldGeometry = this.scrollGeometry()
+    const oldTop = oldGeometry.compressed
+      ? Math.max(0, oldGeometry.toLogical(this.dom.scrollTop) - this.contentPadding().top)
+      : this.dom.scrollTop
+    const fraction = Math.max(
+      0,
+      Math.min(
+        1,
+        (oldTop - this.lineTop(firstLine)) /
+          Math.max(1, this.lineTop(firstLine + 1) - this.lineTop(firstLine)),
+      ),
+    )
+    const layoutRevision = ++this.presentationLayoutRevision
+    this.readLayoutMetrics()
     this.measuredHeights.clear()
-    // Invalidate any old-layout request before it can install stale spacers.
+    this.handledScroll = undefined
+    // Invalidate old-layout requests before any asynchronous source read.
     this.latestAppliedRequestId = this.nextRequestId++
-    const geometry = this.scrollGeometry()
-    const scrollTop = geometry.compressed
-      ? geometry.toPhysical(this.lineTop(firstLine) + this.contentPadding().top)
-      : this.lineTop(firstLine)
-    this.dom.scrollTop = scrollTop
+    const anchoredTop = () => {
+      const geometry = this.scrollGeometry()
+      const top =
+        this.lineTop(firstLine) +
+        fraction * Math.max(1, this.lineTop(firstLine + 1) - this.lineTop(firstLine))
+      return geometry.compressed ? geometry.toPhysical(top + this.contentPadding().top) : top
+    }
+    this.dom.scrollTop = anchoredTop()
     this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
+    const expectedScroll = this.dom.scrollTop
     const source = this.currentSource
     const request = this.createRenderRequestForLine(firstLine)
     await this.renderVisibleWindow(request)
@@ -702,10 +730,23 @@ export class SourceDocumentView {
       source === this.currentSource &&
       !this.destroyed
     ) {
-      this.dom.scrollTop = scrollTop
-      this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
-      this.revealHorizontalCursor()
+      // Keep the fraction within a measured Live row, but do not undo a user
+      // scroll which happened while this layout's read was pending.
+      if (Math.abs(this.dom.scrollTop - expectedScroll) <= 1) {
+        this.dom.scrollTop = anchoredTop()
+        this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
+      }
     }
+  }
+
+  private readLayoutMetrics(): void {
+    this.layoutLineHeight = readEditorLayoutMetrics(this.dom, {
+      lineHeight: this.presentation
+        ? this.presentation.fontSize * this.presentation.lineHeight
+        : Math.max(1, this.virtualViewport.lineHeight ?? defaultLineHeight),
+      charWidth: 8,
+    }).lineHeight
+    this.contentDOM.style.setProperty('--milkup-line-height', `${this.layoutLineHeight}px`)
   }
 
   get source(): EditorDocumentSource {
@@ -1297,9 +1338,12 @@ export class SourceDocumentView {
   }
 
   private getLineHeight(): number {
-    return this.presentation
-      ? this.presentation.fontSize * this.presentation.lineHeight
-      : Math.max(1, this.virtualViewport.lineHeight ?? defaultLineHeight)
+    return (
+      this.layoutLineHeight ??
+      (this.presentation
+        ? this.presentation.fontSize * this.presentation.lineHeight
+        : Math.max(1, this.virtualViewport.lineHeight ?? defaultLineHeight))
+    )
   }
 
   private getViewportHeight(): number | undefined {

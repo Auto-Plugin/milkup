@@ -1289,10 +1289,20 @@ pub fn read(root: &Path) -> Result<Value> {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct PreparedReplacement {
+    #[serde(default)]
+    mode: PreparedReplacementMode,
     source_path: String,
     transaction_id: String,
     generation_id: String,
     fingerprint: String,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum PreparedReplacementMode {
+    #[default]
+    Bundled,
+    ManualImport,
 }
 
 pub fn prepare(
@@ -1304,8 +1314,9 @@ pub fn prepare(
     prepare_with_replacement(root, archive, source_path, expected_revision, None)
 }
 
-/// Internal host operation. The host supplies bytes from its closed bundled index;
-/// source metadata only restricts eligibility and never authenticates archive contents.
+/// Internal host operation. Bundled replacement keeps its closed-index policy;
+/// manual replacement requires the trusted host's explicit import gesture. Source
+/// metadata restricts eligibility but never authenticates the sealed package bytes.
 pub fn prepare_with_replacement(
     root: &Path,
     archive: Value,
@@ -1344,33 +1355,53 @@ pub fn prepare_with_replacement(
                                 && p.generation.source_path == identity.source_path
                         })
                         .ok_or_else(|| err("conflict", "replacement candidate identity changed"))?;
-                    if p.phase != "prepared"
-                        || !source_path.starts_with("bundled:")
-                        || !p.generation.source_path.starts_with("bundled:")
-                    {
+                    if p.phase != "prepared" {
                         return Err(err(
                             "conflict",
-                            "replacement requires exact prepared bundled receipts",
+                            "replacement requires an idle prepared candidate",
                         ));
                     }
-                    let version = |m: &Value| -> Result<semver::Version> {
-                        semver::Version::parse(m["version"].as_str().unwrap_or_default())
-                            .map_err(|e| err("invalid", e))
-                    };
-                    let next_version = version(&manifest)?;
-                    if !next_version
-                        .cmp_precedence(&version(&p.generation.manifest)?)
-                        .is_gt()
-                    {
-                        return Err(err("conflict", "bundled replacement must be newer"));
-                    }
-                    if let Some(active) = &e.active {
-                        if !active.source_path.starts_with("bundled:")
-                            || !next_version
-                                .cmp_precedence(&version(&active.manifest)?)
+                    match identity.mode {
+                        PreparedReplacementMode::ManualImport => {
+                            // Automatic bundled setup cannot opt into this manual policy.
+                            // Like an ordinary explicit import, version ordering is not
+                            // approval: the fresh candidate remains unapproved and idle.
+                            if source_path.starts_with("bundled:") {
+                                return Err(err(
+                                    "conflict",
+                                    "manual import cannot use a bundled source",
+                                ));
+                            }
+                        }
+                        PreparedReplacementMode::Bundled => {
+                            if !source_path.starts_with("bundled:")
+                                || !p.generation.source_path.starts_with("bundled:")
+                            {
+                                return Err(err(
+                                    "conflict",
+                                    "replacement requires exact prepared bundled receipts",
+                                ));
+                            }
+                            let version = |m: &Value| -> Result<semver::Version> {
+                                semver::Version::parse(m["version"].as_str().unwrap_or_default())
+                                    .map_err(|e| err("invalid", e))
+                            };
+                            let next_version = version(&manifest)?;
+                            if !next_version
+                                .cmp_precedence(&version(&p.generation.manifest)?)
                                 .is_gt()
-                        {
-                            return Err(err("conflict", "bundled replacement cannot replace a user receipt or downgrade active"));
+                            {
+                                return Err(err("conflict", "bundled replacement must be newer"));
+                            }
+                            if let Some(active) = &e.active {
+                                if !active.source_path.starts_with("bundled:")
+                                    || !next_version
+                                        .cmp_precedence(&version(&active.manifest)?)
+                                        .is_gt()
+                                {
+                                    return Err(err("conflict", "bundled replacement cannot replace a user receipt or downgrade active"));
+                                }
+                            }
                         }
                     }
                     s.verify(&id, &p.generation)?;
@@ -1414,7 +1445,11 @@ pub fn prepare_with_replacement(
         e.tombstone = false;
         if replacement.is_some() {
             let retired = e.pending.as_ref().unwrap();
-            e.note(&format!("Superseded prepared bundled candidate {} from {}; retained prior bytes until normal collection", retired.generation.id, retired.generation.source_path));
+            let policy = match replacement.as_ref().unwrap().mode {
+                PreparedReplacementMode::Bundled => "bundled",
+                PreparedReplacementMode::ManualImport => "manual import",
+            };
+            e.note(&format!("Superseded prepared {policy} candidate {} from {}; retained prior bytes until normal collection", retired.generation.id, retired.generation.source_path));
         }
         e.pending = Some(Candidate {
             transaction_id: token(),

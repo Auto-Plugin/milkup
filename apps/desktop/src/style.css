@@ -364,8 +364,10 @@ h1 {
 
 .app-menu {
   position: fixed;
-  z-index: 30;
-  inset: 0;
+  z-index: 20;
+  /* The measured titlebar bottom also follows native zoom and chrome changes. */
+  inset: 37px 0 0;
+  overflow: hidden;
   background: var(--menu-overlay);
   backdrop-filter: blur(10px);
 }
@@ -2012,7 +2014,7 @@ html[data-sidebar-resizing='true'] * {
   }
 
   .app-menu-nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-auto-flow: row;
     padding: 8px;
     overflow-x: hidden;

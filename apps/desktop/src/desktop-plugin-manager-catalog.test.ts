@@ -53,6 +53,13 @@ const archive = (
   manifest: manifest(version, permissions),
   files: [{ path: 'dist/plugin.js', encoding: 'utf8', content: 'export default {}' }],
 })
+const manualReplacement = (entry: PluginCatalogEntry) => ({
+  mode: 'manualImport' as const,
+  transactionId: entry.pending!.transactionId,
+  generationId: entry.pending!.generation.id,
+  sourcePath: entry.pending!.generation.sourcePath,
+  fingerprint: entry.pending!.generation.capabilityFingerprint,
+})
 class Catalog implements DesktopPluginCatalog {
   snapshot: PluginCatalogSnapshot = {
     version: 1,
@@ -78,7 +85,11 @@ class Catalog implements DesktopPluginCatalog {
   }: Parameters<DesktopPluginCatalog['prepare']>[0]) {
     const before = this.snapshot.entries.find((x) => x.id === pkg.manifest.id)
     expect(expectedRevision).toBe(before?.revision ?? null)
+    if (before?.startAttempt || (before?.pending && !replacePending))
+      throw Error('resolve existing candidate/startup first')
     if (replacePending) {
+      expect(before?.tombstone).toBe(false)
+      expect(before?.startAttempt).toBeNull()
       expect(before?.pending?.phase).toBe('prepared')
       expect(before?.pending?.transactionId).toBe(replacePending.transactionId)
       expect(before?.pending?.generation.id).toBe(replacePending.generationId)
@@ -1278,6 +1289,41 @@ describe('P6 trusted host execution support explanation', () => {
 })
 
 describe('beta3 failed candidate recovery', () => {
+  it('stages an explicitly imported replacement for the exact failed candidate without approval or startup', async () => {
+    const s = setup({
+      activate: () => {
+        throw Error('OLD_CANDIDATE_FAILED')
+      },
+    })
+    await s.manager.ready
+    await s.install()
+    await expect(s.manager.enableFromUserIntent('test.lifecycle')).rejects.toThrow(
+      'OLD_CANDIDATE_FAILED',
+    )
+    const before = structuredClone(s.catalog.snapshot.entries[0]!)
+    const events = [...s.events]
+    const prepare = vi.spyOn(s.catalog, 'prepare')
+    await s.install('2.0.0', ['document:read'])
+    expect(prepare).toHaveBeenCalledOnce()
+    expect(prepare.mock.calls[0]![0]).toMatchObject({
+      expectedRevision: before.revision,
+      replacePending: {
+        mode: 'manualImport',
+        transactionId: before.pending!.transactionId,
+        generationId: before.pending!.generation.id,
+        sourcePath: before.pending!.generation.sourcePath,
+        fingerprint: before.pending!.generation.capabilityFingerprint,
+      },
+    })
+    const after = s.catalog.snapshot.entries[0]!
+    expect(after.pending?.generation.manifest.version).toBe('2.0.0')
+    expect(after.pending?.transactionId).not.toBe(before.pending!.transactionId)
+    expect(after.pending?.generation.approvedFingerprint).toBeNull()
+    expect(after.active).toEqual(before.active)
+    expect(after.previous).toEqual(before.previous)
+    expect(after.enabled).toBe(false)
+    expect(s.events).toEqual(events)
+  })
   it('keeps a first-install activation failure visible with diagnostics and permits explicit retry', async () => {
     let fails = true
     const s = setup({
@@ -1296,6 +1342,136 @@ describe('beta3 failed candidate recovery', () => {
     fails = false
     await s.manager.enableFromUserIntent('test.lifecycle')
     expect(s.manager.state().records[0]).toMatchObject({ enabled: true })
+  })
+})
+
+describe('explicit manual candidate replacement', () => {
+  it.each(['reordered', 'changed'] as const)(
+    'validates manifest data in a %s native prepare reply',
+    async (kind) => {
+      const s = setup()
+      await s.manager.ready
+      await s.install()
+      const prepare = s.catalog.prepare.bind(s.catalog)
+      vi.spyOn(s.catalog, 'prepare').mockImplementationOnce(async (request) => {
+        const reply = await prepare(request)
+        const generation = reply.entries[0]!.pending!.generation
+        ;(generation as any).manifest =
+          kind === 'reordered'
+            ? Object.fromEntries(Object.entries(generation.manifest).reverse())
+            : { ...generation.manifest, permissions: ['document:write'] }
+        return reply
+      })
+      if (kind === 'reordered') await s.install('2.0.0')
+      else await expect(s.install('2.0.0')).rejects.toThrow('changed during import')
+      expect(s.manager.state().records[0]?.manifest.version).toBe('2.0.0')
+      expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+      expect(s.events).toEqual([])
+      expect(s.catalog.events).not.toContain('approve')
+    },
+  )
+  it('rejects a different candidate queued ahead of the captured import gesture', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    let release!: () => void
+    const barrier = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const queued = (s.manager as any).runPluginLifecycle('test.lifecycle', async () => {
+      await barrier
+      const entry = s.catalog.snapshot.entries[0]!
+      await s.catalog.prepare({
+        archive: archive('3.0.0'),
+        sourcePath: '/other.milkup-plugin',
+        expectedRevision: entry.revision,
+        replacePending: manualReplacement(entry),
+      })
+      ;(s.manager as any).applyCatalog(await s.catalog.read())
+    })
+    const lifecycle = vi.spyOn(s.manager as any, 'runPluginLifecycle')
+    const importing = s.install('2.0.0')
+    const rejected = expect(importing).rejects.toThrow('changed before import')
+    await vi.waitFor(() => expect(lifecycle).toHaveBeenCalledOnce())
+    release()
+    await queued
+    await rejected
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.manifest.version).toBe('3.0.0')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+    expect(s.events).toEqual([])
+  })
+
+  it.each(['trial', 'startup'] as const)('does not submit replacement during %s', async (phase) => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    const entry = s.catalog.snapshot.entries[0]!
+    if (phase === 'trial') (entry.pending as any).phase = 'trial'
+    else (entry as any).startAttempt = 'busy-startup'
+    ;(s.manager as any).applyCatalog(await s.catalog.read())
+    const before = structuredClone(s.catalog.snapshot)
+    const prepare = vi.spyOn(s.catalog, 'prepare')
+    await expect(s.install('2.0.0')).rejects.toThrow('not idle')
+    expect(prepare).not.toHaveBeenCalled()
+    expect(s.catalog.snapshot).toEqual(before)
+    expect(s.events).toEqual([])
+  })
+
+  it('preserves a rejected replacement and permits another explicit import', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    const before = structuredClone(s.catalog.snapshot)
+    const read = vi.spyOn(s.catalog, 'read')
+    vi.spyOn(s.catalog, 'prepare').mockRejectedValueOnce(Error('replacement disk full'))
+    await expect(s.install('2.0.0')).rejects.toThrow('disk full')
+    expect(read).toHaveBeenCalledOnce()
+    expect(s.catalog.snapshot).toEqual(before)
+    expect(s.events).toEqual([])
+    await s.install('2.0.0')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.manifest.version).toBe('2.0.0')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+  })
+
+  it('rereads a durable replacement after a lost reply without approving or starting it', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    const prepare = s.catalog.prepare.bind(s.catalog)
+    vi.spyOn(s.catalog, 'prepare').mockImplementationOnce(async (request) => {
+      await prepare(request)
+      throw Error('reply lost after durable manual replacement')
+    })
+    await expect(s.install('2.0.0')).rejects.toThrow('reply lost')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.manifest.version).toBe('2.0.0')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+    expect(s.manager.state().records[0]?.manifest.version).toBe('2.0.0')
+    expect(s.events).toEqual([])
+    expect(s.catalog.events).not.toContain('approve')
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    expect(s.events).toContain('activate:2.0.0')
+    expect(s.manager.state().records[0]?.enabled).toBe(true)
+  })
+
+  it('refreshes authority when a later native replacement changes the prepare reply', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    const prepare = s.catalog.prepare.bind(s.catalog)
+    vi.spyOn(s.catalog, 'prepare').mockImplementationOnce(async (request) => {
+      await prepare(request)
+      const entry = s.catalog.snapshot.entries[0]!
+      return prepare({
+        archive: archive('3.0.0'),
+        sourcePath: '/other.milkup-plugin',
+        expectedRevision: entry.revision,
+        replacePending: manualReplacement(entry),
+      })
+    })
+    await expect(s.install('2.0.0')).rejects.toThrow('changed during import')
+    expect(s.manager.state().records[0]?.manifest.version).toBe('3.0.0')
+    expect(s.catalog.snapshot.entries[0]!.pending?.generation.approvedFingerprint).toBeNull()
+    expect(s.events).toEqual([])
   })
 })
 
@@ -1570,6 +1746,7 @@ describe('beta4 enable intent authority and lifecycle', () => {
         archive: archive('2.0.0'),
         sourcePath: 'other',
         expectedRevision: e.revision,
+        replacePending: manualReplacement(e),
       })
       ;(s.manager as any).applyCatalog(await s.catalog.read())
     })
@@ -1595,6 +1772,7 @@ describe('beta4 enable intent authority and lifecycle', () => {
           archive: archive('2.0.0'),
           sourcePath: 'other',
           expectedRevision: e.revision,
+          replacePending: manualReplacement(e),
         })
       }
       return s.catalog.read()

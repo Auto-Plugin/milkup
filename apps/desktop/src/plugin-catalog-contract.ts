@@ -61,8 +61,9 @@ export interface PluginCatalogPrepareRequest {
   readonly archive: PluginPackageArchive
   readonly sourcePath: string
   readonly expectedRevision: number | null
-  /** Host-only CAS for replacing an idle candidate from the same closed bundled catalog. */
+  /** Host-only CAS: bundled replacement by default; manualImport requires an explicit host import. */
   readonly replacePending?: CandidateIdentity & {
+    readonly mode?: 'manualImport'
     readonly generationId: string
     readonly sourcePath: string
   }

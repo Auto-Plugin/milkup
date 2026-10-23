@@ -21,6 +21,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 
+mod appearance_theme;
+mod appearance_theme_store;
 mod native_search;
 pub mod output;
 mod piece_tree;
@@ -1027,6 +1029,11 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            appearance_theme::appearance_theme_load,
+            appearance_theme::appearance_theme_read_candidate,
+            appearance_theme::appearance_theme_commit_candidate,
+            appearance_theme::appearance_theme_reset,
+            appearance_theme::appearance_theme_open_current,
             workspace::workspace_create_scope,
             workspace::workspace_choose_root,
             workspace::workspace_restore_root,

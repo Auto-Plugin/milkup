@@ -224,6 +224,24 @@ describe('legacy migration inspection', () => {
 })
 
 describe('beta4 host-only prepared replacement wire', () => {
+  it('forwards explicit manual import identity without changing the existing native command', async () => {
+    const invoke = vi.fn(async () => snapshot())
+    const catalog = createDesktopPluginCatalog(invoke)
+    const request = {
+      archive: { format: 'milkup-plugin', version: 1, manifest, files: [] } as any,
+      sourcePath: '/picked/new.milkup-plugin',
+      expectedRevision: 7,
+      replacePending: {
+        mode: 'manualImport' as const,
+        transactionId: 'txn-7',
+        generationId: 'gen-7',
+        sourcePath: 'bundled:old-fixture.milkup-plugin',
+        fingerprint,
+      },
+    }
+    await catalog.prepare(request)
+    expect(invoke).toHaveBeenCalledWith('plugin_catalog_prepare', request)
+  })
   it('passes exact replacement CAS identity through prepare without introducing a public plugin action', async () => {
     const invoke = vi.fn(async () => snapshot())
     const catalog = createDesktopPluginCatalog(invoke)

@@ -108,6 +108,7 @@ impl Instance {
             });
         }
         let mut child = command.spawn().map_err(|e| e.to_string())?;
+        native_trace("owner-child-started", Some(&id), None);
         drop(writer);
         drop(control_reader);
         let pid = child.id() as i32;
@@ -189,6 +190,7 @@ impl Instance {
             let result = (|| {
                 let bytes = serde_json::to_vec(&snapshot).map_err(|e| e.to_string())?;
                 let mut pipe = input.stdin.lock().map_err(|e| e.to_string())?;
+                native_trace("owner-snapshot-write-started", Some(&input.id), None);
                 pipe.write_all(&(bytes.len() as u32).to_le_bytes())
                     .and_then(|_| pipe.write_all(&bytes))
                     .and_then(|_| pipe.flush())
@@ -199,7 +201,10 @@ impl Instance {
                 input.input_wake.notify_all();
             }
             if let Err(error) = result {
+                native_trace("owner-snapshot-write-failed", Some(&input.id), None);
                 input.fail(error);
+            } else {
+                native_trace("owner-snapshot-written", Some(&input.id), None);
             }
         });
         Ok(instance)
@@ -294,6 +299,14 @@ impl Instance {
                 Some(render_trace_fields(&message)),
             );
         }
+        let activation = message["protocol"] == RPC_PROTOCOL && message["method"] == "activate";
+        if activation {
+            native_trace(
+                "owner-activation-dispatch",
+                Some(&self.id),
+                valid_id(&message),
+            );
+        }
         let result = (|| {
             let mut ready = self.input_ready.lock().map_err(|e| e.to_string())?;
             while !*ready {
@@ -318,12 +331,24 @@ impl Instance {
         })();
         if let Err(error) = &result {
             self.fail(error.clone());
+        } else if activation {
+            native_trace(
+                "owner-activation-written",
+                Some(&self.id),
+                valid_id(&message),
+            );
         }
         result
     }
     fn receive(&self, message: Value) {
         if message["protocol"] == RENDER_PROTOCOL && message["type"] == "result" {
             native_trace("owner-frame-received", Some(&self.id), valid_id(&message));
+        } else if message["protocol"] == RPC_PROTOCOL && message["type"] == "response" {
+            native_trace(
+                "owner-lifecycle-frame-received",
+                Some(&self.id),
+                valid_id(&message),
+            );
         }
         // All child parsing and payload sizing precede the final monotonic
         // settlement decision; no expensive serialization owns control.
@@ -343,6 +368,7 @@ impl Instance {
             self.fail("DOM initialization exceeded 10 seconds".into());
             return;
         }
+        let mut activation_accepted = false;
         if let Some((id, deadline)) = &control.active {
             if now >= *deadline {
                 let id = id.clone();
@@ -385,6 +411,7 @@ impl Instance {
                     return;
                 }
                 control.initialized = true;
+                activation_accepted = true;
             }
             control.rpc = None;
             control.rpc_deadline = None;
@@ -395,6 +422,12 @@ impl Instance {
         drop(control);
         if message["protocol"] == RENDER_PROTOCOL {
             native_trace("owner-result-accepted", Some(&self.id), valid_id(&message));
+        } else if activation_accepted {
+            native_trace(
+                "owner-activation-accepted",
+                Some(&self.id),
+                valid_id(&message),
+            );
         }
         (self.emit)(self.event("message", Some(message), None, None));
     }

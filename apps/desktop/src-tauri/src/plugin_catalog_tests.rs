@@ -1284,3 +1284,336 @@ fn beta4_bundled_replacement_records_new_source_without_forging_the_old_receipt(
         .iter()
         .any(|v| v.as_str().unwrap_or_default().contains(old_source)));
 }
+
+fn manual_replacement_identity(state: &Value) -> Value {
+    let mut identity = bundled_replacement_identity(state);
+    identity["mode"] = json!("manualImport");
+    identity
+}
+
+fn fail_current_candidate(f: &Fixture) -> Value {
+    let before = f.read();
+    let p = &before["entries"][0]["pending"];
+    f.action(json!({
+        "type":"failCandidate",
+        "transactionId":p["transactionId"],
+        "fingerprint":p["generation"]["capabilityFingerprint"],
+        "message":"RETAINED_ACTIVATION_FAILURE"
+    }))
+}
+
+#[test]
+fn beta6_manual_import_replaces_idle_candidate_without_approving_or_losing_history() {
+    for (has_history, failed) in [(false, true), (true, true), (true, false)] {
+        let f = Fixture::new();
+        if has_history {
+            f.install("1.0.0");
+            f.install("2.0.0");
+        }
+        let initial = f.read();
+        let mut old_package = archive("test.plugin", "3.0.0");
+        old_package["manifest"]["host"] = json!("dom");
+        prepare(
+            &f.0,
+            old_package,
+            "bundled:test.plugin-3.0.0.milkup-plugin".into(),
+            initial["entries"][0]["revision"].as_u64(),
+        )
+        .unwrap();
+        f.candidate_action("approve");
+        let before = if failed {
+            f.candidate_action("beginTrial");
+            fail_current_candidate(&f)
+        } else {
+            f.read()
+        };
+        let old = &before["entries"][0];
+        let module = Path::new(
+            old["pending"]["generation"]["packageRoot"]
+                .as_str()
+                .unwrap(),
+        )
+        .join("dist/main.js");
+        let old_bytes = std::fs::read(&module).unwrap();
+        for leaf in ["data", "storage"] {
+            std::fs::write(
+                f.0.join(format!("test.plugin/{leaf}/sentinel")),
+                leaf.as_bytes(),
+            )
+            .unwrap();
+        }
+        let after = prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", "4.0.0"),
+            "/picked/test.plugin-4.0.0.milkup-plugin".into(),
+            old["revision"].as_u64(),
+            Some(manual_replacement_identity(&before)),
+        )
+        .unwrap();
+        let current = &after["entries"][0];
+        assert_eq!(current["active"], old["active"]);
+        assert_eq!(current["previous"], old["previous"]);
+        assert_eq!(current["enabled"], old["enabled"]);
+        assert!(current["startAttempt"].is_null());
+        assert_eq!(current["pending"]["phase"], "prepared");
+        assert_ne!(
+            current["pending"]["transactionId"],
+            old["pending"]["transactionId"]
+        );
+        assert_ne!(
+            current["pending"]["generation"]["id"],
+            old["pending"]["generation"]["id"]
+        );
+        assert!(current["pending"]["generation"]["approvedFingerprint"].is_null());
+        assert_eq!(current["pending"]["generation"]["verified"], false);
+        assert_eq!(
+            current["pending"]["generation"]["manifest"]["host"],
+            "worker"
+        );
+        assert_ne!(
+            current["pending"]["generation"]["capabilityFingerprint"],
+            old["pending"]["generation"]["capabilityFingerprint"]
+        );
+        assert_eq!(
+            current["pending"]["generation"]["manifest"]["version"],
+            "4.0.0"
+        );
+        assert_eq!(std::fs::read(&module).unwrap(), old_bytes);
+        for leaf in ["data", "storage"] {
+            assert_eq!(
+                std::fs::read(f.0.join(format!("test.plugin/{leaf}/sentinel"))).unwrap(),
+                leaf.as_bytes()
+            );
+        }
+        for diagnostic in old["diagnostics"].as_array().unwrap() {
+            assert!(current["diagnostics"]
+                .as_array()
+                .unwrap()
+                .contains(diagnostic));
+        }
+        let committed_bytes = std::fs::read(f.0.join(CATALOG)).unwrap();
+        for kind in ["approve", "beginTrial", "abort"] {
+            assert!(transition(
+                &f.0,
+                "test.plugin",
+                current["revision"].as_u64().unwrap(),
+                json!({"type":kind,"transactionId":old["pending"]["transactionId"],"fingerprint":old["pending"]["generation"]["capabilityFingerprint"]}),
+            )
+            .is_err(), "old {kind} must not affect replacement");
+            assert_eq!(std::fs::read(f.0.join(CATALOG)).unwrap(), committed_bytes);
+        }
+        assert!(transition(
+            &f.0,
+            "test.plugin",
+            current["revision"].as_u64().unwrap(),
+            json!({"type":"beginTrial","transactionId":current["pending"]["transactionId"],"fingerprint":current["pending"]["generation"]["capabilityFingerprint"]}),
+        )
+        .is_err(), "replacement still requires its own explicit enable approval");
+        assert_eq!(
+            f.restart(),
+            after,
+            "reopen preserves the prepared replacement"
+        );
+    }
+}
+
+#[test]
+fn beta6_manual_import_can_stage_same_or_lower_version_without_expanding_bundled_policy() {
+    for version in ["1.0.0", "0.9.0"] {
+        let f = Fixture::new();
+        let source = "bundled:test.plugin-1.0.0.milkup-plugin";
+        let before = prepare(&f.0, archive("test.plugin", "1.0.0"), source.into(), None).unwrap();
+        let bytes = std::fs::read(f.0.join(CATALOG)).unwrap();
+        assert!(prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", version),
+            source.into(),
+            before["entries"][0]["revision"].as_u64(),
+            Some(bundled_replacement_identity(&before)),
+        )
+        .is_err());
+        assert_eq!(std::fs::read(f.0.join(CATALOG)).unwrap(), bytes);
+        let mut repaired = archive("test.plugin", version);
+        repaired["files"][0]["content"] = json!("export default { activate() { return {} } }");
+        let after = prepare_with_replacement(
+            &f.0,
+            repaired,
+            "/picked/explicit-replacement.milkup-plugin".into(),
+            before["entries"][0]["revision"].as_u64(),
+            Some(manual_replacement_identity(&before)),
+        )
+        .unwrap();
+        let candidate = &after["entries"][0]["pending"];
+        assert_eq!(candidate["generation"]["manifest"]["version"], version);
+        assert!(candidate["generation"]["approvedFingerprint"].is_null());
+        assert!(after["entries"][0]["active"].is_null());
+        assert_eq!(after["entries"][0]["enabled"], false);
+    }
+}
+
+#[test]
+fn beta6_manual_import_rejects_stale_or_busy_identity_and_invalid_packages_without_mutation() {
+    for case in [
+        "revision",
+        "transactionId",
+        "generationId",
+        "fingerprint",
+        "sourcePath",
+        "trial",
+        "startup",
+        "tombstone",
+        "invalid-mode",
+        "new-bundled",
+        "corrupt-old",
+        "invalid-new",
+    ] {
+        let f = Fixture::new();
+        f.install("1.0.0");
+        let mut before = f.prepare("2.0.0");
+        if case == "trial" {
+            before = f.candidate_action("beginTrial");
+        }
+        if case == "startup" {
+            before = f.action(
+                json!({"type":"startupBegin","generationId":before["entries"][0]["active"]["id"]}),
+            );
+        }
+        let mut identity = manual_replacement_identity(&before);
+        if ["transactionId", "generationId", "fingerprint", "sourcePath"].contains(&case) {
+            identity[case] = json!("wrong");
+        }
+        if case == "invalid-mode" {
+            identity["mode"] = json!("unrestricted");
+        }
+        if case == "tombstone" {
+            before = f.action(json!({"type":"remove"}));
+        }
+        if case == "corrupt-old" {
+            let module = Path::new(
+                before["entries"][0]["pending"]["generation"]["packageRoot"]
+                    .as_str()
+                    .unwrap(),
+            )
+            .join("dist/main.js");
+            std::fs::write(module, b"tampered candidate evidence").unwrap();
+        }
+        let mut next = archive("test.plugin", "3.0.0");
+        if case == "invalid-new" {
+            next["files"][0]["path"] = json!("../outside.js");
+        }
+        let bytes = std::fs::read(f.0.join(CATALOG)).unwrap();
+        let revision = before["entries"][0]["revision"].as_u64().unwrap();
+        let result = prepare_with_replacement(
+            &f.0,
+            next,
+            if case == "new-bundled" {
+                "bundled:forged.milkup-plugin"
+            } else {
+                "/picked/replacement.milkup-plugin"
+            }
+            .into(),
+            Some(if case == "revision" {
+                revision + 1
+            } else {
+                revision
+            }),
+            Some(identity),
+        );
+        assert!(result.is_err(), "case {case} must fail closed");
+        assert_eq!(
+            std::fs::read(f.0.join(CATALOG)).unwrap(),
+            bytes,
+            "case {case}"
+        );
+    }
+}
+
+#[test]
+fn beta6_manual_import_disk_failure_retains_old_candidate_and_data_then_retries() {
+    for point in ["stage-file", "before-catalog-replace"] {
+        let f = Fixture::new();
+        f.prepare("1.0.0");
+        f.candidate_action("approve");
+        f.candidate_action("beginTrial");
+        let before = fail_current_candidate(&f);
+        let module = Path::new(
+            before["entries"][0]["pending"]["generation"]["packageRoot"]
+                .as_str()
+                .unwrap(),
+        )
+        .join("dist/main.js");
+        let old_bytes = std::fs::read(&module).unwrap();
+        let catalog_bytes = std::fs::read(f.0.join(CATALOG)).unwrap();
+        let sentinel = f.0.join("test.plugin/data/sentinel");
+        std::fs::write(&sentinel, b"retained user data").unwrap();
+        FAILURE.with(|v| *v.borrow_mut() = Some((point, 0)));
+        let failed = prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", "2.0.0"),
+            "/picked/replacement.milkup-plugin".into(),
+            before["entries"][0]["revision"].as_u64(),
+            Some(manual_replacement_identity(&before)),
+        );
+        FAILURE.with(|v| *v.borrow_mut() = None);
+        assert!(failed.is_err(), "fault {point} must fail");
+        assert_eq!(std::fs::read(f.0.join(CATALOG)).unwrap(), catalog_bytes);
+        assert_eq!(f.read(), before);
+        assert_eq!(std::fs::read(&module).unwrap(), old_bytes);
+        assert_eq!(std::fs::read(&sentinel).unwrap(), b"retained user data");
+        let retried = prepare_with_replacement(
+            &f.0,
+            archive("test.plugin", "2.0.0"),
+            "/picked/replacement.milkup-plugin".into(),
+            before["entries"][0]["revision"].as_u64(),
+            Some(manual_replacement_identity(&before)),
+        )
+        .unwrap();
+        assert_eq!(
+            retried["entries"][0]["pending"]["generation"]["manifest"]["version"],
+            "2.0.0"
+        );
+        assert!(retried["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+        assert_eq!(std::fs::read(sentinel).unwrap(), b"retained user data");
+    }
+}
+
+#[test]
+fn beta6_manual_import_concurrent_replacements_accept_only_one_exact_revision() {
+    let f = Fixture::new();
+    let before = f.prepare("1.0.0");
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let handles: Vec<_> = ["2.0.0", "3.0.0"]
+        .into_iter()
+        .map(|version| {
+            let root = f.0.clone();
+            let barrier = barrier.clone();
+            let identity = manual_replacement_identity(&before);
+            let revision = before["entries"][0]["revision"].as_u64();
+            std::thread::spawn(move || {
+                barrier.wait();
+                prepare_with_replacement(
+                    &root,
+                    archive("test.plugin", version),
+                    "/picked/replacement.milkup-plugin".into(),
+                    revision,
+                    Some(identity),
+                )
+            })
+        })
+        .collect();
+    let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+    assert!(results
+        .iter()
+        .find_map(|result| result.as_ref().err())
+        .unwrap()
+        .contains("conflict"));
+    let current = f.read();
+    assert_eq!(
+        current["entries"][0]["revision"].as_u64().unwrap(),
+        before["entries"][0]["revision"].as_u64().unwrap() + 1
+    );
+    assert!(current["entries"][0]["pending"]["generation"]["approvedFingerprint"].is_null());
+    assert!(current["entries"][0]["active"].is_null());
+    assert_eq!(current["entries"][0]["enabled"], false);
+}

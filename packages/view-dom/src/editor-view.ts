@@ -95,6 +95,24 @@ const defaultViewMetrics: ViewMetrics = Object.freeze({
   lineHeight: 20,
 })
 
+/** Read browser-computed root metrics, never source text or editor state.
+ * Numeric unitless line-height is useful for DOM test hosts; browsers resolve it
+ * to px. Unresolved/detached styles retain the host's explicit base metrics. */
+export function readEditorLayoutMetrics(dom: HTMLElement, fallback: ViewMetrics): ViewMetrics {
+  const style = dom.ownerDocument.defaultView?.getComputedStyle(dom)
+  const fontSize = Number.parseFloat(style?.fontSize ?? '')
+  const line = style?.lineHeight.trim() ?? ''
+  const numeric = Number.parseFloat(line)
+  const lineHeight = /^[0-9.]+$/.test(line) ? numeric * fontSize : /px$/.test(line) ? numeric : NaN
+  return {
+    lineHeight: Number.isFinite(lineHeight) && lineHeight > 0 ? lineHeight : fallback.lineHeight,
+    charWidth:
+      Number.isFinite(fontSize) && fontSize > 0
+        ? (defaultViewMetrics.charWidth * fontSize) / 14
+        : fallback.charWidth,
+  }
+}
+
 const defaultEditorContentInset = Object.freeze({
   left: 26,
   top: 24,
@@ -151,6 +169,7 @@ export class EditorView {
   private readonly documentPresentation: DocumentPresentation
   private readonly virtualViewport: VirtualViewportState | undefined
   private presentation: EditorPresentation | undefined
+  private layoutMetrics: ViewMetrics | undefined
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
   private readonly handleInputEvent = (): void => {
@@ -314,6 +333,7 @@ export class EditorView {
       this.presentation = validatePresentation(config.presentation)
       applyPresentation(this.dom, this.presentation)
     }
+    this.readLayoutMetrics()
     this.render()
   }
 
@@ -340,9 +360,12 @@ export class EditorView {
   }
 
   get lineHeight(): number {
-    return this.presentation
-      ? this.presentation.fontSize * this.presentation.lineHeight
-      : (this.virtualViewport?.lineHeight ?? defaultViewMetrics.lineHeight)
+    return (
+      this.layoutMetrics?.lineHeight ??
+      (this.presentation
+        ? this.presentation.fontSize * this.presentation.lineHeight
+        : (this.virtualViewport?.lineHeight ?? defaultViewMetrics.lineHeight))
+    )
   }
 
   setPresentation(value: EditorPresentation): void {
@@ -352,20 +375,31 @@ export class EditorView {
       this.presentation = next
       return
     }
+    this.presentation = next
+    applyPresentation(this.dom, next)
+    this.refreshLayout()
+  }
+
+  /** Remeasure already-applied root typography without replacing the input,
+   * document, selection or history. Hosts must keep source rows at one uniform
+   * root line-height; arbitrary per-row vertical CSS is not supported. */
+  refreshLayout(): void {
+    if (this.destroyed) return
     const scrollLine = this.dom.scrollTop / this.lineHeight
+    const scrollLeft = this.dom.scrollLeft
     const codeScroll = new Map(
       Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code'), (line) => [
         line.dataset.line,
         line.scrollLeft,
       ]),
     )
-    this.presentation = next
-    applyPresentation(this.dom, next)
+    this.readLayoutMetrics()
     const scrollTop = scrollLine * this.lineHeight
     this.render()
-    // Install the new scroll extent before assigning an offset that could have
-    // been clamped against the previous, shorter document.
+    // Install the new extent before assigning an offset that the old extent
+    // could clamp. The input proxy and its in-progress IME value stay attached.
     this.dom.scrollTop = scrollTop
+    this.dom.scrollLeft = scrollLeft
     if (this.shouldUseVirtualViewport()) this.renderVirtualViewport()
     this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code').forEach((line) => {
       line.scrollLeft = codeScroll.get(line.dataset.line) ?? 0
@@ -373,14 +407,20 @@ export class EditorView {
     this.renderSelectionAndCursor()
   }
 
+  private readLayoutMetrics(): void {
+    this.layoutMetrics = readEditorLayoutMetrics(this.dom, {
+      lineHeight: this.presentation
+        ? this.presentation.fontSize * this.presentation.lineHeight
+        : (this.virtualViewport?.lineHeight ?? defaultViewMetrics.lineHeight),
+      charWidth: (defaultViewMetrics.charWidth * (this.presentation?.fontSize ?? 14)) / 14,
+    })
+    // Scope the row minimum to content. Rewriting the root variable could feed
+    // a root calc()/var() line-height back into itself, or survive theme removal.
+    this.contentDOM.style.setProperty('--milkup-line-height', `${this.lineHeight}px`)
+  }
+
   private presentationMetrics(metrics?: Partial<ViewMetrics>): Partial<ViewMetrics> {
-    return {
-      lineHeight: this.lineHeight,
-      ...(this.presentation
-        ? { charWidth: (defaultViewMetrics.charWidth * this.presentation.fontSize) / 14 }
-        : {}),
-      ...metrics,
-    }
+    return { ...this.layoutMetrics, lineHeight: this.lineHeight, ...metrics }
   }
 
   get state(): EditorState {

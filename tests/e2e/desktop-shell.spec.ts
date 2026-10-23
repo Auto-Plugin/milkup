@@ -1422,7 +1422,7 @@ test('phase10 live table arrows skip delimiters and protect shifted cell selecti
   await page.screenshot({ path: testInfo.outputPath('table-arrows.png') })
 })
 
-test('phase16 modal menu contains keyboard focus and closes ahead of background search', async ({
+test('menu and titlebar contain keyboard focus and close ahead of background search', async ({
   page,
 }) => {
   await page.goto('/')
@@ -1432,7 +1432,13 @@ test('phase16 modal menu contains keyboard focus and closes ahead of background 
   await page.keyboard.press('Shift+Tab')
   await page.keyboard.press('Shift+Tab')
   expect(
-    await page.locator('[data-app-menu]').evaluate((e) => e.contains(document.activeElement)),
+    await page
+      .locator('[data-app-menu]')
+      .evaluate(
+        (e) =>
+          e.contains(document.activeElement) ||
+          !!document.querySelector('.titlebar')?.contains(document.activeElement),
+      ),
   ).toBe(true)
   await page.keyboard.press('Escape')
   await expect(page.locator('[data-app-menu]')).toBeHidden()
@@ -1625,7 +1631,7 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
   expect(field!.y + field!.height).toBeLessThanOrEqual(content!.y + content!.height)
 })
 
-test('beta3 menu covers inert titlebar and retains an accessible close button', async ({
+test('menu preserves the interactive titlebar and retains an accessible close button', async ({
   page,
 }) => {
   await page.goto('/')
@@ -1634,7 +1640,13 @@ test('beta3 menu covers inert titlebar and retains an accessible close button', 
     await page.locator('[data-app-menu]').evaluate((menu) => {
       const rect = menu.getBoundingClientRect()
       const top = document.elementFromPoint(20, 10)
-      return rect.top === 0 && !!top && menu.contains(top)
+      const titlebar = document.querySelector<HTMLElement>('.titlebar')!
+      return (
+        rect.top === titlebar.getBoundingClientRect().bottom &&
+        !titlebar.inert &&
+        !!top &&
+        titlebar.contains(top)
+      )
     }),
   ).toBe(true)
   await page.getByRole('button', { name: '关闭菜单', exact: true }).click()

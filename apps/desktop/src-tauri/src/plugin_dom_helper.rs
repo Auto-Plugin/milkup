@@ -87,6 +87,7 @@ fn run_inner() -> Result<(), String> {
     }
     let mut bytes = vec![0; length];
     input.read_exact(&mut bytes).map_err(|e| e.to_string())?;
+    native_trace("helper-snapshot-read", None, None);
     let snapshot: Snapshot = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
     drop(bytes);
     let plugin_id = snapshot.manifest["id"]
@@ -98,12 +99,14 @@ fn run_inner() -> Result<(), String> {
     {
         return Err("DOM snapshot digest mismatch".into());
     }
+    native_trace("helper-snapshot-validated", None, None);
     let token = opaque_id()?;
     let extension = PathBuf::from(
         std::env::var_os("MILKUP_INTERNAL_DOM_GUARD_DIR")
             .ok_or("Missing owned native extension directory")?,
     );
     gtk::init().map_err(|e| e.to_string())?;
+    native_trace("helper-gtk-ready", None, None);
     let window = gtk::Window::new(gtk::WindowType::Toplevel);
     window.set_title("Independent plugin document renderer");
     window.set_default_size(1024, 768);
@@ -131,11 +134,16 @@ fn run_inner() -> Result<(), String> {
             .map(|s| s.to_string())
             .unwrap_or_default();
         let (status, mime, body) = match (method.as_str(), uri.as_str()) {
-            ("GET", URL) => (200, "text/html; charset=utf-8", HTML),
+            ("GET", URL) => {
+                native_trace("helper-index-requested", None, None);
+                (200, "text/html; charset=utf-8", HTML)
+            }
             ("GET", "milkup-dom://job/bootstrap.js") => {
+                native_trace("helper-bootstrap-requested", None, None);
                 (200, "text/javascript; charset=utf-8", BOOTSTRAP)
             }
             ("GET", "milkup-dom://job/module.js") => {
+                native_trace("helper-module-requested", None, None);
                 (200, "text/javascript; charset=utf-8", module.as_slice())
             }
             _ => (403, "text/plain; charset=utf-8", b"denied".as_slice()),
@@ -163,6 +171,7 @@ fn run_inner() -> Result<(), String> {
     context.connect_user_message_received(move |_, message| match message.name().as_deref() {
         Some("milkup-dom-native-guard-ready-v1") => {
             guard_observed.set(true);
+            native_trace("helper-guard-ready", None, None);
             true
         }
         Some("milkup-dom-native-guard-deny-v1") => {
@@ -232,6 +241,7 @@ fn run_inner() -> Result<(), String> {
     view.connect_load_changed(move |view, event| {
         if event == webkit2gtk::LoadEvent::Finished && view.uri().as_deref() == Some(URL) {
             load_observed.set(true);
+            native_trace("helper-index-loaded", None, None);
         }
     });
     window.add(&view);
@@ -261,6 +271,7 @@ fn run_inner() -> Result<(), String> {
             if loaded.get() && guard_ready.get() && !init_started.replace(true) {
                 let ready = ready.clone();
                 // Inject before plugin import; no token enters a resource or DOM.
+                native_trace("helper-init-submitted", None, None);
                 native.evaluate_javascript(
                     &init_script,
                     None,
@@ -269,7 +280,9 @@ fn run_inner() -> Result<(), String> {
                     move |result| {
                         if result.is_ok() {
                             ready.set(true);
+                            native_trace("helper-init-completed", None, None);
                         } else {
+                            native_trace("helper-init-failed", None, None);
                             gtk::main_quit();
                         }
                     },
@@ -281,6 +294,7 @@ fn run_inner() -> Result<(), String> {
             return glib::ControlFlow::Continue;
         }
         let mut traced_request = None;
+        let mut traced_activation = None;
         let script = match receiver.try_recv() {
             Ok(Some(bytes)) => {
                 let Ok(message) = std::str::from_utf8(&bytes) else {
@@ -291,6 +305,10 @@ fn run_inner() -> Result<(), String> {
                     traced_request = trace_render_id(message, "render").map(str::to_owned);
                     if let Some(id) = traced_request.as_deref() {
                         native_trace("helper-dequeued", None, Some(id));
+                    }
+                    traced_activation = trace_rpc_id(message, Some("activate")).map(str::to_owned);
+                    if let Some(id) = traced_activation.as_deref() {
+                        native_trace("helper-activation-dequeued", None, Some(id));
                     }
                 }
                 format!("this.__milkupDom({dispatch_token},{message})")
@@ -320,6 +338,9 @@ fn run_inner() -> Result<(), String> {
                 if let Some(id) = traced_request.as_deref() {
                     native_trace("helper-eval-callback", None, Some(id));
                 }
+                if let Some(id) = traced_activation.as_deref() {
+                    native_trace("helper-activation-eval-callback", None, Some(id));
+                }
                 busy.set(false);
                 let result = result
                     .ok()
@@ -336,6 +357,11 @@ fn run_inner() -> Result<(), String> {
                         if let Some(id) = traced_result {
                             native_trace("helper-result-drained", None, Some(id));
                         }
+                        let traced_rpc =
+                            diagnostics.then(|| trace_rpc_id(&message, None)).flatten();
+                        if let Some(id) = traced_rpc {
+                            native_trace("helper-lifecycle-result-drained", None, Some(id));
+                        }
                         let mut output = output.borrow_mut();
                         if output
                             .write_all(message.as_bytes())
@@ -346,6 +372,8 @@ fn run_inner() -> Result<(), String> {
                             gtk::main_quit();
                         } else if let Some(id) = traced_result {
                             native_trace("helper-frame-forwarded", None, Some(id));
+                        } else if let Some(id) = traced_rpc {
+                            native_trace("helper-lifecycle-frame-forwarded", None, Some(id));
                         }
                     }
                     _ => gtk::main_quit(),
@@ -354,6 +382,7 @@ fn run_inner() -> Result<(), String> {
         );
         glib::ControlFlow::Continue
     });
+    native_trace("helper-load-submitted", None, None);
     view.load_uri(URL);
     gtk::main();
     Ok(())
@@ -381,9 +410,59 @@ fn trace_render_id<'a>(message: &'a str, expected_type: &str) -> Option<&'a str>
     .then_some(envelope.id)
 }
 
+// This observes only a bounded lifecycle identity. It never reads plugin input,
+// output, exceptions, source paths, or the private bootstrap token, and it never
+// participates in accepting a request/result or extending an existing deadline.
+fn trace_rpc_id<'a>(message: &'a str, method: Option<&str>) -> Option<&'a str> {
+    #[derive(Deserialize)]
+    struct Envelope<'a> {
+        protocol: &'a str,
+        #[serde(rename = "type")]
+        kind: &'a str,
+        id: &'a str,
+        method: Option<&'a str>,
+    }
+    let envelope = serde_json::from_str::<Envelope<'_>>(message).ok()?;
+    (envelope.protocol == RPC_PROTOCOL
+        && match method {
+            Some(expected) => envelope.kind == "request" && envelope.method == Some(expected),
+            None => envelope.kind == "response",
+        }
+        && !envelope.id.is_empty()
+        && envelope.id.len() <= 80
+        && envelope
+            .id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'))
+    .then_some(envelope.id)
+}
+
 #[cfg(test)]
 mod diagnostic_tests {
     use super::*;
+    #[test]
+    fn lifecycle_trace_skips_contents_and_never_confuses_render_or_other_methods() {
+        let request = json!({"protocol":RPC_PROTOCOL,"type":"request","id":"rpc_1",
+            "method":"activate","payload":{"private":"not logged"}})
+        .to_string();
+        assert_eq!(trace_rpc_id(&request, Some("activate")), Some("rpc_1"));
+        assert_eq!(trace_rpc_id(&request, Some("dispose")), None);
+        assert_eq!(trace_rpc_id(&request, None), None);
+        let response = json!({"protocol":RPC_PROTOCOL,"type":"response","id":"rpc_1",
+            "ok":true,"value":{"private":"not logged"}})
+        .to_string();
+        assert_eq!(trace_rpc_id(&response, None), Some("rpc_1"));
+        assert_eq!(trace_rpc_id(&response, Some("activate")), None);
+        for input in [
+            "null".to_string(),
+            "broken".to_string(),
+            json!({"protocol":RENDER_PROTOCOL,"type":"response","id":"rpc_1"}).to_string(),
+            json!({"protocol":RPC_PROTOCOL,"type":"response","id":"private text"}).to_string(),
+            json!({"protocol":RPC_PROTOCOL,"type":"response","id":"a".repeat(81)}).to_string(),
+        ] {
+            assert_eq!(trace_rpc_id(&input, None), None);
+        }
+    }
     #[test]
     fn diagnostic_envelope_read_is_content_free_and_never_authorizes_messages() {
         let message = json!({"protocol":RENDER_PROTOCOL,"type":"render","id":"render_1",

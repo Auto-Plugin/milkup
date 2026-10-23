@@ -5,3 +5,7 @@ pub use url::Url;
 
 #[path = "../../../../apps/desktop/src-tauri/src/plugin_catalog.rs"]
 pub mod plugin_catalog;
+
+// Compile the production theme store against the same production disk primitives.
+#[path = "../../../../apps/desktop/src-tauri/src/appearance_theme_store.rs"]
+pub mod appearance_theme_store;

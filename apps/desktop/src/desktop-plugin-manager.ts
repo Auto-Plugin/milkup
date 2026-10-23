@@ -1002,17 +1002,78 @@ export class DesktopPluginManager {
         throw new Error(`Plugin host is not allowed: ${manifest.host}`)
       const errors = validatePluginCompatibility(manifest, this.compatibility)
       if (errors.length) throw new Error(errors.join('; '))
+      // Capture the selected candidate before waiting behind another lifecycle
+      // gesture. A later import must never silently replace a different package.
+      const importIntent = this.catalog ? this.catalogEntry(manifest.id) : undefined
       return await this.runPluginLifecycle(manifest.id, async () => {
         if (this.catalog) {
           if (!archive)
             throw new Error('Catalog installation requires a complete sealed plugin package')
-          this.applyCatalog(
-            await this.catalog.prepare({
-              archive,
-              sourcePath: path,
-              expectedRevision: this.catalogEntry(manifest.id)?.revision ?? null,
-            }),
+          const current = this.catalogEntry(manifest.id)
+          if (
+            current?.revision !== importIntent?.revision ||
+            current?.pending?.transactionId !== importIntent?.pending?.transactionId ||
+            current?.pending?.generation.id !== importIntent?.pending?.generation.id ||
+            current?.pending?.generation.sourcePath !==
+              importIntent?.pending?.generation.sourcePath ||
+            current?.pending?.generation.capabilityFingerprint !==
+              importIntent?.pending?.generation.capabilityFingerprint
           )
+            throw new Error('Plugin changed before import; select the package again')
+          const pending = importIntent?.pending
+          const replacing = pending && !path.startsWith('bundled:')
+          if (
+            replacing &&
+            (importIntent.tombstone || importIntent.startAttempt || pending.phase !== 'prepared')
+          )
+            throw new Error(
+              'Plugin candidate is not idle; wait for the current operation before importing',
+            )
+          try {
+            this.applyCatalog(
+              await this.catalog.prepare({
+                archive,
+                sourcePath: path,
+                expectedRevision: importIntent?.revision ?? null,
+                ...(replacing
+                  ? {
+                      replacePending: {
+                        mode: 'manualImport',
+                        transactionId: pending.transactionId,
+                        generationId: pending.generation.id,
+                        sourcePath: pending.generation.sourcePath,
+                        fingerprint: pending.generation.capabilityFingerprint,
+                      },
+                    }
+                  : {}),
+              }),
+            )
+            const staged = this.requireCatalogEntry(manifest.id)
+            const candidate = staged.pending
+            if (
+              staged.revision !== (importIntent?.revision ?? 0) + 1 ||
+              staged.tombstone ||
+              !candidate ||
+              candidate.phase !== 'prepared' ||
+              candidate.transactionId === pending?.transactionId ||
+              candidate.generation.sourcePath !== path ||
+              comparableManifest(candidate.generation.manifest) !== comparableManifest(manifest) ||
+              (replacing && candidate.generation.approvedFingerprint !== null)
+            )
+              throw new Error(
+                'Plugin changed during import; review the current candidate before enabling',
+              )
+          } catch (error) {
+            // A rejected/malformed reply can follow a durable native commit.
+            // Refresh authority for the next gesture; this import never approves
+            // or starts either the old or the replacement candidate.
+            try {
+              this.applyCatalog(await this.catalog.read())
+            } catch (recovery) {
+              this.managerDiagnostics.push('Plugin import recovery failed: ' + String(recovery))
+            }
+            throw error
+          }
           this.clearInstallFailure(path)
           return this.requireDisplayRecord(manifest.id)
         }
@@ -3162,6 +3223,20 @@ function readPluginIdInput(input: unknown): string {
   }
 
   return pluginId
+}
+
+// Both inputs have passed manifest validation. Native JSON maps may reorder
+// settings/default keys; compare their data without treating that as a new package.
+function comparableManifest(manifest: PluginManifest): string {
+  return JSON.stringify(manifest, (_key, value: unknown) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(
+          Object.keys(value)
+            .sort()
+            .map((key) => [key, (value as Record<string, unknown>)[key]]),
+        )
+      : value,
+  )
 }
 
 function parseManifestJson(text: string, path: string): unknown {

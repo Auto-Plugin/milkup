@@ -2,6 +2,7 @@ import { formatDisplayPath } from './display-path'
 import { recoveryStatusText } from './recovery-status-presentation'
 import { LargeDocumentSource } from './large-document-source'
 import { moveDesktopFocus, restoreDesktopFocus } from './desktop-focus'
+import { TitlebarMenu, isTitlebarDragGesture } from './titlebar-menu'
 import { locateDocumentPresentationTarget } from './document-navigation'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
 import { createDesktopOutputService } from './output-service'
@@ -14,6 +15,12 @@ import { validateClosedWorkerBundle } from './closed-worker-bundle'
 import { createDesktopPluginWorker } from './plugin-worker-factory'
 import { loadDesktopPluginIcon } from './plugin-icon'
 import { zoomLevels, type ThemePreference } from './appearance'
+import { createAppearancePanel } from './appearance-panel'
+import {
+  browserThemeBackend,
+  createThemeStyleController,
+  nativeThemeBackend,
+} from './appearance-theme'
 import { createDesktopSettingsService } from './settings-service'
 import { createDesktopEditingService, type DesktopEditingCurrent } from './editing-service'
 import { createKeymapService } from './keymap-service'
@@ -105,6 +112,7 @@ import type {
   DocumentPresentationConfig,
 } from '@milkup/view-dom'
 import {
+  ArrowLeft,
   Bug,
   Code2,
   ChevronDown,
@@ -119,6 +127,7 @@ import {
   Menu,
   PanelLeft,
   PanelLeftClose,
+  Palette,
   Plug,
   RotateCcw,
   RefreshCw,
@@ -214,6 +223,9 @@ let editorPresentation: EditorPresentation = Object.freeze({
   indentation: 'spaces-2',
 })
 let appliedTheme: ThemePreference = 'system'
+let appearancePanel: ReturnType<typeof createAppearancePanel> | undefined
+let refreshAppearanceViews: (() => Promise<void>) | undefined
+let themeLayoutPending: Promise<void> = Promise.resolve()
 let appliedZoom = 1
 const largePreviewLineCount = 80
 const appProductName = 'milkup'
@@ -232,6 +244,7 @@ const messages = {
   buttons: {
     menu: '菜单',
     closeMenu: '关闭菜单',
+    backToDocument: '返回正文',
     sidebar: '侧栏',
     search: '搜索',
     closeSearch: '关闭搜索',
@@ -356,7 +369,7 @@ app.innerHTML = `
       </div>
     </header>
     <section class="app-menu" data-app-menu hidden>
-      <div class="app-menu-surface" role="dialog" aria-modal="true" aria-label="${messages.buttons.menu}">
+      <div class="app-menu-surface" role="dialog" aria-label="${messages.buttons.menu}">
         <header class="app-menu-header">
           <div>
             <h2>${messages.buttons.menu}</h2>
@@ -369,6 +382,7 @@ app.innerHTML = `
           <nav class="app-menu-nav" aria-label="菜单分类">
             ${menuNavButton('file', messages.menu.file, FileText, true)}
             ${menuNavButton('plugins', messages.menu.plugins, Plug)}
+            ${menuNavButton('appearance', messages.menu.appearance, Palette)}
             ${menuNavButton('about', messages.menu.about, Info)}
           </nav>
           <section class="app-menu-section" data-menu-panel="file">
@@ -433,6 +447,7 @@ app.innerHTML = `
             <div data-plugin-manager></div>
             <div data-plugin-slot="menu-page"></div>
           </section>
+          <section class="app-menu-section" data-menu-panel="appearance" hidden></section>
           <section class="app-menu-section" data-menu-panel="about" hidden>
             <h3>${messages.menu.about}</h3>
             <dl class="metadata-list menu-info-list">
@@ -601,6 +616,11 @@ let sidebarCollapsed = true
 let sidebarWidth = initialSidebarWidth
 let menuOpen = false
 let menuReturnFocus: HTMLElement | null = null
+let menuLastFocus: HTMLElement | null = null
+const titlebarMenu = new TitlebarMenu(
+  appRoot.querySelector<HTMLElement>('[data-app-menu]')!,
+  appRoot.querySelector<HTMLElement>('.titlebar')!,
+)
 let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
 let activeSearchResultIndex = -1
@@ -616,6 +636,7 @@ let customDocumentOutput: ControlledRendererOutput | undefined
 let customDocumentTitle: string | undefined
 let windowMaximized = false
 let closeConfirmOpen = false
+let closeConfirmReturnFocus: HTMLElement | null = null
 let applicationUpdateInstalling = false
 let recoveryDialogOpen = false
 let restoringResourceCopy = false
@@ -899,6 +920,11 @@ function refreshSystemTheme(): void {
     appliedTheme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : appliedTheme
   view?.invalidateDocumentPresentation()
   sourceView?.invalidateDocumentPresentation()
+  appearancePanel?.refresh()
+  if (refreshAppearanceViews) {
+    themeLayoutPending = refreshAppearanceViews()
+    void themeLayoutPending.catch(reportSettingsError)
+  }
 }
 function reportSettingsError(error: unknown): void {
   importantNotice = true
@@ -1749,6 +1775,73 @@ renderPluginManager()
 
 view = createEditorView()
 
+const themeStyleElement = document.createElement('style')
+themeStyleElement.dataset.appearanceTheme = 'true'
+document.head.append(themeStyleElement)
+let appearanceDisposed = false
+refreshAppearanceViews = async () => {
+  if (appearanceDisposed) return
+  desktopDocumentPresentation.invalidate()
+  // A file/mode change can replace a view while its async layout is pending.
+  // Refresh the current instance without resetting input, selection, or history.
+  for (;;) {
+    const currentView = view
+    const currentSource = sourceView
+    await currentView?.refreshLayout()
+    await currentSource?.refreshLayout()
+    if (appearanceDisposed || (currentView === view && currentSource === sourceView)) break
+  }
+  if (!appearanceDisposed) {
+    view?.invalidateDocumentPresentation()
+    sourceView?.invalidateDocumentPresentation()
+    desktopPluginUi.reconcileDocumentToolbar()
+  }
+}
+const themeStyles = createThemeStyleController({
+  backend: isTauriRuntime() ? nativeThemeBackend() : browserThemeBackend(),
+  supports: (property, value) => CSS.supports(property, value),
+  apply: async ({ css }) => {
+    const previous = themeStyleElement.textContent
+    themeStyleElement.textContent = css
+    try {
+      themeLayoutPending = refreshAppearanceViews!()
+      await themeLayoutPending
+    } catch (error) {
+      if (appearanceDisposed) return
+      themeStyleElement.textContent = previous
+      try {
+        await refreshAppearanceViews!()
+      } catch (restoreError) {
+        throw new Error(
+          `主题布局刷新与恢复均失败：${getErrorMessage(error)}；${getErrorMessage(restoreError)}。磁盘主题记录未回退。`,
+        )
+      }
+      throw new Error(
+        `主题布局刷新失败，当前窗口已恢复先前样式；磁盘主题记录未回退。${getErrorMessage(error)}`,
+      )
+    }
+  },
+})
+appearancePanel = createAppearancePanel({
+  container: appRoot.querySelector<HTMLElement>('[data-menu-panel="appearance"]')!,
+  styles: themeStyles,
+  getMode: () => appliedTheme,
+  changeMode: async (mode) => {
+    await desktopSettings.changeApplication({ 'appearance.theme': mode })
+    await themeLayoutPending
+  },
+  chooseFile: async () => {
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const selected = await open({
+      multiple: false,
+      directory: false,
+      filters: [{ name: 'CSS 主题', extensions: ['css'] }],
+    })
+    return typeof selected === 'string' ? selected : null
+  },
+  native: isTauriRuntime(),
+})
+
 renderSession()
 updateModeToggle(view.viewMode)
 focusActiveView()
@@ -1760,6 +1853,7 @@ void waitForNextPaint().then(() => {
 const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
 void initialDocumentOpenPromise.finally(async () => {
   await settingsReady
+  await themeStyles.ready
   void showStartupWindow()
   if (recovery) void recoveryUi.open(false, true)
 })
@@ -2057,25 +2151,7 @@ for (const button of Array.from(
 }
 
 appRoot.addEventListener('pointerdown', (event) => {
-  if (event.button !== 0 || platform !== 'windows') {
-    return
-  }
-
-  const target = event.target
-
-  if (!(target instanceof HTMLElement) || !target.closest('[data-window-drag-region]')) {
-    return
-  }
-
-  if (
-    target.closest(
-      'button, input, textarea, a, .window-controls, [data-plugin-slot="document-toolbar"]',
-    )
-  ) {
-    return
-  }
-
-  void startWindowDrag()
+  if (isTauriRuntime() && isTitlebarDragGesture(event)) startWindowDrag()
 })
 
 globalThis.addEventListener(
@@ -2105,7 +2181,10 @@ globalThis.addEventListener(
     if (event.isComposing || event.keyCode === 229) return
     if (event.target instanceof HTMLElement && event.target.closest('.plugin-ui-modal')) return
     if (menuOpen && (event.key === 'Tab' || event.code === 'Tab')) {
-      const controls = visibleFocusTargets(appRoot.querySelector('[data-app-menu]')!)
+      const controls = [
+        ...visibleFocusTargets(appRoot.querySelector('.titlebar')!),
+        ...visibleFocusTargets(appRoot.querySelector('[data-app-menu]')!),
+      ]
       const index = controls.indexOf(document.activeElement as HTMLElement)
       const next = (index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length
       event.preventDefault()
@@ -4347,36 +4426,39 @@ function cycleWorkspaceFocus(backward: boolean): void {
 }
 
 function setMenuOpen(open: boolean): void {
-  const wasOpen = menuOpen
-  if (open && !wasOpen)
+  if (menuOpen === open) return
+  const reversingClose = open && titlebarMenu.phase === 'closing'
+  if (open && !reversingClose)
     menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  if (!open)
+    menuLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
   menuOpen = open
+  titlebarMenu.setOpen(open)
   setTransitionBackgroundInert(closeConfirmOpen)
   desktopPluginUi.reconcileDocumentToolbar()
   editorContextMenu.reconcile()
-  const menu = appRoot.querySelector<HTMLElement>('[data-app-menu]')
-  const toggle = appRoot.querySelector<HTMLButtonElement>('[data-menu-toggle]')
-
-  if (menu) {
-    menu.hidden = !open
-  }
-
-  if (toggle) {
-    toggle.setAttribute('aria-expanded', String(open))
-  }
+  const toggle = appRoot.querySelector<HTMLButtonElement>('[data-menu-toggle]')!
+  const label = open ? messages.buttons.backToDocument : messages.buttons.menu
+  toggle.setAttribute('aria-expanded', String(open))
+  toggle.setAttribute('aria-label', label)
+  toggle.title = label
+  toggle.innerHTML = iconSvg(open ? ArrowLeft : Menu)
 
   if (open) {
-    showMenuSection('file')
-    for (const panel of Array.from(
-      appRoot.querySelectorAll<HTMLDetailsElement>('.developer-panel'),
-    )) {
-      panel.open = false
+    if (!reversingClose) {
+      showMenuSection('file')
+      for (const panel of Array.from(
+        appRoot.querySelectorAll<HTMLDetailsElement>('.developer-panel'),
+      )) {
+        panel.open = false
+      }
     }
-    appRoot.querySelector<HTMLButtonElement>('[data-menu-section="file"]')?.focus()
-  } else if (wasOpen) {
-    const target = menuReturnFocus
-    menuReturnFocus = null
-    restoreDesktopFocus(target, focusActiveView)
+    const focusMenu = () =>
+      appRoot.querySelector<HTMLButtonElement>('[data-menu-section][data-active="true"]')?.focus()
+    if (reversingClose) restoreDesktopFocus(menuLastFocus, focusMenu)
+    else focusMenu()
+  } else {
+    restoreDesktopFocus(menuReturnFocus, focusActiveView)
   }
 }
 
@@ -5106,6 +5188,9 @@ function startWindowDrag(): void {
 
 function openWindowConfirm(): void {
   const wasOpen = closeConfirmOpen
+  if (!wasOpen)
+    closeConfirmReturnFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
   closeConfirmOpen = true
   appRoot.dataset.closeConfirmOpen = 'true'
   const overlay = appRoot.querySelector<HTMLElement>('[data-close-confirm]')
@@ -5180,14 +5265,23 @@ function closeWindowConfirm(): void {
   appRoot.querySelector<HTMLElement>('[data-close-confirm]')?.setAttribute('hidden', '')
   setTransitionBackgroundInert(false)
   renderSession()
-  focusActiveView()
+  const returnFocus = closeConfirmReturnFocus
+  closeConfirmReturnFocus = null
+  if (menuOpen) {
+    restoreDesktopFocus(returnFocus, () =>
+      appRoot.querySelector<HTMLButtonElement>('[data-menu-toggle]')?.focus(),
+    )
+  } else {
+    focusActiveView()
+  }
 }
 
 function setTransitionBackgroundInert(inert: boolean): void {
   for (const child of Array.from(appRoot.querySelector('.desktop-shell')!.children)) {
     if (child instanceof HTMLElement && !child.matches('[data-close-confirm]'))
       child.inert =
-        inert || (menuOpen && !child.matches('[data-app-menu], [data-plugin-slot="modal"]'))
+        inert ||
+        (menuOpen && !child.matches('.titlebar, [data-app-menu], [data-plugin-slot="modal"]'))
   }
 }
 
@@ -6030,6 +6124,12 @@ globalThis.addEventListener('beforeunload', (event) => {
 })
 
 globalThis.addEventListener('unload', () => {
+  appearanceDisposed = true
+  refreshAppearanceViews = undefined
+  appearancePanel?.dispose()
+  themeStyles.dispose()
+  themeStyleElement.remove()
+  titlebarMenu.dispose()
   applicationUpdates.dispose()
   loadingVisibility.dispose()
   editorContextMenu.dispose()
