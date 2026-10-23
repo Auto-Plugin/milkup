@@ -1,0 +1,55 @@
+{
+  "stage": "pre-execution static review; owner still applying fixes",
+  "base": "b7f9cdecfc02c2f0710fc9d6b71c12419364e644",
+  "windowsExecuted": false,
+  "ciTriggered": false,
+  "files": {
+    "src/launcher.rs": "69090a1e8dec75d53f89894b553aab34b5443e8df670c6226dce52a363c7d857",
+    "src/main.rs": "87eab999220ffc3d1efcc854d95256dbd6cbce55c3c4df8fc18a3b588692aa7b",
+    "src/engine.rs": "af2c3e0266b20d0c4f573271f87d34a83668565451df5ddafe96cc97c36168cc",
+    "src/stream.rs": "0fb6a99c6f8e5b7c5a5b4685f25c3d7f7b4a5b144e933e6bc2c9e51c75b41d8b",
+    "assets/bootstrap.js": "6e36c3a0e97a66ecf39db50d1fb2c3cd80aeab552ec0e238d3c72a9b5dc2eec5",
+    "Cargo.toml": "0e983bf4a457c68d9dddfe8eaa4de681df594240c42cff5abb8bd8070a8361e6",
+    "Cargo.lock": "8dc1ec77f349ac18ddc92b5b95b0876e2509414eb105a2ad3e8bc4198f176c2d",
+    "proposed-windows-workflow.patch": "d812168b848002207ce69b6605c33ea2f4dc40a726aded27533a00f2ff746e83",
+    "run-reviewed-windows.ps1": "dbe07cc33fca6ff7123ee27de7817c6cfb775b37838eb4b415e63e66384486cf"
+  },
+  "findings": [
+    {
+      "issue": "Matrix must stop after incomplete IPC/process/profile cleanup",
+      "status": "owner notified; final revision pending"
+    },
+    {
+      "issue": "PNG full chunk CRC/IEND/EOF validation and genuine same-length metadata truncation regression",
+      "status": "owner notified; final revision pending"
+    },
+    {
+      "issue": "Failure creating initial default 403 response must fail closed",
+      "status": "owner notified; final revision pending"
+    },
+    {
+      "issue": "2-second helper rendering is not end-to-end PNG validation deadline or a supervisor total RSS ceiling",
+      "status": "owner notified for accurate metrics"
+    },
+    {
+      "issue": "Actual SeDebugPrivilege presence/enabled facts must be read and preserved without token mutation",
+      "status": "owner notified"
+    },
+    {
+      "issue": "Workflow must use exact branch/sha, locked build inputs, bounded <=256MiB evidence, one-day retention",
+      "status": "under separate read-only review"
+    }
+  ],
+  "observations": [
+    "Own temporary profiles/code/UDF only; no Tauri host objects or plugin JS",
+    "Zero-capability AppContainer with creation-time job and explicit inherited pipe handles",
+    "Job termination/zero-process observation before private-tree removal; bounded IPC joins",
+    "Pinned readonly source and copied executable while launching; ancestry write/delete/DACL probes under child token",
+    "No OS-wide no-network proof; known UDP risk remains"
+  ],
+  "sizeEstimate": {
+    "officialUmdBytes": 5494801,
+    "gzipLevel9Bytes": 1566718,
+    "installerIncrementVerified": false
+  }
+}

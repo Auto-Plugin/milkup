@@ -1,0 +1,83 @@
+diff --git a/.github/workflows/v2-mermaid-fixed-prototype.yml b/.github/workflows/v2-mermaid-fixed-prototype.yml
+new file mode 100644
+--- /dev/null
++++ b/.github/workflows/v2-mermaid-fixed-prototype.yml
+@@ -0,0 +1,78 @@
++name: Fixed Mermaid bounded prototype
++on:
++  push:
++    branches: [dot/milkup-v2-mermaid-prototype]
++    paths:
++      - .github/workflows/v2-mermaid-fixed-prototype.yml
++      - scripts/experiments/mermaid-fixed-prototype/**
++permissions:
++  contents: read
++concurrency:
++  group: milkup-fixed-mermaid-prototype
++  cancel-in-progress: false
++jobs:
++  prototype:
++    if: >-
++      github.repository == 'Auto-Plugin/milkup' &&
++      github.ref == 'refs/heads/dot/milkup-v2-mermaid-prototype' &&
++      github.event.repository.private == false &&
++      github.event.deleted == false &&
++      github.run_attempt == 1 &&
++      contains(github.event.head_commit.message, '[mermaid-fixed-prototype]')
++    runs-on: windows-2025
++    timeout-minutes: 20
++    defaults:
++      run:
++        shell: pwsh
++    env:
++      CARGO_BUILD_JOBS: '2'
++      CARGO_INCREMENTAL: '0'
++      CARGO_PROFILE_DEV_DEBUG: '0'
++      CARGO_TERM_COLOR: never
++      GIT_CONFIG_COUNT: '1'
++      GIT_CONFIG_KEY_0: core.longpaths
++      GIT_CONFIG_VALUE_0: 'true'
++    steps:
++      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
++        with:
++          ref: ${{ github.sha }}
++          fetch-depth: 0
++          persist-credentials: false
++          sparse-checkout: scripts/experiments/mermaid-fixed-prototype
++      - name: Run reviewed fixed code and data corpus
++        id: run
++        run: ./scripts/experiments/mermaid-fixed-prototype/run-reviewed-windows.ps1
++      - name: Check synthetic evidence size and types
++        id: evidence
++        if: always() && steps.run.outputs.evidence_created == 'true'
++        env:
++          EVIDENCE_ROOT: ${{ steps.run.outputs.evidence_root }}
++        run: |
++          $ErrorActionPreference = 'Stop'
++          $root = $env:EVIDENCE_ROOT
++          $prefix = Join-Path $env:RUNNER_TEMP 'mermaid-fixed-prototype-evidence-'
++          if (-not $root.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unexpected evidence root' }
++          $rootItem = Get-Item -LiteralPath $root -Force -ErrorAction Stop
++          if (-not $rootItem.PSIsContainer -or ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Invalid evidence root' }
++          $items = @(Get-ChildItem -LiteralPath $root -Recurse -Force -ErrorAction Stop)
++          foreach ($item in $items) {
++            if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'No linked evidence directories or files' }
++          }
++          $files = @($items | Where-Object { -not $_.PSIsContainer })
++          $total = 0L
++          foreach ($file in $files) {
++            if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'No linked evidence' }
++            if ($file.Extension -cnotin @('.json','.png','.txt','.log')) { throw 'Unexpected evidence type' }
++            $total += $file.Length
++            if ($total -gt 268435456L) { throw 'Evidence exceeds 256 MiB; do not upload' }
++          }
++          "allowed=true" >> $env:GITHUB_OUTPUT
++          "Synthetic evidence bytes: $total; retention: 1 day; no executable/installer" >> $env:GITHUB_STEP_SUMMARY
++      - name: Preserve bounded evidence only
++        if: always() && steps.evidence.outputs.allowed == 'true'
++        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
++        with:
++          name: fixed-mermaid-prototype-evidence
++          path: ${{ steps.run.outputs.evidence_root }}
++          if-no-files-found: warn
++          retention-days: 1

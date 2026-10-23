@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "engine": {
+    "name": "mermaid",
+    "version": "12.2.0",
+    "entry": "dist/mermaid.core.mjs",
+    "entrySha256": "4d085c790146a42c65d51ea21170427b24bc706de970df570331321996cbdbaf",
+    "browserDistribution": {
+      "entry": "dist/mermaid.min.js",
+      "sha256": "a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f",
+      "bytes": 5494801
+    }
+  },
+  "baseInitialize": {
+    "startOnLoad": false,
+    "securityLevel": "strict",
+    "htmlLabels": true,
+    "suppressErrorRendering": true,
+    "maxTextSize": 50000,
+    "maxEdges": 500,
+    "deterministicIds": true,
+    "deterministicIDSeed": "milkup-prototype",
+    "fontFamily": "Arial, sans-serif",
+    "legacyMathML": false,
+    "forceLegacyMathML": false
+  },
+  "scope": "Five bounded negative/security observations. Only official parser acceptance/rejection is verified here. Expected render outcomes remain separately identified; no browser, navigation, network, image request, capture or OS isolation outcome is inferred. The positive corpus is unchanged.",
+  "fixtureCount": 5,
+  "registrationCount": 1,
+  "fixtures": [
+    {
+      "id": "unknown-grammar",
+      "path": "fixtures-negative/01-unknown-grammar.mmd",
+      "expectedRegistrationId": null,
+      "expectedFailure": true,
+      "expectedErrorContains": "No diagram type detected",
+      "expectedOutcome": "failure",
+      "expectedParse": "reject",
+      "category": "negative",
+      "source": {
+        "kind": "authored-bounded-fixture-from-fixed-grammar",
+        "officialReference": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+        "fixedPackageSource": "src/diagram-api/detectType.ts",
+        "fixedDistributionSource": "mermaid/dist/mermaid.core.mjs",
+        "version": "mermaid@12.2.0"
+      },
+      "sha256": "6c4cc449ff5b28e86acd3f0e7bb617f54e571ec34f462498dd3b50433f80fb91",
+      "bytes": 29,
+      "utf16Units": 29,
+      "lineCount": 3,
+      "initializeOverrides": {},
+      "tags": [
+        "unknown-grammar"
+      ],
+      "limitations": [
+        "Expected official grammar rejection; no render/capture success is expected. A native expected rejection passes only when the original renderer error contains expectedErrorContains and process/private-data cleanup completes; timeout or startup failure does not count."
+      ]
+    },
+    {
+      "id": "tall-budget",
+      "path": "fixtures-negative/02-tall-budget.mmd",
+      "expectedRegistrationId": "flowchart-v2",
+      "expectedFailure": true,
+      "expectedErrorContains": "Measured output exceeds pixel budget",
+      "expectedOutcome": "failure",
+      "expectedParse": "accept",
+      "category": "negative",
+      "source": {
+        "kind": "authored-bounded-fixture-from-fixed-grammar",
+        "officialReference": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+        "fixedPackageSource": "src/diagrams/flowchart/flowDetector-v2.ts",
+        "fixedDistributionSource": "mermaid/dist/mermaid.core.mjs",
+        "version": "mermaid@12.2.0"
+      },
+      "sha256": "2772a69cdea7f6c53a538f111f46b4a8c6f43d52a7ab41b9ce18e204d20487ec",
+      "bytes": 12379,
+      "utf16Units": 12379,
+      "lineCount": 3,
+      "initializeOverrides": {},
+      "tags": [
+        "geometry-budget",
+        "long-chain"
+      ],
+      "limitations": [
+        "480 nodes/479 edges in a two-line valid flowchart remain within the 500-edge/256-line/50000-UTF16 input budgets.",
+        "Expected native rejection is specifically the bootstrap error 'Measured output exceeds pixel budget' with complete process/private-data cleanup. Timeout, startup failure, another error or a successful render does not satisfy this expectation.",
+        "Actual rendered dimensions and that precise rejection remain unverified. Parser success does not prove a specific rendered height."
+      ]
+    },
+    {
+      "id": "strict-https-link",
+      "path": "fixtures-negative/03-strict-https-link.mmd",
+      "expectedRegistrationId": "flowchart-v2",
+      "expectedFailure": false,
+      "expectedOutcome": "successful-static-render-without-interaction",
+      "expectedParse": "accept",
+      "category": "security-observation",
+      "source": {
+        "kind": "authored-bounded-fixture-from-fixed-grammar",
+        "officialReference": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+        "fixedPackageSource": "src/diagrams/flowchart/flowDetector-v2.ts",
+        "fixedDistributionSource": "mermaid/dist/mermaid.core.mjs",
+        "version": "mermaid@12.2.0"
+      },
+      "sha256": "fecdcecb737f6b43eac7668f99c2bf204fe3f56fbef960cfa1eb5391e6097ca9",
+      "bytes": 119,
+      "utf16Units": 119,
+      "lineCount": 4,
+      "initializeOverrides": {},
+      "tags": [
+        "security-external-link",
+        "navigation-disabled",
+        "no-interaction-exercised"
+      ],
+      "limitations": [
+        "Valid syntax should render without enabling link interaction. The host never calls bindFunctions or clicks this node.",
+        "Parser acceptance does not test navigation, URI dispatch, request delivery or actual resource blocking; record DOM stripping and policy observations separately."
+      ]
+    },
+    {
+      "id": "strict-javascript-link",
+      "path": "fixtures-negative/04-strict-javascript-link.mmd",
+      "expectedRegistrationId": "flowchart-v2",
+      "expectedFailure": false,
+      "expectedOutcome": "successful-static-render-without-interaction",
+      "expectedParse": "accept",
+      "category": "security-observation",
+      "source": {
+        "kind": "authored-bounded-fixture-from-fixed-grammar",
+        "officialReference": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+        "fixedPackageSource": "src/diagrams/flowchart/flowDetector-v2.ts",
+        "fixedDistributionSource": "mermaid/dist/mermaid.core.mjs",
+        "version": "mermaid@12.2.0"
+      },
+      "sha256": "4da63fd5b0f32ee358b622f477801f475bcf079129523407d1bc9500a64a3e3a",
+      "bytes": 112,
+      "utf16Units": 112,
+      "lineCount": 4,
+      "initializeOverrides": {},
+      "tags": [
+        "security-external-link",
+        "javascript-scheme",
+        "navigation-disabled",
+        "no-interaction-exercised"
+      ],
+      "limitations": [
+        "The javascript: URI is fixture data only, not evaluated JavaScript. The host never calls bindFunctions or clicks this node.",
+        "Parser acceptance is not proof of script/URL stripping, attempted navigation or a blocked action; inspect sanitized DOM and policy evidence separately."
+      ]
+    },
+    {
+      "id": "external-image-observation",
+      "path": "fixtures-negative/05-external-image-observation.mmd",
+      "expectedRegistrationId": "flowchart-v2",
+      "expectedFailure": null,
+      "expectedOutcome": "observation-only-unverified",
+      "expectedParse": "accept",
+      "category": "security-observation",
+      "source": {
+        "kind": "authored-bounded-fixture-from-fixed-grammar",
+        "officialReference": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+        "fixedPackageSource": "src/diagrams/flowchart/flowDetector-v2.ts",
+        "fixedDistributionSource": "mermaid/dist/mermaid.core.mjs",
+        "version": "mermaid@12.2.0"
+      },
+      "sha256": "e36da110d676141bdbbf13d9dfe8748979c3b36f216a7b261125ad4584ff9b35",
+      "bytes": 142,
+      "utf16Units": 142,
+      "lineCount": 3,
+      "initializeOverrides": {},
+      "tags": [
+        "security-external-image",
+        "observation-only",
+        "outcome-unverified"
+      ],
+      "limitations": [
+        "Observation-only case: rendering may reject, time out, or produce a fallback; no outcome is presumed. Do not count a parser result as an attempted or blocked image request.",
+        "No browser rendering or network operation is performed by the parser check. A future run must record DOM/resource-policy events and actual receiving-side evidence when applicable."
+      ]
+    }
+  ]
+}

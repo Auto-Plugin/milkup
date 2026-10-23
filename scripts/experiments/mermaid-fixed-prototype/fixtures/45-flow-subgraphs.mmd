@@ -1,0 +1,9 @@
+flowchart TB
+subgraph outer[Workspace]
+  direction LR
+  subgraph inner[Draft]
+    A[Read] --> B[Write]
+  end
+  C[Review]
+end
+B --> C

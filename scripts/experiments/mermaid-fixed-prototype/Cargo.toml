@@ -1,0 +1,21 @@
+[package]
+name = "milkup-mermaid-fixed-prototype"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
+
+[target.'cfg(windows)'.dependencies]
+webview2-com = "=0.38.2"
+windows-core = "=0.61.2"
+windows = { version = "=0.61.3", features = ["Win32_Foundation", "Win32_System_Com", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security_Authorization", "Win32_Security_Isolation", "Win32_System_Com", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_IO", "Win32_System_Pipes", "Win32_Storage_FileSystem", "Win32_System_Memory", "Win32_System_SystemInformation", "Win32_UI_WindowsAndMessaging"] }
+
+[build-dependencies]
+sha2 = "=0.10.9"
