@@ -1,0 +1,211 @@
+{
+  "schema": 1,
+  "runId": 39933416844,
+  "runUrl": "https://github.com/Auto-Plugin/milkup/actions/runs/39933416844",
+  "source": "4ecbc3adb2f5dbf1aca7dcaae8dd15b81128bd9b",
+  "conclusion": "failure",
+  "status": "failed-before-positive-matrix",
+  "complete": false,
+  "acceptedPositiveCount": 0,
+  "imageCount": 0,
+  "artifactCount": 0,
+  "reason": "Canary rendered but native private-tree deletion returned Windows error 5; native PNG discarded and no positive dispatch.",
+  "cases": [
+    {
+      "fixture": "flowchart-v2",
+      "ok": false,
+      "error": null,
+      "rawRenderSucceeded": false,
+      "expectedRejection": false,
+      "observationOnly": false,
+      "executionFailure": false,
+      "pngValidation": {
+        "error": "Invalid PNG header or length"
+      },
+      "registrationMatches": false,
+      "standardUserEvidence": true,
+      "hostToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": null,
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 8192,
+        "isAppContainer": false,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "<temporary-user-sid>"
+      },
+      "suspendedToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": "<appcontainer-sid>",
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 4096,
+        "isAppContainer": true,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "<temporary-user-sid>"
+      },
+      "browserToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": "<appcontainer-sid>",
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 4096,
+        "isAppContainer": true,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "<temporary-user-sid>"
+      },
+      "browserProcessInOwnedJob": true,
+      "rendererError": null,
+      "rendererMetadata": {
+        "captureObservation": {
+          "activeLinkElements": 0,
+          "executableElements": 0,
+          "interactionAttempted": false,
+          "phase": "capture-ready",
+          "policyObservations": [],
+          "strippedLinkTargets": 0
+        },
+        "controls": {
+          "deniedNavigations": 0,
+          "deniedPermissions": 0,
+          "deniedRequests": 0,
+          "downloads": 0,
+          "externalSchemes": 0,
+          "newWindows": 0
+        },
+        "engine": "12.2.0",
+        "height": 74,
+        "hiddenCaptureVisuallyVerified": false,
+        "osAllNetworkDenied": false,
+        "pngBytes": 2216,
+        "rendered": {
+          "boundary": "Measured viewport candidate; visual full-ink/no-clipping validation still required",
+          "diagramType": "flowchart-v2",
+          "height": 74,
+          "phase": "rendered",
+          "requestId": "flowchart-v2",
+          "svgBBox": {
+            "height": 54,
+            "width": 400,
+            "x": 12,
+            "y": 12
+          },
+          "svgViewBox": "4 4 416 70",
+          "width": 1280
+        },
+        "requestId": "flowchart-v2",
+        "status": "ok",
+        "width": 1280
+      },
+      "cleanupErrors": ["Private tree deletion: Access is denied. (os error 5)"],
+      "jobActiveAfterStop": 0,
+      "profileDeletedAndFolderAbsent": true,
+      "privateTreeRemoved": false,
+      "privateTreeDeleteAttempts": [
+        {
+          "attempt": 1,
+          "osError": 5,
+          "retryableSharingOrLockViolation": false
+        }
+      ],
+      "cleanupSupervisorSid": "<supervising-runner-sid>",
+      "stopMatrixAfterThisCase": true
+    }
+  ],
+  "outerSupervisors": [
+    {
+      "name": "canary",
+      "result": {
+        "success": false,
+        "resumed": true,
+        "jobAssigned": true,
+        "jobEmpty": true,
+        "inheritedParentEnvironment": false,
+        "existingDesktopAclChanged": false,
+        "pid": 7784,
+        "suspendedToken": {
+          "sid": "<temporary-user-sid>",
+          "elevated": false,
+          "elevationType": 1,
+          "administratorsGroupPresentIncludingDenyOnly": false,
+          "seDebugPrivilegePresent": false,
+          "standardUser": true
+        },
+        "exitCode": 1,
+        "cleanupErrors": []
+      }
+    }
+  ],
+  "finalCleanup": {
+    "failure": "Standard-user canary failed; no subsequent dispatch",
+    "accountDeleted": true,
+    "profileDeleted": true,
+    "stageRemoved": true,
+    "cleanupErrors": [],
+    "visualEvidenceEmitted": false
+  },
+  "diagnosticStatistics": {
+    "count": 64,
+    "truncated": true,
+    "attributes": {
+      "Directory": 41,
+      "Archive": 23
+    },
+    "nonexistent": [],
+    "readErrors": [],
+    "reparse": [],
+    "sddlTruncated": [],
+    "explicitDenyEntries": [],
+    "ownerFullControlMissing": [],
+    "supervisorFullControlAliasLAObserved": true,
+    "nativeSpecificChildKnown": false
+  },
+  "nativeCleanupCauseEstablished": false,
+  "normalizedLogSha256": "9fd6bbb39dc1cbccd6e5129e5b955af4f3ddba3695a6a9cbd157b32d763d8cb7",
+  "execution": {
+    "exactSource": "4ecbc3adb2f5dbf1aca7dcaae8dd15b81128bd9b",
+    "runId": "39933416844",
+    "attempt": "1",
+    "baseline": "b7f9cdecfc02c2f0710fc9d6b71c12419364e644",
+    "binaryBytes": 7706112,
+    "binarySha256": "0046e6c89e255ac8c49f572987127f318169c82c38c79aeb20cb62727c562919",
+    "fixedEngineBytes": 5494801,
+    "executableIsPrototypeNotInstaller": true,
+    "nativeNetworkGuarantee": false,
+    "captureVisualEvidence": true,
+    "renderingInputsBaseline": "82fb49e95caf99ea45654f552992eff81f72bee9",
+    "standardUserAcceptance": "Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment",
+    "runtimeVersion": "154.0.4258.62"
+  },
+  "redaction": "Temporary user/machine/AppContainer SIDs and case root are replaced with labels; original normalized log retained locally and in Actions. No credentials or residual file contents included."
+}

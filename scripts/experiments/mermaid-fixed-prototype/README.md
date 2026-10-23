@@ -1,7 +1,7 @@
 > **Historical preparation document.** The body below describes the initial
 > candidate, not current execution or authorization. Windows standard-user tests
 > have since run; see [the recorded result](WINDOWS-STANDARD-USER-RESULT-2026-10-23.md)
-> and [bounded visual evidence follow-up](VISUAL-EVIDENCE.md). Current runs upload
+> and [latest visual follow-up result](WINDOWS-VISUAL-RESULT-2026-10-23.md). Current runs upload
 > **zero Actions artifacts**; only bounded synthetic PNGs may be transferred in
 > logs. The fixed official renderer remains an isolated, unintegrated prototype.
 
