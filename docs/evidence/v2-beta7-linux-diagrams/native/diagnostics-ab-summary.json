@@ -1,0 +1,59 @@
+{
+  "createdAt": "2026-10-23T06:16:12.514898+00:00",
+  "diagnosticBinarySha256": "ba0556087d63a380b0f1eb52fa79efc918814e8a1786a5a7a350ef043f230230",
+  "conclusion": "With the same frozen diagnostic executable, adding the normal ephemeral D-Bus session removed repeated roughly three-second GTK/WebKit startup delays. The prior run consumed its unchanged ten-second activation budget before official Mermaid could finish; the D-Bus run completed activation and actual rendering. The inspector bind warning persisted in the successful run and is therefore not a necessary failure condition in this comparison.",
+  "boundaries": [
+    "This identifies the current Linux test-launch session omission; it is not a product security/timeout fix. No deadline, isolation policy, accessibility setting, or plugin code changed.",
+    "Only one diagnostic binary A/B was executed; confirmation with the original production binary is a separate parent-owned next step.",
+    "Full D-Bus lifecycle pass covers this harness flowchart/sequence matrix, not all Mermaid grammars.",
+    "The D-Bus run loaded the pre-scope script above. Its report mistakenly re-read the changed on-disk hash during persistence. Original reports remain untouched; parent supplies a separate provenance correction.",
+    "Stage timestamps use CLOCK_MONOTONIC. Logs can interleave process records; parsing matches each DOM_NATIVE_TIMING prefix and raw-decodes one JSON object."
+  ],
+  "executedHarnessSha256": "3be1faa12ea632dc7d02f77db5877b8e1c5318d1ba775e824e63302216547b78",
+  "runs": [
+    {
+      "name": "run-default-dom-diagnostic01",
+      "sessionBus": false,
+      "firstActivationPhaseSeconds": {
+        "helper-snapshot-validated": 0.17185,
+        "helper-gtk-ready": 3.25363,
+        "helper-load-submitted": 6.522495,
+        "helper-guard-ready": 9.868506,
+        "helper-index-loaded": 9.875271,
+        "helper-module-requested": 9.880599,
+        "owner-activation-accepted": null,
+        "owner-result-accepted": null,
+        "kill-start": 9.98879
+      },
+      "decodeFailureCount": 0,
+      "inspectorBindingWarningPresent": true,
+      "passedSteps": 2,
+      "totalRecordedSteps": 3,
+      "reportedHarnessSha256": "3be1faa12ea632dc7d02f77db5877b8e1c5318d1ba775e824e63302216547b78",
+      "rawLogSha256": "dc2ec39555c8b54a32b23b3d045e6a6ed11901b420eca7b01ba11b710e10351c",
+      "rawReportSha256": "80cfdff67ffacec3984f7550bd846468ddcc28be776fe371eb57adf33c793074"
+    },
+    {
+      "name": "run-default-dom-diagnostic02-dbus",
+      "sessionBus": true,
+      "firstActivationPhaseSeconds": {
+        "helper-snapshot-validated": 0.196988,
+        "helper-gtk-ready": 0.241976,
+        "helper-load-submitted": 0.484395,
+        "helper-guard-ready": 0.846014,
+        "helper-index-loaded": 0.868202,
+        "helper-module-requested": 0.875434,
+        "owner-activation-accepted": 1.440911,
+        "owner-result-accepted": 2.18849,
+        "kill-start": 12.843588
+      },
+      "decodeFailureCount": 0,
+      "inspectorBindingWarningPresent": true,
+      "passedSteps": 41,
+      "totalRecordedSteps": 41,
+      "reportedHarnessSha256": "7d467b758172b475c37162c98041b571f21ba25fe3f4d54daa4a0cc9fc74b9d8",
+      "rawLogSha256": "7f43b3e72fb52e159d409538c4ed0d3241b944cdb1d45e8b74ebe2aca367661b",
+      "rawReportSha256": "8dec25e2dfc2f78b8cf91e1353425de2031f541d8fcf02b7dde8f7fdd6d43262"
+    }
+  ]
+}
