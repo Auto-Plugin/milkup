@@ -1,0 +1,42 @@
+✔ version gate rejects drift and synchronizes derived application versions only (272.830812ms)
+✔ version gate rejects noncanonical application versions before writing (269.811585ms)
+✔ version sync updates only the unique local Cargo package and the check detects lock drift (227.291742ms)
+✔ version sync refuses missing, duplicate or nonlocal application lock entries (155.665402ms)
+✔ version sync supports canonical beta and stable versions without rewriting SDK or plugins (450.977506ms)
+✔ version sync preserves Cargo.lock CRLF and unrelated bytes (187.143042ms)
+✔ version sync refuses missing or duplicate package versions without rewriting dependency tables (547.659082ms)
+✔ requires one original bundle marker and does not mutate input (16.569566ms)
+{"status":"passed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"c1e4a584b88e2894d7aa0a9f6d3973341dbcac446061b0020a98ad0dac9523e9","expectedNsisSha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","markerOffset":17,"changedBytes":3,"path":"/tmp/milkup-nsis-proof-DBXZyo/inspection/$R0","files":[{"path":"/tmp/milkup-nsis-proof-DBXZyo/inspection/$R0","relativePath":"$R0","bytes":59,"sha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","exactMatch":true},{"path":"/tmp/milkup-nsis-proof-DBXZyo/inspection/unrelated.dll","relativePath":"unrelated.dll","bytes":15,"sha256":"538a741c622733afe147819e939d82cc071edfbeb3eb49ed701a55975ac288b3","exactMatch":false}]}
+✔ NSIS image comparison: exact (52.871483ms)
+{"status":"failed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"c1e4a584b88e2894d7aa0a9f6d3973341dbcac446061b0020a98ad0dac9523e9","expectedNsisSha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","markerOffset":17,"changedBytes":3,"path":null,"files":[{"path":"/tmp/milkup-nsis-proof-afgLNo/inspection/$R0","relativePath":"$R0","bytes":59,"sha256":"829e05851e5b98771c36783a69d3a37e9a7d73339387b222fbbd822e1ea766ce","exactMatch":false},{"path":"/tmp/milkup-nsis-proof-afgLNo/inspection/unrelated.dll","relativePath":"unrelated.dll","bytes":15,"sha256":"538a741c622733afe147819e939d82cc071edfbeb3eb49ed701a55975ac288b3","exactMatch":false}]}
+✔ NSIS image comparison: extra-byte-change (159.10276ms)
+{"status":"failed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"c1e4a584b88e2894d7aa0a9f6d3973341dbcac446061b0020a98ad0dac9523e9","expectedNsisSha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","markerOffset":17,"changedBytes":3,"path":null,"files":[{"path":"/tmp/milkup-nsis-proof-7chIcx/inspection/$R0","relativePath":"$R0","bytes":58,"sha256":"7fceb0b6dfa95b81c5c1665d12c60d712f4842a58a5dbf326df75dbc0cde57e4","exactMatch":false},{"path":"/tmp/milkup-nsis-proof-7chIcx/inspection/unrelated.dll","relativePath":"unrelated.dll","bytes":15,"sha256":"538a741c622733afe147819e939d82cc071edfbeb3eb49ed701a55975ac288b3","exactMatch":false}]}
+✔ NSIS image comparison: truncated (81.661382ms)
+{"status":"failed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"c1e4a584b88e2894d7aa0a9f6d3973341dbcac446061b0020a98ad0dac9523e9","expectedNsisSha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","markerOffset":17,"changedBytes":3,"path":null,"files":[{"path":"/tmp/milkup-nsis-proof-ApY8Vy/inspection/$R0","relativePath":"$R0","bytes":59,"sha256":"c1e4a584b88e2894d7aa0a9f6d3973341dbcac446061b0020a98ad0dac9523e9","exactMatch":false},{"path":"/tmp/milkup-nsis-proof-ApY8Vy/inspection/unrelated.dll","relativePath":"unrelated.dll","bytes":15,"sha256":"538a741c622733afe147819e939d82cc071edfbeb3eb49ed701a55975ac288b3","exactMatch":false}]}
+✔ NSIS image comparison: wrong-marker (32.09469ms)
+{"status":"failed","transform":"tauri-cli-2.11.4-unique-UNK-to-NSS","compiledSha256":"c1e4a584b88e2894d7aa0a9f6d3973341dbcac446061b0020a98ad0dac9523e9","expectedNsisSha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","markerOffset":17,"changedBytes":3,"path":null,"files":[{"path":"/tmp/milkup-nsis-proof-r1QMM8/inspection/$R0","relativePath":"$R0","bytes":59,"sha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","exactMatch":true},{"path":"/tmp/milkup-nsis-proof-r1QMM8/inspection/duplicate.exe","relativePath":"duplicate.exe","bytes":59,"sha256":"8dc7b9fc0d47f857c9cd79472b636c101276b5f61ebcc0c2297cae334e0d0e50","exactMatch":true},{"path":"/tmp/milkup-nsis-proof-r1QMM8/inspection/unrelated.dll","relativePath":"unrelated.dll","bytes":15,"sha256":"538a741c622733afe147819e939d82cc071edfbeb3eb49ed701a55975ac288b3","exactMatch":false}]}
+✔ NSIS image comparison: duplicate (55.580097ms)
+✔ P8 source job has independent public branch/marker gates and no delivery actions (1.74058ms)
+✔ Windows backend milestone is isolated to its accepted baseline and explicit marker (3.585017ms)
+✔ update checkpoint runs source checks without restarting W0 or delivery actions (4.085603ms)
+✔ the same LF and CRLF workflow preserves every P8 job gate (1.136735ms)
+✔ source script checks, tests and links actual production app without bundler (6.072775ms)
+✔ source tree phase records generated schemas through the shared strict gate (2.774549ms)
+✔ Windows updater dependency regressions cannot pass with an empty filter (4.457117ms)
+✔ W0 has a separate explicit experiment gate and preserves production source checks (7.035056ms)
+✔ W0 matrix keeps its accepted baseline, private permissions and product boundary (13.702888ms)
+✔ W0 UDP diagnosis compares held sockets without changing platform policy (1.462562ms)
+✔ version-gates candidate reuses the bounded source job on its isolated branch (4.209952ms)
+✔ beta6 UI delivery is confined to its exact branch and verified context checkpoint (3.166591ms)
+✔ accepts clean checkout and records known generated JSON without restoring it (253.968928ms)
+✔ rejects tracked source edits (209.045699ms)
+✔ rejects unexpected untracked files even in the schema directory (126.577491ms)
+✔ rejects malformed generated JSON (117.560168ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3311.9764

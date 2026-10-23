@@ -1,0 +1,32 @@
+--- before-byte-review
++++ after-byte-review
+@@ -349,8 +349,19 @@
+         require(formatting_review is not None, 'Missing reviewed Formatting viewport-loop fix')
+         require(file_names == expected_files, 'Unaccounted payload files')
+         require(len(payload) == 18, 'Incomplete verified payload')
++        manual_material = []
+         for name in ('README.md', 'FEEDBACK.md', 'samples/basic.md'):
+-            require(member(name) == git_bytes(args.source, 'show', f'{args.expected_commit}:docs/manual-windows-beta6/{name}'), f'Manual trial material differs from committed source: {name}')
++            committed = git_bytes(args.source, 'show', f'{args.expected_commit}:docs/manual-windows-beta6/{name}')
++            delivered = member(name)
++            if committed == delivered:
++                transform = 'identical'
++            else:
++                require(b'\r' not in committed and delivered == committed.replace(b'\n', b'\r\n'),
++                        f'Manual material has changes other than exact LF-to-CRLF conversion: {name}')
++                transform = 'exact-LF-to-CRLF'
++            manual_material.append({'name': name, 'sourceSha256': digest(committed),
++                                    'deliveredSha256': digest(delivered), 'sourceBytes': len(committed),
++                                    'deliveredBytes': len(delivered), 'transform': transform})
+ 
+     result = {
+         'status': 'passed', 'artifactId': metadata['id'], 'artifactZipSha256': zip_hash,
+@@ -362,7 +373,7 @@
+         'installer': manifest['installer'], 'application': manifest['application'],
+         'compiledApplication': manifest['compiledApplication'], 'extractedApplication': manifest['extractedApplication'],
+         'nsisImageVerification': manifest['nsisImageVerification'], 'plugins': manifest['plugins'],
+-        'formattingReview': formatting_review,
++        'formattingReview': formatting_review, 'manualMaterial': manual_material,
+         'phaseCount': len(PHASES), 'sourceChecksPassed': True, 'rust': manifest['sourceChecks']['rust'],
+         'installerExecuted': False, 'guiAccepted': False,
+         'method': 'Local artifact metadata, ZIP CRC/path/size, 17 exact checksums, committed source manifests, and recorded Windows build proof. No installer or Windows application executed. Embedded PE/frontend bytes require the separate extraction check.',
