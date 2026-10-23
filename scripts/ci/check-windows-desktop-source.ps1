@@ -7,6 +7,10 @@ $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows) { throw 'Desktop source check requires actual Windows' }
 if ($env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup') { throw 'Unexpected source-check repository' }
 switch -CaseSensitive ($env:GITHUB_REF) {
+    'refs/heads/dot/milkup-v2-beta6-ui-candidate' {
+        $baseline = '7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'
+        $marker = '[windows-manual-beta6]'
+    }
     'refs/heads/dot/milkup-v2-beta5-feedback' {
         $baseline = '0e74d9fad211c304ef68449fa6becb7450dfffef'
         $marker = '[windows-manual-beta5]'
@@ -59,7 +63,8 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
 $head = (& git rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $head -cne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
 Invoke-Checked git @('merge-base', '--is-ancestor', $baseline, 'HEAD')
-if (& git status --porcelain) { throw 'Dirty initial checkout' }
+$initialStatus = @(& git status --porcelain)
+if ($LASTEXITCODE -ne 0 -or $initialStatus.Count -ne 0) { throw 'Dirty or unreadable initial checkout' }
 $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
 if ($event.repository.private -ne $false -or $event.deleted -ne $false -or
     -not $event.head_commit.message.Contains($marker)) {

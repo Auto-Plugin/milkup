@@ -280,18 +280,18 @@ test('version-gates candidate reuses the bounded source job on its isolated bran
   assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
 })
 
-test('beta5 feedback delivery is confined to its exact branch and verified beta4 ancestry', async () => {
+test('beta6 UI delivery is confined to its exact branch and verified context checkpoint', async () => {
   const workflow = await read('.github/workflows/v2-windows-manual-candidate.yml')
   const source = await read('scripts/ci/check-windows-desktop-source.ps1')
   const packaging = await read('scripts/ci/build-windows-manual-candidate.ps1')
   for (const text of [workflow, source, packaging]) {
-    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta5-feedback'))
-    assert.ok(text.includes('0e74d9fad211c304ef68449fa6becb7450dfffef'))
+    assert.ok(text.includes('refs/heads/dot/milkup-v2-beta6-ui-candidate'))
+    assert.ok(text.includes('7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'))
   }
-  assert.ok(workflow.includes('[windows-manual-beta5]'))
+  assert.ok(workflow.includes('[windows-manual-beta6]'))
   assert.match(
     source,
-    /'refs\/heads\/dot\/milkup-v2-beta5-feedback' \{\s*\$baseline = '0e74d9fad211c304ef68449fa6becb7450dfffef'\s*\$marker = '\[windows-manual-beta5\]'\s*\}/,
+    /'refs\/heads\/dot\/milkup-v2-beta6-ui-candidate' \{\s*\$baseline = '7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'\s*\$marker = '\[windows-manual-beta6\]'\s*\}/,
   )
   assert.match(workflow, /contents: read/)
   assert.match(workflow, /persist-credentials: false/)
@@ -300,4 +300,7 @@ test('beta5 feedback delivery is confined to its exact branch and verified beta4
   assert.doesNotMatch(workflow, /secrets\.|workflow_dispatch|gh release|write-all/)
   assert.match(packaging, /Unexpected source SHA/)
   assert.match(packaging, /installerExecuted=\$false/)
+  assert.ok(workflow.includes('scripts/experiments/mermaid-fixed-prototype'))
+  assert.ok(workflow.includes('.github/workflows/v2-mermaid-fixed-prototype.yml'))
+  assert.ok(workflow.includes('Full official Mermaid remains incomplete'))
 })

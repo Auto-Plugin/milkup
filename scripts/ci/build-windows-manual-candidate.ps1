@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-    $env:GITHUB_REF -cne 'refs/heads/dot/milkup-v2-beta5-feedback' -or
+    $env:GITHUB_REF -cne 'refs/heads/dot/milkup-v2-beta6-ui-candidate' -or
     $env:GITHUB_RUN_ATTEMPT -ne '1') { throw 'Outside approved manual-candidate scope' }
 function Checked([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
@@ -34,7 +34,7 @@ $source = Get-Content (Join-Path $EvidenceDirectory 'source.json') -Raw | Conver
 $phases = @(Get-Content (Join-Path $EvidenceDirectory 'phases.json') -Raw | ConvertFrom-Json)
 if ($source.commit -cne $sha -or $phases.Count -lt 15 -or @($phases | Where-Object status -ne 'passed').Count) { throw 'Complete exact-source Windows checks required' }
 $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-if ($version -cne '2.0.0-beta.5') { throw 'Unexpected manual candidate version' }
+if ($version -cne '2.0.0-beta.6') { throw 'Unexpected manual candidate version' }
 $config = Get-Content apps/desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
 if ($env:TAURI_CONFIG -or $config.bundle.windows.PSObject.Properties.Name -contains 'webviewInstallMode' -or
     (Test-Path apps/desktop/src-tauri/tauri.windows.conf.json)) { throw 'Retain existing small-package WebView2 mode' }
@@ -64,7 +64,8 @@ $payloadRecord = Record $imageProof.path
 if ($payloadRecord.productVersion -cne $version -or $payloadRecord.signature -cne 'NotSigned' -or
     $payloadRecord.sha256 -cne $imageProof.expectedNsisSha256) { throw 'Bundled application identity mismatch' }
 & "$PSScriptRoot/verify-windows-app-manifest.ps1" -Executable $imageProof.path -EvidenceDirectory $EvidenceDirectory -EvidenceName 'packaged-production-binary'
-if ((git rev-parse HEAD).Trim() -cne $sha) { throw 'Packaging changed source SHA' }
+$packagedHead = @(git rev-parse HEAD)
+if ($LASTEXITCODE -ne 0 -or $packagedHead.Count -ne 1 -or $packagedHead[0].Trim() -cne $sha) { throw 'Packaging changed source SHA or inspection failed' }
 Checked node @('tests/windows/verify-build-tree.mjs',(Get-Location).Path,(Join-Path $EvidenceDirectory 'manual-build-tree.json'))
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
 $name = "milkup-$version-windows-x64-$($sha.Substring(0,12))-setup.exe"
@@ -72,7 +73,7 @@ Copy-Item -LiteralPath $installers[0].FullName -Destination (Join-Path $OutputDi
 $installerRecord['deliveredName'] = $name
 $manifest = [ordered]@{
     status='built-for-user-manual-trial'; commit=$sha; version=$version; platform='windows-x86_64'
-    baseline='0e74d9fad211c304ef68449fa6becb7450dfffef'; runId=$env:GITHUB_RUN_ID
+    baseline='7cc4edc6747abf5fbc31b60cccf4bd73174af6f8'; runId=$env:GITHUB_RUN_ID
     runUrl="https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     installer=$installerRecord; compiledApplication=$appRecord; application=$payloadRecord; extractedApplication=$payloadRecord
     nsisImageVerification=$imageProof
