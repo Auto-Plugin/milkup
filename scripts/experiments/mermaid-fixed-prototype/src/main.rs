@@ -6,6 +6,8 @@ use std::io::Cursor;
 use std::path::Path;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const MAX_OUTPUT: usize = 262_144;
+#[cfg(any(windows, test))]
+mod cleanup;
 #[cfg(windows)]
 mod engine;
 #[cfg(windows)]

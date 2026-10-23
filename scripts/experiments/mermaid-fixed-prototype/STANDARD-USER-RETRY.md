@@ -37,6 +37,18 @@ attempts the exact user's Windows profile, account, and test tree independently;
 errors remain failures. Uncertain process emptiness or reparse points block
 unsafe directory deletion and are explicitly recorded, never passed silently.
 
+Windows run 39916676286 completed rendering `stateDiagram` but encountered a
+sharing violation while deleting its private tree after the Job was empty and
+the AppContainer profile was absent. It remains a failed run: the outer account
+and Windows profile were removed, but the test stage could not be removed.
+The follow-up retries only Windows sharing/lock errors 32/33 for at most 31
+attempts and three seconds of retry scheduling, records each error, and checks
+actual path absence with metadata. No later helper starts before cleanup passes.
+Each newly created case root also preserves full cleanup access for the exact
+supervising runner user SID, obtained read-only and passed through the explicit
+environment whitelist. It grants no access to Users/Everyone or to any existing
+system, Runtime or desktop object. Permanent failures still stop the matrix.
+
 This retry has **zero Actions artifact uploads**. Synthetic case summaries,
 actual token facts, PNG decode/dimensions/nonuniform-pixel checks/hashes and
 cleanup facts remain in Actions logs/summary. PNG files are deleted with the

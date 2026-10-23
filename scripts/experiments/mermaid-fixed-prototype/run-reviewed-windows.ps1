@@ -64,7 +64,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Offline tests failed; missing cached crates re
 cargo build --locked --offline --manifest-path $manifest
 if ($LASTEXITCODE -ne 0) { throw 'Offline build failed; no dependency-fetch fallback' }
 $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-mermaid-fixed-prototype.exe'
-[ordered]@{
+$execution = [ordered]@{
     exactSource = $env:GITHUB_SHA
     baseline = 'b7f9cdecfc02c2f0710fc9d6b71c12419364e644'
     runtime = $runtime
@@ -74,7 +74,9 @@ $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-mermaid-fixed-prototype.
     executableIsPrototypeNotInstaller = $true
     nativeNetworkGuarantee = $false
     standardUserAcceptance = 'Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment'
-} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
+}
+$execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
+Write-Output ('MILKUP_EXECUTION_JSON ' + ($execution | ConvertTo-Json -Depth 5 -Compress))
 & (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }

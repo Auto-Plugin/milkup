@@ -57,6 +57,8 @@ function Read-CaseSummary([string]$Output) {
             cleanupErrors = $launcher['cleanupErrors']; jobActiveAfterStop = $launcher['jobActiveAfterStop']
             profileDeletedAndFolderAbsent = $launcher['profileDeletedAndFolderAbsent']
             privateTreeRemoved = $launcher['privateTreeRemoved']
+            privateTreeDeleteAttempts = $launcher['privateTreeDeleteAttempts']
+            cleanupSupervisorSid = $launcher['cleanupSupervisorSid']
             stopMatrixAfterThisCase = $launcher['stopMatrixAfterThisCase']
         }
         # Only fixed synthetic result fields; no environment or credential dumps.
@@ -74,8 +76,13 @@ $name = 'mkp' + $runId.Substring(0, 15)
 $description = 'Milkup test ' + $runId
 if ($name.Length -gt 20 -or $description.Length -gt 48) { throw 'Local account metadata exceeds Windows limits' }
 $stage = Join-Path $env:RUNNER_TEMP ('milkup-standard-' + $runId)
+$supervisorSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if ($supervisorSid -cnotmatch '^S-1-5-21-[1-9][0-9]*-[1-9][0-9]*-[1-9][0-9]*-[1-9][0-9]*$') {
+    throw 'Unexpected supervising runner identity'
+}
 $audit = [ordered]@{
     schema = 1; source = $env:GITHUB_SHA; userName = $name; userSid = $null
+    cleanupSupervisorSid = $supervisorSid
     accountCreated = $false; accountDeleted = $false; profileDeleted = $false
     stage = $stage; stageRemoved = $false; executions = @(); cleanupErrors = @()
     passwordInLogsFilesArgumentsOrEnvironment = $false
@@ -138,7 +145,8 @@ try {
         "PATH=$env:SystemRoot\System32", "TEMP=$stage\state\temp", "TMP=$stage\state\temp",
         "USERPROFILE=$stage\state\profile", "APPDATA=$stage\state\roaming", "LOCALAPPDATA=$stage\state\local",
         'MILKUP_MERMAID_PROTOTYPE_AUTHORIZED=fixed-official-data-only-temporary-test',
-        "MILKUP_MERMAID_PROTOTYPE_EXPECTED_USER_SID=$sid"
+        "MILKUP_MERMAID_PROTOTYPE_EXPECTED_USER_SID=$sid",
+        "MILKUP_MERMAID_PROTOTYPE_CLEANUP_OWNER_SID=$supervisorSid"
     )
     $cases = @(
         @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000},

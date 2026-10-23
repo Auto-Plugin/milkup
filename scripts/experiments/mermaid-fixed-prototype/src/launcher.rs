@@ -833,6 +833,11 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
     {
         return Err("Launcher is not the authorized temporary standard-user token".into());
     }
+    let cleanup_owner = std::env::var("MILKUP_MERMAID_PROTOTYPE_CLEANUP_OWNER_SID")
+        .map_err(|_| "Missing supervising runner cleanup SID")?;
+    if !crate::cleanup::concrete_user_sid(&cleanup_owner) || cleanup_owner == expected_user {
+        return Err("Cleanup owner must be the distinct concrete supervising user SID".into());
+    }
     let unique = format!(
         "milkup-fixed-mermaid-{}-{}",
         std::process::id(),
@@ -844,6 +849,7 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
     fs::create_dir(&root)?; // CREATE_NEW semantics: a preexisting path is a hard failure.
     let mut report = json!({"name":unique,"runtime":runtime,"privateRoot":root,
         "hostToken":host_token,"standardUserEvidence":host_token["standardUserTokenEvidence"],
+        "cleanupSupervisorSid":cleanup_owner,
         "standardUserMeaning":"Host token has neither elevated status nor an Administrators SID, including deny-only membership, and SeDebugPrivilege is absent; CI location alone is not standard-user evidence. Privileges are observed without adjustment.",
         "jobMemoryLimitBytes":JOB_MEMORY,"jobProcessLimit":JOB_PROCESSES,
         "prepareDeadlineMs":PREPARE_LIMIT.as_millis(),"renderDeadlineMs":RENDER_LIMIT.as_millis(),
@@ -871,7 +877,8 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
         let owner_sid = host_token["userSid"]
             .as_str()
             .ok_or("Missing host owner SID")?;
-        // Reset only the freshly created root: owner/SYSTEM retain full access;
+        // Reset only this freshly created root: owner/SYSTEM and the exact
+        // supervising runner retain cleanup access. No existing object ACL changes.
         // this AppContainer can traverse/read/execute but cannot replace code.
         acl(
             &system,
@@ -881,6 +888,7 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
                 "/grant:r".into(),
                 format!("*{owner_sid}:(OI)(CI)F"),
                 "*S-1-5-18:(OI)(CI)F".into(),
+                format!("*{cleanup_owner}:(OI)(CI)F"),
                 format!("*{sid}:(OI)(CI)RX"),
             ],
             &mut report["aclOperations"],
@@ -1081,14 +1089,17 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
         if let Some(profile) = &mut profile {
             match profile.delete() {
                 Ok(()) => report["profileDeletedAndFolderAbsent"] = json!(true),
-                Err(e) => cleanup_errors.push(e.to_string()),
+                Err(e) => cleanup_errors.push(format!("AppContainer profile deletion: {e}")),
             }
             report["profileDeleteApiSucceeded"] = json!(profile.deleted);
         }
-        match fs::remove_dir_all(&root) {
-            Ok(()) => report["privateTreeRemoved"] = json!(!root.exists()),
-            Err(error) => cleanup_errors.push(error.to_string()),
+        let mut delete_attempts = Vec::new();
+        report["privateTreeRemoved"] = json!(false);
+        match crate::cleanup::remove_owned_tree(&root, &mut delete_attempts) {
+            Ok(()) => report["privateTreeRemoved"] = json!(true),
+            Err(error) => cleanup_errors.push(format!("Private tree deletion: {error}")),
         }
+        report["privateTreeDeleteAttempts"] = json!(delete_attempts);
     } else {
         if let Some(profile) = &mut profile {
             profile.retain = true;
