@@ -42,10 +42,61 @@ rendering baseline. The run log records the existing compiler's verbose version;
 no compiler or Runtime is installed or updated for diagnosis. This document is
 a protocol description, not a claim that the new Windows diagnostic has run.
 
-The exact reviewed native source commit is `ae2776b3f49cd262a4954e313fd2010b8917beb3`. CI compares
+Execution update: [39936547225](https://github.com/Auto-Plugin/milkup/actions/runs/39936547225)
+actually passed all three observation tests among 11 Windows tests. Its canary
+timed out before native ready; private-tree removal succeeded, so the OS5-only
+observation did not execute. This is not evidence that the earlier OS5 cause
+has been resolved.
+
+The cleanup-only reviewed native source commit was `ae2776b3f49cd262a4954e313fd2010b8917beb3`. That candidate compared
 the **entire** `src` tree against that commit and requires its differences from
 `82fb49e95caf99ea45654f552992eff81f72bee9` to be only `launcher.rs` and
 `launcher/cleanup_observation.rs`. The remainder of the old protected inputs is
 still compared directly to 82fb. The execution record and image reader require
 separate rendering and native-source baselines and explicitly reject a claim
 that the two native source trees are byte-identical.
+
+## Preparation observation follow-up
+
+The next reviewed candidate supplements the native observation with fixed
+stderr preparation phases and a projection of existing case-report fields.
+Parent `readyWaitElapsedMs` is recorded after the original `recv_timeout`
+returns, before applying the unchanged result. Its origin remains immediately
+before `ResumeThread`. The helper's relative phase times start at `engine::run`
+entry; its existing 10-second initialization deadline still starts only after
+COM initialization. These are distinct clocks, not extra or restarted deadlines.
+
+The helper emits at most 17 short lines from a fixed 19-name allowlist, including
+the mutually exclusive environment/controller callback outcomes. Only phase,
+relative microseconds and optional numeric HRESULT are written; no input, URL,
+path or arbitrary error text is added. Writes use the existing stderr pipe and
+ignore diagnostic write errors. Call results and callback results retain their
+original propagation. The original 16 KiB reader, stdout IPC, two deadlines,
+permissions, Job and cleanup behavior remain unchanged.
+
+The case summary projects existing ready/timing/deadline/IPC fields and bounded
+pre-stop Job counts, image basenames and token facts. It emits at most 24 known
+stderr lines / 2 KiB; unknown stderr text is represented only by omitted count
+and the UTF-8 length/hash of the launcher's already lossy-decoded string. It
+does not claim that hash identifies original undecoded bytes. Null fields,
+truncation and inspection errors remain distinguishable. The projection is
+bounded to 8 KiB and is diagnostic only, never an acceptance or permission gate.
+
+Phase absence is not proof that an API never ran: abrupt termination, failed
+writes or incomplete reader joins can leave only a prefix. Callback success
+does not prove browser ownership/token checks, and `ready-frame-flushed` does
+not prove the parent received or accepted it. The positive matrix remains
+conditional on a completely passing canary; no retry or longer timeout is added.
+The fixed official JavaScript, fixtures, dependency and security inputs stay
+byte-identical to 82fb; native source will be pinned to the new exact reviewed
+commit, including both the existing OS5 observer and preparation changes.
+
+The exact preparation-plus-observer source is now
+`7aa222e85859d217c33eedcb244e89ca1089ebbb`. The entire native tree is pinned to
+it. The only native paths differing from 82fb must be `engine.rs`, `launcher.rs`
+and `launcher/cleanup_observation.rs`; the observer itself remains byte-identical
+to its previously reviewed source. The execution record and image consumer
+require this exact new baseline, rather than excluding native files from checks.
+The selected existing Runtime's file and product version are sampled read-only
+and recorded separately from its directory version, without updating it or
+performing any online signature check.

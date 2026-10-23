@@ -25,13 +25,14 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Dirty or unreadable pro
 $root = $PSScriptRoot
 $captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]')
 $renderingBaseline = '82fb49e95caf99ea45654f552992eff81f72bee9'
-$nativeBaseline = 'ae2776b3f49cd262a4954e313fd2010b8917beb3'
+$nativeBaseline = '7aa222e85859d217c33eedcb244e89ca1089ebbb'
 if ($captureVisual) {
     # The new native observation code is pinned separately, never broadly
     # excluded. All rendering/assets/dependency/security inputs retain 82fb.
     git merge-base --is-ancestor $nativeBaseline HEAD
     if ($LASTEXITCODE -ne 0) { throw 'Missing reviewed native diagnostic source' }
     $approvedNativePaths = @(
+        'scripts/experiments/mermaid-fixed-prototype/src/engine.rs',
         'scripts/experiments/mermaid-fixed-prototype/src/launcher.rs',
         'scripts/experiments/mermaid-fixed-prototype/src/launcher/cleanup_observation.rs'
     )
@@ -69,6 +70,14 @@ $candidates = @(foreach ($directory in $roots) {
 })
 if ($candidates.Count -eq 0) { throw 'No existing WebView2; no Runtime installation fallback' }
 $runtime = ($candidates | Sort-Object version -Descending | Select-Object -First 1).path
+$runtimeFileVersion = [ordered]@{ directoryVersion = [IO.Path]::GetFileName($runtime); readSucceeded = $false; fileVersion = $null; productVersion = $null; errorType = $null }
+try {
+    $versionInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $runtime 'msedgewebview2.exe'))
+    # Read only the already selected Runtime; no update, installation or network verification.
+    $runtimeFileVersion.fileVersion = $versionInfo.FileVersion
+    $runtimeFileVersion.productVersion = $versionInfo.ProductVersion
+    $runtimeFileVersion.readSucceeded = $true
+} catch { $runtimeFileVersion.errorType = $_.Exception.GetType().FullName }
 $proof = Join-Path $env:RUNNER_TEMP ('mermaid-fixed-prototype-evidence-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $proof -ErrorAction Stop | Out-Null
 "evidence_root=$proof" >> $env:GITHUB_OUTPUT
@@ -95,6 +104,7 @@ $execution = [ordered]@{
     attempt = $env:GITHUB_RUN_ATTEMPT
     baseline = 'b7f9cdecfc02c2f0710fc9d6b71c12419364e644'
     runtime = $runtime
+    runtimeFileVersion = $runtimeFileVersion
     binaryBytes = (Get-Item $binary).Length
     binarySha256 = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
     fixedEngineBytes = (Get-Item $engine).Length

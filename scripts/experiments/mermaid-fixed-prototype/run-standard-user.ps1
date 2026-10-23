@@ -60,6 +60,7 @@ function Read-CaseSummary([string]$Output) {
             privateTreeRemoved = $launcher['privateTreeRemoved']
             privateTreeDeleteAttempts = $launcher['privateTreeDeleteAttempts']
             cleanupAccessObservation = $launcher['cleanupAccessObservation']
+            preparation = (Convert-PreparationSummary $launcher)
             cleanupSupervisorSid = $launcher['cleanupSupervisorSid']
             stopMatrixAfterThisCase = $launcher['stopMatrixAfterThisCase']
         }
@@ -74,6 +75,7 @@ Assert-PlainPath $Runtime
 Assert-PlainPath $Binary
 . (Join-Path $PSScriptRoot 'visual-evidence.ps1')
 . (Join-Path $PSScriptRoot 'cleanup-diagnostics.ps1')
+. (Join-Path $PSScriptRoot 'case-preparation.ps1')
 Add-Type -Path (Join-Path $PSScriptRoot 'StandardUserProcess.cs')
 $runId = [guid]::NewGuid().ToString('N')
 $name = 'mkp' + $runId.Substring(0, 15)

@@ -43,7 +43,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $root = 'scripts/experiments/mermaid-fixed-prototype'
-          foreach ($name in @('run-reviewed-windows.ps1','run-standard-user.ps1','visual-evidence.ps1','cleanup-diagnostics.ps1','test-visual-evidence.ps1')) {
+          foreach ($name in @('run-reviewed-windows.ps1','run-standard-user.ps1','visual-evidence.ps1','cleanup-diagnostics.ps1','test-visual-evidence.ps1','case-preparation.ps1','test-case-preparation.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD "$root/$name"), [ref]$tokens, [ref]$errors) | Out-Null
@@ -59,6 +59,7 @@ jobs:
             if (Test-OwnedCleanupPath $candidate $parent) { throw 'Out-of-scope diagnostic path accepted' }
           }
           & (Join-Path $PWD "$root/test-visual-evidence.ps1")
+          & (Join-Path $PWD "$root/test-case-preparation.ps1")
       - name: Run reviewed fixed code and data corpus
         id: run
         run: ./scripts/experiments/mermaid-fixed-prototype/run-reviewed-windows.ps1
