@@ -1,4 +1,48 @@
-# Windows visual follow-up: cleanup failure remains a blocker
+# Windows visual follow-up: preparation and cleanup remain blockers
+
+## Latest run: preparation timeout, no PNG
+
+[Run 39936547225](https://github.com/Auto-Plugin/milkup/actions/runs/39936547225)
+tested **`91a6f8144b6e81e2a8dfa257245083bc87636ad3`** and failed before the
+canary supplied its native ready frame. The error was `timed out waiting on
+channel`; browser identity fields are absent. The launcher writes those fields
+before entering the later render wait, so the code path identifies the initial
+**10-second preparation wait**, not the 2-second rendering limit. The precise
+COM/environment/controller/page-ready stage is unknown: the former case-summary
+allowlist omitted the existing native timing, stderr and pre-stop Job fields.
+The private report was removed during confirmed cleanup and cannot be recovered.
+
+All **11 Windows Rust tests actually executed and passed**, including the three
+new access-observation tests. Those tests verified unchanged synthetic file
+bytes/attributes/OWNER-GROUP-DACL and subsequent tree removal after probe handles
+closed. The production-path OS5 observation did **not** execute in this run:
+`cleanupAccessObservation` is null and private-tree deletion succeeded. This
+does not resolve the three earlier OS5 failures.
+
+The native Job reached zero; the AppContainer profile and private tree were
+removed. The timed-out helper's stdout reader reported `failed to fill whole
+buffer`, so the case and its protocol-cleanup result remain failures. The outer
+Job was empty and its temporary account, actual Windows profile and full stage
+were removed without outer cleanup errors. No positive matrix started, no PNG
+was exported or viewed, and the artifact API confirms **zero artifacts**.
+No unchanged-candidate retry followed this result.
+
+The run logs `rustc 1.99.1`, compiler commit
+`58cf8f9c35b355199727627d07ae34a4e2846d67`, host
+`x86_64-pc-windows-msvc`, LLVM `23.1.1`. Native source is separately pinned to
+reviewed observation commit `ae2776b3f49cd262a4954e313fd2010b8917beb3`;
+fixed engine/assets/fixtures/dependency inputs remain pinned to `82fb49e9`.
+Native source is therefore **not** byte-identical to 82fb. See the
+[observation contract](NATIVE-CLEANUP-OBSERVATION.md) and
+[sanitized failure record](evidence/windows-visual-2026-10-23/run-39936547225-failure.json).
+The normalized complete log SHA256 is
+`2f9a2362a533dd8fd56138b9452cd4898d64b9ad55a48a1c0a3b36b315732e9f`.
+
+The remaining sections preserve the earlier 46d6 checkpoint. References below
+to the “latest” run, byte-identical native code and a proposed observation refer
+to that earlier checkpoint, before the separately pinned diagnostic above.
+
+## Earlier checkpoint: repeated native OS5
 
 The latest bounded run, [39933416844](https://github.com/Auto-Plugin/milkup/actions/runs/39933416844),
 tested source **`4ecbc3adb2f5dbf1aca7dcaae8dd15b81128bd9b`**. It failed after

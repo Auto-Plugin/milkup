@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "runId": 39936547225,
+  "runUrl": "https://github.com/Auto-Plugin/milkup/actions/runs/39936547225",
+  "source": "91a6f8144b6e81e2a8dfa257245083bc87636ad3",
+  "nativeSourceBaseline": "ae2776b3f49cd262a4954e313fd2010b8917beb3",
+  "renderingInputsBaseline": "82fb49e95caf99ea45654f552992eff81f72bee9",
+  "conclusion": "failure",
+  "status": "failed-before-positive-matrix",
+  "complete": false,
+  "acceptedPositiveCount": 0,
+  "imageCount": 0,
+  "artifactCount": 0,
+  "reason": "Canary timed out before the native ready frame and browser identity checks; no positive dispatch or PNG output. No OS5 occurred in this run.",
+  "stageInference": {
+    "stage": "parent preparation ready wait",
+    "limitMs": 10000,
+    "evidence": "RecvTimeoutError text; browserToken and browserProcessInOwnedJob absent. The later 2-second render wait occurs only after those fields are written.",
+    "limitation": "Precise COM/environment/controller/navigation phase was not logged. Existing native ready/timing/stderr/Job-detail fields were omitted from the case summary; the private report was removed with the confirmed stage cleanup."
+  },
+  "compiler": {
+    "source": "91a6f8144b6e81e2a8dfa257245083bc87636ad3",
+    "lines": [
+      "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "binary: rustc",
+      "commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67",
+      "commit-date: 2026-10-13",
+      "host: x86_64-pc-windows-msvc",
+      "release: 1.99.1",
+      "LLVM version: 23.1.1"
+    ],
+    "runId": "39936547225"
+  },
+  "windowsRustTests": {
+    "passed": 11,
+    "failed": 0,
+    "ignored": 0,
+    "actuallyExecuted": true,
+    "newObservationTestsPassed": 3
+  },
+  "cases": [
+    {
+      "fixture": "flowchart-v2",
+      "ok": false,
+      "error": null,
+      "rawRenderSucceeded": false,
+      "expectedRejection": false,
+      "observationOnly": false,
+      "executionFailure": false,
+      "pngValidation": {
+        "error": "Invalid PNG header or length"
+      },
+      "registrationMatches": false,
+      "standardUserEvidence": true,
+      "hostToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": null,
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 8192,
+        "isAppContainer": false,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "<temporary-user-sid>"
+      },
+      "suspendedToken": {
+        "administratorsGroupAttributes": null,
+        "administratorsGroupPresentIncludingDenyOnly": false,
+        "appContainerSid": "<appcontainer-sid>",
+        "capabilities": [],
+        "capabilityCount": 0,
+        "elevated": false,
+        "elevationType": 1,
+        "integrityRid": 4096,
+        "isAppContainer": true,
+        "seDebugPrivilege": {
+          "attributes": null,
+          "enabled": false,
+          "enabledByDefault": false,
+          "present": false,
+          "readOnlyObservation": true
+        },
+        "standardUserTokenEvidence": true,
+        "userSid": "<temporary-user-sid>"
+      },
+      "browserToken": null,
+      "browserProcessInOwnedJob": null,
+      "rendererError": "timed out waiting on channel",
+      "rendererMetadata": null,
+      "cleanupErrors": ["stdout protocol: failed to fill whole buffer"],
+      "jobActiveAfterStop": 0,
+      "profileDeletedAndFolderAbsent": true,
+      "privateTreeRemoved": true,
+      "privateTreeDeleteAttempts": [],
+      "cleanupAccessObservation": null,
+      "cleanupSupervisorSid": "<cleanup-supervisor-sid>",
+      "stopMatrixAfterThisCase": true
+    }
+  ],
+  "outerAccount": {
+    "schema": 1,
+    "source": "91a6f8144b6e81e2a8dfa257245083bc87636ad3",
+    "userName": "<temporary-user>",
+    "userSid": "<temporary-user-sid>",
+    "runId": "39936547225",
+    "attempt": "1",
+    "cleanupSupervisorSid": "<cleanup-supervisor-sid>",
+    "accountCreated": true,
+    "accountDeleted": true,
+    "profileDeleted": true,
+    "stage": "<owned-stage>",
+    "stageRemoved": true,
+    "executions": [
+      {
+        "result": {
+          "success": false,
+          "resumed": true,
+          "jobAssigned": true,
+          "jobEmpty": true,
+          "inheritedParentEnvironment": false,
+          "existingDesktopAclChanged": false,
+          "pid": 9168,
+          "suspendedToken": {
+            "sid": "<temporary-user-sid>",
+            "elevated": false,
+            "elevationType": 1,
+            "administratorsGroupPresentIncludingDenyOnly": false,
+            "seDebugPrivilegePresent": false,
+            "standardUser": true
+          },
+          "exitCode": 1,
+          "cleanupErrors": []
+        },
+        "name": "canary"
+      }
+    ],
+    "cleanupErrors": [],
+    "passwordInLogsFilesArgumentsOrEnvironment": false,
+    "changedFirewallOrUac": false,
+    "changedExistingDesktopAcl": false,
+    "newRuntimeOrDependency": false,
+    "productIntegrated": false,
+    "artifactUpload": false,
+    "captureVisualEvidence": true,
+    "visualEvidenceEmitted": false,
+    "localGroupSids": ["S-1-5-32-545"],
+    "failure": "Standard-user canary failed; no subsequent dispatch",
+    "actualWindowsProfile": "<temporary-user-profile>"
+  },
+  "cleanupInterpretation": "Job, AppContainer profile, private tree, temporary account and actual user profile removal succeeded. The stdout protocol read failed after the timed-out helper was stopped; therefore the case remains failed and its cleanupErrors is not empty.",
+  "os5ObservationTriggered": false,
+  "unchangedCandidateRetried": false,
+  "normalizedCompleteJobLogSha256": "2f9a2362a533dd8fd56138b9452cd4898d64b9ad55a48a1c0a3b36b315732e9f",
+  "pixelsVisuallyReviewed": false,
+  "productIntegrated": false
+}
