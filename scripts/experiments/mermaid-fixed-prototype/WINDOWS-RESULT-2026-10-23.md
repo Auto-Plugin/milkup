@@ -1,5 +1,9 @@
 # Fixed Mermaid prototype: first Windows execution
 
+Historical first-run evidence follows unchanged. The separately authorized
+[standard-user follow-up](WINDOWS-STANDARD-USER-RESULT-2026-10-23.md) now records
+actual rendering and all subsequent failures; it is still not product integration.
+
 The bounded prototype was executed on Windows, but **no diagram reached WebView2**. The suspended child's `TokenElevation=true` failed the prototype's explicit admission check. This is an environment/admission blocker, not evidence that Mermaid or AppContainer rendering is broken. The prototype remains separate from the product; no integration or release is authorized by this result.
 
 ## Exact run and preserved evidence
