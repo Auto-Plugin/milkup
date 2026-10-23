@@ -10,6 +10,7 @@
   });
   let consumed = false;
   let rendered = false;
+  let strippedLinkTargets = 0;
   const send = (value) => host.postMessage(value);
   const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
   host.addEventListener('message', async ({ data }) => {
@@ -19,6 +20,7 @@
       await frame();
       const target = document.getElementById('target');
       send({ phase: 'capture-ready', policyObservations,
+        strippedLinkTargets,
         activeLinkElements: [...target.querySelectorAll('a')].filter((a) => a.hasAttribute('href') || a.hasAttribute('xlink:href')).length,
         executableElements: target.querySelectorAll('script,iframe,object,embed').length,
         interactionAttempted: false });
@@ -45,6 +47,18 @@
       target.innerHTML = result.svg;
       const svg = target.querySelector('svg');
       if (!svg) throw new Error('Official render returned no SVG');
+      // Official strict mode can preserve HTTPS anchors. This prototype exports
+      // static PNGs only: retain their visible contents/geometry, remove targets.
+      // Native navigation/request gates and CSP remain independent protections.
+      for (const anchor of target.querySelectorAll('a')) {
+        if (anchor.hasAttribute('href') || anchor.hasAttributeNS('http://www.w3.org/1999/xlink', 'href')) strippedLinkTargets++;
+        anchor.removeAttribute('href');
+        anchor.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
+        anchor.removeAttribute('xlink:href');
+        anchor.removeAttribute('target');
+        anchor.removeAttribute('download');
+      }
+      if (target.querySelector('script,iframe,object,embed')) throw new Error('Executable element rejected in static renderer output');
       await document.fonts.ready;
       await frame();
       await frame();
