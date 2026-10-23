@@ -71,7 +71,8 @@ Assert-PlainPath $Binary
 Add-Type -Path (Join-Path $PSScriptRoot 'StandardUserProcess.cs')
 $runId = [guid]::NewGuid().ToString('N')
 $name = 'mkp' + $runId.Substring(0, 15)
-$description = 'Milkup temporary fixed-engine prototype ' + $runId
+$description = 'Milkup test ' + $runId
+if ($name.Length -gt 20 -or $description.Length -gt 48) { throw 'Local account metadata exceeds Windows limits' }
 $stage = Join-Path $env:RUNNER_TEMP ('milkup-standard-' + $runId)
 $audit = [ordered]@{
     schema = 1; source = $env:GITHUB_SHA; userName = $name; userSid = $null
