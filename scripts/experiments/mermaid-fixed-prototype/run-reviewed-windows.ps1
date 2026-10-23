@@ -30,8 +30,7 @@ if ((Get-Item $engine).Length -ne 5494801 -or
 }
 $roots = @(
     (Join-Path ${env:ProgramFiles(x86)} 'Microsoft/EdgeWebView/Application'),
-    (Join-Path $env:ProgramFiles 'Microsoft/EdgeWebView/Application'),
-    (Join-Path $env:LOCALAPPDATA 'Microsoft/EdgeWebView/Application')
+    (Join-Path $env:ProgramFiles 'Microsoft/EdgeWebView/Application')
 ) | Select-Object -Unique
 $candidates = @(foreach ($directory in $roots) {
     if (Test-Path -LiteralPath $directory -PathType Container) {
@@ -74,19 +73,8 @@ $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-mermaid-fixed-prototype.
     fixedEngineBytes = (Get-Item $engine).Length
     executableIsPrototypeNotInstaller = $true
     nativeNetworkGuarantee = $false
-    standardUserAcceptance = 'Requires actual launcher token evidence; no token/account/privilege changes permitted'
+    standardUserAcceptance = 'Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment'
 } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
-$env:MILKUP_MERMAID_PROTOTYPE_AUTHORIZED = 'fixed-official-data-only-temporary-test'
-try {
-    & $binary --run $runtime (Join-Path $root 'fixtures-manifest.json') (Join-Path $proof 'renders')
-    $code = $LASTEXITCODE
-    if ($code -eq 0) {
-        & $binary --run $runtime (Join-Path $root 'negative-fixtures-manifest.json') (Join-Path $proof 'negative-renders')
-        $code = $LASTEXITCODE
-    }
-} finally {
-    Remove-Item Env:MILKUP_MERMAID_PROTOTYPE_AUTHORIZED -ErrorAction SilentlyContinue
-}
-if ($code -ne 0) { throw 'Prototype cases or cleanup failed; inspect preserved evidence, do not change security settings' }
+& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }

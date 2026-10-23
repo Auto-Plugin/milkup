@@ -826,6 +826,13 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
         return Err("Installed Runtime absent; no installation or download fallback".into());
     }
     let host_token = token_info(unsafe { GetCurrentProcess() })?;
+    let expected_user = std::env::var("MILKUP_MERMAID_PROTOTYPE_EXPECTED_USER_SID")
+        .map_err(|_| "Missing expected temporary standard-user SID")?;
+    if host_token["standardUserTokenEvidence"] != true
+        || host_token["userSid"].as_str() != Some(expected_user.as_str())
+    {
+        return Err("Launcher is not the authorized temporary standard-user token".into());
+    }
     let unique = format!(
         "milkup-fixed-mermaid-{}-{}",
         std::process::id(),
