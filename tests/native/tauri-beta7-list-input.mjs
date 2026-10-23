@@ -480,14 +480,37 @@ return {editor:rect(root),cursor:rect(cursor),focus:document.activeElement?.matc
       label,
       suffix,
       mode,
-      expectedFocus: taskFocus ? 'task-checkbox' : 'editor-input',
+      expectedFocusBeforeSave: taskFocus ? 'task-checkbox' : 'editor-input',
+      expectedFocusAfterSave: 'editor-input',
       expectedCursor: caret,
       expectedBytes: Buffer.byteLength(expected),
       expectedSha256: hash(expected),
       passed: false,
     }
     row.phases.push(phase)
+    if (taskFocus) {
+      const beforeSave = await wait(
+        (s) =>
+          s.details.focusedTask === current.base + 2 &&
+          s.details.lines
+            .find((line) => line.line === current.line)
+            ?.tasks.some(
+              (task) =>
+                task.from === current.base + 2 &&
+                task.checked === String(suffix[3] !== ' ') &&
+                !task.disabled,
+            ),
+        'Native checkbox activation preserves its accessible focus before Save',
+      )
+      phase.beforeSave = {
+        focusedTask: beforeSave.details.focusedTask,
+        cursor: beforeSave.cursor,
+        line: beforeSave.details.lines.find((line) => line.line === current.line),
+      }
+      assert.equal(beforeSave.cursor, caret, 'Checkbox activation preserves the original caret')
+    }
     // Commit and inspect the actual complete file before accepting visual success.
+    // The existing Save command deliberately restores editor input focus.
     await app.key('ctrl+s')
     await app.until(
       async () => {
@@ -516,13 +539,7 @@ return {editor:rect(root),cursor:rect(cursor),focus:document.activeElement?.matc
     assert.equal(s.file.sha256, phase.expectedSha256)
     assert.equal(s.windowed, current.windowed)
     assert(!/(^|[^\r])\n/.test((await readFile(documentPath)).toString()), 'No CRLF normalization')
-    if (taskFocus)
-      assert.equal(
-        s.details.focusedTask,
-        current.base + 2,
-        'Clicked checkbox retains accessible focus',
-      )
-    else assert(s.details.focus, 'Native input retains focus')
+    assert(s.details.focus, 'Explicit Save restores or retains editor input focus')
     const r = s.details.cursor,
       bounds = s.details.editor
     assert(r && bounds && r.width > 0 && r.height > 0, 'Visible caret geometry')

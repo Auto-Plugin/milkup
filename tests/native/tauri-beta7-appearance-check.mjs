@@ -775,7 +775,8 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
     await app.shot(screenshotName)
     const source = path.join(output, screenshotName + '.png'),
       crop = path.join(output, name + '-graph-crop.png'),
-      ocrImage = path.join(output, name + '-graph-ocr.png')
+      ocrImage = path.join(output, name + '-graph-ocr.png'),
+      normalizedOcrImage = path.join(output, name + '-graph-ocr-normalized.png')
     const dimensions = (file) =>
       execFileSync('/usr/bin/identify', ['-format', '%w %h', file], {
         encoding: 'utf8',
@@ -801,9 +802,42 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
       { timeout: 10000 },
     )
     execFileSync('/usr/bin/convert', [crop, '-resize', '300%', ocrImage], { timeout: 10000 })
+    // Tesseract's adaptive binarization treated the pale node frames as connected
+    // regions and returned no words on the real light-theme screenshot. A fixed
+    // luminance threshold removes that low-contrast frame without moving pixels.
+    // Keep the original color image for all connector assertions and evidence.
+    const backgroundLuminance = Number(
+      execFileSync(
+        '/usr/bin/convert',
+        [ocrImage, '-crop', '1x1+0+0', '-colorspace', 'Gray', '-format', '%[fx:mean]', 'info:'],
+        { encoding: 'utf8', timeout: 10000 },
+      ),
+    )
+    assert(
+      Number.isFinite(backgroundLuminance) && backgroundLuminance >= 0 && backgroundLuminance <= 1,
+    )
+    const invertForOcr = backgroundLuminance < 0.5
+    execFileSync(
+      '/usr/bin/convert',
+      [
+        ocrImage,
+        '-colorspace',
+        'Gray',
+        ...(invertForOcr ? ['-negate'] : []),
+        '-threshold',
+        '60%',
+        normalizedOcrImage,
+      ],
+      { timeout: 10000 },
+    )
+    assert.deepEqual(
+      dimensions(normalizedOcrImage),
+      dimensions(ocrImage),
+      'OCR keeps exact pixel coordinates',
+    )
     const ocr = spawnSync(
       '/usr/bin/tesseract',
-      [ocrImage, 'stdout', '-l', 'eng', '--psm', '11', 'tsv'],
+      [normalizedOcrImage, 'stdout', '-l', 'eng', '--psm', '11', 'tsv'],
       { encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024 },
     )
     const tsv = ocr.stdout ?? ''
@@ -869,6 +903,14 @@ vectors:[...editor.querySelectorAll('[data-document-presentation] svg')].map(e=>
       screenshot: { file: path.basename(source), sha256: hash(await readFile(source)) },
       crop: { file: path.basename(crop), sha256: hash(await readFile(crop)) },
       ocrImage: { file: path.basename(ocrImage), sha256: hash(await readFile(ocrImage)) },
+      normalizedOcrImage: {
+        file: path.basename(normalizedOcrImage),
+        sha256: hash(await readFile(normalizedOcrImage)),
+        backgroundLuminance,
+        inverted: invertForOcr,
+        threshold: '60%',
+        connectorUsesOriginalPixels: true,
+      },
       ocr: { file: name + '-graph-ocr.tsv', sha256: hash(tsv), words },
       connector: { middleY, middleX, connectorColumns },
       visuallyReviewed: false,

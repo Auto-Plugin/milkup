@@ -1,0 +1,3414 @@
+{
+  "schemaVersion": 1,
+  "kind": "derived-sanitized-native-evidence",
+  "run": "run-pending-upgrade",
+  "sourceCommit": "d73b46a2a745ba330949a929191e687dd5c408e9",
+  "binarySha256": "939a6c1e770a9c389529ab854678f24780dc1b3af42ed42ea059dee0623cf8e8",
+  "expectedVersion": "2.0.0-beta.7",
+  "mode": "failed-pending-dom-to-delivered-worker",
+  "startedAt": "2026-10-23T06:56:54.012Z",
+  "finishedAt": "2026-10-23T06:58:32.210Z",
+  "counts": {
+    "recorded": 32,
+    "passed": 32,
+    "failed": 0
+  },
+  "originalReportSha256": "bb9d6770b4e4a194a252ed518c6a98b911e00d718366a7d0be30c1fcc4878571",
+  "harnessStartupSourceSha256": "bda9601c8ebdd778195430d2bb33323c1d59dbca93df84a8dfecdbf2b3953b93",
+  "inputActionCount": 139,
+  "processSessionCount": 2,
+  "restart": {
+    "fixture": "windowed-sequence",
+    "count": 1,
+    "oldProcessExitCheckedByHarness": true,
+    "differentProcessInstanceCheckedByHarness": true,
+    "sameActiveGenerationChecked": true
+  },
+  "archive": {
+    "name": "milkup.diagrams-1.2.0.milkup-plugin",
+    "sha256": "b1c2b8490da465f1c38f4f3886e7fa926978d2e6e2c5081bca4d716659c4acc1",
+    "id": "milkup.diagrams",
+    "version": "1.2.0",
+    "host": "worker"
+  },
+  "seed": {
+    "preparedAt": "2026-10-23T06:54:39.215Z",
+    "sourceEvidenceSha256": "1f3be87d2f9d751adb7b2dbf87edad370240e18a347ca0bbe3a7f109f0107e2d",
+    "seedEntry": {
+      "revision": 4,
+      "enabled": false,
+      "active": null,
+      "previous": null,
+      "pending": {
+        "phase": "prepared",
+        "generation": {
+          "version": "1.1.1",
+          "host": "dom",
+          "manifestSha256": "968ea987ea7028d5c31a2d2a57ca1a21f08adc564ac3f4db3e179c5aa55be8ea",
+          "contentSha256": "e43e59eeeb810f119f2539d7495c148c9c9aa749bcbaa947558c4d5fd73d334f",
+          "verified": false,
+          "hasApproval": true
+        }
+      },
+      "hasStartAttempt": false,
+      "tombstone": false,
+      "diagnosticCount": 1,
+      "retainsPriorActivationTimeout": true,
+      "retainsSupersededCandidateDiagnostic": false
+    }
+  },
+  "boundaries": [
+    "Failed prepared candidate replacement and restart lifecycle; actual passed rows remain authoritative.",
+    "Linux production UI only; no Windows execution, installer, system DPI, or IME claim.",
+    "Exact copy of a retained failed pending DOM 1.1.1 catalog; UI imports Worker 1.2.0 without uninstall or catalog editing. No active DOM upgrade claim.",
+    "No Worker 1.1.x archive exists in the inspected local evidence; active Worker 1.1.x upgrade is not tested.",
+    "Actual native ordinary/windowed files; real XTest and GTK input. DOM only observed; diagnostic injection disabled.",
+    "Decoded image dimensions and vector labels do not establish visual quality; screenshot pixels require separate review.",
+    "Only the claimed Worker flowchart/sequence output is covered. This is not the full official Mermaid grammar matrix.",
+    "Only the final windowed-sequence fixture underwent one process restart.",
+    "Not final beta.7 acceptance: exact earlier d73 candidate only.",
+    "Build began in an uncommitted tree; frozen tracked inputs were later matched byte-for-byte to d73.",
+    "Legacy beta6 harness names, failed-profile source and delivered-archive path are retained provenance, not new beta7-origin claims."
+  ],
+  "fixtures": {
+    "ordinary-flowchart": {
+      "file": "fixtures/ordinary-flowchart.md",
+      "sha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+      "compression": null,
+      "uncompressedSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+      "uncompressedBytes": 98
+    },
+    "ordinary-sequence": {
+      "file": "fixtures/ordinary-sequence.md",
+      "sha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+      "compression": null,
+      "uncompressedSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+      "uncompressedBytes": 154
+    },
+    "windowed-flowchart": {
+      "file": "fixtures/windowed-flowchart.md.gz",
+      "sha256": "805e799cdccea57234dd10f2600dbf6f88f6fd4f2cf2091a596939ebfa3500aa",
+      "compression": "gzip",
+      "uncompressedSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+      "uncompressedBytes": 940115
+    },
+    "windowed-sequence": {
+      "file": "fixtures/windowed-sequence.md.gz",
+      "sha256": "dbf39b14b242e93759fa9d26452b55c643b43945c53c5a9a0ab4a2f7ae63a7f5",
+      "compression": "gzip",
+      "uncompressedSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+      "uncompressedBytes": 940171
+    }
+  },
+  "rows": [
+    {
+      "name": "01-reopen-retained-failed-pending-dom-not-active-upgrade",
+      "startedAt": "2026-10-23T06:56:56.510Z",
+      "finishedAt": "2026-10-23T06:57:00.545Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1100,
+        "height": 760,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "f02b6bcdcd29cb7361bfa7ae62f45ba3666eb3c8498c8407e1b5d11596f5c4ea",
+          "revision": 13,
+          "diagrams": {
+            "revision": 4,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.1.1",
+                "host": "dom",
+                "manifestSha256": "968ea987ea7028d5c31a2d2a57ca1a21f08adc564ac3f4db3e179c5aa55be8ea",
+                "contentSha256": "e43e59eeeb810f119f2539d7495c148c9c9aa749bcbaa947558c4d5fd73d334f",
+                "verified": false,
+                "hasApproval": true
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 1,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": false
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": null,
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "f02b6bcdcd29cb7361bfa7ae62f45ba3666eb3c8498c8407e1b5d11596f5c4ea",
+          "revision": 13,
+          "diagrams": {
+            "revision": 4,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.1.1",
+                "host": "dom",
+                "manifestSha256": "968ea987ea7028d5c31a2d2a57ca1a21f08adc564ac3f4db3e179c5aa55be8ea",
+                "contentSha256": "e43e59eeeb810f119f2539d7495c148c9c9aa749bcbaa947558c4d5fd73d334f",
+                "verified": false,
+                "hasApproval": true
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 1,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": false
+          }
+        }
+      },
+      "initialCatalog": {
+        "fileSha256": "f02b6bcdcd29cb7361bfa7ae62f45ba3666eb3c8498c8407e1b5d11596f5c4ea",
+        "revision": 13,
+        "diagrams": {
+          "revision": 4,
+          "enabled": false,
+          "active": null,
+          "previous": null,
+          "pending": {
+            "phase": "prepared",
+            "generation": {
+              "version": "1.1.1",
+              "host": "dom",
+              "manifestSha256": "968ea987ea7028d5c31a2d2a57ca1a21f08adc564ac3f4db3e179c5aa55be8ea",
+              "contentSha256": "e43e59eeeb810f119f2539d7495c148c9c9aa749bcbaa947558c4d5fd73d334f",
+              "verified": false,
+              "hasApproval": true
+            }
+          },
+          "hasStartAttempt": false,
+          "tombstone": false,
+          "diagnosticCount": 1,
+          "retainsPriorActivationTimeout": true,
+          "retainsSupersededCandidateDiagnostic": false
+        }
+      },
+      "screenshots": []
+    },
+    {
+      "name": "02-ui-import-delivered-worker-without-removal",
+      "startedAt": "2026-10-23T06:57:00.555Z",
+      "finishedAt": "2026-10-23T06:57:08.025Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": null,
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "f02b6bcdcd29cb7361bfa7ae62f45ba3666eb3c8498c8407e1b5d11596f5c4ea",
+          "revision": 13,
+          "diagrams": {
+            "revision": 4,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.1.1",
+                "host": "dom",
+                "manifestSha256": "968ea987ea7028d5c31a2d2a57ca1a21f08adc564ac3f4db3e179c5aa55be8ea",
+                "contentSha256": "e43e59eeeb810f119f2539d7495c148c9c9aa749bcbaa947558c4d5fd73d334f",
+                "verified": false,
+                "hasApproval": true
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 1,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": false
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "141d7df2ecfcc2de64b9f84cabc88f61433949e981db3fd0f56fe97b61888355",
+          "revision": 14,
+          "diagrams": {
+            "revision": 5,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.2.0",
+                "host": "worker",
+                "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+                "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+                "verified": false,
+                "hasApproval": false
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "beforeImport": {
+        "menu": true,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "f02b6bcdcd29cb7361bfa7ae62f45ba3666eb3c8498c8407e1b5d11596f5c4ea",
+          "revision": 13,
+          "diagrams": {
+            "revision": 4,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.1.1",
+                "host": "dom",
+                "manifestSha256": "968ea987ea7028d5c31a2d2a57ca1a21f08adc564ac3f4db3e179c5aa55be8ea",
+                "contentSha256": "e43e59eeeb810f119f2539d7495c148c9c9aa749bcbaa947558c4d5fd73d334f",
+                "verified": false,
+                "hasApproval": true
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 1,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": false
+          }
+        }
+      },
+      "importResultCatalog": {
+        "fileSha256": "141d7df2ecfcc2de64b9f84cabc88f61433949e981db3fd0f56fe97b61888355",
+        "revision": 14,
+        "diagrams": {
+          "revision": 5,
+          "enabled": false,
+          "active": null,
+          "previous": null,
+          "pending": {
+            "phase": "prepared",
+            "generation": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": false,
+              "hasApproval": false
+            }
+          },
+          "hasStartAttempt": false,
+          "tombstone": false,
+          "diagnosticCount": 2,
+          "retainsPriorActivationTimeout": true,
+          "retainsSupersededCandidateDiagnostic": true
+        }
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/02-ui-import-delivered-worker-without-removal-system.png",
+          "sha256": "7cdcc8322264486606219ab4666abf57ea5becdf44c9f98d621210c09bffc7b8",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    },
+    {
+      "name": "03-ordinary-flowchart-open-existing-source",
+      "startedAt": "2026-10-23T06:57:08.066Z",
+      "finishedAt": "2026-10-23T06:57:09.014Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "141d7df2ecfcc2de64b9f84cabc88f61433949e981db3fd0f56fe97b61888355",
+          "revision": 14,
+          "diagrams": {
+            "revision": 5,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.2.0",
+                "host": "worker",
+                "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+                "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+                "verified": false,
+                "hasApproval": false
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "141d7df2ecfcc2de64b9f84cabc88f61433949e981db3fd0f56fe97b61888355",
+          "revision": 14,
+          "diagrams": {
+            "revision": 5,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.2.0",
+                "host": "worker",
+                "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+                "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+                "verified": false,
+                "hasApproval": false
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "screenshots": []
+    },
+    {
+      "name": "04-ordinary-flowchart-enable-and-return-real-render",
+      "startedAt": "2026-10-23T06:57:09.029Z",
+      "finishedAt": "2026-10-23T06:57:11.539Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "141d7df2ecfcc2de64b9f84cabc88f61433949e981db3fd0f56fe97b61888355",
+          "revision": 14,
+          "diagrams": {
+            "revision": 5,
+            "enabled": false,
+            "active": null,
+            "previous": null,
+            "pending": {
+              "phase": "prepared",
+              "generation": {
+                "version": "1.2.0",
+                "host": "worker",
+                "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+                "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+                "verified": false,
+                "hasApproval": false
+              }
+            },
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "91e95a3e9d773de8cf21986029d105c2d9bf3567f5a02ff37db5f9ce40b964f7",
+          "revision": 17,
+          "diagrams": {
+            "revision": 8,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "bytes": 98
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/04-ordinary-flowchart-enable-and-return-real-render-system.png",
+          "sha256": "81a487aa43cad74051dbb245fee90ddec73a015bd67ce986e37d2ea48c8fccb9",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        },
+        {
+          "file": "screenshots/04-ordinary-flowchart-enable-and-return-real-render-webview.png",
+          "sha256": "ccb2dc8119b7104363ed40dd10f2ca0da08bb5b439704eff39a20834e8d617af",
+          "capture": "webview",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    },
+    {
+      "name": "05-ordinary-flowchart-edit-source-and-render-new-output",
+      "startedAt": "2026-10-23T06:57:11.555Z",
+      "finishedAt": "2026-10-23T06:57:13.171Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "91e95a3e9d773de8cf21986029d105c2d9bf3567f5a02ff37db5f9ce40b964f7",
+          "revision": 17,
+          "diagrams": {
+            "revision": 8,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "4afc41a9eb433d7fbcd27a5b76976480ef2bebae9b7276bc7436fbc2ed1c9b59",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "91e95a3e9d773de8cf21986029d105c2d9bf3567f5a02ff37db5f9ce40b964f7",
+          "revision": 17,
+          "diagrams": {
+            "revision": 8,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "4afc41a9eb433d7fbcd27a5b76976480ef2bebae9b7276bc7436fbc2ed1c9b59",
+        "bytes": 99
+      },
+      "screenshots": []
+    },
+    {
+      "name": "06-ordinary-flowchart-undo-and-restore-original-bytes",
+      "startedAt": "2026-10-23T06:57:13.191Z",
+      "finishedAt": "2026-10-23T06:57:14.806Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "4afc41a9eb433d7fbcd27a5b76976480ef2bebae9b7276bc7436fbc2ed1c9b59",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "91e95a3e9d773de8cf21986029d105c2d9bf3567f5a02ff37db5f9ce40b964f7",
+          "revision": 17,
+          "diagrams": {
+            "revision": 8,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "91e95a3e9d773de8cf21986029d105c2d9bf3567f5a02ff37db5f9ce40b964f7",
+          "revision": 17,
+          "diagrams": {
+            "revision": 8,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "bytes": 98
+      },
+      "screenshots": []
+    },
+    {
+      "name": "07-ordinary-flowchart-disable-removes-render-immediately",
+      "startedAt": "2026-10-23T06:57:14.827Z",
+      "finishedAt": "2026-10-23T06:57:17.325Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "91e95a3e9d773de8cf21986029d105c2d9bf3567f5a02ff37db5f9ce40b964f7",
+          "revision": 17,
+          "diagrams": {
+            "revision": 8,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "d6204c9af408dd0dcdac5d0ef5c2a9291fc568cf8aa8fceda7fa4fed76000400",
+          "revision": 18,
+          "diagrams": {
+            "revision": 9,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "bytes": 98
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/07-ordinary-flowchart-disable-removes-render-immediately-system.png",
+          "sha256": "32156e225842559cc96f6b2851f095beec48b3d4bc55ce05d76e7cc6b845d05d",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    },
+    {
+      "name": "08-ordinary-flowchart-reenable-without-document-reopen",
+      "startedAt": "2026-10-23T06:57:17.346Z",
+      "finishedAt": "2026-10-23T06:57:19.891Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "d6204c9af408dd0dcdac5d0ef5c2a9291fc568cf8aa8fceda7fa4fed76000400",
+          "revision": 18,
+          "diagrams": {
+            "revision": 9,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "b04c141d7a8243f62177b02c911f7a33451699f34a4435dd9054568e7bd27607",
+          "revision": 20,
+          "diagrams": {
+            "revision": 11,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "bytes": 98
+      },
+      "screenshots": []
+    },
+    {
+      "name": "09-ordinary-flowchart-leave-disabled-with-original-bytes",
+      "startedAt": "2026-10-23T06:57:19.919Z",
+      "finishedAt": "2026-10-23T06:57:22.389Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "b04c141d7a8243f62177b02c911f7a33451699f34a4435dd9054568e7bd27607",
+          "revision": 20,
+          "diagrams": {
+            "revision": 11,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "ccb26e63c6d3b9e5885925d5bf63053b6dfb35af86f6f09808f20f152a5e4996",
+          "revision": 21,
+          "diagrams": {
+            "revision": 12,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "bytes": 98
+      },
+      "screenshots": []
+    },
+    {
+      "name": "10-ordinary-sequence-open-existing-source",
+      "startedAt": "2026-10-23T06:57:22.426Z",
+      "finishedAt": "2026-10-23T06:57:26.935Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6264041cb171f5bda0fd8c259be92e555cbb39a235893304f7ea38b5b97da5ec",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "ccb26e63c6d3b9e5885925d5bf63053b6dfb35af86f6f09808f20f152a5e4996",
+          "revision": 21,
+          "diagrams": {
+            "revision": 12,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "ccb26e63c6d3b9e5885925d5bf63053b6dfb35af86f6f09808f20f152a5e4996",
+          "revision": 21,
+          "diagrams": {
+            "revision": 12,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "screenshots": []
+    },
+    {
+      "name": "11-ordinary-sequence-enable-and-return-real-render",
+      "startedAt": "2026-10-23T06:57:26.961Z",
+      "finishedAt": "2026-10-23T06:57:29.760Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "ccb26e63c6d3b9e5885925d5bf63053b6dfb35af86f6f09808f20f152a5e4996",
+          "revision": 21,
+          "diagrams": {
+            "revision": 12,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "8d593be77ed22b25b5bd8d234b43902cc62f1b5e5d377078508ae9c56c5d5f56",
+          "revision": 23,
+          "diagrams": {
+            "revision": 14,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "bytes": 154
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/11-ordinary-sequence-enable-and-return-real-render-system.png",
+          "sha256": "1a0503aa70b08f4542730a1fd209188e3e7538d1ccc691ed9a55c8d64669e562",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    },
+    {
+      "name": "12-ordinary-sequence-edit-source-and-render-new-output",
+      "startedAt": "2026-10-23T06:57:29.791Z",
+      "finishedAt": "2026-10-23T06:57:31.466Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "8d593be77ed22b25b5bd8d234b43902cc62f1b5e5d377078508ae9c56c5d5f56",
+          "revision": 23,
+          "diagrams": {
+            "revision": 14,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "4fd5c55929a22f84f3c376fce6b32b0d26468cadfaeef4ef14c41412973b3baa",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "8d593be77ed22b25b5bd8d234b43902cc62f1b5e5d377078508ae9c56c5d5f56",
+          "revision": 23,
+          "diagrams": {
+            "revision": 14,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "4fd5c55929a22f84f3c376fce6b32b0d26468cadfaeef4ef14c41412973b3baa",
+        "bytes": 155
+      },
+      "screenshots": []
+    },
+    {
+      "name": "13-ordinary-sequence-undo-and-restore-original-bytes",
+      "startedAt": "2026-10-23T06:57:31.506Z",
+      "finishedAt": "2026-10-23T06:57:33.042Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "4fd5c55929a22f84f3c376fce6b32b0d26468cadfaeef4ef14c41412973b3baa",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "8d593be77ed22b25b5bd8d234b43902cc62f1b5e5d377078508ae9c56c5d5f56",
+          "revision": 23,
+          "diagrams": {
+            "revision": 14,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "8d593be77ed22b25b5bd8d234b43902cc62f1b5e5d377078508ae9c56c5d5f56",
+          "revision": 23,
+          "diagrams": {
+            "revision": 14,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "bytes": 154
+      },
+      "screenshots": []
+    },
+    {
+      "name": "14-ordinary-sequence-disable-removes-render-immediately",
+      "startedAt": "2026-10-23T06:57:33.089Z",
+      "finishedAt": "2026-10-23T06:57:35.538Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "8d593be77ed22b25b5bd8d234b43902cc62f1b5e5d377078508ae9c56c5d5f56",
+          "revision": 23,
+          "diagrams": {
+            "revision": 14,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "03a4a4645e6ce94ddf5b2abfaff1136c6ade3cde5911df1bb5a8b8fba6c8f695",
+          "revision": 24,
+          "diagrams": {
+            "revision": 15,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "bytes": 154
+      },
+      "screenshots": []
+    },
+    {
+      "name": "15-ordinary-sequence-reenable-without-document-reopen",
+      "startedAt": "2026-10-23T06:57:35.572Z",
+      "finishedAt": "2026-10-23T06:57:38.305Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "03a4a4645e6ce94ddf5b2abfaff1136c6ade3cde5911df1bb5a8b8fba6c8f695",
+          "revision": 24,
+          "diagrams": {
+            "revision": 15,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "f3779e163897482bf98f5d2f6eb30ea1e6971c3a1c3092779956d5049ffd14c9",
+          "revision": 26,
+          "diagrams": {
+            "revision": 17,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "bytes": 154
+      },
+      "screenshots": []
+    },
+    {
+      "name": "16-ordinary-sequence-leave-disabled-with-original-bytes",
+      "startedAt": "2026-10-23T06:57:38.356Z",
+      "finishedAt": "2026-10-23T06:57:40.730Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "f3779e163897482bf98f5d2f6eb30ea1e6971c3a1c3092779956d5049ffd14c9",
+          "revision": 26,
+          "diagrams": {
+            "revision": 17,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "3cbfe25343526536c0ddc378532044207a878f80750744f8b5563a2e2af127e7",
+          "revision": 27,
+          "diagrams": {
+            "revision": 18,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "bytes": 154
+      },
+      "screenshots": []
+    },
+    {
+      "name": "17-windowed-flowchart-open-existing-source",
+      "startedAt": "2026-10-23T06:57:40.773Z",
+      "finishedAt": "2026-10-23T06:57:45.582Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": false,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "5703c0926f43bd6cf9c8b11014c56434663e546ce1df76591240ebae4e3b1812",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "3cbfe25343526536c0ddc378532044207a878f80750744f8b5563a2e2af127e7",
+          "revision": 27,
+          "diagrams": {
+            "revision": 18,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "3cbfe25343526536c0ddc378532044207a878f80750744f8b5563a2e2af127e7",
+          "revision": 27,
+          "diagrams": {
+            "revision": 18,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "screenshots": []
+    },
+    {
+      "name": "18-windowed-flowchart-enable-and-return-real-render",
+      "startedAt": "2026-10-23T06:57:45.650Z",
+      "finishedAt": "2026-10-23T06:57:48.702Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "3cbfe25343526536c0ddc378532044207a878f80750744f8b5563a2e2af127e7",
+          "revision": 27,
+          "diagrams": {
+            "revision": 18,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "6d9f1316160168ef3701c7fba2d63ede3ae0c64a1e319c620b07fd772cef712c",
+          "revision": 29,
+          "diagrams": {
+            "revision": 20,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "bytes": 940115
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/18-windowed-flowchart-enable-and-return-real-render-system.png",
+          "sha256": "00a79cfb16d48a5139129e5a40cc5854fac3b9f3f73c0e1e9f7a7dd835c81b88",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    },
+    {
+      "name": "19-windowed-flowchart-edit-source-and-render-new-output",
+      "startedAt": "2026-10-23T06:57:48.787Z",
+      "finishedAt": "2026-10-23T06:57:50.793Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "6d9f1316160168ef3701c7fba2d63ede3ae0c64a1e319c620b07fd772cef712c",
+          "revision": 29,
+          "diagrams": {
+            "revision": 20,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6b9b0238c6821905d9bc7e00590b2a7602544b192b76feb81519cb9c6df1a266",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "6d9f1316160168ef3701c7fba2d63ede3ae0c64a1e319c620b07fd772cef712c",
+          "revision": 29,
+          "diagrams": {
+            "revision": 20,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6b9b0238c6821905d9bc7e00590b2a7602544b192b76feb81519cb9c6df1a266",
+        "bytes": 940116
+      },
+      "screenshots": []
+    },
+    {
+      "name": "20-windowed-flowchart-undo-and-restore-original-bytes",
+      "startedAt": "2026-10-23T06:57:50.838Z",
+      "finishedAt": "2026-10-23T06:57:52.545Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6b9b0238c6821905d9bc7e00590b2a7602544b192b76feb81519cb9c6df1a266",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "6d9f1316160168ef3701c7fba2d63ede3ae0c64a1e319c620b07fd772cef712c",
+          "revision": 29,
+          "diagrams": {
+            "revision": 20,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "6d9f1316160168ef3701c7fba2d63ede3ae0c64a1e319c620b07fd772cef712c",
+          "revision": 29,
+          "diagrams": {
+            "revision": 20,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "bytes": 940115
+      },
+      "screenshots": []
+    },
+    {
+      "name": "21-windowed-flowchart-disable-removes-render-immediately",
+      "startedAt": "2026-10-23T06:57:52.589Z",
+      "finishedAt": "2026-10-23T06:57:55.261Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "6d9f1316160168ef3701c7fba2d63ede3ae0c64a1e319c620b07fd772cef712c",
+          "revision": 29,
+          "diagrams": {
+            "revision": 20,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "182f4df8a8d8be4f0a062b88484751399695f0c3158ed4a626748dea771cbdd3",
+          "revision": 30,
+          "diagrams": {
+            "revision": 21,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "bytes": 940115
+      },
+      "screenshots": []
+    },
+    {
+      "name": "22-windowed-flowchart-reenable-without-document-reopen",
+      "startedAt": "2026-10-23T06:57:55.342Z",
+      "finishedAt": "2026-10-23T06:57:58.625Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "182f4df8a8d8be4f0a062b88484751399695f0c3158ed4a626748dea771cbdd3",
+          "revision": 30,
+          "diagrams": {
+            "revision": 21,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "018cc0764a1a8f9599779075874dd0e13c2534690bc6a27451ce87cdcd173542",
+          "revision": 32,
+          "diagrams": {
+            "revision": 23,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "bytes": 940115
+      },
+      "screenshots": []
+    },
+    {
+      "name": "23-windowed-flowchart-leave-disabled-with-original-bytes",
+      "startedAt": "2026-10-23T06:57:58.692Z",
+      "finishedAt": "2026-10-23T06:58:01.640Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "018cc0764a1a8f9599779075874dd0e13c2534690bc6a27451ce87cdcd173542",
+          "revision": 32,
+          "diagrams": {
+            "revision": 23,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "0571affe3fc6d240531a79291b437a7d4de75e7e3a674c0f2cb71aa9dd470ac7",
+          "revision": 33,
+          "diagrams": {
+            "revision": 24,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "bytes": 940115
+      },
+      "screenshots": []
+    },
+    {
+      "name": "24-windowed-sequence-open-existing-source",
+      "startedAt": "2026-10-23T06:58:01.743Z",
+      "finishedAt": "2026-10-23T06:58:06.352Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "6a471794639cf98625b31554d3db9e51d6b53a9d476ed38f8e5cb2dfd20b9f16",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "0571affe3fc6d240531a79291b437a7d4de75e7e3a674c0f2cb71aa9dd470ac7",
+          "revision": 33,
+          "diagrams": {
+            "revision": 24,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "0571affe3fc6d240531a79291b437a7d4de75e7e3a674c0f2cb71aa9dd470ac7",
+          "revision": 33,
+          "diagrams": {
+            "revision": 24,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "screenshots": []
+    },
+    {
+      "name": "25-windowed-sequence-enable-and-return-real-render",
+      "startedAt": "2026-10-23T06:58:06.410Z",
+      "finishedAt": "2026-10-23T06:58:09.435Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "0571affe3fc6d240531a79291b437a7d4de75e7e3a674c0f2cb71aa9dd470ac7",
+          "revision": 33,
+          "diagrams": {
+            "revision": 24,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "9eb4bbd115d10f64d486138cee5a072b0a2b1eb56b7f16e6ab848726f0a1af08",
+          "revision": 35,
+          "diagrams": {
+            "revision": 26,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/25-windowed-sequence-enable-and-return-real-render-system.png",
+          "sha256": "54b4704e91a1a531a99a5f784b3302df783b528fbc22d024b84c65b9cd222fd6",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    },
+    {
+      "name": "26-windowed-sequence-edit-source-and-render-new-output",
+      "startedAt": "2026-10-23T06:58:09.522Z",
+      "finishedAt": "2026-10-23T06:58:11.567Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "9eb4bbd115d10f64d486138cee5a072b0a2b1eb56b7f16e6ab848726f0a1af08",
+          "revision": 35,
+          "diagrams": {
+            "revision": 26,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "302b1da542efcb0a138cfecbfbced347128a95464f937b40ff3f0356dc435599",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "9eb4bbd115d10f64d486138cee5a072b0a2b1eb56b7f16e6ab848726f0a1af08",
+          "revision": 35,
+          "diagrams": {
+            "revision": 26,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "302b1da542efcb0a138cfecbfbced347128a95464f937b40ff3f0356dc435599",
+        "bytes": 940172
+      },
+      "screenshots": []
+    },
+    {
+      "name": "27-windowed-sequence-undo-and-restore-original-bytes",
+      "startedAt": "2026-10-23T06:58:11.630Z",
+      "finishedAt": "2026-10-23T06:58:13.553Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "302b1da542efcb0a138cfecbfbced347128a95464f937b40ff3f0356dc435599",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "9eb4bbd115d10f64d486138cee5a072b0a2b1eb56b7f16e6ab848726f0a1af08",
+          "revision": 35,
+          "diagrams": {
+            "revision": 26,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "9eb4bbd115d10f64d486138cee5a072b0a2b1eb56b7f16e6ab848726f0a1af08",
+          "revision": 35,
+          "diagrams": {
+            "revision": 26,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": []
+    },
+    {
+      "name": "28-windowed-sequence-disable-removes-render-immediately",
+      "startedAt": "2026-10-23T06:58:13.616Z",
+      "finishedAt": "2026-10-23T06:58:16.527Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "9eb4bbd115d10f64d486138cee5a072b0a2b1eb56b7f16e6ab848726f0a1af08",
+          "revision": 35,
+          "diagrams": {
+            "revision": 26,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "cec32e6a05d58c69b9d859efdc9eb755df90bfefd30adb3bee838a37516fbcde",
+          "revision": 36,
+          "diagrams": {
+            "revision": 27,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": []
+    },
+    {
+      "name": "29-windowed-sequence-reenable-without-document-reopen",
+      "startedAt": "2026-10-23T06:58:16.672Z",
+      "finishedAt": "2026-10-23T06:58:19.716Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "cec32e6a05d58c69b9d859efdc9eb755df90bfefd30adb3bee838a37516fbcde",
+          "revision": 36,
+          "diagrams": {
+            "revision": 27,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "51b6a7abf57102bd809c7b1e060d8f8a19d5be837428f87b9bb8e00f0dff9000",
+          "revision": 38,
+          "diagrams": {
+            "revision": 29,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": []
+    },
+    {
+      "name": "30-windowed-sequence-leave-disabled-with-original-bytes",
+      "startedAt": "2026-10-23T06:58:19.839Z",
+      "finishedAt": "2026-10-23T06:58:22.957Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "51b6a7abf57102bd809c7b1e060d8f8a19d5be837428f87b9bb8e00f0dff9000",
+          "revision": 38,
+          "diagrams": {
+            "revision": 29,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "0a29a325c0205bf1dddcdf93fa70e54c03db18fd401766ec090ad48ab7c15350",
+          "revision": 39,
+          "diagrams": {
+            "revision": 30,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": []
+    },
+    {
+      "name": "31-enable-and-save-before-application-restart",
+      "startedAt": "2026-10-23T06:58:23.085Z",
+      "finishedAt": "2026-10-23T06:58:26.913Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "false",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 0,
+        "images": [],
+        "catalog": {
+          "fileSha256": "0a29a325c0205bf1dddcdf93fa70e54c03db18fd401766ec090ad48ab7c15350",
+          "revision": 39,
+          "diagrams": {
+            "revision": 30,
+            "enabled": false,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "680d10ab9fcff4d8bc1aecc1356966db07f39a4dbe6c5735a7541c3343f35bf6",
+          "revision": 41,
+          "diagrams": {
+            "revision": 32,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": []
+    },
+    {
+      "name": "32-restart-restores-same-active-worker-and-visible-output",
+      "startedAt": "2026-10-23T06:58:29.334Z",
+      "finishedAt": "2026-10-23T06:58:32.210Z",
+      "passed": true,
+      "before": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1100,
+        "height": 760,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "78469d8297bd7c9e93cdae54476de74eeaeacfdc4c3cc8d4bd97e5a3e341fa09",
+          "revision": 43,
+          "diagrams": {
+            "revision": 34,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "after": {
+        "menu": false,
+        "mode": "live",
+        "windowed": true,
+        "appVersion": "2.0.0-beta.7",
+        "selection": [],
+        "cursor": 0,
+        "width": 1100,
+        "height": 760,
+        "zoom": 1,
+        "imagesInCode": 0,
+        "fileSha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "diagramsCard": {
+          "id": "milkup.diagrams",
+          "checked": "true",
+          "busy": null,
+          "focus": false
+        },
+        "vectorCount": 1,
+        "images": [],
+        "catalog": {
+          "fileSha256": "78469d8297bd7c9e93cdae54476de74eeaeacfdc4c3cc8d4bd97e5a3e341fa09",
+          "revision": 43,
+          "diagrams": {
+            "revision": 34,
+            "enabled": true,
+            "active": {
+              "version": "1.2.0",
+              "host": "worker",
+              "manifestSha256": "5ee0bdd53dedd8978b13778881a8bca5fcbbd0b456c0b79c35cadca1e30e9727",
+              "contentSha256": "a64a8b83962c0cf3184166f779808430a8f99742ae7b24734ee7661ceb2dc8f5",
+              "verified": true,
+              "hasApproval": true
+            },
+            "previous": null,
+            "pending": null,
+            "hasStartAttempt": false,
+            "tombstone": false,
+            "diagnosticCount": 2,
+            "retainsPriorActivationTimeout": true,
+            "retainsSupersededCandidateDiagnostic": true
+          }
+        }
+      },
+      "saved": {
+        "sha256": "8a9c70aa34d597aba704c351384ed83da6d13588b5812c2a91f49cf79f73e50b",
+        "bytes": 940171
+      },
+      "screenshots": [
+        {
+          "file": "screenshots/32-restart-restores-same-active-worker-and-visible-output-system.png",
+          "sha256": "5c9eb975ddacf4de91b8267f699f09cc5dbb17e7a36d6e89fa35d4cc3e7d3ac1",
+          "capture": "system",
+          "archiveVisualReview": "Visible synthetic fixture only; diagram/source state reviewed. This is not full visual-quality acceptance."
+        }
+      ]
+    }
+  ]
+}
