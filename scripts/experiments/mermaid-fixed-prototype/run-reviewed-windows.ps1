@@ -25,9 +25,23 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Dirty or unreadable pro
 $root = $PSScriptRoot
 $captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]')
 $renderingBaseline = '82fb49e95caf99ea45654f552992eff81f72bee9'
+$nativeBaseline = 'ae2776b3f49cd262a4954e313fd2010b8917beb3'
 if ($captureVisual) {
-    # Evidence transport may change, but the successful rendering inputs must not.
-    $protected = @('src','assets','fixtures','fixtures-negative','Cargo.toml','Cargo.lock','build.rs',
+    # The new native observation code is pinned separately, never broadly
+    # excluded. All rendering/assets/dependency/security inputs retain 82fb.
+    git merge-base --is-ancestor $nativeBaseline HEAD
+    if ($LASTEXITCODE -ne 0) { throw 'Missing reviewed native diagnostic source' }
+    $approvedNativePaths = @(
+        'scripts/experiments/mermaid-fixed-prototype/src/launcher.rs',
+        'scripts/experiments/mermaid-fixed-prototype/src/launcher/cleanup_observation.rs'
+    )
+    $nativeChanges = @(git diff --name-only $renderingBaseline $nativeBaseline -- 'scripts/experiments/mermaid-fixed-prototype/src')
+    if ($LASTEXITCODE -ne 0 -or @(Compare-Object ($approvedNativePaths | Sort-Object) ($nativeChanges | Sort-Object)).Count) {
+        throw 'Native diagnostic baseline contains unreviewed source paths'
+    }
+    git diff --exit-code $nativeBaseline HEAD -- 'scripts/experiments/mermaid-fixed-prototype/src'
+    if ($LASTEXITCODE -ne 0) { throw 'Native source differs from the exact reviewed diagnostic baseline' }
+    $protected = @('assets','fixtures','fixtures-negative','Cargo.toml','Cargo.lock','build.rs',
         'fixtures-manifest.json','negative-fixtures-manifest.json','StandardUserProcess.cs') |
         ForEach-Object { 'scripts/experiments/mermaid-fixed-prototype/' + $_ }
     git diff --exit-code $renderingBaseline HEAD -- $protected
@@ -63,6 +77,7 @@ $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'mermaid-fixed-prototype-targ
 $compiler = @(rustc --version --verbose)
 if ($LASTEXITCODE -ne 0) { throw 'Existing compiler unavailable; no toolchain installation fallback' }
 $compiler | Set-Content (Join-Path $proof 'compiler.txt')
+Write-Output ('MILKUP_COMPILER_JSON ' + (@{source=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID; lines=$compiler} | ConvertTo-Json -Compress))
 $manifest = Join-Path $root 'Cargo.toml'
 # Build-resource network only: fetch the already-reviewed lockfile packages.
 # No npm/plugin installation, toolchain update, browser or WebView2 installation.
@@ -87,6 +102,8 @@ $execution = [ordered]@{
     nativeNetworkGuarantee = $false
     captureVisualEvidence = $captureVisual
     renderingInputsBaseline = $(if ($captureVisual) { $renderingBaseline } else { $null })
+    nativeSourceBaseline = $(if ($captureVisual) { $nativeBaseline } else { $null })
+    nativeSourceByteIdenticalToRenderingBaseline = $false
     standardUserAcceptance = 'Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment'
 }
 $execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')

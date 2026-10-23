@@ -37,7 +37,7 @@ def sample(partial_count=None):
     run.update(repository={"full_name": "Auto-Plugin/milkup"}, head_branch="dot/milkup-v2-mermaid-prototype")
     lines = []
     emit = lambda marker, value: lines.append(marker + " " + json.dumps(value))
-    emit("MILKUP_EXECUTION_JSON", {"runId": "1", "attempt": "1", "exactSource": run["head_sha"], "captureVisualEvidence": True, "renderingInputsBaseline": READER.BASELINE})
+    emit("MILKUP_EXECUTION_JSON", {"runId": "1", "attempt": "1", "exactSource": run["head_sha"], "captureVisualEvidence": True, "renderingInputsBaseline": READER.BASELINE, "nativeSourceBaseline": READER.NATIVE_BASELINE, "nativeSourceByteIdenticalToRenderingBaseline": False})
     user, supervisor_sid = "synthetic-user", "synthetic-supervisor"
 
     def token(container):
@@ -153,6 +153,15 @@ class ReaderTest(unittest.TestCase):
             self.check(lines, failed, artifacts)
         with self.assertRaises(ValueError):
             self.check(lines, run, {"total_count": 1, "artifacts": [{}]})
+
+    def test_native_diagnostic_baseline_is_explicit_and_exact(self):
+        for field, value in [("nativeSourceBaseline", READER.BASELINE),
+                             ("nativeSourceByteIdenticalToRenderingBaseline", True)]:
+            with self.subTest(field=field):
+                lines, run, artifacts = sample()
+                change_record(lines, "MILKUP_EXECUTION_JSON", lambda r: r.update({field: value}))
+                with self.assertRaises(ValueError):
+                    self.check(lines, run, artifacts)
 
     def test_png_crc_truncation_and_json_duplicates(self):
         for data in [PNG[:-1], PNG[:-1] + bytes([PNG[-1] ^ 1])]:

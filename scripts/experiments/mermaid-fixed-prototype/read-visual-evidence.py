@@ -16,6 +16,7 @@ import zlib
 from PIL import Image
 
 BASELINE = "82fb49e95caf99ea45654f552992eff81f72bee9"
+NATIVE_BASELINE = "ae2776b3f49cd262a4954e313fd2010b8917beb3"
 MAX_TOTAL = 1048576
 MAX_IMAGE = 262144
 CHUNK = 4096
@@ -215,7 +216,9 @@ def collect(log, run, artifacts, fixtures, *, allow_partial_failed=False):
             manifest["capturesEnvironmentScreens"] is False and manifest["artifactUpload"] is False, "Final manifest differs")
     require(execution is not None and execution["runId"] == context["runId"] and execution["attempt"] == context["attempt"] and
             execution["exactSource"] == run["head_sha"] and execution["captureVisualEvidence"] is True and
-            execution["renderingInputsBaseline"] == BASELINE, "Rendering baseline/mode proof missing")
+            execution["renderingInputsBaseline"] == BASELINE and
+            execution["nativeSourceBaseline"] == NATIVE_BASELINE and
+            execution["nativeSourceByteIdenticalToRenderingBaseline"] is False, "Rendering/native baseline or mode proof missing")
     require(account is not None and account["runId"] == context["runId"] and account["attempt"] == context["attempt"] and
             account["source"] == run["head_sha"] and account["captureVisualEvidence"] is True and
             account["visualEvidenceEmitted"] is True and account["visualEvidenceStatus"] == status and
@@ -257,7 +260,7 @@ def collect(log, run, artifacts, fixtures, *, allow_partial_failed=False):
                         case["rendererMetadata"]["rendered"]["diagramType"] == expected[case["fixture"]]["expectedRegistrationId"],
                         "PNG transfer differs from native case report")
     return streams, {"schema": 1, "runId": run["id"], "runUrl": run["html_url"], "source": run["head_sha"],
-                     "renderingInputsBaseline": BASELINE, "status": status, "complete": not partial,
+                     "renderingInputsBaseline": BASELINE, "nativeSourceBaseline": NATIVE_BASELINE, "status": status, "complete": not partial,
                      "count": len(streams), "reachedPositiveCount": len(reached_ids), "totalBytes": total,
                      "failedFixtures": failed_ids, "unreachedFixtures": unreached_ids,
                      "originalRunConclusion": run["conclusion"], "originalFailure": account.get("failure"),

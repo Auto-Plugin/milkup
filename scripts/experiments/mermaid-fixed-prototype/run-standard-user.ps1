@@ -59,6 +59,7 @@ function Read-CaseSummary([string]$Output) {
             profileDeletedAndFolderAbsent = $launcher['profileDeletedAndFolderAbsent']
             privateTreeRemoved = $launcher['privateTreeRemoved']
             privateTreeDeleteAttempts = $launcher['privateTreeDeleteAttempts']
+            cleanupAccessObservation = $launcher['cleanupAccessObservation']
             cleanupSupervisorSid = $launcher['cleanupSupervisorSid']
             stopMatrixAfterThisCase = $launcher['stopMatrixAfterThisCase']
         }

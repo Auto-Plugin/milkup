@@ -1,3 +1,9 @@
+> **Current diagnostic candidate:** the later [native access observation](NATIVE-CLEANUP-OBSERVATION.md)
+> pins the entire native source to a new, explicit reviewed commit. The original
+> 82fb byte-identity statement below describes the first three visual runs only;
+> fixed engine/assets/fixtures/dependencies remain unchanged. No successful PNG
+> transport or pixel review is claimed by this protocol document.
+
 # Bounded Windows PNG evidence follow-up
 
 The user authorized self-authored diagram images and test results in the same
