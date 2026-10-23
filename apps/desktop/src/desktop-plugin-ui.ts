@@ -18,6 +18,18 @@ import { ControlledFormState, revealModalFocus } from './controlled-form-ui'
 import type { DesktopPluginUiPhase } from './desktop-plugin-manager'
 import { iconSvg } from './icons'
 import { decorateControlledTrees, type ControlledTreeFocus } from './controlled-tree-ui'
+import {
+  FloatingDocumentToolbar,
+  type FloatingDocumentToolbarHost,
+} from './floating-document-toolbar'
+
+export interface DesktopPluginUiOptions {
+  readonly documentToolbar?: FloatingDocumentToolbarHost
+  readonly contextMenu?: {
+    normalize(nodes: readonly Node[], rendererId: string): readonly Node[]
+    updated?(): void
+  }
+}
 
 export interface DesktopPluginUiRuntime {
   contributions(): PluginContributionIndex
@@ -68,6 +80,11 @@ interface MountedPluginUi {
   pointerActive?: boolean
   pointerRenderPending?: boolean
   pointerCleanup?: () => void
+  toolbarContext?: string
+  contextMenuEpoch?: number
+  contextMenuContext?: string
+  contextMenuStarted?: boolean
+  contextMenuHide?: Promise<void>
 }
 
 interface PluginVirtualViewportState {
@@ -121,16 +138,35 @@ export class DesktopPluginUiController {
   private sidebarResizeCleanup: (() => void) | undefined
   private viewportUpdatePending = false
   private viewportUpdatePromise: Promise<void> | undefined
+  private readonly documentToolbar: FloatingDocumentToolbar | undefined
+  private contextMenuEpoch = 0
 
   constructor(
     private readonly root: HTMLElement,
     private readonly runtime: DesktopPluginUiRuntime,
     private readonly renderState: () => Readonly<Record<string, unknown>> = () => ({}),
-  ) {}
+    private readonly options: DesktopPluginUiOptions = {},
+  ) {
+    const slot = root.querySelector<HTMLElement>('[data-plugin-slot="document-toolbar"]')
+    this.documentToolbar =
+      slot && options.documentToolbar
+        ? new FloatingDocumentToolbar(slot, options.documentToolbar, () => this.documentId)
+        : undefined
+  }
 
   async sync(documentId: string): Promise<void> {
     const documentChanged = this.documentId !== documentId
     this.documentId = documentId
+    if (documentChanged) {
+      this.retireContextMenu()
+      for (const mount of this.mounts.values()) {
+        if (mount.contribution.slot !== 'document-toolbar') continue
+        this.retireToolbarOutput(mount)
+        delete mount.toolbarContext
+      }
+      this.documentToolbar?.refresh()
+    }
+    this.reconcileDocumentToolbar()
     const desired = new Map(
       this.runtime
         .contributions()
@@ -232,7 +268,19 @@ export class DesktopPluginUiController {
     if (slot === 'sidebar-panel' && !visible) this.sidebarResizeCleanup?.()
     if (visible) this.hiddenSlots.delete(slot)
     else this.hiddenSlots.add(slot)
+    if (slot === 'document-toolbar') this.documentToolbar?.setEnabled(visible)
+    if (slot === 'context-menu') {
+      this.retireContextMenu()
+      if (!visible)
+        for (const mount of this.mounts.values())
+          if (mount.contribution.slot === slot) this.notifyContextMenuHidden(mount)
+      // The shell calls refreshSlot after opening. Rendering here as well
+      // would enqueue each Worker twice and discard the first result.
+      return
+    }
     for (const mount of this.mounts.values()) {
+      if (slot === 'document-toolbar' && mount.contribution.slot === slot && !visible)
+        this.retireToolbarOutput(mount)
       if (mount.contribution.slot === slot) void this.updateMount(mount)
     }
   }
@@ -245,6 +293,9 @@ export class DesktopPluginUiController {
   }
 
   async refreshSlot(slot: PluginUiBinding['slot']): Promise<void> {
+    // Retire the entire previous opening before any fast renderer can cause a
+    // quota update that might otherwise reveal another renderer's old buttons.
+    if (slot === 'context-menu') this.retireContextMenu()
     await Promise.all(
       [...this.mounts.values()]
         .filter((mount) => mount.contribution.slot === slot)
@@ -253,6 +304,7 @@ export class DesktopPluginUiController {
   }
 
   async updateViewport(): Promise<void> {
+    this.reconcileDocumentToolbar()
     this.viewportUpdatePending = true
     if (this.viewportUpdatePromise) return this.viewportUpdatePromise
 
@@ -271,10 +323,26 @@ export class DesktopPluginUiController {
     return this.viewportUpdatePromise
   }
 
+  /** Retire stale commands immediately while the host debounces Worker renders. */
+  reconcileDocumentToolbar(): void {
+    const toolbars = [...this.mounts.values()].filter(
+      (mount) => mount.contribution.slot === 'document-toolbar',
+    )
+    if (toolbars.length) {
+      const context = this.toolbarContext()
+      for (const mount of toolbars) {
+        if (mount.toolbarContext === context) continue
+        this.retireToolbarOutput(mount)
+      }
+    }
+    this.documentToolbar?.refresh()
+  }
+
   async dispose(): Promise<void> {
     this.syncSequence++
     this.lastSyncSignature = ''
     this.viewportUpdatePending = false
+    this.documentToolbar?.dispose()
     const disposing = [...this.mounts].map(([key, mount]) => this.disposeMount(key, mount))
     this.openModals.clear()
     this.modalReturnFocus.clear()
@@ -447,6 +515,12 @@ export class DesktopPluginUiController {
       )
     container.addEventListener('milkup-plugin-renderer-action', (event) => {
       if (!this.isCurrentMount(mount)) return
+      if (contribution.slot === 'context-menu' && !this.isCurrentContextMenuOutput(mount)) return
+      if (
+        contribution.slot === 'document-toolbar' &&
+        (mount.container.hidden || mount.toolbarContext !== this.toolbarContext())
+      )
+        return
       const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
       if (
         !detail ||
@@ -478,6 +552,10 @@ export class DesktopPluginUiController {
         this.commandGesture = undefined
         this.fieldEvent = undefined
       }
+      // Keyboard activation leaves focus on the toolbar; restore the host's
+      // selection before dispatch so a command can deliberately open a modal.
+      if (contribution.slot === 'document-toolbar' && event.target instanceof HTMLButtonElement)
+        this.options.documentToolbar?.restoreEditorFocus?.()
       if (originalEvent) this.runtime.runCommand(command, detail.input ?? {}, originalEvent)
       else this.runtime.runCommand(command, detail.input ?? {})
     })
@@ -528,7 +606,7 @@ export class DesktopPluginUiController {
     if (contribution.slot === 'document-toolbar') {
       body.addEventListener('focusin', (event) => {
         if (event.target instanceof HTMLElement) {
-          event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+          this.documentToolbar?.reveal(event.target)
         }
       })
       // Mouse commands operate on the editor's current selection. Keep that
@@ -564,10 +642,44 @@ export class DesktopPluginUiController {
 
   private async renderMount(mount: MountedPluginUi, phase: 'mount' | 'update'): Promise<void> {
     if (!this.isCurrentMount(mount)) return
+    if (mount.contribution.slot === 'context-menu') {
+      if (!this.isVisible(mount.contribution)) {
+        this.retireContextMenuOutput(mount)
+        this.didRender(mount)
+        return
+      }
+      // An ordinary invalidation can wait through a current, valid click.
+      // Reopening or changing its context retires the gesture synchronously.
+      if (mount.pointerActive && this.isCurrentContextMenuOutput(mount)) {
+        mount.pointerRenderPending = true
+        return
+      }
+    }
     const formRevision = mount.forms.snapshot()
     const renderState: Readonly<Record<string, unknown>> = {
       documentId: this.documentId,
       ...this.renderState(),
+    }
+    const contextMenuEpoch = this.contextMenuEpoch
+    const contextMenuContext = this.contextMenuContext(renderState)
+    if (mount.contribution.slot === 'context-menu') {
+      mount.contextMenuEpoch = contextMenuEpoch
+      mount.contextMenuContext = contextMenuContext
+      this.retireContextMenuOutput(
+        mount,
+        this.isVisible(mount.contribution) ? 'pending' : 'retired',
+      )
+      this.didRender(mount)
+    }
+    if (mount.contribution.slot === 'document-toolbar') {
+      const context = this.toolbarContext(renderState)
+      if (mount.toolbarContext !== context) {
+        mount.toolbarContext = context
+        // Old commands must not survive a changed selection while a Worker is
+        // still rendering. Also cancel a held gesture against that old context.
+        this.retireToolbarOutput(mount)
+        this.documentToolbar?.refresh()
+      }
     }
     const keyboardFocus = mount.virtualTreeFocus
     if (
@@ -594,6 +706,24 @@ export class DesktopPluginUiController {
     const isCurrentRequest = (): boolean => {
       if (!this.isCurrentMount(mount) || renderSequence !== mount.renderSequence) return false
       if (
+        mount.contribution.slot === 'context-menu' &&
+        (contextMenuEpoch !== this.contextMenuEpoch ||
+          contextMenuContext !== this.contextMenuContext() ||
+          !this.isVisible(mount.contribution))
+      ) {
+        this.retireContextMenuOutput(mount)
+        this.didRender(mount)
+        return false
+      }
+      if (
+        mount.contribution.slot === 'document-toolbar' &&
+        renderState.selectionRevision !== this.renderState().selectionRevision
+      ) {
+        mount.container.hidden = true
+        this.documentToolbar?.refresh()
+        return false
+      }
+      if (
         requestedScroll &&
         requestedScroll.selectionRevision !== this.renderState().selectionRevision
       ) {
@@ -604,6 +734,10 @@ export class DesktopPluginUiController {
         renderState.documentId !== this.documentId ||
         renderState.documentVersion !== this.renderState().documentVersion
       ) {
+        if (mount.contribution.slot === 'document-toolbar') {
+          mount.container.hidden = true
+          this.documentToolbar?.refresh()
+        }
         // Discard only this request's keyboard intent; never clear a newer one.
         if (requestedKeyboardFocus && mount.virtualTreeFocus === requestedKeyboardFocus)
           this.cancelVirtualTreeFocus(mount)
@@ -612,10 +746,19 @@ export class DesktopPluginUiController {
       return true
     }
     try {
+      if (mount.contribution.slot === 'context-menu' && mount.contextMenuHide) {
+        await mount.contextMenuHide
+        if (!isCurrentRequest()) return
+      }
+      // Hidden context menus defer their first lifecycle request until opened.
+      // Keep its mount phase so the manager tracks the active renderer.
+      const requestedPhase =
+        mount.contribution.slot === 'context-menu' && !mount.contextMenuStarted ? 'mount' : phase
+      if (mount.contribution.slot === 'context-menu') mount.contextMenuStarted = true
       const output = (await this.runtime.renderUi(
         mount.contribution.pluginId,
         mount.contribution.id,
-        phase,
+        requestedPhase,
         {
           ...renderState,
           visible: this.isVisible(mount.contribution),
@@ -625,6 +768,24 @@ export class DesktopPluginUiController {
 
       if (!isCurrentRequest()) return
 
+      const signature = controlledOutputSignature(output)
+      let toolbarNodes: readonly Node[] | undefined
+      if (mount.contribution.slot === 'document-toolbar') {
+        toolbarNodes = createControlledRendererNodes(
+          this.root.ownerDocument,
+          uiKey(mount.contribution),
+          output,
+        )
+        if (!toolbarNodes.some(hasToolbarContent)) {
+          this.retireToolbarOutput(mount)
+          mount.body.replaceChildren()
+          mount.renderSignature = signature
+          mount.container.dataset.uiState = 'ready'
+          this.documentToolbar?.refresh()
+          return
+        }
+      }
+
       // Replacing a pressed button between pointerdown and click loses the action.
       // Drop intermediate output and request one fresh render after the gesture.
       if (mount.pointerActive) {
@@ -632,11 +793,12 @@ export class DesktopPluginUiController {
         return
       }
 
-      if (mount.contribution.slot === 'document-toolbar') mount.container.hidden = output === ''
+      if (mount.contribution.slot === 'document-toolbar')
+        mount.container.hidden = !this.isVisible(mount.contribution)
 
-      const signature = controlledOutputSignature(output)
       if (signature === mount.renderSignature && !mount.body.querySelector('[data-plugin-field]')) {
         mount.container.dataset.uiState = 'ready'
+        this.didRender(mount)
         return
       }
 
@@ -660,16 +822,14 @@ export class DesktopPluginUiController {
           : undefined
       const scrollOffsets = captureScrollOffsets(mount.body)
       const existingClose = mount.body.querySelector('.plugin-ui-close')
+      let nodes =
+        toolbarNodes ??
+        createControlledRendererNodes(this.root.ownerDocument, uiKey(mount.contribution), output)
+      if (mount.contribution.slot === 'context-menu' && this.options.contextMenu)
+        nodes = this.options.contextMenu.normalize(nodes, uiKey(mount.contribution))
       mount.forms.reconcile(
         mount.body,
-        [
-          ...(existingClose ? [existingClose] : []),
-          ...createControlledRendererNodes(
-            this.root.ownerDocument,
-            uiKey(mount.contribution),
-            output,
-          ),
-        ],
+        [...(existingClose ? [existingClose] : []), ...nodes],
         formRevision,
       )
       decorateControlledTrees(
@@ -733,21 +893,115 @@ export class DesktopPluginUiController {
       }
       mount.renderSignature = signature
       mount.container.dataset.uiState = 'ready'
+      if (mount.contribution.slot === 'context-menu') {
+        mount.container.dataset.contextMenuState = 'ready'
+        mount.container.hidden = false
+      }
+      this.didRender(mount)
     } catch (error) {
       if (!isCurrentRequest()) return
       if (mount.contribution.slot === 'document-toolbar') mount.container.hidden = false
       mount.container.dataset.uiState = 'failed'
+      if (mount.contribution.slot === 'context-menu')
+        mount.container.dataset.contextMenuState = 'failed'
       const message = this.root.ownerDocument.createElement('span')
       message.className = 'plugin-ui-error'
       message.textContent = error instanceof Error ? error.message : String(error)
       mount.body.replaceChildren(message)
       mount.renderSignature = undefined
+      this.didRender(mount)
     }
+  }
+
+  private didRender(mount: MountedPluginUi): void {
+    if (mount.contribution.slot === 'document-toolbar') this.documentToolbar?.refresh()
+    if (mount.contribution.slot === 'context-menu') this.options.contextMenu?.updated?.()
+  }
+
+  private toolbarContext(state = this.renderState()): string {
+    return JSON.stringify([this.documentId, state.documentVersion, state.selectionRevision])
+  }
+
+  private contextMenuContext(state = this.renderState()): string {
+    return JSON.stringify([
+      this.documentId,
+      state.documentVersion,
+      state.selectionRevision,
+      state.saveLocationGeneration,
+    ])
+  }
+
+  private isCurrentContextMenuOutput(mount: MountedPluginUi): boolean {
+    return (
+      mount.container.dataset.contextMenuState === 'ready' &&
+      mount.contextMenuEpoch === this.contextMenuEpoch &&
+      mount.contextMenuContext === this.contextMenuContext() &&
+      this.isVisible(mount.contribution) &&
+      !mount.container.hidden
+    )
+  }
+
+  private retireContextMenu(): void {
+    this.contextMenuEpoch++
+    let changed = false
+    for (const mount of this.mounts.values()) {
+      if (mount.contribution.slot !== 'context-menu') continue
+      this.retireContextMenuOutput(mount)
+      changed = true
+    }
+    if (changed) this.options.contextMenu?.updated?.()
+  }
+
+  private retireContextMenuOutput(
+    mount: MountedPluginUi,
+    state: 'pending' | 'retired' = 'retired',
+  ): void {
+    mount.container.hidden = true
+    mount.container.dataset.contextMenuState = state
+    mount.body.replaceChildren()
+    mount.renderSignature = undefined
+    mount.pendingFocusLabel = undefined
+    mount.pointerCleanup?.()
+    mount.pointerRenderPending = false
+  }
+
+  private notifyContextMenuHidden(mount: MountedPluginUi): void {
+    if (!mount.contextMenuStarted) return
+    const state = { documentId: this.documentId, ...this.renderState(), visible: false }
+    const previous = mount.contextMenuHide
+    const pending = (async () => {
+      if (previous) await previous
+      if (!this.isCurrentMount(mount)) return
+      // This notification resets renderer visibility state. Its output is never
+      // admitted, and a reopened menu waits for it before sending visible:true.
+      await this.runtime
+        .renderUi(mount.contribution.pluginId, mount.contribution.id, 'blur', state)
+        .catch(() => undefined)
+    })()
+    mount.contextMenuHide = pending
+    void pending.then(() => {
+      if (mount.contextMenuHide === pending) delete mount.contextMenuHide
+    })
+  }
+
+  private retireToolbarOutput(mount: MountedPluginUi): void {
+    const hadFocus = mount.container.contains(this.root.ownerDocument.activeElement)
+    mount.container.hidden = true
+    if (mount.pointerActive) {
+      mount.body.replaceChildren()
+      mount.renderSignature = undefined
+    }
+    mount.pointerCleanup?.()
+    mount.pointerRenderPending = false
+    if (hadFocus) this.options.documentToolbar?.restoreEditorFocus?.()
   }
 
   private async sendLifecycle(mount: MountedPluginUi, phase: 'focus' | 'blur'): Promise<void> {
     if (!this.isCurrentMount(mount)) return
     const contribution = mount.contribution
+    // Closing has one explicit, ordered notification even when DOM removal
+    // produces no focusout. Do not duplicate it with an incidental blur.
+    if (contribution.slot === 'context-menu' && !this.isVisible(contribution)) return
     await this.runtime
       .renderUi(contribution.pluginId, contribution.id, phase, {
         documentId: this.documentId,
@@ -769,6 +1023,9 @@ export class DesktopPluginUiController {
       mount.container.ownerDocument.defaultView?.cancelAnimationFrame(mount.modalFocusFrame)
     const hadFocus = mount.container.contains(this.root.ownerDocument.activeElement)
     mount.container.remove()
+    this.didRender(mount)
+    if (mount.contribution.slot === 'document-toolbar' && hadFocus)
+      this.options.documentToolbar?.restoreEditorFocus?.()
     if (mount.contribution.slot === 'modal') {
       this.openModals.delete(key)
       const previous = this.modalReturnFocus.get(key)
@@ -1382,6 +1639,15 @@ export class DesktopPluginUiController {
       mount.container.style.flex = `${weight} 1 ${sidebarPanelMinimumHeight}px`
     })
   }
+}
+
+function hasToolbarContent(node: Node): boolean {
+  if (node.textContent?.trim()) return true
+  return (
+    node instanceof Element &&
+    (node.matches('button, input, select, [data-host-icon]') ||
+      node.querySelector('button, input, select, [data-host-icon]') !== null)
+  )
 }
 
 function decorateControlledUiIcons(container: HTMLElement): void {

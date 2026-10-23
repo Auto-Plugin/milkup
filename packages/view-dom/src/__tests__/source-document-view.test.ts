@@ -35,6 +35,152 @@ function createClipboardEvent(
 }
 
 describe('SourceDocumentView', () => {
+  it('sets a readonly whole-document selection synchronously without reading, scrolling, or editing', async () => {
+    const text = createLineFixture(1_000)
+    const source = new MemoryDocumentSource({ documentId: 'host-selection', text })
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      source,
+      mode: 'source',
+      editable: false,
+      onEdit,
+      backgroundMarkdownWarmup: false,
+      virtualViewport: { enabled: true, viewportHeight: 100, lineHeight: 20, overscanLines: 1 },
+    })
+    await view.renderVisibleWindow()
+    const read = vi.spyOn(source, 'readLineWindow')
+    const locate = vi.spyOn(source, 'lineAtPosition')
+    const changed = vi.fn()
+    view.dom.addEventListener('milkup-selection-change', changed)
+    const revision = view.selectionRevision
+    const scrollTop = view.dom.scrollTop
+    expect(view.setSelection(Selection.range(text.length, 0))).toBeUndefined()
+    expect(view.selection.main).toMatchObject({ anchor: text.length, head: 0 })
+    expect(view.selectionRevision).toBe(revision + 1)
+    expect(changed).toHaveBeenCalledOnce()
+    expect(view.selectionLayerDOM.querySelectorAll('.milkup-selection').length).toBeGreaterThan(0)
+    expect(view.dom.scrollTop).toBe(scrollTop)
+    expect(read).not.toHaveBeenCalled()
+    expect(locate).not.toHaveBeenCalled()
+    expect(onEdit).not.toHaveBeenCalled()
+    expect(source.version).toBe(0)
+    view.destroy()
+  })
+
+  it('sets a reverse Unicode selection and emits one event without double-counting endpoint revisions', async () => {
+    const parent = document.createElement('main')
+    const input = document.createElement('input')
+    document.body.append(parent, input)
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({ documentId: 'host-selection', text: '前😀后\r\nnext' }),
+      editable: true,
+      mode: 'source',
+    })
+    await view.renderVisibleWindow()
+    const changed = vi.fn()
+    view.dom.addEventListener('milkup-selection-change', changed)
+    input.focus()
+    const revision = view.selectionRevision
+    view.setSelection(Selection.range(6, 1))
+    expect(view.selection.main).toMatchObject({ anchor: 6, head: 1 })
+    expect(view.selectionRevision).toBe(revision + 2)
+    expect(changed).toHaveBeenCalledOnce()
+    expect(view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe(
+      '1',
+    )
+    expect(document.activeElement).toBe(input)
+    view.setSelection(Selection.range(6, 1))
+    expect(view.selectionRevision).toBe(revision + 2)
+    view.destroy()
+    parent.remove()
+    input.remove()
+  })
+
+  it('rejects unsupported or out-of-bounds host selections without partial changes', async () => {
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      source: new MemoryDocumentSource({ documentId: 'host-selection', text: 'hello' }),
+      editable: true,
+    })
+    await view.renderVisibleWindow()
+    const revision = view.selectionRevision
+    expect(() => view.setSelection(Selection.range(0, 6))).toThrow(RangeError)
+    expect(() =>
+      view.setSelection(new Selection([Selection.cursor(0).main, Selection.cursor(2).main])),
+    ).toThrow(RangeError)
+    expect(view.selection.main.head).toBe(0)
+    expect(view.selectionRevision).toBe(revision)
+    view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+    expect(() => view.setSelection(Selection.range(0, 5))).toThrow(/compos/i)
+    expect(view.selectionRevision).toBe(revision)
+    view.destroy()
+    expect(() => view.setSelection(Selection.range(0, 5))).toThrow(/destroy/i)
+  })
+
+  it('invalidates a pending reveal when the host commits a newer selection', async () => {
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      source: new MemoryDocumentSource({ documentId: 'host-selection', text: 'one\ntarget' }),
+      editable: true,
+      mode: 'source',
+    })
+    await view.renderVisibleWindow()
+    let resume!: () => void
+    vi.spyOn(view, 'scrollToLine').mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resume = resolve
+        }),
+    )
+    const pending = view.revealSelection(2, Selection.range(4, 10))
+    view.setSelection(Selection.range(3, 0))
+    resume()
+    await pending
+    expect(view.selection.main).toMatchObject({ anchor: 3, head: 0 })
+    view.destroy()
+  })
+
+  it('keeps a committed live selection when an older visible syntax refresh finishes', async () => {
+    const source = new MemoryDocumentSource({
+      documentId: 'old-host-selection',
+      text: createLineFixture(100),
+    })
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      source,
+      editable: false,
+      mode: 'live',
+      markdownContextLines: 1,
+      backgroundMarkdownWarmup: false,
+      virtualViewport: { enabled: true, viewportHeight: 100, lineHeight: 20, overscanLines: 1 },
+    })
+    await view.renderVisibleWindow()
+    let resume!: () => void
+    const gate = new Promise<void>((resolve) => {
+      resume = resolve
+    })
+    const read = source.readLineWindow.bind(source)
+    vi.spyOn(source, 'readLineWindow').mockImplementation(async (...args) => {
+      await gate
+      return read(...args)
+    })
+    view.setSelection(Selection.range(source.length, 0))
+    expect(view.selection.main.anchor).toBe(source.length)
+    expect(source.readLineWindow).toHaveBeenCalled()
+    view.updateSource(
+      new MemoryDocumentSource({ documentId: 'new-host-selection', text: 'new text' }),
+    )
+    await view.renderVisibleWindow()
+    resume()
+    await flushPromises()
+    expect(view.contentDOM.textContent).toContain('new text')
+    expect(view.contentDOM.textContent).not.toContain('line 1')
+    expect(view.selection.main.head).toBe(0)
+    view.destroy()
+  })
+
   it.each(['source', 'live'] as const)(
     'restores the %s caret after a save lock rerenders the window',
     async (mode) => {

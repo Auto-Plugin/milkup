@@ -803,6 +803,61 @@ export class SourceDocumentView {
     return this.currentSelection()
   }
 
+  /** Commit a host-validated selection without scrolling or entering the edit
+   * queue. Hosts must wait for pending edits and revalidate their snapshot first.
+   * Readonly documents permit selection; unknown native lengths stay the host's
+   * responsibility and must never be inferred from a byte-size snapshot. */
+  setSelection(selection: Selection): void {
+    if (this.destroyed) throw new Error('Cannot set selection on a destroyed source view')
+    if (this.composing) throw new Error('Cannot set selection during composition')
+    if (selection.ranges.length !== 1)
+      throw new RangeError('Source view supports exactly one selection range')
+    const target = selection.main
+    if (
+      !Number.isSafeInteger(target.anchor) ||
+      !Number.isSafeInteger(target.head) ||
+      (this.currentSource.length !== undefined && target.to > this.currentSource.length)
+    )
+      throw new RangeError('Selection exceeds the source document length')
+
+    const navigation = ++this.navigationRevision
+    this.documentNavigationRequestRevision++
+    const previousPosition = this.cursorPosition
+    // The setters already advance selectionGeneration for changed endpoints.
+    this.cursorPosition = target.head
+    this.selectionAnchor = target.anchor
+    this.renderSelection()
+    this.renderCursor(false)
+    // renderCursor normally skips this notification for readonly/offscreen
+    // carets. A host selection must notify exactly once in all of those cases.
+    this.dom.dispatchEvent(new Event('milkup-selection-change'))
+
+    if (this.mode === 'live') {
+      const source = this.currentSource,
+        version = source.version,
+        selectionRevision = this.selectionGeneration
+      const current = () =>
+        !this.destroyed &&
+        this.currentSource === source &&
+        source.version === version &&
+        this.navigationRevision === navigation &&
+        this.selectionGeneration === selectionRevision
+      // Only already rendered endpoint lines are refreshed. The selection is
+      // committed synchronously; late syntax work cannot move it or scroll.
+      void this.renderLiveSyntaxAroundPositions(previousPosition, target.head).then(
+        () => {
+          if (!current()) return
+          this.renderSelection()
+          this.renderCursor(false)
+        },
+        (error: unknown) => {
+          if (current())
+            this.dom.dispatchEvent(new CustomEvent('milkup-input-error', { detail: error }))
+        },
+      )
+    }
+  }
+
   async revealSelection(
     lineNumber: number,
     selection?: Selection,
@@ -3306,7 +3361,7 @@ export class SourceDocumentView {
     }
   }
 
-  private renderCursor(): void {
+  private renderCursor(notifySelection = true): void {
     syncTaskAvailability(this.contentDOM, this.editable && !!this.onEdit && !this.taskTogglePending)
     this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.remove()
 
@@ -3367,7 +3422,7 @@ export class SourceDocumentView {
     this.cursorLayerDOM.append(cursor)
     this.syncInputProxyToCursor()
     this.renderCompositionText()
-    this.dom.dispatchEvent(new Event('milkup-selection-change'))
+    if (notifySelection) this.dom.dispatchEvent(new Event('milkup-selection-change'))
   }
 
   private renderCompositionText(): void {
@@ -3449,7 +3504,8 @@ export class SourceDocumentView {
 
     const source = this.currentSource,
       version = source.version,
-      revision = this.editRevision
+      revision = this.editRevision,
+      selectionRevision = this.selectionGeneration
     const replacement =
       this.mode === 'live'
         ? await this.renderSingleLiveLine(lineNumber)
@@ -3461,6 +3517,7 @@ export class SourceDocumentView {
       source === this.currentSource &&
       version === source.version &&
       revision === this.editRevision &&
+      selectionRevision === this.selectionGeneration &&
       this.contentDOM.contains(current)
     ) {
       const scrollLeft = current.scrollLeft

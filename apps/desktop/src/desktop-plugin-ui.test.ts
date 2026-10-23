@@ -6,6 +6,284 @@ import type { PluginContributionIndex } from '@milkup/plugin'
 import { describe, expect, it, vi } from 'vitest'
 
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
+import { EditorContextMenu } from './editor-context-menu'
+import { normalizePluginContextMenuNodes, reconcilePluginContextMenu } from './context-menu-plugins'
+
+describe('context menu output ownership', () => {
+  function fixture() {
+    document.body.innerHTML = '<div data-plugin-slot="context-menu"></div>'
+    const slot = document.querySelector<HTMLElement>('[data-plugin-slot="context-menu"]')!
+    const state = { documentVersion: 1, selectionRevision: 1, saveLocationGeneration: 1 }
+    const run = vi.fn()
+    const runtime = createRuntime(
+      [
+        {
+          pluginId: 'example',
+          id: 'menu',
+          title: 'Menu',
+          slot: 'context-menu',
+          scope: 'app',
+          viewportUpdates: false,
+        },
+      ],
+      [],
+      run,
+    )
+    const output = (label: string) => ({
+      type: 'element',
+      tag: 'button',
+      text: label,
+      action: { command: 'example.run', input: { label } },
+    })
+    const render = vi.fn<DesktopPluginUiRuntime['renderUi']>(
+      async (_plugin, _id, phase, snapshot) =>
+        snapshot?.visible && (phase === 'mount' || phase === 'update')
+          ? output(`${snapshot.documentId}:${snapshot.selectionRevision}`)
+          : '',
+    )
+    runtime.renderUi = render
+    const controller = new DesktopPluginUiController(document.body, runtime, () => state, {
+      contextMenu: {
+        normalize: (nodes, id) => normalizePluginContextMenuNodes(nodes, id, () => true),
+        updated: () => reconcilePluginContextMenu(slot),
+      },
+    })
+    return { slot, state, run, render, controller, output }
+  }
+
+  it.each(['documentVersion', 'selectionRevision', 'saveLocationGeneration'] as const)(
+    'rejects pending output and existing actions after %s changes without another refresh',
+    async (field) => {
+      const f = fixture()
+      await f.controller.sync('doc-a')
+      const oldButton = f.slot.querySelector<HTMLButtonElement>('button')!
+      f.state[field]++
+      oldButton.click()
+      expect(f.run).not.toHaveBeenCalled()
+      let finish!: (output: unknown) => void
+      f.render.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          }),
+      )
+      const pending = f.controller.refreshSlot('context-menu')
+      expect(f.slot.querySelector('button')).toBeNull()
+      expect(f.slot.querySelector<HTMLElement>('[data-plugin-ui]')?.dataset.contextMenuState).toBe(
+        'pending',
+      )
+      f.state[field]++
+      finish(f.output('obsolete'))
+      await pending
+      expect(f.slot.querySelector('button')).toBeNull()
+      expect(f.slot.querySelector<HTMLElement>('[data-plugin-ui]')?.dataset.contextMenuState).toBe(
+        'retired',
+      )
+      await f.controller.dispose()
+    },
+  )
+
+  it('keeps a newer same-selection opening when a previous opening resolves late', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    let finish!: (output: unknown) => void
+    f.render.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const pending = f.controller.refreshSlot('context-menu')
+    f.controller.setSlotVisible('context-menu', false)
+    expect(f.slot.querySelector('button')).toBeNull()
+    f.controller.setSlotVisible('context-menu', true)
+    await f.controller.refreshSlot('context-menu')
+    await vi.waitFor(() => expect(f.slot.querySelector('button')?.textContent).toBe('doc-a:1'))
+    const newest = f.slot.querySelector('button')
+    finish(f.output('previous opening'))
+    await pending
+    expect(f.slot.querySelector('button')).toBe(newest)
+    expect(f.slot.querySelector('button')?.textContent).toBe('doc-a:1')
+    await f.controller.dispose()
+  })
+
+  it('renders each menu view once per opening and only notifies visibility when it closes', async () => {
+    const f = fixture()
+    f.controller.setSlotVisible('context-menu', false)
+    await f.controller.sync('doc-a')
+    await f.controller.updateViewport()
+    await f.controller.refreshSlot('context-menu')
+    expect(f.render).not.toHaveBeenCalled()
+    f.controller.setSlotVisible('context-menu', true)
+    expect(f.render).not.toHaveBeenCalled()
+    await f.controller.refreshSlot('context-menu')
+    expect(f.render).toHaveBeenCalledTimes(1)
+    expect(f.render.mock.calls[0]?.[2]).toBe('mount')
+    f.controller.setSlotVisible('context-menu', false)
+    expect(f.render).toHaveBeenCalledTimes(2)
+    expect(f.render.mock.calls[1]?.[2]).toBe('blur')
+    expect(f.render.mock.calls[1]?.[3]?.visible).toBe(false)
+    f.controller.setSlotVisible('context-menu', true)
+    await f.controller.refreshSlot('context-menu')
+    expect(f.render).toHaveBeenCalledTimes(3)
+    expect(f.render.mock.calls[2]?.[2]).toBe('update')
+    await f.controller.dispose()
+  })
+
+  it('finishes one captured hide lifecycle before rendering an immediately reopened selection', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    let finish!: (output: unknown) => void
+    f.render.mockClear()
+    f.render.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    f.controller.setSlotVisible('context-menu', false)
+    f.controller.setSlotVisible('context-menu', false)
+    expect(f.render).toHaveBeenCalledTimes(1)
+    expect(f.render.mock.calls[0]?.[2]).toBe('blur')
+    expect(f.render.mock.calls[0]?.[3]).toMatchObject({ visible: false, selectionRevision: 1 })
+    f.state.selectionRevision = 3
+    f.controller.setSlotVisible('context-menu', true)
+    const reopened = f.controller.refreshSlot('context-menu')
+    await Promise.resolve()
+    expect(f.render).toHaveBeenCalledTimes(1)
+    expect(f.slot.querySelector('button')).toBeNull()
+    finish(f.output('obsolete hidden output'))
+    await reopened
+    expect(f.render).toHaveBeenCalledTimes(2)
+    expect(f.render.mock.calls[1]?.[3]).toMatchObject({ visible: true, selectionRevision: 3 })
+    expect(f.slot.querySelector('button')?.textContent).toBe('doc-a:3')
+    await f.controller.dispose()
+  })
+
+  it('defers a same-context refresh until a held menu button dispatches its click', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    const button = f.slot.querySelector<HTMLButtonElement>('button')!
+    button.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    f.render.mockClear()
+    await f.controller.invalidate('example', 'menu')
+    expect(f.slot.querySelector('button')).toBe(button)
+    expect(f.render).not.toHaveBeenCalled()
+    document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
+    button.click()
+    expect(f.run).toHaveBeenCalledWith('example.run', { label: 'doc-a:1' })
+    await vi.waitFor(() => expect(f.render).toHaveBeenCalledTimes(1))
+    await f.controller.dispose()
+  })
+
+  it('retires app-scoped output synchronously on document change and rejects its late render', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    const oldButton = f.slot.querySelector<HTMLButtonElement>('button')!
+    let finish!: (output: unknown) => void
+    f.render.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const pending = f.controller.refreshSlot('context-menu')
+    const switched = f.controller.sync('doc-b')
+    oldButton.click()
+    expect(f.run).not.toHaveBeenCalled()
+    expect(f.slot.querySelector('button')).toBeNull()
+    await switched
+    finish(f.output('doc-a:obsolete'))
+    await pending
+    expect(f.slot.querySelector('button')?.textContent).toBe('doc-b:1')
+    await f.controller.dispose()
+  })
+
+  it('never exposes a slow plugin previous selection when a fast plugin completes a reopened menu', async () => {
+    document.body.innerHTML =
+      '<div id="editor"><textarea></textarea></div><div id="menu"><div data-plugin-slot="context-menu"></div></div>'
+    const slot = document.querySelector<HTMLElement>('[data-plugin-slot="context-menu"]')!
+    let selectionRevision = 1
+    let holdSlow = false
+    const slow: { finish(): void; revision: number }[] = []
+    const run = vi.fn()
+    const views: PluginContributionIndex['ui'] = ['a.fast', 'b.slow'].map((pluginId) => ({
+      pluginId,
+      id: 'menu',
+      title: pluginId,
+      slot: 'context-menu',
+      scope: 'document',
+      viewportUpdates: false,
+    }))
+    const runtime = createRuntime(views, [], run)
+    runtime.renderUi = async (pluginId, _id, phase, state = {}) => {
+      if (!state.visible || (phase !== 'mount' && phase !== 'update')) return ''
+      const revision = state.selectionRevision as number
+      if (holdSlow && pluginId === 'b.slow')
+        await new Promise<void>((finish) => slow.push({ finish, revision }))
+      return {
+        type: 'element',
+        tag: 'button',
+        text: `${pluginId}:${revision}`,
+        action: { command: 'example.run', input: { revision } },
+      }
+    }
+    const controller = new DesktopPluginUiController(
+      document.body,
+      runtime,
+      () => ({ documentVersion: 1, selectionRevision }),
+      {
+        contextMenu: {
+          normalize: (nodes, id) => normalizePluginContextMenuNodes(nodes, id, () => true),
+          updated: () => reconcilePluginContextMenu(slot),
+        },
+      },
+    )
+    controller.setSlotVisible('context-menu', false)
+    await controller.sync('doc-a')
+    const identity = {}
+    const menu = new EditorContextMenu(
+      document.querySelector<HTMLElement>('#editor')!,
+      document.querySelector<HTMLElement>('#menu')!,
+      {
+        host: {
+          capture: () => ({ identity, version: 1, selection: selectionRevision }),
+          items: () => [{ id: 'copy', label: 'Copy' }],
+          isCurrent: (snapshot) => snapshot.selection === selectionRevision,
+          execute: () => {},
+        },
+        pluginContainer: slot,
+        visible: (value) => controller.setSlotVisible('context-menu', value),
+        refresh: () => controller.refreshSlot('context-menu'),
+      },
+    )
+    await menu.open(20, 20)
+    const oldSlow = slot.querySelector<HTMLButtonElement>('[data-plugin-ui="b.slow:menu"] button')!
+    expect(oldSlow.textContent).toBe('b.slow:1')
+    menu.close()
+    selectionRevision = 3
+    holdSlow = true
+    const reopened = menu.open(20, 20)
+    try {
+      await vi.waitFor(() =>
+        expect(slot.querySelector('[data-plugin-ui="a.fast:menu"] button')?.textContent).toBe(
+          'a.fast:3',
+        ),
+      )
+      // This uses the retained real controlled button and shell capture guard.
+      // A quota recomputation must not make its old input usable in the new menu.
+      oldSlow.click()
+      expect(run).not.toHaveBeenCalled()
+      expect(slot.querySelector('[data-plugin-ui="b.slow:menu"] button')).toBeNull()
+      expect(slot.querySelectorAll('button:not([hidden])')).toHaveLength(1)
+    } finally {
+      slow.forEach((pending) => pending.finish())
+      await reopened
+      menu.dispose()
+      await controller.dispose()
+    }
+  })
+})
 
 describe('plugin UI lifecycle races', () => {
   function fixture(scope: 'app' | 'document' = 'document') {
@@ -288,6 +566,217 @@ describe('generic contextual document toolbar', () => {
       await controller.dispose()
       stylesheet.remove()
     }
+  })
+})
+
+describe('contextual toolbar invalidation', () => {
+  function fixture() {
+    document.body.innerHTML = '<div data-plugin-slot="document-toolbar"></div>'
+    let output: unknown = 'Tools'
+    let selectionRevision = 1
+    const runtime = createRuntime(
+      [
+        {
+          pluginId: 'example',
+          id: 'tools',
+          title: 'Tools',
+          slot: 'document-toolbar',
+          scope: 'document',
+        },
+      ],
+      [],
+    )
+    runtime.renderUi = async () => output
+    const controller = new DesktopPluginUiController(document.body, runtime, () => ({
+      selectionRevision,
+    }))
+    return {
+      controller,
+      runtime,
+      setOutput: (next: unknown) => {
+        output = next
+      },
+      select: () => {
+        selectionRevision++
+      },
+      shell: () => document.querySelector<HTMLElement>('[data-plugin-ui]')!,
+    }
+  }
+
+  it('removes empty controlled trees and whitespace without leaving a blank toolbar', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    for (const empty of ['   ', { type: 'element', tag: 'span', children: [] }]) {
+      f.setOutput(empty)
+      await f.controller.invalidate('example')
+      expect(f.shell().hidden).toBe(true)
+    }
+    await f.controller.dispose()
+  })
+
+  it('retires empty output immediately even while a pointer is held', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    f.shell().dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    f.setOutput('')
+    await f.controller.invalidate('example')
+    expect(f.shell().hidden).toBe(true)
+    expect(f.shell().textContent).toBe('')
+    await f.controller.dispose()
+  })
+
+  it('hides old context synchronously and rejects output for an earlier selection', async () => {
+    const f = fixture()
+    await f.controller.sync('doc-a')
+    let resolve!: (value: unknown) => void
+    f.runtime.renderUi = () =>
+      new Promise((finish) => {
+        resolve = finish
+      })
+    f.select()
+    const updating = f.controller.invalidate('example')
+    const hiddenBeforeRender = f.shell().hidden
+    f.select()
+    resolve('Obsolete tools')
+    await updating
+    expect(hiddenBeforeRender).toBe(true)
+    expect(f.shell().hidden).toBe(true)
+    expect(f.shell().textContent).not.toContain('Obsolete')
+    f.runtime.renderUi = async () => ''
+    await f.controller.dispose()
+  })
+
+  it('retires commands before the host debounce without starting another Worker render', async () => {
+    const f = fixture()
+    f.setOutput({
+      type: 'element',
+      tag: 'button',
+      text: 'Run',
+      action: { command: 'example.run' },
+    })
+    const render = vi.spyOn(f.runtime, 'renderUi')
+    await f.controller.sync('doc-a')
+    const button = f.shell().querySelector('button')!
+    button.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    f.select()
+    f.controller.reconcileDocumentToolbar()
+    expect(f.shell().hidden).toBe(true)
+    expect(button.isConnected).toBe(false)
+    expect(render).toHaveBeenCalledTimes(1)
+    button.click()
+    expect(f.runtime.runCommand).not.toHaveBeenCalled()
+    await f.controller.dispose()
+  })
+
+  it.each(['disable', 'dispose'] as const)(
+    'cannot resurrect a floating toolbar after %s',
+    async (stop) => {
+      document.body.innerHTML = '<div data-plugin-slot="document-toolbar"></div>'
+      const runtime = createRuntime(
+        [
+          {
+            pluginId: 'example',
+            id: 'tools',
+            title: 'Tools',
+            slot: 'document-toolbar',
+            scope: 'document',
+          },
+        ],
+        [],
+      )
+      const controller = new DesktopPluginUiController(document.body, runtime, () => ({}), {
+        documentToolbar: {
+          geometry: () => ({
+            documentId: 'doc-a',
+            anchor: { left: 50, right: 51, top: 90, bottom: 110 },
+            boundary: { left: 0, right: 600, top: 0, bottom: 400 },
+          }),
+        },
+      })
+      await controller.sync('doc-a')
+      const slot = document.querySelector<HTMLElement>('[data-plugin-slot]')!
+      expect(slot.hidden).toBe(false)
+      let resolve!: (value: unknown) => void
+      runtime.renderUi = async (_plugin, _view, phase) =>
+        phase === 'dispose'
+          ? ''
+          : new Promise((finish) => {
+              resolve = finish
+            })
+      const pending = controller.invalidate('example')
+      if (stop === 'disable') {
+        const index = runtime.contributions()
+        runtime.contributions = () => ({ ...index, ui: [] })
+        await controller.sync('doc-a')
+      } else await controller.dispose()
+      expect(slot.hidden).toBe(true)
+      resolve('Late tools')
+      await pending
+      expect(slot.hidden).toBe(true)
+      expect(slot.children).toHaveLength(0)
+      await controller.dispose()
+    },
+  )
+
+  it('keeps toolbar fields focused and restores editor focus before commands or empty output', async () => {
+    document.body.innerHTML =
+      '<textarea id="editor"></textarea><div data-plugin-slot="document-toolbar"></div>'
+    const editor = document.querySelector<HTMLTextAreaElement>('#editor')!
+    const restore = vi.fn(() => editor.focus())
+    let empty = false
+    const focusedAtCommand: (Element | null)[] = []
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tools', title: 'Tools', slot: 'document-toolbar' }],
+      [],
+      vi.fn(() => {
+        focusedAtCommand.push(document.activeElement)
+      }),
+      () =>
+        empty
+          ? ''
+          : {
+              type: 'element',
+              tag: 'span',
+              children: [
+                {
+                  type: 'field',
+                  key: 'value',
+                  kind: 'text',
+                  label: 'Value',
+                  value: '',
+                  onChange: { command: 'example.run' },
+                },
+                { type: 'element', tag: 'button', text: 'Run', action: { command: 'example.run' } },
+              ],
+            },
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime, () => ({}), {
+      documentToolbar: {
+        geometry: () => ({
+          documentId: 'doc-a',
+          anchor: { left: 50, right: 51, top: 90, bottom: 110 },
+          boundary: { left: 0, right: 600, top: 0, bottom: 400 },
+        }),
+        restoreEditorFocus: restore,
+      },
+    })
+    await controller.sync('doc-a')
+    const field = document.querySelector<HTMLInputElement>('[data-plugin-field-control]')!
+    field.focus()
+    field.value = 'Draft'
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+    expect(document.activeElement).toBe(field)
+    expect(restore).not.toHaveBeenCalled()
+    const button = document.querySelector('button')!
+    button.focus()
+    button.click()
+    expect(focusedAtCommand.at(-1)).toBe(editor)
+    button.focus()
+    empty = true
+    await controller.invalidate('example')
+    expect(document.activeElement).toBe(editor)
+    expect(restore).toHaveBeenCalledTimes(2)
+    await controller.dispose()
   })
 })
 

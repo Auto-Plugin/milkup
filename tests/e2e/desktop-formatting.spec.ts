@@ -179,15 +179,42 @@ test('formatting context menu submits its command before hiding and restores edi
   await page.keyboard.press('Shift+F10')
   const menu = page.getByRole('menu', { name: '编辑操作', exact: true })
   await expect(menu).toBeVisible()
-  await menu.getByRole('button', { name: '删除线', exact: true }).click()
+  // The host now shares a three-action budget across all menu extensions.
+  // Exercise the third retained command; the former fifth entry stays hidden.
+  const extensions = menu.locator('[data-context-plugin-action]:visible')
+  await expect(extensions).toHaveCount(3)
+  await expect(extensions).toHaveText(['一级标题', '二级标题', '粗体'])
+  await expect(menu.locator('[data-plugin-command="formatting.strike"]')).toBeHidden()
+  await page.screenshot({ path: test.info().outputPath('formatting-context-menu-capped.png') })
+  await menu.getByRole('menuitem', { name: '粗体', exact: true }).click()
   await expect(menu).toBeHidden()
-  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('~~context 中文~~')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('**context 中文**')
   await page.locator('.milkup-input-proxy').focus()
   await page.keyboard.press('Shift+F10')
   await expect(menu).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+
+  // A closed context renderer must observe visible:false before a new opening.
+  // Keep both selections in one unchanged document and apply only to the latter.
+  await seed(page, 'selection A\nselection C 中文')
+  await page.keyboard.press('Control+Home')
+  await page.keyboard.press('Shift+End')
+  await page.keyboard.press('Shift+F10')
+  await expect(menu.getByRole('menuitem', { name: '粗体', exact: true })).toBeEnabled()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+End')
+  await page.keyboard.press('Home')
+  await page.keyboard.press('Shift+End')
+  await page.keyboard.press('Shift+F10')
+  await menu.getByRole('menuitem', { name: '粗体', exact: true }).click()
+  await expect(menu).toBeHidden()
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('selection A')
+  await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText('**selection C 中文**')
+  await page.screenshot({
+    path: test.info().outputPath('formatting-context-reopened-selection.png'),
+  })
 })
 
 // Native webview zoom reduces the CSS viewport. These browser cases exercise

@@ -439,6 +439,21 @@ HTML. `context-menu` is a controlled document UI contribution slot. None of
 these additions changes existing manifest engine ranges, approvals or enabled
 state; SDK 0.3.2 remains compatible with previously installed 0.3.x packages.
 
+The desktop always supplies its own clipboard, selection, history and Markdown
+insertion menu. Extensions can append at most **three visible actions in total
+across all plugins**, including disabled actions. The host orders contributions
+by plugin/view identity and keeps each contribution's action order. It projects
+declared leaf command buttons into host-styled menu items with trusted SVG icons;
+arbitrary SVG, wrappers and nested menus cannot increase this allowance. Put
+additional actions in the plugin's own control panel. Each opening retires old
+output before refreshing against the current document/version/selection. Async
+commands still require the editing API's current bounded snapshot.
+
+`document-toolbar` is a floating contextual surface anchored to the editor's
+visible caret or selection. It does not consume document layout space. Return
+empty output outside the relevant context; document/selection changes, disable
+and unload retire previous interactive output.
+
 ### Offline document rendering (0.3.3)
 
 This additive API preserves the 0.3.2 command and UI renderer contracts. Declare

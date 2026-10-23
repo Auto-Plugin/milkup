@@ -130,6 +130,13 @@ import {
 import type { IconNode } from 'lucide'
 
 import { EditorContextMenu } from './editor-context-menu'
+import {
+  createHostContextActions,
+  HostContextActionError,
+  type HostContextSnapshot,
+} from './host-context-actions'
+import { normalizePluginContextMenuNodes, reconcilePluginContextMenu } from './context-menu-plugins'
+import { readEditorFloatingToolbarGeometry } from './editor-floating-toolbar-geometry'
 import { createDesktopResourceService } from './resource-service'
 import { saveWithResources } from './resource-save'
 import { scanResourceReferences, scanDocumentResourceReferences } from './resource-reference-scan'
@@ -180,6 +187,8 @@ import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import { createDesktopPluginSidecarProcess } from './plugin-sidecar'
 import { loadDesktopPluginDomModule, prepareDesktopPluginDomModule } from './plugin-dom'
 import './style.css'
+import './editor-context-menu.css'
+import './floating-document-toolbar.css'
 
 let desktopStorage: Storage | undefined
 try {
@@ -334,7 +343,6 @@ app.innerHTML = `
         <h1 data-title>${messages.titleUntitled}</h1>
         <p data-title-path>${messages.pathUnsaved}</p>
       </div>
-      <div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar"></div>
       <div class="window-controls" aria-label="窗口控制">
         <button type="button" class="window-control" data-window-control="minimize" aria-label="${messages.window.minimize}" title="${messages.window.minimize}">
           <span class="window-glyph window-glyph-minimize" aria-hidden="true"></span>
@@ -517,7 +525,10 @@ app.innerHTML = `
         </footer>
       </div>
     </section>
-    <div class="editor-context-menu" data-plugin-slot="context-menu" hidden></div>
+    <div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar" hidden></div>
+    <div class="editor-context-menu" data-editor-context-menu hidden>
+      <div data-plugin-slot="context-menu" hidden></div>
+    </div>
     <section class="plugin-modal-slot" data-plugin-slot="modal"></section>
     <footer class="statusbar">
       <div class="statusbar-left">
@@ -719,6 +730,133 @@ function getDesktopEditingCurrent(): DesktopEditingCurrent | undefined {
       editor.isComposing,
     mode: sourceView ? 'windowed' : 'memory',
   }
+}
+
+function captureHostContextSnapshot(): HostContextSnapshot | undefined {
+  const current = getDesktopEditingCurrent()
+  if (!current) return undefined
+  const history = largeDocumentPreview?.editSession ?? state.history
+  return { ...current, canUndo: history.canUndo, canRedo: history.canRedo }
+}
+
+function isHostContextSnapshotCurrent(expected: HostContextSnapshot): boolean {
+  const current = getDesktopEditingCurrent()
+  return Boolean(
+    current &&
+    current.identity === expected.identity &&
+    current.source === expected.source &&
+    current.documentId === expected.documentId &&
+    current.version === expected.version &&
+    current.source.version === expected.version &&
+    current.selectionRevision === expected.selectionRevision &&
+    current.saveLocationGeneration === expected.saveLocationGeneration &&
+    current.selection.mainIndex === expected.selection.mainIndex &&
+    current.selection.ranges.length === expected.selection.ranges.length &&
+    current.selection.ranges.every((range, index) => {
+      const old = expected.selection.ranges[index]!
+      return (
+        range.anchor === old.anchor && range.head === old.head && range.affinity === old.affinity
+      )
+    }),
+  )
+}
+
+function assertHostContextCurrent(
+  expected: HostContextSnapshot,
+  signal: AbortSignal,
+  write = false,
+): void {
+  if (signal.aborted) throw new HostContextActionError('aborted')
+  if (!isHostContextSnapshotCurrent(expected)) throw new HostContextActionError('stale')
+  const current = getDesktopEditingCurrent()!
+  if (current.busy) throw new HostContextActionError('busy')
+  if (write && (expected.readonly || current.readonly)) throw new HostContextActionError('readonly')
+}
+
+async function selectAllFromHostContext(
+  expected: HostContextSnapshot,
+  signal: AbortSignal,
+): Promise<void> {
+  const active = sourceView
+  const select = async () => {
+    assertHostContextCurrent(expected, signal)
+    let length = expected.source.length
+    if (length === undefined) {
+      // Native file size is bytes, never a UTF-16 selection coordinate. Read
+      // only the final bounded line instead of materializing the whole file.
+      try {
+        const last = await expected.source.readLineWindow(
+          expected.source.lineCount,
+          expected.source.lineCount,
+          65_536,
+        )
+        length = last.to
+      } catch (error) {
+        assertHostContextCurrent(expected, signal)
+        throw new HostContextActionError(
+          error instanceof RangeError ? 'too-large' : 'unavailable',
+          { cause: error },
+        )
+      }
+    }
+    assertHostContextCurrent(expected, signal)
+    if (!Number.isSafeInteger(length) || length < 0) throw new HostContextActionError('unavailable')
+    const selection = Selection.range(0, length)
+    if (active) {
+      if (sourceView !== active) throw new HostContextActionError('stale')
+      active.setSelection(selection)
+    } else {
+      state = state.applyTransaction({
+        selection,
+        addToHistory: false,
+        origin: { type: 'command', id: 'host.select-all' },
+      })
+      updateRenderedMemoryDocument()
+    }
+    renderSession()
+  }
+  if (active) await active.runAfterPendingEdits(select)
+  else await select()
+}
+
+async function applyHostContextHistory(
+  direction: 'undo' | 'redo',
+  expected: HostContextSnapshot,
+  signal: AbortSignal,
+): Promise<void> {
+  const active = sourceView
+  const apply = async () => {
+    assertHostContextCurrent(expected, signal, true)
+    if (active !== sourceView) throw new HostContextActionError('stale')
+    const history = largeDocumentPreview?.editSession ?? state.history
+    if (!(direction === 'undo' ? history.canUndo : history.canRedo))
+      throw new HostContextActionError('unavailable')
+    controlledEditingCommit = true
+    try {
+      if (largeDocumentPreview?.editSession) await applyLargeEditHistoryBatch(direction, true)
+      else {
+        applyMemoryEditHistory(direction)
+        // History already committed. Its view refresh must not turn it into an
+        // apparent cancelled edit or mutate another document after navigation.
+        if (active && active === sourceView) {
+          try {
+            await active.revealSelection(
+              state.doc.lineAt(state.selection.main.head).number,
+              state.selection,
+            )
+          } catch (error) {
+            importantNotice = true
+            notice = `历史操作已提交，视图更新失败：${getErrorMessage(error)}`
+          }
+        }
+      }
+    } finally {
+      controlledEditingCommit = false
+      renderSession()
+    }
+  }
+  if (active) await active.runAfterPendingEdits(apply)
+  else await apply()
 }
 let pluginUiViewportTimer: ReturnType<typeof setTimeout> | undefined
 let pluginUiViewportIdleCallback: number | undefined
@@ -1192,7 +1330,12 @@ function applyMemoryEditHistory(direction: 'undo' | 'redo'): boolean {
     changes: ChangeSet.insert(state.selection.main.head, ''),
     origin: { type: direction === 'undo' ? 'history.undo' : 'history.redo' },
   })
-  updateRenderedMemoryDocument()
+  try {
+    updateRenderedMemoryDocument()
+  } catch (error) {
+    importantNotice = true
+    notice = `历史操作已提交，视图更新失败：${getErrorMessage(error)}`
+  }
   renderSession()
   return true
 }
@@ -1488,6 +1631,31 @@ function desktopDocumentPresentationOptions(): {
   return config ? { documentPresentation: config } : {}
 }
 let pluginUiReady = false
+const pluginContextMenuSlot = appRoot.querySelector<HTMLElement>(
+  '[data-plugin-slot="context-menu"]',
+)!
+const hostContextEditing = desktopEditing.adapterForHost()
+const hostContextActions = createHostContextActions({
+  editing: hostContextEditing.adapter,
+  captureSnapshot: captureHostContextSnapshot,
+  isCurrent: isHostContextSnapshotCurrent,
+  clipboard: {
+    readText: () => navigator.clipboard.readText(),
+    writeText: (text) => navigator.clipboard.writeText(text),
+    ...(typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write
+      ? {
+          writeTextDeferred: (text: Promise<string>) =>
+            navigator.clipboard.write([
+              new ClipboardItem({
+                'text/plain': text.then((value) => new Blob([value], { type: 'text/plain' })),
+              }),
+            ]),
+        }
+      : {}),
+  },
+  selectAll: selectAllFromHostContext,
+  history: applyHostContextHistory,
+})
 const desktopPluginUi: DesktopPluginUiController = new DesktopPluginUiController(
   appRoot,
   {
@@ -1503,21 +1671,72 @@ const desktopPluginUi: DesktopPluginUiController = new DesktopPluginUiController
     runCommand: (command, input, originalEvent) => runDesktopAction(command, input, originalEvent),
   },
   getPluginUiRenderState,
+  {
+    documentToolbar: {
+      geometry: () => {
+        const current = getDesktopEditingCurrent()
+        return readEditorFloatingToolbarGeometry({
+          editorRoot,
+          view: sourceView ?? view,
+          documentId: session.documentId,
+          selectionHead: current?.selection.main.head ?? 0,
+          ...(current ? { selectionAnchor: current.selection.main.anchor } : {}),
+          visible:
+            Boolean(current) &&
+            !menuOpen &&
+            !closeConfirmOpen &&
+            !recoveryDialogOpen &&
+            !isDocumentBusy(),
+        })
+      },
+      observe: [editorRoot],
+      restoreEditorFocus: focusActiveView,
+    },
+    contextMenu: {
+      normalize: (nodes, rendererId) =>
+        normalizePluginContextMenuNodes(nodes, rendererId, (owner, command) =>
+          Boolean(desktopPluginManager.resolveRendererCommand(owner, command)),
+        ),
+      updated: () => {
+        reconcilePluginContextMenu(pluginContextMenuSlot)
+        editorContextMenu.reconcileLayout()
+      },
+    },
+  },
 )
 desktopPluginUi.setSlotVisible('sidebar-panel', !sidebarCollapsed)
 desktopPluginUi.setSlotVisible('context-menu', false)
 const editorContextMenu = new EditorContextMenu(
   editorRoot,
-  appRoot.querySelector<HTMLElement>('[data-plugin-slot="context-menu"]')!,
+  appRoot.querySelector<HTMLElement>('[data-editor-context-menu]')!,
   {
-    available: () =>
-      !isDocumentBusy() &&
-      !closeConfirmOpen &&
-      !recoveryDialogOpen &&
-      desktopPluginManager.state().contributions.ui.some((item) => item.slot === 'context-menu'),
+    available: () => !menuOpen && !isDocumentBusy() && !closeConfirmOpen && !recoveryDialogOpen,
+    host: {
+      capture: captureHostContextSnapshot,
+      items: (snapshot) => hostContextActions.items(snapshot),
+      isCurrent: isHostContextSnapshotCurrent,
+      execute: (id, snapshot, event, signal) => {
+        const menu = appRoot.querySelector<HTMLElement>('[data-editor-context-menu]')!
+        const ownedFocus = menu.contains(document.activeElement)
+        return hostContextActions.run(id, snapshot, event, signal ? { signal } : {}).then(() => {
+          if (
+            ownedFocus &&
+            snapshot.documentId === session.documentId &&
+            (menu.contains(document.activeElement) || document.activeElement === document.body)
+          )
+            focusActiveView()
+        })
+      },
+    },
+    pluginContainer: pluginContextMenuSlot,
     identity: () => getDesktopEditingCurrent()?.identity,
     refresh: () => desktopPluginUi.refreshSlot('context-menu'),
     visible: (value) => desktopPluginUi.setSlotVisible('context-menu', value),
+    onError: (error) => {
+      importantNotice = true
+      notice = getErrorMessage(error)
+      renderSession()
+    },
   },
 )
 invalidatePluginUi = (pluginId, viewId) => desktopPluginUi.invalidate(pluginId, viewId)
@@ -3310,9 +3529,13 @@ async function applyLargeSourceEdit(edit: {
   renderSession()
 }
 
-async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<void> {
+async function applyLargeEditHistoryBatch(
+  direction: 'undo' | 'redo',
+  reportFailure = false,
+): Promise<void> {
   const preview = largeDocumentPreview
   const editSession = preview?.editSession
+  const activeSourceView = sourceView
 
   if (!preview || !editSession) {
     return
@@ -3325,6 +3548,7 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
     return
   }
 
+  let committed = false
   try {
     const snapshot = await applyLargeDocumentEditBatch({
       service: largeTextFileService,
@@ -3334,6 +3558,8 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
       restoreNativeHistory: (token, direction) =>
         largeSearchService.restore(preview.documentId, expectedVersion, token, direction),
     })
+
+    committed = true
 
     if (snapshot) {
       if (direction === 'undo') {
@@ -3351,17 +3577,22 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
           origin: { type: 'history.undo', id: `large-${direction}` },
         })
     notice = direction === 'undo' ? '已撤销大文件编辑。' : '已重做大文件编辑。'
-    await sourceView?.renderVisibleWindow()
-    if (sourceView && batch.selectionAfter) {
+    if (sourceView === activeSourceView) await activeSourceView?.renderVisibleWindow()
+    if (activeSourceView && sourceView === activeSourceView && batch.selectionAfter) {
       const line = await preview.source.lineAtPosition(batch.selectionAfter.main.head)
-      await sourceView.revealSelection(line.number, batch.selectionAfter)
+      if (sourceView === activeSourceView)
+        await activeSourceView.revealSelection(line.number, batch.selectionAfter)
     }
     renderSession()
-    focusActiveView()
+    if (sourceView === activeSourceView) focusActiveView()
   } catch (error: unknown) {
-    notice = `大文件${direction === 'undo' ? '撤销' : '重做'}失败：${getErrorMessage(error)}`
+    if (reportFailure && !committed) throw error
+    importantNotice = true
+    notice = committed
+      ? `历史操作已提交，视图更新失败：${getErrorMessage(error)}`
+      : `大文件${direction === 'undo' ? '撤销' : '重做'}失败：${getErrorMessage(error)}`
     renderSession()
-    focusActiveView()
+    if (sourceView === activeSourceView) focusActiveView()
   }
 }
 
@@ -4121,6 +4352,8 @@ function setMenuOpen(open: boolean): void {
     menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
   menuOpen = open
   setTransitionBackgroundInert(closeConfirmOpen)
+  desktopPluginUi.reconcileDocumentToolbar()
+  editorContextMenu.reconcile()
   const menu = appRoot.querySelector<HTMLElement>('[data-app-menu]')
   const toggle = appRoot.querySelector<HTMLButtonElement>('[data-menu-toggle]')
 
@@ -4524,6 +4757,8 @@ function refreshPluginUiAfterDocumentNavigation(): void {
 }
 
 function schedulePluginUiViewportUpdate(): void {
+  desktopPluginUi.reconcileDocumentToolbar()
+  editorContextMenu.reconcile()
   cancelScheduledPluginUiViewportUpdate()
   pluginUiViewportTimer = setTimeout(() => {
     pluginUiViewportTimer = undefined
@@ -5797,6 +6032,9 @@ globalThis.addEventListener('unload', () => {
   applicationUpdates.dispose()
   loadingVisibility.dispose()
   editorContextMenu.dispose()
+  hostContextActions.dispose()
+  hostContextEditing.dispose()
+  void desktopPluginUi.dispose()
   disposeFileWatchEvents?.()
   scheduleLargeDocumentPreviewClose()
 })

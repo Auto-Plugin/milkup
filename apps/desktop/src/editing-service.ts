@@ -101,7 +101,7 @@ export function createDesktopEditingService(options: DesktopEditingServiceOption
   let serviceDisposed = false
   const owners = new Set<() => void>()
 
-  function adapterForPlugin(pluginId: string) {
+  function createAdapter(pluginId: string, readonlyCapture = false) {
     let disposed = false
     let sequence = 0
     let pending = 0
@@ -158,10 +158,10 @@ export function createDesktopEditingService(options: DesktopEditingServiceOption
         })
     }
 
-    function guard(expected: DesktopEditingCurrent, signal: AbortSignal) {
+    function guard(expected: DesktopEditingCurrent, signal: AbortSignal, allowReadonly = false) {
       active()
       checkSignal(signal)
-      const current = available(options.current())
+      const current = available(options.current(), allowReadonly)
       if (
         current.identity !== expected.identity ||
         current.source !== expected.source ||
@@ -176,6 +176,9 @@ export function createDesktopEditingService(options: DesktopEditingServiceOption
     }
 
     const apply = async (lease: Lease, request: PluginEditingApplyRequest, signal: AbortSignal) => {
+      // A read-only capture is never a deferred write grant, even after the
+      // current document becomes editable again.
+      if (lease.expected.readonly) fail('readonly')
       guard(lease.expected, signal)
       const batch = prepareBatch(lease, request, pluginId, options.supportsAssets === true)
       const result = await options.commit(batch, () => guard(lease.expected, signal), signal)
@@ -195,17 +198,17 @@ export function createDesktopEditingService(options: DesktopEditingServiceOption
         return run(async (signal) => {
           active()
           if (leases.size >= 8) fail('too-large')
-          const expected = available(options.current())
-          guard(expected, signal)
+          const expected = available(options.current(), readonlyCapture)
+          guard(expected, signal, readonlyCapture)
           const snapshot = await capture(
             expected,
             request,
             `${prefix}${++sequence}`,
             signal,
             options,
-            () => guard(expected, signal),
+            () => guard(expected, signal, readonlyCapture),
           )
-          guard(expected, signal)
+          guard(expected, signal, readonlyCapture)
           leases.set(snapshot.id, { snapshot, expected })
           return snapshot
         }, operationOptions)
@@ -254,7 +257,9 @@ export function createDesktopEditingService(options: DesktopEditingServiceOption
     return Object.freeze({ adapter: Object.freeze(adapter), dispose })
   }
   return Object.freeze({
-    adapterForPlugin,
+    adapterForPlugin: (pluginId: string) => createAdapter(pluginId),
+    /** Internal host commands only; never exposed by plugin SDK/IPC brokers. */
+    adapterForHost: () => createAdapter('host.context-menu', true),
     dispose: () => {
       serviceDisposed = true
       for (const dispose of [...owners]) dispose()
@@ -541,9 +546,12 @@ function prepareBatch(
   }
 }
 
-function available(current: DesktopEditingCurrent | undefined): DesktopEditingCurrent {
+function available(
+  current: DesktopEditingCurrent | undefined,
+  allowReadonly = false,
+): DesktopEditingCurrent {
   if (!current) fail('unavailable')
-  if (current.readonly) fail('readonly')
+  if (current.readonly && !allowReadonly) fail('readonly')
   if (current.busy) fail('busy')
   return current
 }

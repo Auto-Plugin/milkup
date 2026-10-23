@@ -68,6 +68,54 @@ function fixture(text = '中文 **bold**\r\nsecond\r\n') {
 }
 
 describe('bounded desktop editing leases', () => {
+  it('lets only the internal host capture readonly selection without granting write access', async () => {
+    const f = fixture()
+    f.attributes.readonly = true
+    const host = f.service.adapterForHost()
+    const snapshot = await host.adapter.capture({ extent: 'selection' })
+    expect(snapshot.text).toBe('bold')
+    await expect(f.owner.adapter.capture({ extent: 'selection' })).rejects.toMatchObject({
+      code: 'readonly',
+    })
+    await expect(
+      host.adapter.apply({ snapshotId: snapshot.id, changes: [{ from: 0, to: 4, insert: '' }] }),
+    ).rejects.toMatchObject({ code: 'readonly' })
+    expect(f.commit).not.toHaveBeenCalled()
+  })
+
+  it('never promotes a readonly host capture into a writable lease after mode changes', async () => {
+    const f = fixture()
+    const host = f.service.adapterForHost()
+    f.attributes.readonly = true
+    const copied = await host.adapter.capture({ extent: 'selection' })
+    f.attributes.readonly = false
+    await expect(
+      host.adapter.apply({ snapshotId: copied.id, changes: [{ from: 0, to: 4, insert: '' }] }),
+    ).rejects.toMatchObject({ code: 'readonly' })
+    const writable = await host.adapter.capture({ extent: 'selection' })
+    await host.adapter.apply({
+      snapshotId: writable.id,
+      changes: [{ from: 0, to: 4, insert: '中文🙂' }],
+    })
+    expect(f.state().doc.text).toBe('中文 **中文🙂**\r\nsecond\r\n')
+    expect(f.state().undo().doc.text).toBe('中文 **bold**\r\nsecond\r\n')
+    expect(f.commit).toHaveBeenCalledOnce()
+  })
+
+  it('keeps internal host leases private and revocable', async () => {
+    const f = fixture()
+    const host = f.service.adapterForHost()
+    const snapshot = await host.adapter.capture({ extent: 'selection' })
+    await expect(
+      f.owner.adapter.apply({ snapshotId: snapshot.id, changes: [] }),
+    ).rejects.toMatchObject({ code: 'invalid-snapshot' })
+    host.dispose()
+    await expect(
+      host.adapter.apply({ snapshotId: snapshot.id, changes: [] }),
+    ).rejects.toMatchObject({ code: 'revoked' })
+    expect(f.commit).not.toHaveBeenCalled()
+  })
+
   it('captures complete CRLF lines, reverse selection and valid CST markers', async () => {
     const f = fixture()
     f.select(9, 5)
