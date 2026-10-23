@@ -30,6 +30,54 @@ use windows::{
     },
 };
 
+// Fixed metadata only. The two completion handlers below are FnOnce handlers:
+// webview2-com takes their closure before invoking it, including on reentry.
+// This run therefore emits at most 17 lines; even 24 maximum-width lines fit
+// below 2 KiB, within the launcher's unchanged 16 KiB aggregate stderr limit.
+const STARTUP_PHASES: &[&str] = &[
+    "helper-enter",
+    "token-before",
+    "token-ok",
+    "com-start",
+    "com-returned",
+    "environment-call-start",
+    "environment-call-returned",
+    "environment-callback-ok",
+    "environment-callback-failed",
+    "controller-call-start",
+    "controller-call-returned",
+    "controller-callback-ok",
+    "controller-callback-failed",
+    "controls-installed",
+    "navigate-start",
+    "navigate-returned",
+    "bootstrap-ready-validated",
+    "ready-frame-start",
+    "ready-frame-flushed",
+];
+
+fn startup_phase_line(phase: &str, elapsed_us: u128, hresult: Option<i32>) -> Option<String> {
+    if !STARTUP_PHASES.contains(&phase) {
+        return None;
+    }
+    let elapsed_us = elapsed_us.min(999_999_999_999);
+    Some(match hresult {
+        Some(code) => format!(
+            "MILKUP_PHASE {phase} elapsedUs={elapsed_us} hresult=0x{:08X}\n",
+            code as u32
+        ),
+        None => format!("MILKUP_PHASE {phase} elapsedUs={elapsed_us}\n"),
+    })
+}
+
+fn startup_phase(started: Instant, phase: &str, hresult: Option<i32>) {
+    if let Some(line) = startup_phase_line(phase, started.elapsed().as_micros(), hresult) {
+        // Diagnostics cannot replace the original callback/IPC result on a bad
+        // pipe. No new stream, reader, flush, or startup deadline is introduced.
+        let _ = std::io::stderr().lock().write_all(line.as_bytes());
+    }
+}
+
 fn wide(value: impl AsRef<OsStr>) -> Vec<u16> {
     value.as_ref().encode_wide().chain(Some(0)).collect()
 }
@@ -97,6 +145,9 @@ fn input() -> Result<Value> {
 }
 
 pub fn run(runtime: &Path, private: &Path) -> Result<()> {
+    let startup_started = Instant::now();
+    startup_phase(startup_started, "helper-enter", None);
+    startup_phase(startup_started, "token-before", None);
     let token = crate::launcher::child_token_report()?;
     if token["isAppContainer"] != true
         || token["capabilityCount"] != 0
@@ -105,9 +156,11 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     {
         return Err("Only the zero-capability AppContainer child may render".into());
     }
-    unsafe {
-        CoInitializeEx(None, COINIT_APARTMENTTHREADED).ok()?;
-    }
+    startup_phase(startup_started, "token-ok", None);
+    startup_phase(startup_started, "com-start", None);
+    let com_result = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
+    startup_phase(startup_started, "com-returned", Some(com_result.0));
+    com_result.ok()?;
     let init_deadline = Instant::now() + Duration::from_secs(10);
     let origin = format!("milkup-render://job-{}", std::process::id());
     let index_url = format!("{origin}/index.html");
@@ -129,17 +182,34 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     let (tx, rx) = mpsc::channel();
     let handler =
         CreateCoreWebView2EnvironmentCompletedHandler::create(Box::new(move |hr, env| {
-            let _ = tx.send(hr.and_then(|_| env.ok_or_else(|| E_FAIL.into())));
+            let result = hr.and_then(|_| env.ok_or_else(|| E_FAIL.into()));
+            startup_phase(
+                startup_started,
+                if result.is_ok() {
+                    "environment-callback-ok"
+                } else {
+                    "environment-callback-failed"
+                },
+                result.as_ref().err().map(|error| error.code().0),
+            );
+            let _ = tx.send(result);
             Ok(())
         }));
-    unsafe {
+    startup_phase(startup_started, "environment-call-start", None);
+    let environment_call = unsafe {
         CreateCoreWebView2EnvironmentWithOptions(
             PCWSTR(runtime.as_ptr()),
             PCWSTR(udf.as_ptr()),
             &options,
             &handler,
-        )?;
-    }
+        )
+    };
+    startup_phase(
+        startup_started,
+        "environment-call-returned",
+        environment_call.as_ref().err().map(|error| error.code().0),
+    );
+    environment_call?;
     let environment = pump(&rx, init_deadline)??;
     let window = unsafe {
         CreateWindowExW(
@@ -161,12 +231,27 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     let (tx, rx) = mpsc::channel();
     let handler =
         CreateCoreWebView2ControllerCompletedHandler::create(Box::new(move |hr, controller| {
-            let _ = tx.send(hr.and_then(|_| controller.ok_or_else(|| E_FAIL.into())));
+            let result = hr.and_then(|_| controller.ok_or_else(|| E_FAIL.into()));
+            startup_phase(
+                startup_started,
+                if result.is_ok() {
+                    "controller-callback-ok"
+                } else {
+                    "controller-callback-failed"
+                },
+                result.as_ref().err().map(|error| error.code().0),
+            );
+            let _ = tx.send(result);
             Ok(())
         }));
-    unsafe {
-        environment.CreateCoreWebView2Controller(window, &handler)?;
-    }
+    startup_phase(startup_started, "controller-call-start", None);
+    let controller_call = unsafe { environment.CreateCoreWebView2Controller(window, &handler) };
+    startup_phase(
+        startup_started,
+        "controller-call-returned",
+        controller_call.as_ref().err().map(|error| error.code().0),
+    );
+    controller_call?;
     let controller = pump(&rx, init_deadline)??;
     let view = unsafe { controller.CoreWebView2()? };
     unsafe {
@@ -415,18 +500,29 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     }));
     unsafe {
         view.add_WebMessageReceived(&handler, &mut token_id)?;
-        view.Navigate(PCWSTR(wide(&index_url).as_ptr()))?;
     }
+    startup_phase(startup_started, "controls-installed", None);
+    startup_phase(startup_started, "navigate-start", None);
+    let navigate_call = unsafe { view.Navigate(PCWSTR(wide(&index_url).as_ptr())) };
+    startup_phase(
+        startup_started,
+        "navigate-returned",
+        navigate_call.as_ref().err().map(|error| error.code().0),
+    );
+    navigate_call?;
     let ready = pump(&rx, init_deadline)?;
     if ready != json!({"phase":"ready","engine":"12.2.0"}) {
         return Err("Unexpected bootstrap ready".into());
     }
+    startup_phase(startup_started, "bootstrap-ready-validated", None);
     let mut browser_process_id = 0;
     unsafe {
         view.BrowserProcessId(&mut browser_process_id)?;
     }
+    startup_phase(startup_started, "ready-frame-start", None);
     let ready_bytes =
         frame(&json!({"phase":"ready","engine":"12.2.0","browserProcessId":browser_process_id}))?;
+    startup_phase(startup_started, "ready-frame-flushed", None);
     let input = input()?;
     let deadline = Instant::now() + Duration::from_secs(2);
     let json_input = wide(serde_json::to_string(&input)?);
@@ -494,4 +590,39 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
         DestroyWindow(window)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod startup_phase_tests {
+    use super::{startup_phase_line, STARTUP_PHASES};
+
+    #[test]
+    fn startup_metadata_has_only_fixed_phase_and_numeric_fields() {
+        assert_eq!(
+            startup_phase_line("helper-enter", 0, None).unwrap(),
+            "MILKUP_PHASE helper-enter elapsedUs=0\n"
+        );
+        assert_eq!(
+            startup_phase_line(
+                "environment-callback-failed",
+                u128::MAX,
+                Some(0x80004005u32 as i32)
+            )
+            .unwrap(),
+            "MILKUP_PHASE environment-callback-failed elapsedUs=999999999999 hresult=0x80004005\n"
+        );
+        assert!(startup_phase_line("unknown", 0, None).is_none());
+        assert!(startup_phase_line("helper-enter\nprivate-text", 0, None).is_none());
+        assert!(STARTUP_PHASES.len() <= 24);
+        let longest = STARTUP_PHASES
+            .iter()
+            .map(|phase| {
+                startup_phase_line(phase, u128::MAX, Some(-1))
+                    .unwrap()
+                    .len()
+            })
+            .max()
+            .unwrap();
+        assert!(24 * longest < 2048);
+    }
 }

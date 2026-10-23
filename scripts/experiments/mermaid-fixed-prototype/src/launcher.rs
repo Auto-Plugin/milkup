@@ -966,7 +966,10 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
         if unsafe { ResumeThread(primary_thread.as_raw_handle()) } == u32::MAX {
             return Err(std::io::Error::last_os_error().into());
         }
-        match rx.recv_timeout(PREPARE_LIMIT)? {
+        let ready_wait = rx.recv_timeout(PREPARE_LIMIT);
+        // Includes ResumeThread, using the same origin as prepareElapsedMs.
+        report["readyWaitElapsedMs"] = json!(prepare_started.elapsed().as_millis());
+        match ready_wait? {
             Event::Ready(ready) => report["ready"] = ready,
             Event::Error(error) => return Err(error.into()),
             _ => return Err("Invalid helper preparation event".into()),
