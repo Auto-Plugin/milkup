@@ -75,3 +75,13 @@ local Chromium using a private temporary profile. It fixes natural SVG sizing
 (wide diagrams scroll at readable scale), expands viewBox/content bounds with
 padding, and moves C4 relationship labels above lines with theme-correct backing.
 These local browser images do not establish WebView2/native scale/IME acceptance.
+
+For an explicitly launched Windows acceptance harness only,
+`MILKUP_MERMAID_NATIVE_AUDIT=1` enables bounded stderr ownership records. The
+`started` record follows actual browser PID/token/Job validation. `finished`
+records contain exact owner SIDs, owned PIDs, Job emptiness, IPC completion,
+profile/tree deletion, cancellation/deadline observations and PNG hash/length.
+This opt-in diagnostic copies a closed field list; it omits source, renderer
+errors, paths, credentials and resource URIs, and adds no plugin capability.
+A `successful` native record precedes host PNG validation/publication; the
+acceptance harness must also match its hash to a decoded image in the actual UI.

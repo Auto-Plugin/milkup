@@ -995,6 +995,10 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         control.checkpoint()?;
         report["prepareElapsedMs"] = json!(prepare_started.elapsed().as_millis());
         report["readyJob"] = job.sample()?;
+        crate::audit::emit(&crate::audit::started(
+            input["requestId"].as_str().unwrap_or_default(),
+            &report,
+        ));
         let render_started = Instant::now();
         let input_len = input_bytes.len() as u32;
         writer = Some(thread::spawn(move || {

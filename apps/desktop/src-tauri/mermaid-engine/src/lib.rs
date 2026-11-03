@@ -19,6 +19,8 @@ const MAX_RETAINED_PIXELS: u64 = 32 * 1024 * 1024;
 const MAX_IDENTITIES: usize = 65_536;
 const LEASE_TTL: Duration = Duration::from_secs(60);
 #[cfg(any(windows, test))]
+mod audit;
+#[cfg(any(windows, test))]
 mod cleanup;
 #[cfg(windows)]
 mod engine;
@@ -419,8 +421,32 @@ pub fn run_helper_if_requested() -> bool {
 }
 #[cfg(windows)]
 pub fn render_native(input: &Value, control: &Control) -> std::result::Result<Rendered, String> {
+    control.checkpoint()?;
     let runtime = installed_runtime()?;
-    let output = launcher::run(&runtime, input, control).map_err(|e| e.to_string())?;
+    let request_id = input["requestId"].as_str().unwrap_or_default();
+    audit::emit(
+        &json!({"phase":"admitted","requestId":request_id,"productPid":std::process::id()}),
+    );
+    let output = match launcher::run(&runtime, input, control) {
+        Ok(output) => output,
+        Err(error) => {
+            audit::emit(
+                &json!({"phase":"finished","requestId":request_id,"productPid":std::process::id(),
+                "successful":false,"admissionFailed":true,"cancelled":control.cancelled.load(Ordering::Acquire),
+                "deadlineExpired":control.remaining().is_zero()}),
+            );
+            return Err(error.to_string());
+        }
+    };
+    if audit::enabled() {
+        audit::emit(&audit::finished(
+            request_id,
+            &output.report,
+            &output.png,
+            control.cancelled.load(Ordering::Acquire),
+            control.remaining().is_zero(),
+        ));
+    }
     if output.report["stopMatrixAfterThisCase"] == true {
         control.mark_cleanup_uncertain();
     }
