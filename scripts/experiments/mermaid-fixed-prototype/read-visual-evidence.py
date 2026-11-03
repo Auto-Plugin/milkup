@@ -16,7 +16,7 @@ import zlib
 from PIL import Image
 
 BASELINE = "82fb49e95caf99ea45654f552992eff81f72bee9"
-NATIVE_BASELINE = "7aa222e85859d217c33eedcb244e89ca1089ebbb"
+NATIVE_BASELINE = "3b03127cb46afcbda68180dbf28ba0cc3625401b"
 MAX_TOTAL = 1048576
 MAX_IMAGE = 262144
 CHUNK = 4096
@@ -225,6 +225,9 @@ def collect(log, run, artifacts, fixtures, *, allow_partial_failed=False):
             account["accountDeleted"] is True and account["profileDeleted"] is True and
             account["stageRemoved"] is True and account["cleanupErrors"] == [],
             "Final account/profile/stage cleanup incomplete")
+    require(all(execution.get(key) is False for key in ["fixedRuntime155", "deleteDiagnostic", "historicalPrefix"]) and
+            all(account.get(key) is False for key in ["fixedRuntime155", "newRuntimeOrDependency", "newRuntimeDownloaded", "runtimeInstalled"]),
+            "Installed-Runtime visual mode must not download/install a Runtime or use diagnostic-only scope")
     require(account.get("failure") == POSITIVE_FAILURE if partial else "failure" not in account,
             "Original execution failure is missing, changed, or incorrectly present")
     require(list(groups) == ["canary", "positive"] and len(groups["canary"]) == 1 and

@@ -37,7 +37,7 @@ def sample(partial_count=None):
     run.update(repository={"full_name": "Auto-Plugin/milkup"}, head_branch="dot/milkup-v2-mermaid-prototype")
     lines = []
     emit = lambda marker, value: lines.append(marker + " " + json.dumps(value))
-    emit("MILKUP_EXECUTION_JSON", {"runId": "1", "attempt": "1", "exactSource": run["head_sha"], "captureVisualEvidence": True, "renderingInputsBaseline": READER.BASELINE, "nativeSourceBaseline": READER.NATIVE_BASELINE, "nativeSourceByteIdenticalToRenderingBaseline": False})
+    emit("MILKUP_EXECUTION_JSON", {"runId": "1", "attempt": "1", "exactSource": run["head_sha"], "captureVisualEvidence": True, "renderingInputsBaseline": READER.BASELINE, "nativeSourceBaseline": READER.NATIVE_BASELINE, "nativeSourceByteIdenticalToRenderingBaseline": False, "fixedRuntime155": False, "deleteDiagnostic": False, "historicalPrefix": False})
     user, supervisor_sid = "synthetic-user", "synthetic-supervisor"
 
     def token(container):
@@ -84,6 +84,7 @@ def sample(partial_count=None):
          capturesEnvironmentScreens=False, artifactUpload=False))
     account = {"source": run["head_sha"], "userSid": user, "cleanupSupervisorSid": supervisor_sid,
          "runId": "1", "attempt": "1",
+         "fixedRuntime155": False, "newRuntimeOrDependency": False, "newRuntimeDownloaded": False, "runtimeInstalled": False,
          "captureVisualEvidence": True, "visualEvidenceEmitted": True, "visualEvidenceStatus": status,
          "accountDeleted": True, "profileDeleted": True,
          "stageRemoved": True, "cleanupErrors": [], "executions": supervisors, "localGroupSids": ["S-1-5-32-545"]}
@@ -162,6 +163,19 @@ class ReaderTest(unittest.TestCase):
                 change_record(lines, "MILKUP_EXECUTION_JSON", lambda r: r.update({field: value}))
                 with self.assertRaises(ValueError):
                     self.check(lines, run, artifacts)
+
+    def test_visual_mode_rejects_unexpected_runtime_or_diagnostic_scope(self):
+        for marker, fields in [
+            ("MILKUP_EXECUTION_JSON", ["fixedRuntime155", "deleteDiagnostic", "historicalPrefix"]),
+            ("MILKUP_ACCOUNT_JSON", ["fixedRuntime155", "newRuntimeOrDependency", "newRuntimeDownloaded", "runtimeInstalled"]),
+        ]:
+            for field in fields:
+                for value in [True, None]:
+                    with self.subTest(marker=marker, field=field, value=value):
+                        lines, run, artifacts = sample()
+                        change_record(lines, marker, lambda r: r.update({field: value}))
+                        with self.assertRaises(ValueError):
+                            self.check(lines, run, artifacts)
 
     def test_png_crc_truncation_and_json_duplicates(self):
         for data in [PNG[:-1], PNG[:-1] + bytes([PNG[-1] ^ 1])]:
