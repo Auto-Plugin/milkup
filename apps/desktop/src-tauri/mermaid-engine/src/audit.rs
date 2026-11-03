@@ -4,6 +4,125 @@
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
+use std::io::Write;
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    mpsc::{self, RecvTimeoutError, SyncSender, TrySendError},
+    Arc,
+};
+use std::time::{Duration, Instant};
+
+const RECORD_DROPPED: u8 = 1;
+const WRITER_FAILED: u8 = 2;
+const MAX_LINE_BYTES: usize = 8192;
+
+enum Message {
+    Line(String),
+    Barrier(SyncSender<Result<(), String>>),
+}
+
+struct AuditWriter {
+    sender: SyncSender<Message>,
+    failures: Arc<AtomicU8>,
+}
+
+fn evidence_status(failures: &AtomicU8) -> Result<(), String> {
+    match failures.load(Ordering::Acquire) {
+        0 => Ok(()),
+        RECORD_DROPPED => Err("Mermaid audit record was not queued; evidence is incomplete".into()),
+        _ => Err("Mermaid audit writer failed; evidence is incomplete".into()),
+    }
+}
+
+impl AuditWriter {
+    fn start<W: Write + Send + 'static>(mut output: W) -> Result<Self, String> {
+        let (sender, receiver) = mpsc::sync_channel(16);
+        let failures = Arc::new(AtomicU8::new(0));
+        let worker_failures = failures.clone();
+        std::thread::Builder::new()
+            .name("mermaid-audit".into())
+            .spawn(move || {
+                for message in receiver {
+                    match message {
+                        Message::Line(line) => {
+                            if writeln!(output, "MILKUP_MERMAID_NATIVE_AUDIT {line}").is_err() {
+                                worker_failures.fetch_or(WRITER_FAILED, Ordering::AcqRel);
+                            }
+                        }
+                        Message::Barrier(reply) => {
+                            if output.flush().is_err() {
+                                worker_failures.fetch_or(WRITER_FAILED, Ordering::AcqRel);
+                            }
+                            // A caller may have timed out. Never stall the writer
+                            // or poison later retries merely because its ACK expired.
+                            let _ = reply.try_send(evidence_status(&worker_failures));
+                        }
+                    }
+                }
+            })
+            .map_err(|_| "Mermaid audit worker could not start".to_string())?;
+        Ok(Self { sender, failures })
+    }
+
+    fn emit_line(&self, line: String) {
+        // Diagnostics never extend the render deadline. Lost evidence remains
+        // uncertain even if a later barrier can drain the queue successfully.
+        if line.len() > MAX_LINE_BYTES || self.sender.try_send(Message::Line(line)).is_err() {
+            self.failures.fetch_or(RECORD_DROPPED, Ordering::AcqRel);
+        }
+    }
+
+    fn flush_until(&self, deadline: Instant) -> Result<(), String> {
+        let (reply, acknowledgement) = mpsc::sync_channel(1);
+        let mut barrier = Message::Barrier(reply);
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err("Mermaid audit flush deadline expired before enqueue".into());
+            }
+            match self.sender.try_send(barrier) {
+                Ok(()) => break,
+                Err(TrySendError::Full(message)) => {
+                    // The barrier has not been lost: retain and retry it within
+                    // the same deadline used for its eventual acknowledgement.
+                    barrier = message;
+                    std::thread::sleep(remaining.min(Duration::from_millis(1)));
+                }
+                Err(TrySendError::Disconnected(_)) => {
+                    self.failures.fetch_or(WRITER_FAILED, Ordering::AcqRel);
+                    return evidence_status(&self.failures);
+                }
+            }
+        }
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err("Mermaid audit flush deadline expired before acknowledgement".into());
+        }
+        match acknowledgement.recv_timeout(remaining) {
+            Ok(result) => {
+                result?;
+                if Instant::now() >= deadline {
+                    return Err("Mermaid audit flush acknowledgement exceeded deadline".into());
+                }
+                evidence_status(&self.failures)
+            }
+            Err(RecvTimeoutError::Timeout) => Err("Mermaid audit flush deadline expired".into()),
+            Err(RecvTimeoutError::Disconnected) => {
+                self.failures.fetch_or(WRITER_FAILED, Ordering::AcqRel);
+                evidence_status(&self.failures)
+            }
+        }
+    }
+}
+
+#[cfg(windows)]
+static WRITER: std::sync::OnceLock<Result<AuditWriter, String>> = std::sync::OnceLock::new();
+
+#[cfg(windows)]
+fn writer() -> &'static Result<AuditWriter, String> {
+    WRITER.get_or_init(|| AuditWriter::start(std::io::stderr()))
+}
+
 #[cfg(windows)]
 pub(crate) fn enabled() -> bool {
     std::env::var("MILKUP_MERMAID_NATIVE_AUDIT").as_deref() == Ok("1")
@@ -13,38 +132,32 @@ pub(crate) fn emit(record: &Value) {
     if !enabled() {
         return;
     }
+    let Ok(writer) = writer() else { return };
     let mut record = record.clone();
     record["timestampUnixMs"] = json!(std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis())
         .unwrap_or_default());
-    if let Ok(line) = serde_json::to_string(&record) {
-        // A bounded, nonblocking producer keeps diagnostics off the render
-        // deadline. If stderr stops draining, evidence is incomplete and its
-        // acceptance check fails; the renderer still retains its own result.
-        if line.len() <= 8192 {
-            use std::sync::{mpsc::SyncSender, OnceLock};
-            static SENDER: OnceLock<Option<SyncSender<String>>> = OnceLock::new();
-            if let Some(sender) = SENDER.get_or_init(|| {
-                let (sender, receiver) = std::sync::mpsc::sync_channel::<String>(16);
-                std::thread::Builder::new()
-                    .name("mermaid-audit".into())
-                    .spawn(move || {
-                        use std::io::Write;
-                        for line in receiver {
-                            let _ = writeln!(
-                                std::io::stderr().lock(),
-                                "MILKUP_MERMAID_NATIVE_AUDIT {line}"
-                            );
-                        }
-                    })
-                    .ok()
-                    .map(|_| sender)
-            }) {
-                let _ = sender.try_send(line);
-            }
+    match serde_json::to_string(&record) {
+        Ok(line) => writer.emit_line(line),
+        Err(_) => {
+            writer.failures.fetch_or(RECORD_DROPPED, Ordering::AcqRel);
         }
     }
+}
+
+#[cfg(windows)]
+pub(crate) fn flush(timeout: Duration) -> Result<(), String> {
+    if !enabled() && WRITER.get().is_none() {
+        return Ok(());
+    }
+    let deadline = Instant::now()
+        .checked_add(timeout)
+        .ok_or_else(|| "Mermaid audit flush deadline is invalid".to_string())?;
+    writer()
+        .as_ref()
+        .map_err(Clone::clone)?
+        .flush_until(deadline)
 }
 pub(crate) fn started(request_id: &str, report: &Value) -> Value {
     json!({
@@ -77,7 +190,7 @@ pub(crate) fn finished(
         .collect();
     json!({
         "phase":"finished", "requestId":request_id,"productPid":std::process::id(),
-        "successful":report["success"]==true,
+        "successful":report["success"]==true && !cancelled && !deadline_expired,
         "rendererErrorKind":renderer_error_kind(&report["rendererMetadata"]),
         "hostSid":report["hostToken"]["userSid"],
         "childSid":report["suspendedToken"]["userSid"],
@@ -130,6 +243,200 @@ fn renderer_error_kind(metadata: &Value) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    #[derive(Default)]
+    struct Captured {
+        bytes: Vec<u8>,
+        flushes: usize,
+    }
+
+    struct TestOutput {
+        captured: Arc<Mutex<Captured>>,
+        gate: Option<(mpsc::Sender<()>, mpsc::Receiver<()>)>,
+        fail_write: bool,
+        fail_flush: bool,
+    }
+    impl TestOutput {
+        fn new() -> (Self, Arc<Mutex<Captured>>) {
+            let captured = Arc::new(Mutex::new(Captured::default()));
+            (
+                Self {
+                    captured: captured.clone(),
+                    gate: None,
+                    fail_write: false,
+                    fail_flush: false,
+                },
+                captured,
+            )
+        }
+    }
+    impl Write for TestOutput {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if let Some((entered, release)) = self.gate.take() {
+                entered.send(()).unwrap();
+                release.recv_timeout(Duration::from_secs(2)).unwrap();
+            }
+            if std::mem::take(&mut self.fail_write) {
+                return Err(std::io::Error::other("synthetic write failure"));
+            }
+            self.captured.lock().unwrap().bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            self.captured.lock().unwrap().flushes += 1;
+            if std::mem::take(&mut self.fail_flush) {
+                return Err(std::io::Error::other("synthetic flush failure"));
+            }
+            Ok(())
+        }
+    }
+    fn flush_writer(writer: &AuditWriter) -> Result<(), String> {
+        writer.flush_until(Instant::now() + Duration::from_secs(1))
+    }
+
+    #[test]
+    fn barrier_covers_all_prior_lines_and_writer_flush_without_stopping_worker() {
+        let (output, captured) = TestOutput::new();
+        let writer = AuditWriter::start(output).unwrap();
+        writer.emit_line("first".into());
+        writer.emit_line("second".into());
+        flush_writer(&writer).unwrap();
+        {
+            let captured = captured.lock().unwrap();
+            assert_eq!(captured.flushes, 1);
+            assert_eq!(
+                captured.bytes,
+                b"MILKUP_MERMAID_NATIVE_AUDIT first\nMILKUP_MERMAID_NATIVE_AUDIT second\n"
+            );
+        }
+        writer.emit_line("after barrier".into());
+        flush_writer(&writer).unwrap();
+        assert_eq!(captured.lock().unwrap().flushes, 2);
+    }
+
+    #[test]
+    fn a_dropped_oversized_record_keeps_later_flushes_uncertain() {
+        let (output, captured) = TestOutput::new();
+        let writer = AuditWriter::start(output).unwrap();
+        writer.emit_line("x".repeat(MAX_LINE_BYTES + 1));
+        assert!(flush_writer(&writer).unwrap_err().contains("not queued"));
+        assert!(flush_writer(&writer).is_err());
+        assert!(captured.lock().unwrap().bytes.is_empty());
+    }
+
+    #[test]
+    fn queue_overflow_is_nonblocking_and_stays_uncertain_after_drain() {
+        let (mut output, _) = TestOutput::new();
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        output.gate = Some((entered_tx, release_rx));
+        let writer = AuditWriter::start(output).unwrap();
+        writer.emit_line("held by writer".into());
+        entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        for _ in 0..16 {
+            writer.emit_line("queued".into());
+        }
+        writer.emit_line("overflow must not wait for writer".into());
+        assert_eq!(writer.failures.load(Ordering::Acquire), RECORD_DROPPED);
+        release_tx.send(()).unwrap();
+        assert!(flush_writer(&writer).is_err());
+        assert!(flush_writer(&writer).is_err());
+    }
+
+    #[test]
+    fn write_and_flush_failures_remain_uncertain_after_output_recovers() {
+        for fail_write in [true, false] {
+            let (mut output, _) = TestOutput::new();
+            output.fail_write = fail_write;
+            output.fail_flush = !fail_write;
+            let writer = AuditWriter::start(output).unwrap();
+            writer.emit_line("first attempt".into());
+            assert!(flush_writer(&writer).unwrap_err().contains("writer failed"));
+            writer.emit_line("writer recovered but prior evidence is lost".into());
+            assert!(flush_writer(&writer).unwrap_err().contains("writer failed"));
+        }
+    }
+
+    #[test]
+    fn a_timed_out_barrier_can_be_retried_without_destroying_the_worker() {
+        let (mut output, captured) = TestOutput::new();
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        output.gate = Some((entered_tx, release_rx));
+        let writer = AuditWriter::start(output).unwrap();
+        writer.emit_line("pending".into());
+        entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(writer
+            .flush_until(Instant::now() + Duration::from_millis(20))
+            .unwrap_err()
+            .contains("deadline"));
+        release_tx.send(()).unwrap();
+        flush_writer(&writer).unwrap();
+        assert_eq!(writer.failures.load(Ordering::Acquire), 0);
+        assert_eq!(captured.lock().unwrap().flushes, 2);
+    }
+
+    #[test]
+    fn queue_admission_and_acknowledgement_share_one_deadline() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        assert!(sender.try_send(Message::Line("occupy slot".into())).is_ok());
+        let writer = AuditWriter {
+            sender,
+            failures: Arc::new(AtomicU8::new(0)),
+        };
+        let (release_tx, release_rx) = mpsc::channel();
+        let consumer = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(250));
+            assert!(matches!(
+                receiver.recv_timeout(Duration::from_secs(1)).unwrap(),
+                Message::Line(_)
+            ));
+            let Message::Barrier(ack) = receiver.recv_timeout(Duration::from_secs(1)).unwrap()
+            else {
+                panic!("expected barrier")
+            };
+            release_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+            drop(ack);
+        });
+        let started = Instant::now();
+        let result = writer.flush_until(started + Duration::from_millis(400));
+        let elapsed = started.elapsed();
+        release_tx.send(()).unwrap();
+        consumer.join().unwrap();
+        assert!(result.unwrap_err().contains("deadline"));
+        // A fresh 400 ms ACK timeout after 250 ms admission would exceed this.
+        assert!(elapsed < Duration::from_millis(600), "{elapsed:?}");
+        assert_eq!(writer.failures.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn a_disconnected_writer_is_an_explicit_flush_failure() {
+        let (sender, receiver) = mpsc::sync_channel(16);
+        drop(receiver);
+        let writer = AuditWriter {
+            sender,
+            failures: Arc::new(AtomicU8::new(0)),
+        };
+        assert!(flush_writer(&writer).unwrap_err().contains("writer failed"));
+        assert_eq!(writer.failures.load(Ordering::Acquire), WRITER_FAILED);
+    }
+
+    #[test]
+    fn cancelled_or_expired_render_keeps_png_evidence_without_claiming_publication() {
+        let report = json!({"success":true});
+        let completed = finished("opaque-id", &report, b"actual png", false, false);
+        assert_eq!(completed["successful"], true);
+        for (cancelled, expired) in [(true, false), (false, true), (true, true)] {
+            let audit = finished("opaque-id", &report, b"actual png", cancelled, expired);
+            assert_eq!(audit["successful"], false);
+            assert_eq!(audit["pngBytes"], 10);
+            assert_eq!(audit["pngSha256"], completed["pngSha256"]);
+            assert_eq!(audit["cancelled"], cancelled);
+            assert_eq!(audit["deadlineExpired"], expired);
+        }
+    }
+
     #[test]
     fn renderer_error_kind_only_accepts_fixed_bootstrap_error_envelope() {
         for (metadata, expected) in [
