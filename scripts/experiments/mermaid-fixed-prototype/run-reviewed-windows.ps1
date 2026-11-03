@@ -26,6 +26,8 @@ $root = $PSScriptRoot
 $captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]')
 $deleteDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-diagnostic]')
 $repeatDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-repeat]')
+$stdControl = $event.head_commit.message.Contains('[mermaid-delete-std-control]')
+if ($stdControl -and (-not $deleteDiagnostic -or $repeatDiagnostic)) { throw 'Std control requires single diagnostic corpus only' }
 if ($repeatDiagnostic -and -not $deleteDiagnostic) { throw 'Repeat marker requires diagnostic mode' }
 $deleteDiagnosticRepeats = $(if ($repeatDiagnostic) { 10 } else { 1 })
 if ($captureVisual -and $deleteDiagnostic) { throw 'Incompatible diagnostic execution markers' }
@@ -117,6 +119,7 @@ $execution = [ordered]@{
     baseline = 'b7f9cdecfc02c2f0710fc9d6b71c12419364e644'
     runtime = $runtime
     runtimeFileVersion = $runtimeFileVersion
+    installedRuntimeDirectories = @($candidates | ForEach-Object { $_.version.ToString() })
     binaryBytes = (Get-Item $binary).Length
     binarySha256 = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
     fixedEngineBytes = (Get-Item $engine).Length
@@ -125,6 +128,7 @@ $execution = [ordered]@{
     captureVisualEvidence = $captureVisual
     deleteDiagnostic = $deleteDiagnostic
     deleteDiagnosticRepeats = $deleteDiagnosticRepeats
+    originalStdControl = $stdControl
     diagnosticCorpus = $(if ($deleteDiagnostic) { @('flowchart-v2','gitGraph') } else { $null })
     renderingInputsBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $renderingBaseline } else { $null })
     nativeSourceBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $nativeBaseline } else { $null })
@@ -133,6 +137,6 @@ $execution = [ordered]@{
 }
 $execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
 Write-Output ('MILKUP_EXECUTION_JSON ' + ($execution | ConvertTo-Json -Depth 5 -Compress))
-& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic -DeleteDiagnosticRepeats $deleteDiagnosticRepeats
+& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic -DeleteDiagnosticRepeats $deleteDiagnosticRepeats -OriginalStdControl:$stdControl
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }

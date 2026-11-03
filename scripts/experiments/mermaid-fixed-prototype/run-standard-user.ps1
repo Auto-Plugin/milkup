@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory)][string]$Evidence,
     [switch]$CaptureVisualEvidence,
     [switch]$DeleteDiagnostic,
-    [ValidateSet('1','10')][int]$DeleteDiagnosticRepeats = 1
+    [ValidateSet('1','10')][int]$DeleteDiagnosticRepeats = 1,
+    [switch]$OriginalStdControl
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -16,6 +17,7 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or
 
 if ($CaptureVisualEvidence -and $DeleteDiagnostic) { throw 'Deletion diagnostic cannot export the full visual matrix' }
 if (-not $DeleteDiagnostic -and $DeleteDiagnosticRepeats -ne 1) { throw 'Repeat scope requires deletion diagnostic' }
+if ($OriginalStdControl -and (-not $DeleteDiagnostic -or $DeleteDiagnosticRepeats -ne 1)) { throw 'Std control requires the fixed single-target corpus' }
 
 function Assert-PlainPath([string]$Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
@@ -51,6 +53,9 @@ function Read-CaseSummary([string]$Output, [string]$ExecutionName) {
         $launcher = $record['launcher']
         if ($null -eq $launcher) { $launcher = @{} }
         $deleteObservation = $launcher['privateTreeDeleteDiagnostic']
+        if ($DeleteDiagnostic -and $record['ok'] -eq $true -and (($null -ne $deleteObservation) -eq $OriginalStdControl.IsPresent)) {
+            throw 'Successful case used the wrong deletion implementation for the selected control'
+        }
         if ($null -ne $deleteObservation) {
             $diagnosticBytes = [Text.Encoding]::UTF8.GetBytes(($deleteObservation | ConvertTo-Json -Depth 16 -Compress))
             if ($diagnosticBytes.Length -gt 20480) {
@@ -111,7 +116,7 @@ $audit = [ordered]@{
     changedFirewallOrUac = $false; changedExistingDesktopAcl = $false
     newRuntimeOrDependency = $false; productIntegrated = $false; artifactUpload = $false
     captureVisualEvidence = $CaptureVisualEvidence.IsPresent; visualEvidenceEmitted = $false
-    deleteDiagnostic = $DeleteDiagnostic.IsPresent; deleteDiagnosticRepeats = $DeleteDiagnosticRepeats
+    deleteDiagnostic = $DeleteDiagnostic.IsPresent; deleteDiagnosticRepeats = $DeleteDiagnosticRepeats; originalStdControl = $OriginalStdControl.IsPresent
 }
 $password = [Security.SecureString]::new()
 $user = $null
@@ -191,7 +196,7 @@ try {
     foreach ($case in $cases) {
         $output = Join-Path $stage ('outputs/' + $case.name)
         $manifest = Join-Path $stage $case.manifest
-        $verb = $(if ($DeleteDiagnostic) { '--run-delete-diagnostic' } else { '--run' })
+        $verb = $(if ($DeleteDiagnostic -and -not $OriginalStdControl) { '--run-delete-diagnostic' } else { '--run' })
         $arguments = $verb + ' "' + $Runtime + '" "' + $manifest + '" "' + $output + '"'
         if ($case.selector) { $arguments += ' ' + $case.selector }
         $ownedProcessesCleared = $false

@@ -67,3 +67,21 @@ dispatch immediately under existing cleanup gates. This samples an intermittent
 failure in the previously failing fixture, not the50-case diagram corpus. It
 uses an explicit repeat marker; default mode still runs one target. It changes
 no native deletion behavior and does not establish a fix if all attempts pass.
+
+## Bounded repeat run: 41613240830
+
+Sourceb63014dc527277a7e92a2e944d1f0f96ecb0df4d:18 Windows tests, canary,
+and10 independently owned gitGraph executions passed; all native and outer
+cleanup checks passed, zero artifacts. Each trace had no terminal failure.
+Rust remained1.99.1/58cf and RuntimeEXE156.0.4314.50. This is11 more successful
+executions in the current environment, not evidence that historical OS5 is fixed.
+Structured evidence: evidence/windows-delete-2026-11-03/run-41613240830.json.
+
+One final bounded control retains the same exact native source (binary hashes are compared separately) and fixed corpus
+(canary plus one gitGraph), but passes the original --run verb so cleanup uses
+std::fs::remove_dir_all rather than the diagnostic adaptation. An explicit
+std-control marker rejects repeat/visual combinations. Read-only inventory of
+already installed Runtime directory versions is included; no installation or
+selection change. This distinguishes current original-path behavior from an
+observation-path timing effect. A pass still cannot establish the historical
+fault's cause or attribute improvement to a Runtime version.
