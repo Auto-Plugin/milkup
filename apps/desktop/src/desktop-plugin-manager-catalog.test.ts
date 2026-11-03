@@ -343,6 +343,84 @@ describe('private fixed Mermaid package authorization', () => {
       await s.manager.disable('test.lifecycle')
     }
   })
+  it('stops admission before close-triggered focus work and waits for the owned request', async () => {
+    vi.stubGlobal('crypto', webcrypto)
+    const s = await renderer()
+    let rejectRender!: (error: Error) => void
+    s.invoke.mockImplementation(async (command) => {
+      if (command === 'private_mermaid_render')
+        return new Promise<never>((_resolve, reject) => {
+          rejectRender = reject
+        })
+      return null
+    })
+    try {
+      await s.manager.enableFromUserIntent('test.lifecycle')
+      const preferences = structuredClone(s.catalog.snapshot)
+      const pending = s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
+      const rejected = expect(pending).rejects.toThrow('cancelled during close')
+      await vi.waitFor(() => expect(rejectRender).toBeTypeOf('function'))
+      let closed = false
+      const closing = s.manager.shutdownDocumentRenderers().then(() => {
+        closed = true
+      })
+      await expect(
+        s.manager.renderDocument('test.lifecycle', 'diagram', s.request),
+      ).rejects.toThrow()
+      expect(closed).toBe(false)
+      expect(
+        s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
+      ).toHaveLength(1)
+      rejectRender(new Error('cancelled during close'))
+      await rejected
+      await closing
+      expect(closed).toBe(true)
+      expect(s.catalog.snapshot).toEqual(preferences)
+      await expect(s.manager.shutdownDocumentRenderers()).resolves.toBeUndefined()
+    } finally {
+      rejectRender?.(new Error('test cleanup'))
+      await s.manager.disable('test.lifecycle')
+      vi.unstubAllGlobals()
+    }
+  })
+  it.each(['active', 'already-retiring'] as const)(
+    'preserves failed %s owner cleanup for a later close attempt',
+    async (phase) => {
+      vi.stubGlobal('crypto', webcrypto)
+      const s = await renderer()
+      let failRetirement = true
+      s.invoke.mockImplementation(async (command) => {
+        if (command === 'private_mermaid_render') throw Error('native-probe')
+        if (command === 'private_mermaid_retire_owner' && failRetirement)
+          throw Error('native retirement unconfirmed')
+        return null
+      })
+      try {
+        await s.manager.enableFromUserIntent('test.lifecycle')
+        await s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
+        if (phase === 'already-retiring')
+          await expect(s.manager.disable('test.lifecycle')).rejects.toThrow('cleanup')
+        await expect(s.manager.shutdownDocumentRenderers()).rejects.toThrow(
+          'Document renderer shutdown did not complete',
+        )
+        await expect(
+          s.manager.renderDocument('test.lifecycle', 'diagram', s.request),
+        ).rejects.toThrow()
+        failRetirement = false
+        await expect(s.manager.shutdownDocumentRenderers()).resolves.toBeUndefined()
+        await expect(
+          s.manager.renderDocument('test.lifecycle', 'diagram', s.request),
+        ).rejects.toThrow()
+        expect(
+          s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
+        ).toHaveLength(1)
+      } finally {
+        failRetirement = false
+        await s.manager.disable('test.lifecycle')
+        vi.unstubAllGlobals()
+      }
+    },
+  )
 })
 function setup(
   options: { activate?: (version: string, context: any) => unknown; storage?: Storage } = {},

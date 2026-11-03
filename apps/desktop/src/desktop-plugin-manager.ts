@@ -11,6 +11,7 @@ import {
 } from 'lucide'
 import { iconSvg } from './icons'
 import { disposeDocumentPngImages } from '@milkup/core/internal/document-png-image'
+import { DocumentPresentationError } from '@milkup/core'
 import { createPrivateMermaidOwner, type PrivateMermaidInvoke } from './private-mermaid-service'
 import type {
   ActionContext,
@@ -388,6 +389,8 @@ export class DesktopPluginManager {
       readonly owner: ReturnType<typeof createPrivateMermaidOwner>
     }
   >()
+  private documentRenderersClosing = false
+  private readonly retiringMermaidOwners = new Set<ReturnType<typeof createPrivateMermaidOwner>>()
   private readonly catalog: DesktopPluginCatalog | undefined
   private readonly reservedPluginIds: ReadonlySet<string>
   private readonly hostPermissions: ReadonlySet<string>
@@ -1652,6 +1655,7 @@ export class DesktopPluginManager {
     request: DocumentPresentationRequest,
     options: { readonly signal?: AbortSignal; readonly deadline?: number } = {},
   ): Promise<DocumentPresentationResult> {
+    if (this.documentRenderersClosing) throw new DocumentPresentationError('revoked')
     const config = this.privateMermaid
     if (
       config &&
@@ -1665,6 +1669,7 @@ export class DesktopPluginManager {
         const gate = this.activationGates.get(pluginId)
         const epoch = this.activationEpochs.get(pluginId)
         if (
+          this.documentRenderersClosing ||
           !this.catalog ||
           !entry?.enabled ||
           entry.tombstone ||
@@ -1744,11 +1749,32 @@ export class DesktopPluginManager {
     const owned = this.mermaidOwners.get(pluginId)
     if (!owned) return
     this.mermaidOwners.delete(pluginId)
-    const retired = owned.owner.retire()
+    const retired = this.settleMermaidOwner(owned.owner)
     void retired.catch(() => undefined)
     const operations = this.retiringOperations.get(pluginId) ?? []
-    operations.push(() => owned.owner.retire())
+    operations.push(() => this.settleMermaidOwner(owned.owner))
     this.retiringOperations.set(pluginId, operations)
+  }
+
+  private async settleMermaidOwner(owner: ReturnType<typeof createPrivateMermaidOwner>) {
+    this.retiringMermaidOwners.add(owner)
+    await owner.retire()
+    this.retiringMermaidOwners.delete(owner)
+  }
+
+  /** Application close only: stop admission synchronously without changing plugin preferences.
+   * Failed retirement stays tracked so a later close attempt can retry its cleanup. */
+  async shutdownDocumentRenderers(): Promise<void> {
+    this.documentRenderersClosing = true
+    for (const pluginId of [...this.mermaidOwners.keys()]) this.retireMermaidOwner(pluginId)
+    const settled = await Promise.allSettled(
+      [...this.retiringMermaidOwners].map((owner) => this.settleMermaidOwner(owner)),
+    )
+    const errors = settled.flatMap((result) =>
+      result.status === 'rejected' ? [result.reason] : [],
+    )
+    if (errors.length)
+      throw new AggregateError(errors, 'Document renderer shutdown did not complete')
   }
 
   /** Host-only instance identity for bounded presentation preparation. */

@@ -5295,6 +5295,13 @@ function setTransitionBackgroundInert(inert: boolean): void {
 }
 
 async function invokeWindowClose(): Promise<void> {
+  // Confirmation dismissal may schedule presentation work while restoring focus.
+  // Stop further admission and settle every already-owned request before the
+  // window can be destroyed, including work scheduled by the transition's hide.
+  const rendererShutdown = isTauriRuntime()
+    ? desktopPluginManager.shutdownDocumentRenderers()
+    : Promise.resolve()
+  void rendererShutdown.catch(() => undefined)
   closeWindowConfirm()
   const preview = largeDocumentPreview
   setDocumentLoadingState({
@@ -5303,28 +5310,21 @@ async function invokeWindowClose(): Promise<void> {
   })
 
   try {
+    await rendererShutdown
     await closeLargeDocumentPreview()
-  } catch (error: unknown) {
-    setDocumentLoadingState({ phase: 'ready' })
-    notice = `退出前清理大文件临时文件失败：${getErrorMessage(error)}`
-    renderSession()
-    return
-  }
-
-  await recovery?.endDocument()
-
-  if (!isTauriRuntime()) {
-    setDocumentLoadingState({ phase: 'ready' })
-    return
-  }
-
-  try {
+    await recovery?.endDocument()
+    if (!isTauriRuntime()) {
+      setDocumentLoadingState({ phase: 'ready' })
+      return
+    }
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('private_mermaid_shutdown')
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     await desktopPluginManager.disposeTemporaryStorage()
     await getCurrentWindow().destroy()
   } catch (error: unknown) {
     setDocumentLoadingState({ phase: 'ready' })
-    notice = `窗口操作失败：${getErrorMessage(error)}`
+    notice = `退出前清理未完成，窗口已保留：${getErrorMessage(error)}`
     renderSession()
   }
 }
