@@ -32,6 +32,8 @@ mod launcher;
 mod png;
 #[cfg(windows)]
 mod stream;
+#[cfg(test)]
+mod token_diagnostic_format;
 #[cfg(any(windows, test))]
 mod token_policy;
 

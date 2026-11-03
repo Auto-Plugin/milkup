@@ -662,6 +662,11 @@ struct Spawned {
     output: File,
     error: File,
 }
+enum FixedChildEntry {
+    Renderer,
+    #[cfg(test)]
+    TokenDiagnostic,
+}
 fn launch(
     exe: &Path,
     runtime: &Path,
@@ -669,6 +674,25 @@ fn launch(
     system: &Path,
     profile: &Profile,
     job: &Job,
+) -> Result<Spawned> {
+    launch_entry(
+        exe,
+        runtime,
+        state,
+        system,
+        profile,
+        job,
+        FixedChildEntry::Renderer,
+    )
+}
+fn launch_entry(
+    exe: &Path,
+    runtime: &Path,
+    state: &Path,
+    system: &Path,
+    profile: &Profile,
+    job: &Job,
+    entry: FixedChildEntry,
 ) -> Result<Spawned> {
     for path in [exe, runtime, state, system] {
         if !path.is_absolute()
@@ -703,12 +727,20 @@ fn launch(
     startup.StartupInfo.hStdOutput = handles[1];
     startup.StartupInfo.hStdError = handles[2];
     startup.lpAttributeList = attrs.pointer;
-    let mut command = wide(OsStr::new(&format!(
-        "\"{}\" --milkup-fixed-mermaid-child \"{}\" \"{}\"",
-        exe.display(),
-        runtime.display(),
-        state.display()
-    )));
+    let mut command = wide(OsStr::new(&match entry {
+        FixedChildEntry::Renderer => format!(
+            "\"{}\" --milkup-fixed-mermaid-child \"{}\" \"{}\"",
+            exe.display(), runtime.display(), state.display()
+        ),
+        // This branch does not exist in the product executable. It accepts no
+        // caller command, source, script or module, and executes only one fixed
+        // ignored native unit test before any COM/WebView/JavaScript activity.
+        #[cfg(test)]
+        FixedChildEntry::TokenDiagnostic => format!(
+            "\"{}\" --exact launcher::token_diagnostic::child_observes_own_token --ignored --nocapture --test-threads=1",
+            exe.display()
+        ),
+    }));
     let application = wide(exe.as_os_str());
     let cwd = wide(state.as_os_str());
     let system_root = system.parent().ok_or("Invalid system directory")?;
@@ -1322,6 +1354,10 @@ fn recv_controlled(rx: &mpsc::Receiver<Event>, control: &Control) -> Result<Even
         }
     }
 }
+
+#[cfg(test)]
+#[path = "token_diagnostic.rs"]
+mod token_diagnostic;
 
 #[cfg(test)]
 mod tests {
