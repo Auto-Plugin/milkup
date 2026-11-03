@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "runId": 41681937161,
+  "attempt": 1,
+  "candidateSha": "93755eb640b2dc8a1b614c3bd7cf175b253c6ab8",
+  "runUrl": "https://github.com/Auto-Plugin/milkup/actions/runs/41681937161",
+  "conclusion": "failure",
+  "firstFailure": {
+    "file": "scripts/ci/run-windows-mermaid-token-probe.ps1",
+    "operation": "New-LocalUser parameter validation",
+    "field": "Description",
+    "actualCharacters": 52,
+    "maximumCharacters": 48,
+    "fixedPrefix": "Mermaid token probe ",
+    "localRunIdCharacters": 32
+  },
+  "windowsCompilationPassed": true,
+  "windowsRustTests": {
+    "passed": 43,
+    "failed": 0,
+    "ignored": 3
+  },
+  "windowsWrapperRegressionTests": 27,
+  "sourceSnapshots": {
+    "phases": [
+      "checkout",
+      "pre-probe",
+      "final"
+    ],
+    "allRawStatusEmpty": true,
+    "indexRefreshed": false
+  },
+  "artifact": {
+    "id": 13254385627,
+    "name": "mermaid-token-observation-41681937161-1",
+    "zipBytes": 9386,
+    "zipSha256": "9e29e8be677a79d44cbf09d1ba7d5cc38566d345dca1f7087c7a0f91ecd59f22",
+    "expiresAt": "2026-11-10T17:17:06Z",
+    "retainedFiles": 10,
+    "closedMaximumFiles": 20
+  },
+  "accounts": {
+    "pure-standard": {
+      "status": "failed",
+      "error": "Cannot validate argument on parameter 'Description'. The character length of the 52 argument is too long. Shorten the character length of the argument so it is fewer than or equal to \"48\" characters, and then try the command again.",
+      "accountCreated": false,
+      "accountSid": null,
+      "supervisor": null,
+      "childResult": null,
+      "stageRemoved": true,
+      "cleanupErrors": [],
+      "nativeTokenObservationOccurred": false
+    },
+    "filtered-admin": {
+      "status": "failed",
+      "error": "Cannot validate argument on parameter 'Description'. The character length of the 52 argument is too long. Shorten the character length of the argument so it is fewer than or equal to \"48\" characters, and then try the command again.",
+      "accountCreated": false,
+      "accountSid": null,
+      "supervisor": null,
+      "childResult": null,
+      "stageRemoved": true,
+      "cleanupErrors": [],
+      "nativeTokenObservationOccurred": false
+    }
+  },
+  "tokenInterpretation": "No native parent or AppContainer self probe ran. The only token observations are the existing elevated CI coordinator; they cannot answer either target account or linked-token question.",
+  "renderingAccepted": false,
+  "administratorCompatibilityAccepted": false,
+  "productionPolicyChanged": false,
+  "beta8DeliveryModified": false
+}
