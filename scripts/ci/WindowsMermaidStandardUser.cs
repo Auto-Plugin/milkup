@@ -259,6 +259,28 @@ public static class WindowsMermaidStandardUser
         Check(QueryInformationJobObject(job, 1, out value, (uint)Marshal.SizeOf<Accounting>(), IntPtr.Zero), "Query exact owned outer Job");
         return value.active;
     }
+    static string QueryProcessSid(uint pid) {
+        IntPtr process = IntPtr.Zero, token = IntPtr.Zero;
+        try {
+            process = OpenProcess(0x1000, false, pid); // QUERY_LIMITED_INFORMATION only.
+            Check(process != IntPtr.Zero, "Query missing process-owner SID");
+            Check(OpenProcessToken(process, 8, out token), "Open process token for SID query only");
+            using (var data = new TokenBuffer(token, 1)) {
+                if (data.Size < IntPtr.Size) throw new InvalidOperationException("Missing token user");
+                return Sid(Marshal.ReadIntPtr(data.Data));
+            }
+        } finally {
+            if (token != IntPtr.Zero) CloseHandle(token);
+            if (process != IntPtr.Zero) CloseHandle(process);
+        }
+    }
+    static string ResolveProcessSid(uint pid, string snapshotSid, Func<uint, string> query) {
+        if (!String.IsNullOrEmpty(snapshotSid)) return snapshotSid;
+        if (pid == 0 || pid == 4) return null;
+        string observedSid = query(pid);
+        if (String.IsNullOrEmpty(observedSid)) throw new InvalidOperationException("Process-owner SID query returned no identity");
+        return observedSid;
+    }
     public static Dictionary<string, object> ObserveExactSidProcesses(string expectedSid) {
         if (!System.Text.RegularExpressions.Regex.IsMatch(expectedSid, @"^S-1-5-21-\d+-\d+-\d+-\d+$"))
             throw new ArgumentException("Expected exact temporary local-account SID");
@@ -277,13 +299,18 @@ public static class WindowsMermaidStandardUser
             int matchingEntries = 0;
             for (int index = 0; index < count; index++) {
                 var entry = Marshal.PtrToStructure<WtsProcess>(IntPtr.Add(memory, index * stride));
-                if (entry.sid == IntPtr.Zero) {
-                    if (entry.pid == 0 || entry.pid == 4)
-                        result["kernelEntriesWithoutSid"] = (int)result["kernelEntriesWithoutSid"] + 1;
-                    else errors.Add("A non-kernel process owner SID was unavailable");
+                string ownerSid;
+                try {
+                    ownerSid = ResolveProcessSid(entry.pid, entry.sid == IntPtr.Zero ? null : Sid(entry.sid), QueryProcessSid);
+                } catch (Exception error) {
+                    errors.Add("PID " + entry.pid + " owner SID remains unconfirmed: " + error.Message);
                     continue;
                 }
-                if (!String.Equals(Sid(entry.sid), expectedSid, StringComparison.Ordinal)) continue;
+                if (ownerSid == null) {
+                    result["kernelEntriesWithoutSid"] = (int)result["kernelEntriesWithoutSid"] + 1;
+                    continue;
+                }
+                if (!String.Equals(ownerSid, expectedSid, StringComparison.Ordinal)) continue;
                 if (++matchingEntries > 64) throw new InvalidOperationException("Exact-SID process observation exceeds 64-record budget");
                 var record = ObserveProcesses(new[] { entry.pid })[0];
                 object observedToken;
