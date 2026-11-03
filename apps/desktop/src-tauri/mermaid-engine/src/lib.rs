@@ -36,6 +36,8 @@ mod stream;
 mod token_diagnostic_format;
 #[cfg(any(windows, test))]
 mod token_policy;
+#[cfg(any(windows, test))]
+mod token_ready;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

@@ -64,16 +64,52 @@ as exactly deny-only, and holds only the closed ordinary-user privilege set.
 The audit distinguishes `filtered-admin` from `pure-standard`; the original
 `hostPureStandard` field remains false for filtered administrators. Elevated,
 unfiltered or unknown token contexts are rejected before native admission.
-No linked token, privilege adjustment or alternate process-creation API is used.
+No linked token is selected for execution, no privilege is adjusted, and no
+alternate process-creation API is used. A Limited sandbox token's linked handle
+is queried only for its token type and impersonation level, then immediately
+closed. The returned handle is not claimed to have query-only access: the
+separate fixed diagnostic observed `0xF01FF` and successful handle duplication,
+but all returned targets remained Identification-level impersonation tokens.
 Both suspended helper and actual WebView2 browser must retain the same user and
 session, low integrity, no UIAccess, no administrative authority, only
-SeChangeNotifyPrivilege (if present), the fresh AppContainer SID and zero
-capabilities. Sandbox elevation type must be Default (no linked token), even
-when its host is Limited. This conservative compatibility gate does not assert
-that a Limited AppContainer is proven exploitable. The creation-time Job and
-three-handle allowlist are unchanged.
-These predicates require separate actual Windows standard/filtered acceptance;
-policy unit tests alone do not establish OS or WebView2 compatibility.
+`SeChangeNotifyPrivilege` and `SeIncreaseWorkingSetPrivilege` (if present), the
+fresh AppContainer SID and zero capabilities. IncreaseWorkingSet adjusts
+residency; it does not change the owned Job's committed-memory limit. This is
+not an RSS hard-limit claim. Every other privilege, including disabled presence,
+remains rejected.
+
+Default sandbox tokens have no linked association. Limited sandbox tokens are
+accepted only when the actual caller has no impersonation token and the linked
+query succeeds with target type `TokenImpersonation` (2) and level
+`SecurityIdentification` (1). Unknown/error/missing observations, primary
+targets, and other impersonation levels are rejected. The current execution
+token's restrictions are never replaced by the linked target's properties.
+Microsoft documents that an Identification impersonation token cannot be raised
+to a more powerful level or converted to primary. The linked-authority check
+performs no handle/token duplication, impersonation, or privileged launch.
+The existing separate code-ancestry negative-access check still duplicates and
+temporarily impersonates the low-privilege AppContainer child token, then reverts;
+it never uses a returned linked token. That existing check is unchanged.
+
+Four native observations precede the first source byte: the coordinator checks
+the suspended helper and held actual browser, while the helper independently
+checks itself and that browser under its AppContainer caller context. Only
+native queries populate the compact Ready proofs; JavaScript cannot supply
+them. Helper/browser PID, user, session, fresh AppContainer identity and owned
+Job binding are checked before source delivery. The creation-time Job,
+three-handle allowlist, original deadlines, 4 KiB Ready limit and 8 KiB audit
+limit are unchanged. Cancellation during Job sampling preserves the original
+Ready evidence without publishing a `started` proof that was never emitted.
+
+Actual token diagnostics passed in both account kinds on run 41683336878. Full
+Windows product rendering and cleanup acceptance for this new conditional
+policy remains pending its dedicated product run; policy tests, cross-compiling
+and token observations alone do not establish WebView2 compatibility. The
+previously delivered beta.8 artifact and its historical evidence are unchanged.
+See [token diagnostic scope](TOKEN-DIAGNOSTIC.md) and Microsoft's
+[impersonation-level constraints](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwduplicatetoken),
+[working-set API](https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-setprocessworkingsetsizeex),
+and [Job committed-memory limits](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information).
 The distinction follows Microsoft's [token elevation types](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-token_elevation_type)
 and [deny-only SID semantics](https://learn.microsoft.com/en-us/windows/win32/secauthz/sid-attributes-in-an-access-token).
 The Windows-only ignored test

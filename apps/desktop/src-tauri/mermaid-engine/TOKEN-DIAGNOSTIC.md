@@ -45,9 +45,13 @@ Only the child-self view tries three separate `DuplicateHandle` requests on a
 returned linked handle: `TOKEN_QUERY|TOKEN_DUPLICATE`,
 `TOKEN_QUERY|TOKEN_ASSIGN_PRIMARY`, and `TOKEN_QUERY|TOKEN_IMPERSONATE`. Source
 and target are the current process; inheritance and option flags are zero.
-Each resulting handle is observed and closed immediately. There is no
-`DuplicateToken`, `Impersonate*`, token assignment, launch using a linked token,
+Each resulting handle is observed and closed immediately. The linked-token
+experiment performs no `DuplicateToken`, `Impersonate*`, token assignment, launch using a linked token,
 privilege adjustment, `SAME_ACCESS`, `CLOSE_SOURCE`, or `MAXIMUM_ALLOWED` attempt.
+The separate, unchanged code-ancestry negative-access check duplicates and
+temporarily impersonates the low-privilege AppContainer child token, then
+reverts. It does not use any returned linked token. Both linked-query caller
+contexts independently prove `ERROR_NO_TOKEN` at the time of observation.
 
 The child has a 10-second original deadline. Each stream and the complete JSON
 are capped at 64 KiB; incomplete/oversize output fails rather than being

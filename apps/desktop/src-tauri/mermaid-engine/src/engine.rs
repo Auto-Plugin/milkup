@@ -513,9 +513,20 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     unsafe {
         view.BrowserProcessId(&mut browser_process_id)?;
     }
+    // These facts come only from native token queries under the helper's actual
+    // AppContainer caller context, after leaving the JavaScript callback. The
+    // page contributes neither these proofs nor either process identity.
+    let helper_self = crate::launcher::child_token_report()?;
+    let browser_from_helper =
+        crate::launcher::browser_token_from_helper(browser_process_id, &helper_self)?;
+    let native_ready = crate::token_ready::build(
+        std::process::id(),
+        browser_process_id,
+        &helper_self,
+        &browser_from_helper,
+    )?;
     startup_phase(startup_started, "ready-frame-start", None);
-    let ready_bytes =
-        frame(&json!({"phase":"ready","engine":"12.2.0","browserProcessId":browser_process_id}))?;
+    let ready_bytes = frame(&native_ready)?;
     startup_phase(startup_started, "ready-frame-flushed", None);
     let input = input()?;
     let deadline = Instant::now() + Duration::from_secs(2);

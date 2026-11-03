@@ -33,7 +33,7 @@ use windows_sys::Win32::{
 
 const MAX_INPUT: usize = 65_536;
 const MAX_OUTPUT: usize = crate::MAX_OUTPUT + 65_536;
-const MAX_READY: usize = 4_096;
+const MAX_READY: usize = crate::token_ready::MAX_READY;
 const MAX_METADATA: usize = 32_768;
 const MAX_STDERR: usize = 16_384;
 const JOB_MEMORY: usize = 512 * 1024 * 1024;
@@ -209,7 +209,12 @@ fn privilege_info(token: HANDLE) -> Result<Privileges> {
             .count(),
         sandbox_disallowed: privileges
             .iter()
-            .filter(|privilege| !equal_luid(&privilege.Luid, &luids[0]))
+            // Exact ordinary capabilities only. IncreaseWorkingSet adjusts
+            // residency, not the owned Job's committed-memory limit. Presence
+            // of every other privilege (even disabled) remains a rejection.
+            .filter(|privilege| {
+                !equal_luid(&privilege.Luid, &luids[0]) && !equal_luid(&privilege.Luid, &luids[3])
+            })
             .count(),
     })
 }
@@ -269,10 +274,126 @@ fn token_info(process: HANDLE) -> Result<Value> {
     }))
 }
 
+fn linked_authority(process: HANDLE, elevation_type: u64) -> Result<Value> {
+    let mut proof = json!({"callerThreadTokenAbsent":false,
+        "callerThreadQueryWin32Error":null,"queryAttempted":false,"querySucceeded":false,
+        "queryWin32Error":null,"targetTokenType":null,"targetImpersonationLevel":null,
+        "targetQueryWin32Error":null});
+    let mut thread_token = null_mut();
+    let result = unsafe { OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, 0, &mut thread_token) };
+    if result != 0 {
+        // Unexpected impersonation is never interpreted as the process caller.
+        drop(unsafe { owned(thread_token)? });
+        return Ok(proof);
+    }
+    let error = unsafe { GetLastError() };
+    proof["callerThreadQueryWin32Error"] = json!(error);
+    if error != ERROR_NO_TOKEN {
+        return Ok(proof);
+    }
+    proof["callerThreadTokenAbsent"] = json!(true);
+    if elevation_type != TokenElevationTypeLimited as u64 {
+        // Default explicitly has no linked association. Unsupported elevation
+        // types are rejected by verify_sandbox, never treated as Default here.
+        return Ok(proof);
+    }
+    let token = open_token(process, TOKEN_QUERY)?;
+    let mut linked = TOKEN_LINKED_TOKEN {
+        LinkedToken: null_mut(),
+    };
+    let mut returned = 0;
+    proof["queryAttempted"] = json!(true);
+    let result = unsafe {
+        GetTokenInformation(
+            token.as_raw_handle(),
+            TokenLinkedToken,
+            (&mut linked as *mut TOKEN_LINKED_TOKEN).cast(),
+            size_of::<TOKEN_LINKED_TOKEN>() as u32,
+            &mut returned,
+        )
+    };
+    if result == 0 {
+        proof["queryWin32Error"] = json!(unsafe { GetLastError() });
+        return Ok(proof);
+    }
+    // This returned handle can have full TOKEN_ALL_ACCESS (observed 0xF01FF).
+    // Its rights are NOT claimed to be query-only. We only query its token type
+    // and level and immediately close it; no duplicate/adjust/impersonate/launch.
+    let linked = unsafe { owned(linked.LinkedToken)? };
+    proof["querySucceeded"] = json!(true);
+    if returned as usize != size_of::<TOKEN_LINKED_TOKEN>() {
+        return Ok(proof);
+    }
+    match token_u32(linked.as_raw_handle(), TokenType) {
+        Ok(kind) => {
+            proof["targetTokenType"] = json!(kind);
+            if kind == TokenImpersonation as u32 {
+                match token_u32(linked.as_raw_handle(), TokenImpersonationLevel) {
+                    Ok(level) => proof["targetImpersonationLevel"] = json!(level),
+                    Err(error) => {
+                        proof["targetQueryWin32Error"] = json!(error
+                            .downcast_ref::<std::io::Error>()
+                            .and_then(|error| error.raw_os_error()))
+                    }
+                }
+            }
+        }
+        Err(error) => {
+            proof["targetQueryWin32Error"] = json!(error
+                .downcast_ref::<std::io::Error>()
+                .and_then(|error| error.raw_os_error()))
+        }
+    }
+    Ok(proof)
+}
+
+fn sandbox_token_info(process: HANDLE) -> Result<Value> {
+    let mut token = token_info(process)?;
+    token["linkedAuthority"] = linked_authority(
+        process,
+        token["elevationType"]
+            .as_u64()
+            .ok_or("Missing token elevation type")?,
+    )?;
+    Ok(token)
+}
+
 /// Called by our fixed helper before creating WebView2; not a plugin-callable API.
 pub fn child_token_report() -> Result<Value> {
-    let token = token_info(unsafe { GetCurrentProcess() })?;
+    let token = sandbox_token_info(unsafe { GetCurrentProcess() })?;
     crate::token_policy::verify_sandbox(&token, None)?;
+    Ok(token)
+}
+
+/// The trusted helper queries the actual browser under its own AppContainer
+/// caller context. This runs before Ready and before reading any source bytes.
+pub fn browser_token_from_helper(browser_pid: u32, helper: &Value) -> Result<Value> {
+    if browser_pid == 0 {
+        return Err("Missing native browser process identity".into());
+    }
+    crate::token_policy::verify_sandbox(helper, None)?;
+    let browser = unsafe {
+        owned(OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            0,
+            browser_pid,
+        ))?
+    };
+    let token = sandbox_token_info(browser.as_raw_handle())?;
+    crate::token_policy::verify_sandbox(
+        &token,
+        Some((
+            helper["userSid"].as_str().ok_or("Missing helper SID")?,
+            u32::try_from(
+                helper["sessionId"]
+                    .as_u64()
+                    .ok_or("Missing helper session")?,
+            )?,
+            helper["appContainerSid"]
+                .as_str()
+                .ok_or("Missing helper AppContainer SID")?,
+        )),
+    )?;
     Ok(token)
 }
 
@@ -988,8 +1109,9 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     let host_token = token_info(unsafe { GetCurrentProcess() })?;
     let mut process_session = 0;
     check(unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut process_session) })?;
-    // Read the actual current primary token. Never acquire a linked token,
+    // Read the actual current primary token. Never select a linked token,
     // enable a privilege, or change process credentials to gain compatibility.
+    // Sandbox association queries below only inspect type/level and close.
     let host_class = crate::token_policy::classify_host(&host_token, process_session)?;
     let unique = format!(
         "milkup-fixed-mermaid-{}-{}",
@@ -1084,7 +1206,8 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             output: child_output,
             error: child_error,
         } = launch(&exe, &runtime, &state, &system, profile, job)?;
-        let child_token = token_info(process.as_raw_handle())?;
+        report["helperProcessId"] = json!(unsafe { GetProcessId(process.as_raw_handle()) });
+        let child_token = sandbox_token_info(process.as_raw_handle())?;
         report["suspendedToken"] = child_token.clone();
         crate::token_policy::verify_sandbox(
             &child_token,
@@ -1141,10 +1264,13 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             Event::Error(error) => return Err(error.into()),
             _ => return Err("Invalid helper preparation event".into()),
         }
-        let browser_pid = report["ready"]["browserProcessId"]
-            .as_u64()
-            .filter(|pid| *pid > 0 && *pid <= u32::MAX as u64)
-            .ok_or("Missing native WebView2 browser process ID")? as u32;
+        let browser_pid = crate::token_ready::validate(
+            &report["ready"],
+            unsafe { GetProcessId(process.as_raw_handle()) },
+            owner_sid,
+            process_session,
+            &sid,
+        )?;
         let browser = unsafe {
             owned(OpenProcess(
                 PROCESS_QUERY_LIMITED_INFORMATION,
@@ -1157,7 +1283,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             IsProcessInJob(browser.as_raw_handle(), job.0.as_raw_handle(), &mut in_job)
         })?;
         report["browserProcessInOwnedJob"] = json!(in_job != 0);
-        report["browserToken"] = token_info(browser.as_raw_handle())?;
+        report["browserToken"] = sandbox_token_info(browser.as_raw_handle())?;
         crate::token_policy::verify_sandbox(
             &report["browserToken"],
             Some((owner_sid, process_session, &sid)),
@@ -1165,9 +1291,11 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         if in_job == 0 {
             return Err("WebView2 browser lacks the required Job/zero-capability AppContainer boundary; refusing render".into());
         }
-        control.checkpoint()?;
         report["prepareElapsedMs"] = json!(prepare_started.elapsed().as_millis());
-        report["readyJob"] = job.sample()?;
+        // Publishing verified proof is immediately followed by `started`, with
+        // no remaining fallible operation in between. A cancellation while
+        // sampling the Job keeps the original Ready but no false started claim.
+        crate::token_ready::prepare_started(&mut report, control, || job.sample())?;
         crate::audit::emit(&crate::audit::started(
             input["requestId"].as_str().unwrap_or_default(),
             &report,

@@ -238,12 +238,47 @@ fn host_token_class(report: &Value) -> Value {
     }
 }
 fn with_token_evidence(report: &Value, mut record: Value) -> Value {
+    let verified = report["helperNativeProofVerified"] == true;
+    let helper = if verified {
+        &report["helperSelfToken"]
+    } else {
+        &Value::Null
+    };
+    let browser_from_helper = if verified {
+        &report["browserFromHelperToken"]
+    } else {
+        &Value::Null
+    };
+    let pid = |value: &Value| {
+        value
+            .as_u64()
+            .filter(|pid| *pid > 0 && *pid <= u32::MAX as u64)
+    };
+    let helper_pid = pid(&report["helperProcessId"]);
+    let browser_pid = pid(&report["ready"]["browserProcessId"]);
+    let sid = |token: &Value| {
+        token["userSid"]
+            .as_str()
+            .filter(|sid| crate::cleanup::concrete_user_sid(sid))
+            .map(|sid| json!(sid))
+            .unwrap_or(Value::Null)
+    };
     let evidence = json!({
         "hostTokenClass":host_token_class(report),
         "hostNonElevatedVerified":report["hostNonElevatedVerified"]==true,
         "hostTokenEvidence":crate::token_policy::audit_evidence(&report["hostToken"]),
         "childTokenEvidence":crate::token_policy::audit_evidence(&report["suspendedToken"]),
         "browserTokenEvidence":crate::token_policy::audit_evidence(&report["browserToken"]),
+        "helperPid":helper_pid,"helperNativeProofVerified":verified,
+        "helperSelfTokenEvidence":crate::token_policy::audit_evidence(helper),
+        "browserFromHelperTokenEvidence":crate::token_policy::audit_evidence(browser_from_helper),
+        "helperSelfSid":sid(helper),"browserFromHelperSid":sid(browser_from_helper),
+        "helperSelfAppContainerSid":crate::token_policy::audit_app_sid(&helper["appContainerSid"]),
+        "browserFromHelperAppContainerSid":crate::token_policy::audit_app_sid(&browser_from_helper["appContainerSid"]),
+        "helperSelfObserverPid":if verified {helper_pid}else{None},
+        "helperSelfSubjectPid":if verified {helper_pid}else{None},
+        "browserFromHelperObserverPid":if verified {helper_pid}else{None},
+        "browserFromHelperSubjectPid":if verified {browser_pid}else{None},
         "appContainerSid":crate::token_policy::audit_app_sid(&report["appContainerSid"]),
         "childAppContainerSid":crate::token_policy::audit_app_sid(&report["suspendedToken"]["appContainerSid"]),
         "browserAppContainerSid":crate::token_policy::audit_app_sid(&report["browserToken"]["appContainerSid"]),
@@ -380,6 +415,70 @@ fn renderer_error_kind(metadata: &Value) -> Option<&'static str> {
 mod tests {
     use super::*;
     use std::sync::Mutex;
+
+    #[test]
+    fn four_maximum_token_views_and_cleanup_fit_original_audit_budget() {
+        let sandbox = crate::token_ready::maximum_sandbox();
+        let mut host = sandbox.clone();
+        host["isAppContainer"] = json!(false);
+        host["appContainerSid"] = Value::Null;
+        host["integrityRid"] = json!(8192);
+        host.as_object_mut().unwrap().remove("linkedAuthority");
+        let ready = crate::token_ready::build(u32::MAX - 1, u32::MAX, &sandbox, &sandbox).unwrap();
+        let mut report = json!({"hostToken":host,"hostTokenClass":"filtered-admin","hostNonElevatedVerified":true,
+            "suspendedToken":sandbox,"browserToken":sandbox,"helperSelfToken":sandbox,"browserFromHelperToken":sandbox,
+            "helperProcessId":u32::MAX-1,"helperNativeProofVerified":true,"ready":ready,
+            "appContainerSid":sandbox["appContainerSid"],"browserProcessInOwnedJob":true,
+            "preStopJob":{"members":(0..16).map(|_|json!({"pid":u32::MAX})).collect::<Vec<_>>()},
+            "rendererMetadata":{"status":"error","engineMessage":{"phase":"error","message":"Error: Parse error on line 1"}},
+            "capturedPngBytes":crate::MAX_OUTPUT,"jobActiveAfterStop":u32::MAX,
+            "ipcThreadsCompleted":false,"profileCreated":true,"profileDeletedAndFolderAbsent":false,
+            "privateTreeRemoved":false,"stopMatrixAfterThisCase":true,
+            "cleanupFailureKinds":["job-stop","stdout-protocol","stdout-join","stdin-join","stderr-join","stderr-budget-or-read","profile-delete","private-tree-delete","job-not-empty"],
+            "ipcThreadCleanup":(["stdout","stdin","stderr"].map(|stream|json!({"stream":stream,"elapsedMs":u64::MAX,"cancelRequested":true,"cancelCallSucceeded":false,"cancelWin32Error":u32::MAX,"finished":false,"panicked":true}))),
+            "stdoutFailure":{"phase":"trailing-byte","kind":"trailing-data","stopRequestedWhenObserved":true,"win32Error":u32::MAX},
+            "stderrFailure":{"kind":"budget","stopRequestedWhenObserved":true,"win32Error":u32::MAX}});
+        for mut record in [
+            started(&"f".repeat(32), &report),
+            finished(&"f".repeat(32), &report, &[255; 32], true, true),
+        ] {
+            record["productPid"] = json!(u32::MAX);
+            record["timestampUnixMs"] = json!(u64::MAX);
+            assert!(record["helperSelfTokenEvidence"].is_object());
+            assert_eq!(record["helperSelfObserverPid"], u32::MAX - 1);
+            assert_eq!(record["browserFromHelperSubjectPid"], u32::MAX);
+            let length = serde_json::to_vec(&record).unwrap().len();
+            println!(
+                "NATIVE_AUDIT_BUDGET phase={} bytes={length} limit={MAX_LINE_BYTES}",
+                record["phase"]
+            );
+            assert!(
+                length <= MAX_LINE_BYTES,
+                "Closed maximum audit record is {length} bytes"
+            );
+        }
+        report["helperNativeProofVerified"] = json!(false);
+        let partial = finished("partial", &report, &[], true, false);
+        assert_eq!(partial["helperNativeProofVerified"], false);
+        assert_eq!(partial["helperPid"], u32::MAX - 1);
+        for field in [
+            "helperSelfTokenEvidence",
+            "browserFromHelperTokenEvidence",
+            "helperSelfSid",
+            "browserFromHelperSid",
+            "helperSelfAppContainerSid",
+            "browserFromHelperAppContainerSid",
+            "helperSelfObserverPid",
+            "helperSelfSubjectPid",
+            "browserFromHelperObserverPid",
+            "browserFromHelperSubjectPid",
+        ] {
+            assert!(
+                partial[field].is_null(),
+                "Unverified {field} cannot claim native proof"
+            );
+        }
+    }
 
     #[test]
     fn filtered_account_facts_are_closed_and_do_not_claim_pure_standard() {
