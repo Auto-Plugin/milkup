@@ -5324,7 +5324,7 @@ async function invokeWindowClose(): Promise<void> {
     await getCurrentWindow().destroy()
   } catch (error: unknown) {
     setDocumentLoadingState({ phase: 'ready' })
-    notice = `退出前清理未完成，窗口已保留：${getErrorMessage(error)}`
+    notice = `退出清理尚未完成，文档呈现已暂停；可保存内容后再次关闭窗口：${getErrorMessage(error)}`
     renderSession()
   }
 }
