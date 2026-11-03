@@ -164,7 +164,9 @@ async function assertC4NodeContrast(browser, records, id, theme) {
   const labels = await browser.evaluate(`(()=>{
     const rows=[];
     for(const node of document.querySelectorAll('#target .c4-shape')) {
-      const shape=[...node.children].find(child=>['rect','circle','ellipse','path','polygon'].includes(child.localName));
+      const container=[...node.children].find(child=>child.classList.contains('label-container'));
+      const shape=container && (['rect','circle','ellipse','path','polygon'].includes(container.localName)
+        ? container : container.querySelector('rect,circle,ellipse,path,polygon'));
       if(!shape) continue;
       for(const leaf of node.querySelectorAll('.label text, .label tspan')) {
         if(leaf.children.length || !leaf.textContent.trim()) continue;
@@ -175,6 +177,12 @@ async function assertC4NodeContrast(browser, records, id, theme) {
     return rows;
   })()`)
   assert.ok(labels.length > 0, 'C4 fixture has visible leaf labels')
+  if (['context', 'container', 'dynamic'].includes(id)) {
+    assert.ok(
+      labels.some((label) => label.shapeClass.includes('c4-person')),
+      'person labels are included in contrast readback',
+    )
+  }
   const luminance = (color) => {
     const channels = color
       .match(/[\d.]+/g)

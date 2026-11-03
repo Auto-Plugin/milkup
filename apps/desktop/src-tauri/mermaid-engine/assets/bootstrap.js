@@ -26,7 +26,13 @@
   function improveC4NodeContrast(svg) {
     const geometryNames = new Set(['rect', 'circle', 'ellipse', 'path', 'polygon'])
     for (const node of svg.querySelectorAll('.c4-shape')) {
-      const shapes = [...node.children].filter((child) => geometryNames.has(child.localName))
+      const shapes = [...node.children].flatMap((child) => {
+        if (geometryNames.has(child.localName)) return [child]
+        // Person shapes group the body rectangle and head circle together.
+        return child.classList.contains('label-container')
+          ? [...child.querySelectorAll('rect, circle, ellipse, path, polygon')]
+          : []
+      })
       for (const label of node.querySelectorAll('.label')) {
         if (label.closest('.c4-shape') !== node) continue
         const bounds = label.getBoundingClientRect()
