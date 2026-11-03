@@ -556,9 +556,9 @@ impl Job {
         // Capture a failed API call's error before the observation callback can
         // issue another Win32 call. Observations never replace this outcome.
         let termination = check(unsafe { TerminateJobObject(self.0.as_raw_handle(), 1) });
+        let deadline = Instant::now() + Duration::from_secs(2);
         after_terminate_request();
         termination?;
-        let deadline = Instant::now() + Duration::from_secs(2);
         while self.active()? != 0 {
             if Instant::now() >= deadline {
                 return Err("Job did not confirm zero descendants after termination".into());
