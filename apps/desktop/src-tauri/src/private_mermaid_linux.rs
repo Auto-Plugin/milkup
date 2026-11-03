@@ -42,6 +42,8 @@ const HTML: &[u8] = b"<!doctype html><html><head><meta charset=\"utf-8\"><style>
 // plugin code can select executable assets, paths, commands or native methods.
 const ADAPTER: &str = r#"(() => {
   const queue = []; let receive;
+  globalThis.addEventListener('error', () => { if(queue.length < 8) queue.push({phase:'error',message:'Fixed bootstrap script failed'}); });
+  globalThis.addEventListener('unhandledrejection', () => { if(queue.length < 8) queue.push({phase:'error',message:'Fixed bootstrap rejected initialization'}); });
   Object.defineProperty(globalThis, 'chrome', {value: Object.freeze({webview: Object.freeze({
     addEventListener(type, callback) { if(type === 'message' && !receive) receive = callback; },
     postMessage(value) { if(queue.length < 8) queue.push(value); }
@@ -53,6 +55,12 @@ const ADAPTER: &str = r#"(() => {
 
 fn error(e: impl std::fmt::Display) -> String {
     e.to_string()
+}
+fn trace(phase: &'static str) {
+    if std::env::var_os("MILKUP_MERMAID_DIAGNOSTICS").as_deref() == Some(std::ffi::OsStr::new("1"))
+    {
+        eprintln!("MILKUP_FIXED_MERMAID {phase}");
+    }
 }
 struct Private(PathBuf);
 impl Private {
@@ -323,6 +331,7 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     }
     let width = input["width"].as_u64().unwrap() as i32;
     gtk::init().map_err(error)?;
+    trace("gtk-ready");
     let window = gtk::Window::new(gtk::WindowType::Toplevel);
     window.set_title("Milk up fixed diagram renderer");
     window.set_default_size(width, 768);
@@ -346,11 +355,16 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     context.register_uri_scheme("milkup-dom", move |request| {
         let uri = request.uri().map(|u| u.to_string()).unwrap_or_default();
         let (mime, bytes) = match (request.http_method().as_deref(), uri.as_str()) {
-            (Some("GET"), URL) => ("text/html; charset=utf-8", HTML),
+            (Some("GET"), URL) => {
+                trace("html-request");
+                ("text/html; charset=utf-8", HTML)
+            }
             (Some("GET"), "milkup-dom://job/module.js") => {
+                trace("mermaid-request");
                 ("text/javascript; charset=utf-8", MERMAID)
             }
             (Some("GET"), "milkup-dom://job/bootstrap.js") => {
+                trace("bootstrap-request");
                 ("text/javascript; charset=utf-8", bootstrap.as_slice())
             }
             _ => {
@@ -367,6 +381,7 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
         response.set_content_type(mime);
         let headers = soup::MessageHeaders::new(soup::MessageHeadersType::Response);
         for (key, value) in [
+            ("Content-Type", mime),
             ("Content-Security-Policy", CSP),
             ("X-Content-Type-Options", "nosniff"),
             ("Cache-Control", "no-store"),
@@ -381,6 +396,7 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     let observed = guard.clone();
     context.connect_user_message_received(move |_, message| {
         if message.name().as_deref() == Some("milkup-dom-native-guard-ready-v1") {
+            trace("guard-ready");
             observed.set(true);
             true
         } else {
@@ -441,6 +457,7 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     let observed = loaded.clone();
     view.connect_load_changed(move |_, event| {
         if event == webkit2gtk::LoadEvent::Finished {
+            trace("html-loaded");
             observed.set(true);
         }
     });
@@ -453,6 +470,7 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     view.set_size_request(width, 768);
     window.show_all();
     let busy = Rc::new(Cell::new(false));
+    let polled = Rc::new(Cell::new(false));
     let phase = Rc::new(Cell::new(0u8));
     let dimensions = Rc::new(Cell::new((0u32, 0u32)));
     let polling_view = view.clone();
@@ -461,6 +479,9 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
         if !loaded.get() || !guard.get() || busy.replace(true) {
             return glib::ControlFlow::Continue;
         }
+        if !polled.replace(true) {
+            trace("first-poll");
+        }
         let busy = busy.clone();
         let phase = phase.clone();
         let dimensions = dimensions.clone();
@@ -468,7 +489,7 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
         let output = polling_output.clone();
         let window = window.clone();
         let input = input.clone();
-        polling_view.evaluate_javascript("globalThis.__milkupFixedTake?.() ?? '[]'",None,None,None::<&gio::Cancellable>,move |result| {
+        polling_view.evaluate_javascript("typeof globalThis.__milkupFixedTake === 'function' ? globalThis.__milkupFixedTake() : JSON.stringify([{phase:'error',message:'Fixed bootstrap unavailable after load'}])",None,None,None::<&gio::Cancellable>,move |result| {
             busy.set(false);
             let events = match result.map_err(error).and_then(|v| serde_json::from_str::<Vec<Value>>(&v.to_str()).map_err(error)) {
                 Ok(v) => v, Err(e) => { fail(&output,e); return; }
@@ -476,20 +497,26 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
             for event in events {
                 match (phase.get(), event["phase"].as_str()) {
                     (0, Some("ready")) => {
+                        trace("bootstrap-ready");
                         phase.set(1);
-                        let script = format!("globalThis.__milkupFixedReceive({input})");
+                        // WebKit's evaluation result bridge cannot transport a
+                        // Promise. The fixed callback handles completion through
+                        // its bounded JS data queue; return only an inert boolean.
+                        let script = format!("globalThis.__milkupFixedReceive({input}); true");
                         let output = output.clone();
                         view.evaluate_javascript(&script,None,None,None::<&gio::Cancellable>,move |r| { if let Err(e)=r {fail(&output,e);} });
                     }
                     (1, Some("rendered")) => {
+                        trace("rendered");
                         let w = event["width"].as_u64().unwrap_or(0); let h=event["height"].as_u64().unwrap_or(0);
                         if w==0 || h==0 || w>8192 || h>8192 || w*h>MAX_PIXELS {fail(&output,"Rendered image dimensions exceed budget");return;}
                         dimensions.set((w as u32,h as u32)); phase.set(2);
                         view.set_size_request(w as i32,h as i32); window.resize(w as i32,h as i32);
                         let output = output.clone();
-                        view.evaluate_javascript("globalThis.__milkupFixedReceive({phase:'capture'})",None,None,None::<&gio::Cancellable>,move |r| { if let Err(e)=r {fail(&output,e);} });
+                        view.evaluate_javascript("globalThis.__milkupFixedReceive({phase:'capture'}); true",None,None,None::<&gio::Cancellable>,move |r| { if let Err(e)=r {fail(&output,e);} });
                     }
                     (2, Some("capture-ready")) => {
+                        trace("capture-ready");
                         phase.set(3);
                         if event["executableElements"].as_u64()!=Some(0) || event["activeLinkElements"].as_u64()!=Some(0) {fail(&output,"Active output rejected");return;}
                         let output = output.clone(); let (w,h)=dimensions.get();
@@ -642,6 +669,15 @@ mod tests {
             decoded.pixels().filter(|pixel| *pixel != first).count() > 100,
             "Native snapshot is blank"
         );
+        if let Some(path) = std::env::var_os("MILKUP_MERMAID_NATIVE_EVIDENCE") {
+            let path = PathBuf::from(path);
+            fs::create_dir_all(&path).unwrap();
+            fs::write(path.join("native-flow.png"), &png).unwrap();
+            fs::write(path.join("native-flow.json"), serde_json::to_vec_pretty(&json!({
+                "kind":"native-helper-only","engine":lease.engine,"width":lease.width,"height":lease.height,"sha256":lease.sha256,
+                "bytes":png.len(),"pixelDecode":"passed","source":"flowchart LR\n  A[Start] --> B[Finish]",
+            })).unwrap()).unwrap();
+        }
         assert!(registry
             .release("native-test", "native-test-owner", &lease.lease_id)
             .unwrap());
@@ -694,5 +730,78 @@ mod tests {
         assert!(registry
             .release("native-test", "new-owner", &lease.lease_id)
             .unwrap());
+    }
+    #[test]
+    #[ignore = "requires real WebKitGTK and explicit corpus/evidence directories"]
+    fn fixed_engine_retains_native_corpus_pixels() {
+        use base64::Engine;
+        let corpus = PathBuf::from(
+            std::env::var_os("MILKUP_MERMAID_CORPUS").expect("explicit corpus directory"),
+        );
+        let evidence = PathBuf::from(
+            std::env::var_os("MILKUP_MERMAID_NATIVE_EVIDENCE")
+                .expect("explicit evidence directory"),
+        );
+        fs::create_dir_all(&evidence).unwrap();
+        let mut paths = fs::read_dir(corpus)
+            .unwrap()
+            .map(|p| p.unwrap().path())
+            .filter(|p| p.extension().is_some_and(|s| s == "mmd"))
+            .collect::<Vec<_>>();
+        paths.sort();
+        assert_eq!(
+            paths.len(),
+            50,
+            "Pinned official syntax corpus has 50 fixtures"
+        );
+        let registry = milkup_mermaid_engine::Registry::default();
+        let mut outcomes = Vec::new();
+        for (i, path) in paths.iter().enumerate() {
+            let name = path.file_stem().unwrap().to_string_lossy().into_owned();
+            assert!(fs::metadata(path).unwrap().len() <= 65_536);
+            let result = registry.render_with(
+                "native-corpus",
+                milkup_mermaid_engine::Request {
+                    request_id: format!("native-corpus-{i}"),
+                    owner_id: "native-corpus-owner".into(),
+                    source: fs::read_to_string(path).unwrap(),
+                    width: 1280,
+                    theme: "default".into(),
+                    look: "classic".into(),
+                    remaining_ms: 30_000,
+                },
+                render,
+            );
+            let outcome = match result {
+                Ok(lease) => {
+                    let png = base64::engine::general_purpose::STANDARD
+                        .decode(&lease.png_base64)
+                        .unwrap();
+                    let decoded =
+                        image::load_from_memory_with_format(&png, image::ImageFormat::Png).unwrap();
+                    assert_eq!(
+                        (decoded.width(), decoded.height()),
+                        (lease.width, lease.height)
+                    );
+                    fs::write(evidence.join(format!("{name}.png")), &png).unwrap();
+                    registry
+                        .release("native-corpus", "native-corpus-owner", &lease.lease_id)
+                        .unwrap();
+                    json!({"fixture":name,"status":"rendered-decoded-retained","width":lease.width,"height":lease.height,"bytes":png.len(),"sha256":lease.sha256})
+                }
+                Err(e) => json!({"fixture":name,"status":"failed","error":e}),
+            };
+            eprintln!("NATIVE_MERMAID_CORPUS {} {}", name, outcome["status"]);
+            outcomes.push(outcome);
+            fs::write(evidence.join("native-corpus-results.json"),serde_json::to_vec_pretty(&json!({
+                "kind":"native-helper-only","engine":"12.2.0","theme":"default","width":1280,"visualReview":"pending","cases":outcomes,
+            })).unwrap()).unwrap();
+        }
+        assert!(
+            outcomes
+                .iter()
+                .all(|o| o["status"] == "rendered-decoded-retained"),
+            "See retained native-corpus-results.json for actual failures"
+        );
     }
 }
