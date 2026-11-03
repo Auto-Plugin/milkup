@@ -1,0 +1,66 @@
+warning: multiple variants are never constructed
+  --> src/ipc_observation.rs:14:5
+   |
+12 | pub(crate) enum Phase {
+   |                 ----- variants in this enum
+13 |     Created = 0,
+14 |     ReadyFrame,
+   |     ^^^^^^^^^^
+15 |     ReadyEvent,
+   |     ^^^^^^^^^^
+16 |     ResultFrame,
+   |     ^^^^^^^^^^^
+17 |     PngBody,
+   |     ^^^^^^^
+18 |     ResultEvent,
+   |     ^^^^^^^^^^^
+19 |     TrailingByte,
+20 |     StderrRead,
+   |     ^^^^^^^^^^
+21 |     StdinWrite,
+   |     ^^^^^^^^^^
+22 |     StdinFlush,
+   |     ^^^^^^^^^^
+23 |     WrittenEvent,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `Phase` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: multiple variants are never constructed
+  --> src/ipc_observation.rs:30:5
+   |
+28 | pub(crate) enum Completion {
+   |                 ---------- variants in this enum
+29 |     Pending = 0,
+30 |     Eof,
+   |     ^^^
+31 |     BrokenPipe,
+   |     ^^^^^^^^^^
+32 |     Written,
+   |     ^^^^^^^
+33 |     ReadError,
+34 |     SchemaError,
+   |     ^^^^^^^^^^^
+35 |     ChannelError,
+   |     ^^^^^^^^^^^^
+36 |     TrailingData,
+   |     ^^^^^^^^^^^^
+37 |     BudgetError,
+   |     ^^^^^^^^^^^
+38 |     WriteError,
+   |     ^^^^^^^^^^
+   |
+   = note: `Completion` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `milkup-mermaid-engine` (lib test) generated 2 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.03s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/mermaid-engine/target/debug/deps/milkup_mermaid_engine-6e40006c1bd89489)
+
+running 1 test
+NATIVE_AUDIT_BUDGET phase="started" bytes=4250 limit=8192
+NATIVE_AUDIT_BUDGET phase="finished" bytes=7388 limit=8192
+test audit::tests::four_maximum_token_views_and_cleanup_fit_original_audit_budget ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 0.00s
+
