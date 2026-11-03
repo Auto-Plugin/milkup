@@ -1,0 +1,725 @@
+TAP version 13
+# Subtest: payload dependency gate binds extracted image and raw normal/delay-load imports
+ok 1 - payload dependency gate binds extracted image and raw normal/delay-load imports
+  ---
+  duration_ms: 3.965062
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects wrong-image
+ok 2 - payload dependency gate rejects wrong-image
+  ---
+  duration_ms: 1.478675
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects raw-drift
+ok 3 - payload dependency gate rejects raw-drift
+  ---
+  duration_ms: 0.346583
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects empty-imports
+ok 4 - payload dependency gate rejects empty-imports
+  ---
+  duration_ms: 0.248287
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects omitted-dll
+ok 5 - payload dependency gate rejects omitted-dll
+  ---
+  duration_ms: 0.937446
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects duplicate-dll
+ok 6 - payload dependency gate rejects duplicate-dll
+  ---
+  duration_ms: 0.43284
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects wrong-api-set
+ok 7 - payload dependency gate rejects wrong-api-set
+  ---
+  duration_ms: 0.345872
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects missing-extra-array
+ok 8 - payload dependency gate rejects missing-extra-array
+  ---
+  duration_ms: 0.294826
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects wrong-architecture
+ok 9 - payload dependency gate rejects wrong-architecture
+  ---
+  duration_ms: 0.296097
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects not-read-only
+ok 10 - payload dependency gate rejects not-read-only
+  ---
+  duration_ms: 0.308706
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects bad-tool-hash
+ok 11 - payload dependency gate rejects bad-tool-hash
+  ---
+  duration_ms: 0.233305
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects runtime-installer
+ok 12 - payload dependency gate rejects runtime-installer
+  ---
+  duration_ms: 0.381955
+  type: 'test'
+  ...
+# Subtest: payload dependency gate rejects node-runtime
+ok 13 - payload dependency gate rejects node-runtime
+  ---
+  duration_ms: 0.541039
+  type: 'test'
+  ...
+# Subtest: payload dependency gate detects vcruntime140_1.dll even when an empty extra-runtime list is claimed
+ok 14 - payload dependency gate detects vcruntime140_1.dll even when an empty extra-runtime list is claimed
+  ---
+  duration_ms: 0.565596
+  type: 'test'
+  ...
+# Subtest: payload dependency gate detects msvcp140.dll even when an empty extra-runtime list is claimed
+ok 15 - payload dependency gate detects msvcp140.dll even when an empty extra-runtime list is claimed
+  ---
+  duration_ms: 0.40587
+  type: 'test'
+  ...
+# Subtest: payload dependency gate detects concrt140.dll even when an empty extra-runtime list is claimed
+ok 16 - payload dependency gate detects concrt140.dll even when an empty extra-runtime list is claimed
+  ---
+  duration_ms: 4.693879
+  type: 'test'
+  ...
+# Subtest: payload dependency gate detects vcomp140.dll even when an empty extra-runtime list is claimed
+ok 17 - payload dependency gate detects vcomp140.dll even when an empty extra-runtime list is claimed
+  ---
+  duration_ms: 0.359701
+  type: 'test'
+  ...
+# Subtest: payload dependency gate detects ucrtbased.dll even when an empty extra-runtime list is claimed
+ok 18 - payload dependency gate detects ucrtbased.dll even when an empty extra-runtime list is claimed
+  ---
+  duration_ms: 0.215168
+  type: 'test'
+  ...
+# Subtest: payload dependency gate detects WebView2Loader.dll even when an empty extra-runtime list is claimed
+ok 19 - payload dependency gate detects WebView2Loader.dll even when an empty extra-runtime list is claimed
+  ---
+  duration_ms: 0.187006
+  type: 'test'
+  ...
+# Subtest: production inspection reconstructs exact escaped Unicode/CRLF archive bytes through reachable imports
+ok 20 - production inspection reconstructs exact escaped Unicode/CRLF archive bytes through reachable imports
+  ---
+  duration_ms: 38.778383
+  type: 'test'
+  ...
+# Subtest: production inspection handles actual cooked template literals without evaluating code
+ok 21 - production inspection handles actual cooked template literals without evaluating code
+  ---
+  duration_ms: 8.290832
+  type: 'test'
+  ...
+# Subtest: production evidence rejects orphan-only
+ok 22 - production evidence rejects orphan-only
+  ---
+  duration_ms: 6.420327
+  type: 'test'
+  ...
+# Subtest: production evidence rejects comment-only
+ok 23 - production evidence rejects comment-only
+  ---
+  duration_ms: 9.720821
+  type: 'test'
+  ...
+# Subtest: production evidence rejects wrong-bytes
+ok 24 - production evidence rejects wrong-bytes
+  ---
+  duration_ms: 7.574999
+  type: 'test'
+  ...
+# Subtest: production evidence rejects duplicate
+ok 25 - production evidence rejects duplicate
+  ---
+  duration_ms: 5.853033
+  type: 'test'
+  ...
+# Subtest: production evidence rejects interpolation
+ok 26 - production evidence rejects interpolation
+  ---
+  duration_ms: 4.966617
+  type: 'test'
+  ...
+# Subtest: production evidence rejects escape-path
+ok 27 - production evidence rejects escape-path
+  ---
+  duration_ms: 17.500602
+  type: 'test'
+  ...
+# Subtest: binary evidence finds full official engine/bootstrap in both exact NSIS-related images
+ok 28 - binary evidence finds full official engine/bootstrap in both exact NSIS-related images
+  ---
+  duration_ms: 91.147317
+  type: 'test'
+  ...
+# Subtest: final gate accepts consistent synthetic evidence without upgrading visual/IME claims
+ok 29 - final gate accepts consistent synthetic evidence without upgrading visual/IME claims
+  ---
+  duration_ms: 18.019869
+  type: 'test'
+  ...
+# Subtest: installed standard-host evidence accepts Limited native views only with identification proofs
+ok 30 - installed standard-host evidence accepts Limited native views only with identification proofs
+  ---
+  duration_ms: 15.256305
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects installation-pending
+ok 31 - final delivery gate rejects installation-pending
+  ---
+  duration_ms: 4.615363
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects wrong-installed-hash
+ok 32 - final delivery gate rejects wrong-installed-hash
+  ---
+  duration_ms: 4.190525
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects wrong-candidate
+ok 33 - final delivery gate rejects wrong-candidate
+  ---
+  duration_ms: 3.703085
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects different-sid
+ok 34 - final delivery gate rejects different-sid
+  ---
+  duration_ms: 12.048526
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects administrator
+ok 35 - final delivery gate rejects administrator
+  ---
+  duration_ms: 4.609144
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects incomplete-steps
+ok 36 - final delivery gate rejects incomplete-steps
+  ---
+  duration_ms: 4.43065
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects enabled-plugin
+ok 37 - final delivery gate rejects enabled-plugin
+  ---
+  duration_ms: 6.757765
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-cleanup-uncertain
+ok 38 - final delivery gate rejects native-cleanup-uncertain
+  ---
+  duration_ms: 5.507181
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects account-left-behind
+ok 39 - final delivery gate rejects account-left-behind
+  ---
+  duration_ms: 11.426648
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects runtime-installed
+ok 40 - final delivery gate rejects runtime-installed
+  ---
+  duration_ms: 4.540082
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects forced-close
+ok 41 - final delivery gate rejects forced-close
+  ---
+  duration_ms: 5.038719
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects pixel-tamper
+ok 42 - final delivery gate rejects pixel-tamper
+  ---
+  duration_ms: 8.894434
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects installer-wrong-sid
+ok 43 - final delivery gate rejects installer-wrong-sid
+  ---
+  duration_ms: 4.262862
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects installer-unverified
+ok 44 - final delivery gate rejects installer-unverified
+  ---
+  duration_ms: 3.870462
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects installed-directory-left-behind
+ok 45 - final delivery gate rejects installed-directory-left-behind
+  ---
+  duration_ms: 5.708129
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects missing-native-png
+ok 46 - final delivery gate rejects missing-native-png
+  ---
+  duration_ms: 5.159948
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects observed-plugin-wrong-version
+ok 47 - final delivery gate rejects observed-plugin-wrong-version
+  ---
+  duration_ms: 3.661083
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects missing-token-facts
+ok 48 - final delivery gate rejects missing-token-facts
+  ---
+  duration_ms: 6.819941
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects filtered-account-mixed-in
+ok 49 - final delivery gate rejects filtered-account-mixed-in
+  ---
+  duration_ms: 7.895803
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-privileged-browser
+ok 50 - final delivery gate rejects native-privileged-browser
+  ---
+  duration_ms: 3.765697
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-limited-child-without-proof
+ok 51 - final delivery gate rejects native-limited-child-without-proof
+  ---
+  duration_ms: 3.7405
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-limited-browser-without-proof
+ok 52 - final delivery gate rejects native-limited-browser-without-proof
+  ---
+  duration_ms: 3.582656
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects installer-disabled-debug-privilege
+ok 53 - final delivery gate rejects installer-disabled-debug-privilege
+  ---
+  duration_ms: 3.489468
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-missing-helper-self-proof
+ok 54 - final delivery gate rejects native-missing-helper-self-proof
+  ---
+  duration_ms: 3.362481
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-missing-browser-from-helper-proof
+ok 55 - final delivery gate rejects native-missing-browser-from-helper-proof
+  ---
+  duration_ms: 4.400606
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-primary-linked-target
+ok 56 - final delivery gate rejects native-primary-linked-target
+  ---
+  duration_ms: 3.731677
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-usable-impersonation-target
+ok 57 - final delivery gate rejects native-usable-impersonation-target
+  ---
+  duration_ms: 3.394608
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-linked-query-failure
+ok 58 - final delivery gate rejects native-linked-query-failure
+  ---
+  duration_ms: 2.915741
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-partial-linked-proof
+ok 59 - final delivery gate rejects native-partial-linked-proof
+  ---
+  duration_ms: 3.19666
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-impersonating-caller
+ok 60 - final delivery gate rejects native-impersonating-caller
+  ---
+  duration_ms: 3.859465
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-spoofed-helper-pid
+ok 61 - final delivery gate rejects native-spoofed-helper-pid
+  ---
+  duration_ms: 4.266112
+  type: 'test'
+  ...
+# Subtest: final delivery gate rejects native-foreign-helper-appsid
+ok 62 - final delivery gate rejects native-foreign-helper-appsid
+  ---
+  duration_ms: 6.863827
+  type: 'test'
+  ...
+# Subtest: W3C null result is preserved instead of turning its envelope into a dialog truthy value
+ok 63 - W3C null result is preserved instead of turning its envelope into a dialog truthy value
+  ---
+  duration_ms: 5.242779
+  type: 'test'
+  ...
+# Subtest: W3C boolean results and legacy unwrapped responses keep their actual values
+ok 64 - W3C boolean results and legacy unwrapped responses keep their actual values
+  ---
+  duration_ms: 0.185395
+  type: 'test'
+  ...
+# Subtest: only literal boolean true proves a close dialog; null retains exact response and decision
+ok 65 - only literal boolean true proves a close dialog; null retains exact response and decision
+  ---
+  duration_ms: 1.4881
+  type: 'test'
+  ...
+# Subtest: truthy non-boolean replies fail without becoming unsaved confirmation or discard permission
+ok 66 - truthy non-boolean replies fail without becoming unsaved confirmation or discard permission
+  ---
+  duration_ms: 1.12443
+  type: 'test'
+  ...
+# Subtest: closed frame/window/session protocol errors are recorded as inconclusive, not dialogs or exits
+ok 67 - closed frame/window/session protocol errors are recorded as inconclusive, not dialogs or exits
+  ---
+  duration_ms: 0.620361
+  type: 'test'
+  ...
+# Subtest: unrelated WebDriver, malformed JSON and transport errors remain failures with bounded evidence
+ok 68 - unrelated WebDriver, malformed JSON and transport errors remain failures with bounded evidence
+  ---
+  duration_ms: 0.515315
+  type: 'test'
+  ...
+# Subtest: null response can precede timely owned exit but never prove completion while product is alive
+ok 69 - null response can precede timely owned exit but never prove completion while product is alive
+  ---
+  duration_ms: 17.018131
+  type: 'test'
+  ...
+# Subtest: closed frame without actual process exit still exhausts the original close deadline
+ok 70 - closed frame without actual process exit still exhausts the original close deadline
+  ---
+  duration_ms: 10.032344
+  type: 'test'
+  ...
+# Subtest: a true unsaved dialog stays a failed success gate even after a later false reply and normal exit
+ok 71 - a true unsaved dialog stays a failed success gate even after a later false reply and normal exit
+  ---
+  duration_ms: 2.525611
+  type: 'test'
+  ...
+# Subtest: probe history keeps bounded first and final observations with explicit omission and truncation
+ok 72 - probe history keeps bounded first and final observations with explicit omission and truncation
+  ---
+  duration_ms: 1.459698
+  type: 'test'
+  ...
+# Subtest: an aborted probe retains its raw result but cannot make a stale dialog decision or permit discard
+ok 73 - an aborted probe retains its raw result but cannot make a stale dialog decision or permit discard
+  ---
+  duration_ms: 0.680762
+  type: 'test'
+  ...
+# Subtest: four self-authored fixture bytes retain CRLF and Unicode without normalization
+ok 74 - four self-authored fixture bytes retain CRLF and Unicode without normalization
+  ---
+  duration_ms: 0.621123
+  type: 'test'
+  ...
+# Subtest: PNG gate validates complete framing/CRC and rejects truncation, trailing bytes and APNG
+ok 75 - PNG gate validates complete framing/CRC and rejects truncation, trailing bytes and APNG
+  ---
+  duration_ms: 1.85145
+  type: 'test'
+  ...
+# Subtest: standard-user gate rejects missing token, desktop and exact-session evidence
+ok 76 - standard-user gate rejects missing token, desktop and exact-session evidence
+  ---
+  duration_ms: 1.955525
+  type: 'test'
+  ...
+# Subtest: filtered-admin admission requires actual limited medium token without relabeling it pure-standard
+ok 77 - filtered-admin admission requires actual limited medium token without relabeling it pure-standard
+  ---
+  duration_ms: 0.87507
+  type: 'test'
+  ...
+# Subtest: both account kinds reject missing actual facts, enabled admin bits, elevated and privileged tokens
+ok 78 - both account kinds reject missing actual facts, enabled admin bits, elevated and privileged tokens
+  ---
+  duration_ms: 10.134756
+  type: 'test'
+  ...
+# Subtest: native audit checks filtered host class and exact low-privilege fresh child/browser evidence
+ok 79 - native audit checks filtered host class and exact low-privilege fresh child/browser evidence
+  ---
+  duration_ms: 2.770827
+  type: 'test'
+  ...
+# Subtest: all four sandbox views require complete Default or Limited linked authority facts
+ok 80 - all four sandbox views require complete Default or Limited linked authority facts
+  ---
+  duration_ms: 16.900616
+  type: 'test'
+  ...
+# Subtest: Limited authority uses actual identification type and level without assuming QUERY-only grants
+ok 81 - Limited authority uses actual identification type and level without assuming QUERY-only grants
+  ---
+  duration_ms: 4.81304
+  type: 'test'
+  ...
+# Subtest: Default authority cannot carry a queried linked target or reuse a Limited proof
+ok 82 - Default authority cannot carry a queried linked target or reuse a Limited proof
+  ---
+  duration_ms: 2.352335
+  type: 'test'
+  ...
+# Subtest: parent observations cannot substitute for helper-self and helper-context browser proofs
+ok 83 - parent observations cannot substitute for helper-self and helper-context browser proofs
+  ---
+  duration_ms: 2.522227
+  type: 'test'
+  ...
+# Subtest: pre-ready cancellation keeps actual held helper facts without fabricating native self proofs
+ok 84 - pre-ready cancellation keeps actual held helper facts without fabricating native self proofs
+  ---
+  duration_ms: 0.773529
+  type: 'test'
+  ...
+# Subtest: pre-publish cancellation validates an observed parent browser without inventing helper readiness
+ok 85 - pre-publish cancellation validates an observed parent browser without inventing helper readiness
+  ---
+  duration_ms: 1.882587
+  type: 'test'
+  ...
+# Subtest: complete four-view audit records fit unchanged line, launch-log and product-report budgets
+ok 86 - complete four-view audit records fit unchanged line, launch-log and product-report budgets
+  ---
+  duration_ms: 7.583625
+  type: 'test'
+  ...
+# {"maximumLineBytes":5136,"maximumLaunchLogBytes":75904,"reportBytes":626890,"eventCount":96,"completedJobs":32}
+# Subtest: only an exact completed native PNG binds to a successful output lease
+ok 87 - only an exact completed native PNG binds to a successful output lease
+  ---
+  duration_ms: 1.059694
+  type: 'test'
+  ...
+# Subtest: missing/unsafe native cleanup never becomes acceptance after outer termination
+ok 88 - missing/unsafe native cleanup never becomes acceptance after outer termination
+  ---
+  duration_ms: 1.590352
+  type: 'test'
+  ...
+# Subtest: reverse completions retain request ownership and duplicate/post-completion phases fail
+ok 89 - reverse completions retain request ownership and duplicate/post-completion phases fail
+  ---
+  duration_ms: 0.553883
+  type: 'test'
+  ...
+# Subtest: early cancellation is distinguished from an owned parser rejection
+ok 90 - early cancellation is distinguished from an owned parser rejection
+  ---
+  duration_ms: 0.451331
+  type: 'test'
+  ...
+# Subtest: process identity readback rejects duplicate, missing and reused PIDs
+ok 91 - process identity readback rejects duplicate, missing and reused PIDs
+  ---
+  duration_ms: 0.668073
+  type: 'test'
+  ...
+# Subtest: generic rendering failure is never accepted as the unknown-grammar negative case
+ok 92 - generic rendering failure is never accepted as the unknown-grammar negative case
+  ---
+  duration_ms: 0.16176
+  type: 'test'
+  ...
+# Subtest: uncreated-job cancellation rejects contradictory identities and ownership claims
+ok 93 - uncreated-job cancellation rejects contradictory identities and ownership claims
+  ---
+  duration_ms: 0.525891
+  type: 'test'
+  ...
+# Subtest: browser observation/decode bodies parse without executing browser APIs
+ok 94 - browser observation/decode bodies parse without executing browser APIs
+  ---
+  duration_ms: 0.695894
+  type: 'test'
+  ...
+# Subtest: optional expected plugin inventory rejects empty, malformed and duplicate configuration
+ok 95 - optional expected plugin inventory rejects empty, malformed and duplicate configuration
+  ---
+  duration_ms: 1.6896
+  type: 'test'
+  ...
+# Subtest: bundled inventory waits for late cards, DOM versions, layout and settled busy state offscreen
+ok 96 - bundled inventory waits for late cards, DOM versions, layout and settled busy state offscreen
+  ---
+  duration_ms: 10.676159
+  type: 'test'
+  ...
+# Subtest: bundled inventory rejects extra, duplicate, enabled and mismatched public versions
+ok 97 - bundled inventory rejects extra, duplicate, enabled and mismatched public versions
+  ---
+  duration_ms: 1.234615
+  type: 'test'
+  ...
+# Subtest: missing bundled cards or DOM versions time out without manifest-supplied observations
+ok 98 - missing bundled cards or DOM versions time out without manifest-supplied observations
+  ---
+  duration_ms: 48.697602
+  type: 'test'
+  ...
+# Subtest: plugin menu waits for asynchronous exact-card readiness independently of document ready
+ok 99 - plugin menu waits for asynchronous exact-card readiness independently of document ready
+  ---
+  duration_ms: 7.810676
+  type: 'test'
+  ...
+# Subtest: laid-out offscreen cards are ready for real wheel input without assuming disabled
+ok 100 - laid-out offscreen cards are ready for real wheel input without assuming disabled
+  ---
+  duration_ms: 0.292112
+  type: 'test'
+  ...
+# Subtest: missing or unusable cards time out with public application notice diagnostics
+ok 101 - missing or unusable cards time out with public application notice diagnostics
+  ---
+  duration_ms: 78.707485
+  type: 'test'
+  ...
+# Subtest: card layout accepts pending-version height removal and exact downstream reflow
+ok 102 - card layout accepts pending-version height removal and exact downstream reflow
+  ---
+  duration_ms: 0.802266
+  type: 'test'
+  ...
+# Subtest: card layout still rejects reordered identities, target jumps and unexplained downstream shifts
+ok 103 - card layout still rejects reordered identities, target jumps and unexplained downstream shifts
+  ---
+  duration_ms: 0.796257
+  type: 'test'
+  ...
+# Subtest: failure teardown drains an admitted job before real UI close, then stdio and detach
+ok 104 - failure teardown drains an admitted job before real UI close, then stdio and detach
+  ---
+  duration_ms: 6.36655
+  type: 'test'
+  ...
+# Subtest: native drain timeout survives later successful UI close and late final audit
+ok 105 - native drain timeout survives later successful UI close and late final audit
+  ---
+  duration_ms: 6.696358
+  type: 'test'
+  ...
+# Subtest: inner cleanup rejection still requests UI close and remains failed without forced termination
+ok 106 - inner cleanup rejection still requests UI close and remains failed without forced termination
+  ---
+  duration_ms: 1.016413
+  type: 'test'
+  ...
+# Subtest: only UI exit timeout permits identity-checked force stop, which never passes inner cleanup
+ok 107 - only UI exit timeout permits identity-checked force stop, which never passes inner cleanup
+  ---
+  duration_ms: 10.731113
+  type: 'test'
+  ...
+# Subtest: already exited or crashed product is never killed again and abnormal exit stays failed
+ok 108 - already exited or crashed product is never killed again and abnormal exit stays failed
+  ---
+  duration_ms: 0.507601
+  type: 'test'
+  ...
+# Subtest: UI exit-wait exception still uses identity-checked fallback and preserves the exception
+ok 109 - UI exit-wait exception still uses identity-checked fallback and preserves the exception
+  ---
+  duration_ms: 1.024184
+  type: 'test'
+  ...
+# Subtest: delayed unsaved-close dialog is polled within one exit budget before natural exit
+ok 110 - delayed unsaved-close dialog is polled within one exit budget before natural exit
+  ---
+  duration_ms: 3.286719
+  type: 'test'
+  ...
+# Subtest: an unrequested self-exit is never reported as a real UI close
+ok 111 - an unrequested self-exit is never reported as a real UI close
+  ---
+  duration_ms: 0.433461
+  type: 'test'
+  ...
+# Subtest: confirmation polling never resets or accepts an exit beyond the original close deadline
+ok 112 - confirmation polling never resets or accepts an exit beyond the original close deadline
+  ---
+  duration_ms: 5.094842
+  type: 'test'
+  ...
+# Subtest: timely owned exit stays timely when a closing query completes after the deadline
+ok 113 - timely owned exit stays timely when a closing query completes after the deadline
+  ---
+  duration_ms: 1.364217
+  type: 'test'
+  ...
+# Subtest: owned exit interrupts a stalled confirmation request without awaiting its normal timeout
+ok 114 - owned exit interrupts a stalled confirmation request without awaiting its normal timeout
+  ---
+  duration_ms: 0.586778
+  type: 'test'
+  ...
+# Subtest: the original exit budget aborts a stalled request while the owned process remains alive
+ok 115 - the original exit budget aborts a stalled request while the owned process remains alive
+  ---
+  duration_ms: 1.336265
+  type: 'test'
+  ...
+# Subtest: a recorded owned exit after the original budget remains a failure
+ok 116 - a recorded owned exit after the original budget remains a failure
+  ---
+  duration_ms: 0.366923
+  type: 'test'
+  ...
+# Subtest: confirmation errors unrelated to an owned exit are retained and pending observation is aborted
+ok 117 - confirmation errors unrelated to an owned exit are retained and pending observation is aborted
+  ---
+  duration_ms: 0.240275
+  type: 'test'
+  ...
+# Subtest: an interrupted query without an owned exit is never accepted as process completion
+ok 118 - an interrupted query without an owned exit is never accepted as process completion
+  ---
+  duration_ms: 0.296649
+  type: 'test'
+  ...
+# Subtest: a continuation beyond the original deadline cannot dispatch discard before its timer runs
+ok 119 - a continuation beyond the original deadline cannot dispatch discard before its timer runs
+  ---
+  duration_ms: 0.362776
+  type: 'test'
+  ...
+1..119
+# tests 119
+# suites 0
+# pass 119
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 809.891457

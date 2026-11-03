@@ -1,7 +1,8 @@
 name: Mermaid Windows isolated token observation
 
 # Test-only, fixed ignored Rust probes. No document, COM, WebView, Mermaid,
-# installer, runtime provisioning, token impersonation or process elevation.
+# installer, runtime provisioning, linked-token impersonation or process elevation.
+# The shared launcher retains its existing low-token negative-write access check.
 on:
   push:
     branches: [dot/mermaid-rebuild-20261103]

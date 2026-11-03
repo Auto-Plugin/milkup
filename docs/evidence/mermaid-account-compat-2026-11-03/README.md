@@ -134,14 +134,19 @@ not QUERY-only. All three fixed handle-copy requests succeeded with actual
 rights 10, 9 and 12. Every linked target remained `TokenImpersonation` (2) at
 `SecurityIdentification` (1). Its high integrity, Full elevation, session 0 and
 administrative privileges were preserved as observations, not misrepresented as
-the current container's execution authority. No impersonation, token adjustment,
-COM, WebView, JavaScript or document execution occurred in this diagnostic.
+the current container's execution authority. No returned linked token was used
+for impersonation, token adjustment or process creation. The reused launcher
+also retains its pre-existing negative-write access test: it temporarily
+impersonates a copy of the low-privilege AppContainer child token, then reverts.
+Both linked-token observation contexts were subsequently verified to have no
+thread token (Win32 1008). No COM, WebView, JavaScript or document execution
+occurred in this diagnostic.
 
-The implementation is being revised around the identification-level constraint,
+The revised implementation uses the identification-level constraint,
 not the presence or absence of handle-copy rights. Windows documents that this
 level cannot impersonate, cannot be copied to a higher level or a primary token,
 and token type cannot be changed in place. These are the relevant constraints
-even when the handle has ALL_ACCESS. The product will query and close handles,
+even when the handle has ALL_ACCESS. The product queries and closes handles,
 without importing the test-only duplication experiments. The current executing
 helper/browser must still pass the original low-integrity, zero-capability,
 same-user/session/fresh-AppContainer checks and the exact ordinary privilege
@@ -154,3 +159,10 @@ Primary references: [impersonation-level requirements](https://learn.microsoft.c
 [token type is fixed at creation](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-settokeninformation#remarks).
 This successful diagnostic is not product rendering acceptance. Actual Windows
 body PNGs, close behavior and C4 output still require the next product run.
+
+The completed local implementation passed 51 private Rust tests, 119 Node
+regressions and Windows GNU library/test cross-checks. Independent review also
+checked late-cancellation publication and partial parent-browser observations.
+The unchanged 4 KiB Ready and 8 KiB audit budgets cover the tested maximum
+records (1803, 4250 and 5803 bytes). [Final local preflight evidence](product-authority-preflight/README.md)
+does not claim Windows product execution.
