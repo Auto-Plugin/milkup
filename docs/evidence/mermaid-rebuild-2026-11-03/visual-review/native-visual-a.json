@@ -1,0 +1,431 @@
+{
+  "review_scope": "Linux native PNG corpus 688fc89a, fixtures 01–25",
+  "review_date": "2026-11-03",
+  "method": "Each of the 25 existing PNGs was individually opened with tools.view_image and visually inspected, then compared with its Mermaid source text. Images were not edited or regenerated. Decode/metadata checks were not used as visual-pass substitutes.",
+  "status_definitions": {
+    "pass": "No visible issue identified in this specific fixture at displayed native output size.",
+    "warn": "Non-blocking visible readability/layout concern; not established as an implementation regression.",
+    "fail": "Severe missing, clipped, obscured or unreadable content."
+  },
+  "summary": {
+    "reviewed": 25,
+    "pass": 21,
+    "warn": 4,
+    "fail": 0
+  },
+  "limitations": [
+    "This review covers Linux native standalone PNGs only. It is not Windows verification or article/body placement E2E.",
+    "Fixtures 01–25 do not exercise CJK or MathML; no CJK/MathML pass is claimed.",
+    "No browser reference comparison, automated contrast ratio measurement, or arbitrary/dense diagrams were included.",
+    "Warnings may reflect Mermaid defaults rather than native pipeline regressions."
+  ],
+  "images": [
+    {
+      "id": 1,
+      "fixture": "01-c4",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/01-c4.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/01-c4.mmd",
+      "dimensions_px": [
+        564,
+        194
+      ],
+      "image_sha256": "2c4cb6ae15766fedbd439ef087beda64830f8eb3143be68f61f4d72ddbcff499",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Reader 人形、Editor 框及 Writes 连线完整；标签可读，无裁剪或重叠。",
+      "issues": []
+    },
+    {
+      "id": 2,
+      "fixture": "02-flowchart-v2",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/02-flowchart-v2.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/02-flowchart-v2.mmd",
+      "dimensions_px": [
+        448,
+        102
+      ],
+      "image_sha256": "cd3d3d9b1803dfcb652f02a73456bb7cef7f28de9c1a70f218d5a51bce67d70d",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Read/Complete 节点及箭头完整，留白合理，文字清晰。",
+      "issues": []
+    },
+    {
+      "id": 3,
+      "fixture": "03-agentflow",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/03-agentflow.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/03-agentflow.mmd",
+      "dimensions_px": [
+        421,
+        177
+      ],
+      "image_sha256": "008fc5a9397fe450f34a1057542613d3138bb296b13bc8e5a23a3f0f0ca10bf7",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Writer 容器、Draft/Check 节点及箭头清晰；边界未压住标题。",
+      "issues": []
+    },
+    {
+      "id": 4,
+      "fixture": "04-swimlane",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/04-swimlane.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/04-swimlane.mmd",
+      "dimensions_px": [
+        284,
+        454
+      ],
+      "image_sha256": "869744615bb1788e09fee5d8e4b6c6538bb12394831bfb674da99b82b71289c7",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Writer/Reviewer 泳道、垂直标题与节点完整；长连线未压文字。",
+      "issues": []
+    },
+    {
+      "id": 5,
+      "fixture": "05-er",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/05-er.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/05-er.mmd",
+      "dimensions_px": [
+        157,
+        317
+      ],
+      "image_sha256": "a860585113f799acc694d87b4b3658df276349500438b4150b4c1dbfafd8fc10",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "PERSON/NOTE、writes 与关系基数符号完整且可辨。",
+      "issues": []
+    },
+    {
+      "id": 6,
+      "fixture": "06-gitGraph",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/06-gitGraph.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/06-gitGraph.mmd",
+      "dimensions_px": [
+        248,
+        209
+      ],
+      "image_sha256": "c1f695c0565944a0b4c39f6502d19f351e943dd5140f1e8505557d05be008793",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "分支与提交点完整；斜置提交 ID 较小但仍能辨读，无边缘裁剪。",
+      "issues": []
+    },
+    {
+      "id": 7,
+      "fixture": "07-gantt",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/07-gantt.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/07-gantt.mmd",
+      "dimensions_px": [
+        1312,
+        180
+      ],
+      "image_sha256": "cda7f6ccd43f35eb44974fce67860a258e1fe98eee65cb75badb6d2b669cef68",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "warn",
+      "observation": "内容完整，无遮挡；任务文字和时间刻度存在可读性提醒。",
+      "issues": [
+        {
+          "severity": "minor",
+          "category": "contrast-and-text-size",
+          "observation": "Draft/Review 为小号白字，位于浅紫色任务条内，对比偏弱。日期刻度小且同一天标签重复密集。",
+          "location": "任务条中央及横轴底部",
+          "qualification": "视觉提醒；未与浏览器基线比较，不能据此归因为原生渲染回归。"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "fixture": "08-info",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/08-info.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/08-info.mmd",
+      "dimensions_px": [
+        138,
+        68
+      ],
+      "image_sha256": "71cec03a9001b9ef459df9c0c8441459f4c54f5eb467c7a915c1e918a03d698f",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "v12.2.0 版本字样完整清晰；源 fixture 仅为 info，单一文字输出符合其内容。",
+      "issues": []
+    },
+    {
+      "id": 9,
+      "fixture": "09-pie",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/09-pie.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/09-pie.mmd",
+      "dimensions_px": [
+        583,
+        482
+      ],
+      "image_sha256": "97f96bc3a04b60c9cda2450be8cce1387233c21d7351f10d20096a7fb802f4dd",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "饼图外缘、30%/70% 与 Draft/Done 图例完整；浅色区域可辨。",
+      "issues": []
+    },
+    {
+      "id": 10,
+      "fixture": "10-quadrantChart",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/10-quadrantChart.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/10-quadrantChart.mmd",
+      "dimensions_px": [
+        532,
+        532
+      ],
+      "image_sha256": "dc1fff833f1bbbd235caa7693c3c0743188b4819ac28a7518ae739f14ba5934a",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "四象限、Low/High 轴标签和 Point 标记完整；没有异常裁剪。",
+      "issues": []
+    },
+    {
+      "id": 11,
+      "fixture": "11-xychart",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/11-xychart.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/11-xychart.mmd",
+      "dimensions_px": [
+        732,
+        534
+      ],
+      "image_sha256": "cd474767d12053ed237e63c359699e7a102aaf6ebc38e4537053c6fe0d91d9ee",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Count、刻度与 One/Two 可读；柱高与源数据 3/7 一致，浅紫柱体可辨。",
+      "issues": []
+    },
+    {
+      "id": 12,
+      "fixture": "12-requirement",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/12-requirement.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/12-requirement.mmd",
+      "dimensions_px": [
+        196,
+        232
+      ],
+      "image_sha256": "1fa232d408510676401b91b96d90e93a61476c14d46c19f4019f49751b2e82da",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Requirement 类型、r1、ID/Text/Risk/Verification 均完整可读；框内留白足够。",
+      "issues": []
+    },
+    {
+      "id": 13,
+      "fixture": "13-sequence",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/13-sequence.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/13-sequence.mmd",
+      "dimensions_px": [
+        482,
+        295
+      ],
+      "image_sha256": "0c48b774fbbcf7ef684163d912e00a00e8523601ac449b75642fe98d98cc4130",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Reader/Editor 首尾框、Write/Saved 消息及生命线完整，文字不与箭头重叠。",
+      "issues": []
+    },
+    {
+      "id": 14,
+      "fixture": "14-classDiagram",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/14-classDiagram.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/14-classDiagram.mmd",
+      "dimensions_px": [
+        170,
+        192
+      ],
+      "image_sha256": "fe4613117d2ad0f3a686a68a42b62465164bfffff015d2b58268f9f348700148",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Note 类名、+String title 与 +save() 清晰，分隔线未压文字。",
+      "issues": []
+    },
+    {
+      "id": 15,
+      "fixture": "15-stateDiagram",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/15-stateDiagram.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/15-stateDiagram.mmd",
+      "dimensions_px": [
+        184,
+        276
+      ],
+      "image_sha256": "87df9d15b3c63bdbbdba5595b1b67f72193e7cd7be9d5495b5ba6bddb8148b8c",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "起始/终止状态、Draft/Saved 与箭头完整，布局无重叠。",
+      "issues": []
+    },
+    {
+      "id": 16,
+      "fixture": "16-journey",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/16-journey.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/16-journey.mmd",
+      "dimensions_px": [
+        732,
+        572
+      ],
+      "image_sha256": "d1ef106b1f3f47fe832861ec09e9f87b887c67b0bf42431180dae7d8a11b372c",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Writing 标题、参与者图例、Work/Draft/Review 与表情均完整可读；底部和右侧留白未造成信息丢失。",
+      "issues": []
+    },
+    {
+      "id": 17,
+      "fixture": "17-flowchart-elk",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/17-flowchart-elk.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/17-flowchart-elk.mmd",
+      "dimensions_px": [
+        448,
+        102
+      ],
+      "image_sha256": "cd3d3d9b1803dfcb652f02a73456bb7cef7f28de9c1a70f218d5a51bce67d70d",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "ELK 的 Read/Complete 节点及箭头完整，标签可读，边界未裁剪。",
+      "issues": []
+    },
+    {
+      "id": 18,
+      "fixture": "18-timeline",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/18-timeline.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/18-timeline.mmd",
+      "dimensions_px": [
+        927,
+        505
+      ],
+      "image_sha256": "6f8c00cf75ad264124cc07a6ea3f8e5ff070202e43108d3cd42dadc937f30857",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "warn",
+      "observation": "标题、时间线、2025/2026 与 Draft/Review 均完整；紫色块白字对比偏弱。",
+      "issues": [
+        {
+          "severity": "minor",
+          "category": "contrast",
+          "observation": "2025 与 Draft 使用白字配中浅紫背景，视觉对比低于邻近黄色块黑字。",
+          "location": "左侧两个紫色矩形块",
+          "qualification": "标签仍可读；仅视觉提醒，未做对比度数值或浏览器基线比较。"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "fixture": "19-mindmap",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/19-mindmap.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/19-mindmap.mmd",
+      "dimensions_px": [
+        396,
+        121
+      ],
+      "image_sha256": "880db1f3263be9226fc111841a36b4885e0fe5293391e6a98c6a08ac6845df06",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Notes 根节点及 Draft/Review 分支完整可读；连接线与节点文字分开。",
+      "issues": []
+    },
+    {
+      "id": 20,
+      "fixture": "20-kanban",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/20-kanban.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/20-kanban.mmd",
+      "dimensions_px": [
+        457,
+        131
+      ],
+      "image_sha256": "568f728d47115e51f7dae82c944e4a7325f4aaa2fae0090e0fb2cd6d18b5f0fa",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Todo/Done 列名和 Draft/Review 卡片清晰，卡片未溢出列边界。",
+      "issues": []
+    },
+    {
+      "id": 21,
+      "fixture": "21-sankey",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/21-sankey.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/21-sankey.mmd",
+      "dimensions_px": [
+        632,
+        432
+      ],
+      "image_sha256": "27a78f5f3db3f1232efc5dd987c21b2b7ac1845803fa9cab1f740bc42a1fc3d3",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "warn",
+      "observation": "流带与节点完整；标签名称和值紧接，降低扫读清晰度。",
+      "issues": [
+        {
+          "severity": "minor",
+          "category": "label-spacing",
+          "observation": "标签呈 Draft3、Review3、Done2，名称与数值之间未见空格或换行。",
+          "location": "三个节点的文字标签",
+          "qualification": "名称仍可读，未证明与浏览器输出不同；应比较预期格式后决定是否修复。"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "fixture": "22-packet",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/22-packet.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/22-packet.mmd",
+      "dimensions_px": [
+        1058,
+        94
+      ],
+      "image_sha256": "d18b868041da3ecb5687836ef131e0769ae7171f1f0ca5cf38268126c9ad8c79",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "warn",
+      "observation": "Header/Data 与 0/7/8/15 位号可读；右半幅留白明显。",
+      "issues": [
+        {
+          "severity": "minor",
+          "category": "whitespace",
+          "observation": "两个字段占左侧约一半宽度，右侧约一半为空白。",
+          "location": "PNG 右半幅",
+          "qualification": "源只有 0–15 位，可能来自默认 32-bit 行宽；这是布局提醒，不能据此认定裁剪或实现错误。"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "fixture": "23-radar",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/23-radar.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/23-radar.mmd",
+      "dimensions_px": [
+        732,
+        732
+      ],
+      "image_sha256": "62de87bc60eb9590a31fc9a39cb8cea049844ba17d831f9b1d284b0562bf5076",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "speed/quality/cost 轴标签、sample 图例与填充曲线完整；圆形外框无裁剪。",
+      "issues": []
+    },
+    {
+      "id": 24,
+      "fixture": "24-block",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/24-block.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/24-block.mmd",
+      "dimensions_px": [
+        222,
+        82
+      ],
+      "image_sha256": "a0560eb4e3430b769c2df6685e0aef4adfd6d88b7e58440afec67db2f61c52ff",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "Draft/Review 两块及短箭头完整可辨，未见文字重叠。",
+      "issues": []
+    },
+    {
+      "id": 25,
+      "fixture": "25-treeView",
+      "image": "/workspace/mermaid-rebuild-evidence/native-corpus-688fc89a/25-treeView.png",
+      "source": "/workspace/milkup-mermaid-rebuild/docs/evidence/mermaid-rebuild-2026-11-03/fixtures/25-treeView.mmd",
+      "dimensions_px": [
+        154,
+        141
+      ],
+      "image_sha256": "7628bba3031595798d5406f8e8b35cbc0f2c6dab419834a3031766feff567299",
+      "viewed_with": "tools.view_image (actual image rendered to reviewer)",
+      "status": "pass",
+      "observation": "根目录、notes 与 draft.md/review.md 的树形连接线及标签完整清晰。",
+      "issues": []
+    }
+  ]
+}

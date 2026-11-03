@@ -51,6 +51,11 @@ The logs below describe actual new executions, not inherited prototype claims.
 | Exact package identity/tampering | 4 tests pass; native Rust catalog hashes match | `logs/package-seals-test.log`, `logs/native-seal-probe-result.json` |
 | Linux desktop Rust type check | pass | `logs/linux-engine-check.log` |
 | Fixed bootstrap in installed local Chromium | 112 checks pass, including 50 fixtures × 2 themes | `logs/bootstrap-chromium.log`, `bootstrap/corpus-results.json` |
+| C4 text contrast correction after the corpus run | 18 checks; 12 C4 examples / 88 leaf labels, minimum nominal contrast 5.6168:1 | `logs/c4-contrast-chromium.log`, `c4-contrast/c4-contrast-results.json` |
+| Core private PNG and existing core regressions | 202 tests pass | `logs/core-tests-retained.log` |
+| View PNG and related presentation/decoding checks | 187 tests pass | `logs/view-png-tests-retained.log` |
+| Linux native backend corpus | 50/50 PNGs generated, decoded, retained; 50 exit and directory checks | `native-linux-helper/README.md` |
+| Linux product editor end-to-end | 11/11 operations pass on four self-authored documents, DPR 1 / light theme | `product-linux/evidence/mermaid-private.json` |
 
 The bootstrap PNGs in this folder are **local Chromium 154 renderings**. They do
 not establish product editor integration, WebKitGTK/WebView2 pixel fidelity,
@@ -60,21 +65,67 @@ from the verified prototype baseline. Root review inspected the wide and C4
 examples, including the cropped component image; the 100-image automated decode
 check is not a claim that a person visually accepted every image.
 
-New core/view private PNG checks also passed (core 202 tests; selected view 187
-tests), with implementation/test commits `45618c99` and `02b852a6`. Their separate
-execution output is in the engineering session; native results remain separate.
+The later C4 contrast correction uses each shape's actual fill to select black
+or white label text, including grouped Person and custom backgrounds. The full
+100-image corpus was not rerun for this C4-only correction; its selected C4
+cases and wide controls have separate retained images and hashes. Root reviewed
+the final light Component image. Core/view implementation/test commits are
+`45618c99` and `02b852a6`; native results remain separate.
 
 ## Native status and remaining acceptance
 
-Linux real native rendering and product editor end-to-end testing are still in
-progress. Early attempts failed at WebKit's sandbox setup and missing runtime
-paths in this independent environment. The system sandbox remains enabled;
-temporary runtime mappings are being tested without modifying system installs.
-Do not infer a native success from a frontend build or a Chromium fixture image.
+Linux real native helper rendering now passed (fixed assets → official Mermaid →
+WebKit snapshot → complete PNG decode/nonuniform pixels → lease release), as did
+cancel/cleanup followed by a fresh render. See
+`logs/linux-helper-native-evaluation.log` and
+`logs/linux-helper-native-cancel-mounted.log`. These exercise the actual backend,
+not the product editor. Early attempts failed at WebKit's sandbox setup and
+missing runtime paths; temporary mappings now retain the sandbox without system
+installation changes. Actual code errors also surfaced and were fixed: response
+Content-Type was missing under nosniff, and JavaScript dispatch returned a Promise
+that WebKit's native evaluation API could not serialize. Native directory cleanup
+now reports deletion failure instead of silently ignoring it (`688fc89a`).
 
-Windows compile/link, actual product rendering, same-login teardown, scale/theme
-matrix, standard-user context, and installer upgrade/rollback remain unverified
-unless a later result in this folder explicitly records their execution.
+Linux product editor end-to-end execution passed 11/11 operations on candidate
+`688fc89aad6c6b4b54cdec87ffa66179e5dd0def`, binary SHA-256
+`01487ea1f1fcf22f6c9557b7e0c85d14bd93942d9bbc26c30ace8e6fce5af746`.
+This is a custom-protocol debug binary with embedded production assets, not an
+installer/release build. The native harness used an independent empty profile,
+real keyboard/pointer/GTK file operations, and DOM observation only. It verified
+initial pending/disabled state, enable, actual PNG decode, source/caret behavior,
+edit+save, replacement image, exact undo/CRLF/Unicode bytes, disable/re-enable,
+natural-size wide graph, C4, invalid-grammar fallback, and final unchanged files.
+The first attempt failed because the harness expected an active generation before
+initial activation; the corrected test explicitly checks pending first and active
+after enable. It did not change the product to satisfy that assumption.
+
+Root reviewed actual system screenshots 04, 08 and 09: `XDraft 草稿` changed in the
+image, wide nodes remain readable with a horizontal scrollbar, and C4 black text
+is visible on light blue shapes. The source and diagnostic are visible for the
+invalid fixture. The final report, 22 screenshots, complete evidence hashes and
+post-namespace process/port/display cleanup checks are retained in `product-linux/`.
+This establishes only those four documents on Linux WebKitGTK 2.52.6, light/DPR1;
+it does not establish all 50 diagrams in the editor, dark/high-DPI/Windows/IME or
+installer behavior.
+
+All 50 native backend PNGs were separately inspected using actual image views.
+The two per-image review records are in `visual-review/`: 41 pass, 9 warnings,
+no severe clipping/blankness/missing glyphs. Warnings include small or low-contrast
+labels in Gantt, timeline, Venn, treemap and Wardley; Sankey name/value spacing;
+packet's possibly intentional half-row blank area; Cynefin's center divider; and
+C4 component relation backing touching a border. These are recorded observations,
+not a declaration that every visual issue is resolved. The nominal shadow fixture
+contains no actual shadow/filter and does not prove shadow-overflow handling.
+
+Windows run `41630133039` at candidate `ca10c4e1` passed the compile/test/link
+steps (private engine 11 tests; desktop 228 pass / 3 ignored), but the overall run
+**failed** at the final clean-checkout gate. Its original PowerShell conditional
+consumed the changed-file list without printing it, so that log cannot identify
+the exact paths. A diagnostic reproduction of the same source is required;
+schema generation is only a hypothesis until actual diffs are retained. Follow-up
+run `41630161068` was **skipped**, not passed. Neither result establishes Windows
+product rendering, same-login teardown, scale/theme, standard-user context or
+installer upgrade/rollback.
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
