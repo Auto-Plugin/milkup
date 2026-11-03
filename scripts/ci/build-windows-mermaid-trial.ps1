@@ -40,12 +40,13 @@ if (-not (Test-Path -LiteralPath $EvidenceDirectory -PathType Container) -or (Te
 $head = @(git rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong packaging candidate' }
 $sha = $head[0].Trim()
-Checked git @('merge-base', '--is-ancestor', '03e62ba936aafc33a3828f734c0cbba58465ab7b', $sha)
+Checked git @('merge-base', '--is-ancestor', 'b139a9891a086685d7e0e9e85472a29a629f7a45', $sha)
+Checked git @('diff', '--exit-code', 'b139a9891a086685d7e0e9e85472a29a629f7a45', $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'plugins/diagrams-worker')
 $dirty = @(git status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Packaging requires a strictly clean checkout' }
 Checked node @('scripts/check-versions.mjs')
 $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-if ($version -cne '2.0.0-beta.8') { throw 'Wrong Mermaid test version' }
+if ($version -cne '2.0.0-beta.9') { throw 'Wrong Mermaid test version' }
 $config = Get-Content apps/desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
 $overlay = Join-Path $root 'scripts/ci/tauri-mermaid-trial.json'
 $overlayValue = Get-Content $overlay -Raw | ConvertFrom-Json
@@ -107,7 +108,7 @@ Write-NewJson (Join-Path $EvidenceDirectory 'packaging-record.json') ([ordered]@
     schema = 1; candidateSha = $sha; version = $version; platform = 'windows-x86_64'
     runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT
     runUrl = "https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
-    acceptedImplementationBase = '03e62ba936aafc33a3828f734c0cbba58465ab7b'
+    acceptedImplementationBase = 'b139a9891a086685d7e0e9e85472a29a629f7a45'
     installer = $installer; compiledApplication = $compiled; extractedApplication = $extracted
     dependencies = $dependencies; buildHostOsVersion = [Environment]::OSVersion.VersionString
     nsisInstallMode = 'currentUser'; webviewInstallMode = 'skip'; existingEvergreenRequired = $true

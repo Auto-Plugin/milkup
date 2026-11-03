@@ -54,8 +54,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $head = @(git rev-parse HEAD)
           if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong source candidate' }
-          git merge-base --is-ancestor 03e62ba936aafc33a3828f734c0cbba58465ab7b HEAD
+          git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
+          git diff --exit-code b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src plugins/diagrams-worker
+          if ($LASTEXITCODE -ne 0) { throw 'Accepted native, renderer or Diagrams implementation changed before packaging' }
           $dirty = @(git status --porcelain)
           if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Dirty candidate checkout' }
           if (Test-Path scripts/experiments/mermaid-fixed-prototype) { throw 'Prototype must not enter installer' }
@@ -63,7 +65,7 @@ jobs:
           if ($engine.Length -ne 5494801 -or (Get-FileHash $engine.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f') { throw 'Official engine bytes changed' }
           node scripts/check-versions.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Version metadata mismatch' }
-          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.8') { throw 'Wrong test version' }
+          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.9') { throw 'Wrong test version' }
           $evidence = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
           New-Item -ItemType Directory -Path (Join-Path $evidence 'public-plugins') | Out-Null
           node tests/windows/capture-build-source-state.mjs $PWD checkout $env:GITHUB_SHA (Join-Path $evidence 'mermaid-source-checkout.json')
@@ -112,8 +114,15 @@ jobs:
           $objects | ConvertTo-Json -Depth 32 | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/public-plugins/staged-bundles.json') -Encoding utf8
           pnpm --filter @milkup/desktop typecheck
           if ($LASTEXITCODE -ne 0) { throw 'Desktop type check failed' }
-          node --test scripts/ci/prepare-mermaid-trial-payload.test.mjs
+          node --test scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/mermaid-product-e2e.test.mjs tests/windows/verify-installed-binary.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Delivery verification regressions failed' }
+          ./tests/windows/account-kind-wrapper.test.ps1
+          ./tests/windows/installer-wrapper.test.ps1
+          $ownedProcess = @(& pwsh -NoProfile -File scripts/ci/test-windows-mermaid-owned-process.ps1 2>&1)
+          $ownedProcessExit = $LASTEXITCODE
+          $ownedProcess | Write-Host
+          $ownedProcess | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/owned-process-regression.log') -Encoding utf8
+          if ($ownedProcessExit -ne 0) { throw 'Held-process installer regressions failed' }
           Push-Location plugins/diagrams-worker
           try {
             node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts
@@ -148,28 +157,43 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect source diff' }
           git diff --cached --exit-code
           if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Source checkout changed during packaging; never restore or relax the gate' }
-      - name: Install under a fresh standard user and test the installed release application
+      - name: Install and test the same release package under both fresh account kinds
         run: |
           $ErrorActionPreference = 'Stop'
           $evidence = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
           $record = Get-Content (Join-Path $evidence 'packaging-record.json') -Raw | ConvertFrom-Json
           $manifest = Join-Path $evidence 'installer-input.json'
           $manifestHash = (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()
-          ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -Binary $record.compiledApplication.path -ExpectedBinarySha256 $record.compiledApplication.sha256 -Installer $record.installer.path -ExpectedInstallerSha256 $record.installer.sha256 -ExpectedVersion $record.version -PackageManifest $manifest -ExpectedPackageManifestSha256 $manifestHash -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-installed-evidence') -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed
+          $failures = @()
+          foreach ($kind in @('pure-standard', 'filtered-admin')) {
+            try {
+              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -Binary $record.compiledApplication.path -ExpectedBinarySha256 $record.compiledApplication.sha256 -Installer $record.installer.path -ExpectedInstallerSha256 $record.installer.sha256 -ExpectedVersion $record.version -PackageManifest $manifest -ExpectedPackageManifestSha256 $manifestHash -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-trial-installed-evidence/$kind") -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind
+            } catch {
+              $failures += "$kind : $($_.Exception.Message)"
+              Write-Host "::error::$kind installed-product acceptance failed; original reports retained"
+            }
+          }
+          if ($failures.Count) { throw ($failures -join "`n") }
       - name: Retain bounded installed-product evidence with original outcomes
         id: installed_evidence
         if: always()
         run: |
           $ErrorActionPreference = 'Stop'
-          $directory = Join-Path $env:RUNNER_TEMP 'mermaid-trial-installed-evidence'
-          if (-not (Test-Path -LiteralPath $directory -PathType Container)) { exit 0 }
-          foreach ($phase in @('checkout', 'desktop-check', 'final')) {
-            $name = 'mermaid-source-' + $phase + '.json'
-            Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "mermaid-trial-build-evidence/$name") -Destination (Join-Path $directory $name) -ErrorAction Stop
-          }
           $staging = Join-Path $env:RUNNER_TEMP 'mermaid-trial-installed-retained'
-          node tests/windows/stage-mermaid-evidence.mjs $directory $staging $env:GITHUB_SHA
-          if ($LASTEXITCODE -ne 0) { throw 'Installed evidence failed bounded provenance verification' }
+          New-Item -ItemType Directory -Path $staging | Out-Null
+          $retained = 0
+          foreach ($kind in @('pure-standard', 'filtered-admin')) {
+            $directory = Join-Path $env:RUNNER_TEMP "mermaid-trial-installed-evidence/$kind"
+            if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
+            foreach ($phase in @('checkout', 'desktop-check', 'final')) {
+              $name = 'mermaid-source-' + $phase + '.json'
+              Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "mermaid-trial-build-evidence/$name") -Destination (Join-Path $directory $name) -ErrorAction Stop
+            }
+            node tests/windows/stage-mermaid-evidence.mjs $directory (Join-Path $staging $kind) $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw "Installed evidence failed bounded provenance verification for $kind" }
+            $retained++
+          }
+          if ($retained -eq 0) { exit 0 }
           "directory=$staging" >> $env:GITHUB_OUTPUT
           'ready=true' >> $env:GITHUB_OUTPUT
       - name: Finalize delivery only after installed UI and cleanup acceptance
@@ -187,7 +211,7 @@ jobs:
           $source = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
           $destination = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-retained'
           New-Item -ItemType Directory -Path $destination | Out-Null
-          $names = @('mermaid-source-checkout.json', 'mermaid-source-desktop-check.json', 'mermaid-source-final.json', 'nsis-image-proof.json', 'packaging-record.json', 'installer-input.json', 'packaged-production-binary-manifest.json', 'packaged-production-binary.manifest', 'public-plugins/staged-bundles.json', 'public-plugins/verification.json', 'mermaid-trial-preparation.json', 'mermaid-trial-finalization.json', 'windows-runtime-dependencies.json', 'windows-runtime-imports.log')
+          $names = @('mermaid-source-checkout.json', 'mermaid-source-desktop-check.json', 'mermaid-source-final.json', 'nsis-image-proof.json', 'packaging-record.json', 'installer-input.json', 'packaged-production-binary-manifest.json', 'packaged-production-binary.manifest', 'public-plugins/staged-bundles.json', 'public-plugins/verification.json', 'mermaid-trial-preparation.json', 'mermaid-trial-finalization.json', 'windows-runtime-dependencies.json', 'windows-runtime-imports.log', 'owned-process-regression.log')
           $retained = @()
           foreach ($name in $names) {
             $path = Join-Path $source $name
@@ -228,7 +252,7 @@ jobs:
         if: success() && steps.finalized.outputs.ready == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-2.0.0-beta.8-mermaid-windows-x64-${{ github.sha }}
+          name: milkup-2.0.0-beta.9-mermaid-windows-x64-${{ github.sha }}
           path: ${{ runner.temp }}/mermaid-trial-delivery/
           retention-days: 7
           compression-level: 6
@@ -243,4 +267,4 @@ jobs:
         run: |
           "Test installer download (GitHub login required): $env:ARTIFACT_URL" >> $env:GITHUB_STEP_SUMMARY
           "Artifact ID: $env:ARTIFACT_ID; ZIP SHA-256: $env:ARTIFACT_DIGEST; configured retention: 7 days. Verify actual expires_at before delivery." >> $env:GITHUB_STEP_SUMMARY
-          'Unsigned beta.8 manual trial, installed standard-user UI accepted. Existing Evergreen required; no Runtime installer bundled/executed. No official Release or main merge.' >> $env:GITHUB_STEP_SUMMARY
+          'Unsigned beta.9 manual trial; installed pure-standard and non-elevated filtered-admin UI accepted. Historical IPC 995 remains unexplained; same application identity, no side-by-side/upgrade acceptance. Existing Evergreen required; no Runtime installer bundled/executed. No official Release or main merge.' >> $env:GITHUB_STEP_SUMMARY
