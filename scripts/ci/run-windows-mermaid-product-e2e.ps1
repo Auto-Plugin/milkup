@@ -244,7 +244,7 @@ $audit = [ordered]@{
     accountName = $accountName; accountSid = $null; accountCreated = $false; accountDeleted = $false
     actualWindowsProfile = $null; profileDeleted = $false; stage = $stage; stageRemoved = $false
     cleanupErrors = @(); error = $null; changedAcl = $false; changedUacOrSecurityPolicy = $false
-    runtimeInstalled = $false; fixedRuntimeUsed = $false; installerExecuted = $false; artifactUploaded = $false
+    runtimeInstalled = $false; fixedRuntimeUsed = $false; installerExecuted = $false; artifactUploadedByHarness = $false
     passwordInLogsFilesArgumentsOrEnvironment = $false; outerCleanupProvesProductInnerCleanup = $false
 }
 $user = $null
