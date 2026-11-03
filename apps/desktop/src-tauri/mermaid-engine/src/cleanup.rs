@@ -1,4 +1,5 @@
 //! Bounded teardown of a newly owned private test tree, after its Job is empty.
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::{
     fs, io,
@@ -10,6 +11,34 @@ use std::{
 const ATTEMPTS: usize = 31;
 const INTERVAL: Duration = Duration::from_millis(100);
 const RETRY_DEADLINE: Duration = Duration::from_secs(3);
+
+#[derive(Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum TreeRemovalPhase {
+    Remove,
+    AbsenceCheck,
+    Complete,
+}
+
+/// Numeric observations of one removal and its independent absence check.
+/// A null OS error does not imply success: callers must retain the returned
+/// Result, including failures created without an underlying OS error.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TreeRemovalFacts {
+    /// Every remove call, including the final successful or NotFound call.
+    pub(crate) attempts: u32,
+    /// The complete removal plus absence check; this does not extend retries.
+    pub(crate) elapsed_ms: u64,
+    /// Exactly the final returned io::Error::raw_os_error(), without guessing.
+    pub(crate) final_os_error: Option<i32>,
+    pub(crate) terminal_phase: TreeRemovalPhase,
+    pub(crate) absence_checked: bool,
+    /// None means absence was not established either way, not an absent tree.
+    pub(crate) absent: Option<bool>,
+    /// Existing failed-attempt records, at most ATTEMPTS entries per call.
+    pub(crate) observations: Vec<Value>,
+}
 
 fn remove_with_retry(
     mut remove: impl FnMut() -> io::Result<()>,
@@ -46,18 +75,76 @@ pub fn remove_owned_tree(path: &Path, observations: &mut Vec<Value>) -> io::Resu
     remove_owned_tree_with(path, observations, || fs::remove_dir_all(path))
 }
 
+pub(crate) fn remove_owned_tree_observed(path: &Path) -> (io::Result<()>, TreeRemovalFacts) {
+    remove_owned_tree_observed_with(
+        || fs::remove_dir_all(path),
+        || thread::sleep(INTERVAL),
+        || fs::symlink_metadata(path).map(|_| ()),
+    )
+}
+
 /// The diagnostic supplies one removal implementation; retry and absence checks stay here.
 pub(crate) fn remove_owned_tree_with(
     path: &Path,
     observations: &mut Vec<Value>,
     remove: impl FnMut() -> io::Result<()>,
 ) -> io::Result<()> {
-    remove_with_retry(remove, || thread::sleep(INTERVAL), observations)?;
-    match fs::symlink_metadata(path) {
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error),
-        Ok(_) => Err(io::Error::other("Private tree still exists after deletion")),
-    }
+    let (result, facts) = remove_owned_tree_observed_with(
+        remove,
+        || thread::sleep(INTERVAL),
+        || fs::symlink_metadata(path).map(|_| ()),
+    );
+    observations.extend(facts.observations);
+    result
+}
+
+/// Keep the original retry loop and final absence semantics in one place. Tests
+/// inject operations and pauses, without changing production retry timing.
+fn remove_owned_tree_observed_with(
+    mut remove: impl FnMut() -> io::Result<()>,
+    pause: impl FnMut(),
+    probe_presence: impl FnOnce() -> io::Result<()>,
+) -> (io::Result<()>, TreeRemovalFacts) {
+    let started = Instant::now();
+    let mut attempts = 0;
+    let mut observations = Vec::new();
+    let mut terminal_phase = TreeRemovalPhase::Remove;
+    let mut absence_checked = false;
+    let mut absent = None;
+    let result = remove_with_retry(
+        || {
+            attempts += 1;
+            remove()
+        },
+        pause,
+        &mut observations,
+    )
+    .and_then(|()| {
+        absence_checked = true;
+        terminal_phase = TreeRemovalPhase::AbsenceCheck;
+        match probe_presence() {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                absent = Some(true);
+                terminal_phase = TreeRemovalPhase::Complete;
+                Ok(())
+            }
+            Err(error) => Err(error),
+            Ok(()) => {
+                absent = Some(false);
+                Err(io::Error::other("Private tree still exists after deletion"))
+            }
+        }
+    });
+    let facts = TreeRemovalFacts {
+        attempts,
+        elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        final_os_error: result.as_ref().err().and_then(io::Error::raw_os_error),
+        terminal_phase,
+        absence_checked,
+        absent,
+        observations,
+    };
+    (result, facts)
 }
 
 /// Only a canonical, concrete local/domain user SID may receive cleanup access.
@@ -80,6 +167,250 @@ pub fn concrete_user_sid(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn absent() -> io::Result<()> {
+        Err(io::Error::new(io::ErrorKind::NotFound, "synthetic absence"))
+    }
+
+    #[test]
+    fn observed_success_and_not_found_both_require_independent_absence() {
+        for remove_was_not_found in [false, true] {
+            let mut probes = 0;
+            let (result, facts) = remove_owned_tree_observed_with(
+                || {
+                    if remove_was_not_found {
+                        absent()
+                    } else {
+                        Ok(())
+                    }
+                },
+                || panic!("Success and NotFound must not pause"),
+                || {
+                    probes += 1;
+                    absent()
+                },
+            );
+            result.unwrap();
+            assert_eq!(probes, 1);
+            assert_eq!(facts.attempts, 1);
+            assert_eq!(facts.terminal_phase, TreeRemovalPhase::Complete);
+            assert!(facts.absence_checked);
+            assert_eq!(facts.absent, Some(true));
+            assert_eq!(facts.final_os_error, None);
+            assert!(facts.observations.is_empty());
+        }
+    }
+
+    #[test]
+    fn observed_nonretryable_error_is_preserved_without_pause_or_absence_probe() {
+        let original = io::Error::from_raw_os_error(5);
+        let original_kind = original.kind();
+        let original_message = original.to_string();
+        let mut original = Some(original);
+        let (result, facts) = remove_owned_tree_observed_with(
+            || Err(original.take().expect("Exactly one remove call")),
+            || panic!("Error 5 must not pause"),
+            || panic!("A failed remove must not probe absence"),
+        );
+        let error = result.unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(5));
+        assert_eq!(error.kind(), original_kind);
+        assert_eq!(error.to_string(), original_message);
+        assert_eq!(facts.attempts, 1);
+        assert_eq!(facts.final_os_error, Some(5));
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Remove);
+        assert!(!facts.absence_checked);
+        assert_eq!(facts.absent, None);
+        assert_eq!(
+            facts.observations,
+            vec![json!({
+                "attempt":1,"osError":5,"retryableSharingOrLockViolation":false
+            })]
+        );
+    }
+
+    #[test]
+    fn observed_retry_success_counts_the_successful_remove_call() {
+        let mut calls = 0;
+        let mut pauses = 0;
+        let (result, facts) = remove_owned_tree_observed_with(
+            || {
+                calls += 1;
+                match calls {
+                    1 => Err(io::Error::from_raw_os_error(32)),
+                    2 => Err(io::Error::from_raw_os_error(33)),
+                    3 => Ok(()),
+                    _ => panic!("No remove call after success"),
+                }
+            },
+            || pauses += 1,
+            absent,
+        );
+        result.unwrap();
+        assert_eq!((calls, pauses, facts.attempts), (3, 2, 3));
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Complete);
+        assert_eq!(facts.final_os_error, None);
+        assert_eq!(facts.absent, Some(true));
+        assert_eq!(
+            facts.observations,
+            vec![
+                json!({"attempt":1,"osError":32,"retryableSharingOrLockViolation":true}),
+                json!({"attempt":2,"osError":33,"retryableSharingOrLockViolation":true}),
+            ]
+        );
+    }
+
+    #[test]
+    fn observed_exhausted_retries_remain_bounded_and_do_not_probe_absence() {
+        let mut pauses = 0;
+        let (result, facts) = remove_owned_tree_observed_with(
+            || Err(io::Error::from_raw_os_error(32)),
+            || pauses += 1,
+            || panic!("Exhausted removal must not probe absence"),
+        );
+        assert_eq!(result.unwrap_err().raw_os_error(), Some(32));
+        assert_eq!(facts.attempts as usize, ATTEMPTS);
+        assert_eq!(pauses, ATTEMPTS - 1);
+        assert_eq!(facts.observations.len(), ATTEMPTS);
+        assert_eq!(facts.final_os_error, Some(32));
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Remove);
+        assert!(!facts.absence_checked);
+        assert_eq!(facts.absent, None);
+        for (index, entry) in facts.observations.iter().enumerate() {
+            assert_eq!(
+                entry,
+                &json!({"attempt":index+1,"osError":32,
+                "retryableSharingOrLockViolation":true})
+            );
+        }
+    }
+
+    #[test]
+    fn observed_absence_error_is_the_final_error_and_is_never_retried() {
+        for remove_was_not_found in [false, true] {
+            let mut probes = 0;
+            let (result, facts) = remove_owned_tree_observed_with(
+                || {
+                    if remove_was_not_found {
+                        absent()
+                    } else {
+                        Ok(())
+                    }
+                },
+                || panic!("Absence errors must not retry removal"),
+                || {
+                    probes += 1;
+                    Err(io::Error::from_raw_os_error(5))
+                },
+            );
+            assert_eq!(result.unwrap_err().raw_os_error(), Some(5));
+            assert_eq!((facts.attempts, probes), (1, 1));
+            assert_eq!(facts.final_os_error, Some(5));
+            assert_eq!(facts.terminal_phase, TreeRemovalPhase::AbsenceCheck);
+            assert!(facts.absence_checked);
+            assert_eq!(facts.absent, None);
+            assert!(facts.observations.is_empty());
+        }
+    }
+
+    #[test]
+    fn observed_existing_tree_stays_an_error_even_after_remove_not_found() {
+        for remove_was_not_found in [false, true] {
+            let (result, facts) = remove_owned_tree_observed_with(
+                || {
+                    if remove_was_not_found {
+                        absent()
+                    } else {
+                        Ok(())
+                    }
+                },
+                || panic!("No retry after apparent removal"),
+                || Ok(()),
+            );
+            let error = result.unwrap_err();
+            assert_eq!(error.kind(), io::ErrorKind::Other);
+            assert_eq!(
+                error.to_string(),
+                "Private tree still exists after deletion"
+            );
+            assert_eq!(facts.attempts, 1);
+            assert_eq!(facts.final_os_error, None);
+            assert_eq!(facts.terminal_phase, TreeRemovalPhase::AbsenceCheck);
+            assert!(facts.absence_checked);
+            assert_eq!(facts.absent, Some(false));
+        }
+    }
+
+    #[test]
+    fn observed_facts_are_closed_and_do_not_serialize_error_text_or_paths() {
+        let (result, facts) = remove_owned_tree_observed_with(
+            || Err(io::Error::other("private path or arbitrary error text")),
+            || panic!("Non-OS error must not pause"),
+            || panic!("Non-OS failure must not probe absence"),
+        );
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "private path or arbitrary error text"
+        );
+        let value = serde_json::to_value(&facts).unwrap();
+        let mut keys: Vec<_> = value
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        assert_eq!(
+            keys,
+            [
+                "absenceChecked",
+                "absent",
+                "attempts",
+                "elapsedMs",
+                "finalOsError",
+                "observations",
+                "terminalPhase"
+            ]
+        );
+        assert_eq!(value["terminalPhase"], "remove");
+        assert_eq!(value["finalOsError"], Value::Null);
+        assert_eq!(value["absent"], Value::Null);
+        assert!(value["elapsedMs"].as_u64().is_some());
+        assert_eq!(
+            value["observations"],
+            json!([
+                {"attempt":1,"osError":null,"retryableSharingOrLockViolation":false}
+            ])
+        );
+        assert!(!value.to_string().contains("private path"));
+        assert_eq!(
+            serde_json::to_value(TreeRemovalPhase::AbsenceCheck).unwrap(),
+            "absence-check"
+        );
+        assert_eq!(
+            serde_json::to_value(TreeRemovalPhase::Complete).unwrap(),
+            "complete"
+        );
+    }
+
+    #[test]
+    fn legacy_observation_prefix_and_original_error_are_retained() {
+        let mut observations = vec![json!({"previousCall":true})];
+        let error = remove_owned_tree_with(
+            Path::new("unused because remove fails before metadata"),
+            &mut observations,
+            || Err(io::Error::from_raw_os_error(5)),
+        )
+        .unwrap_err();
+        assert_eq!(error.raw_os_error(), Some(5));
+        assert_eq!(
+            observations,
+            vec![
+                json!({"previousCall":true}),
+                json!({"attempt":1,"osError":5,"retryableSharingOrLockViolation":false})
+            ]
+        );
+    }
 
     #[test]
     fn retry_only_transient_windows_sharing_errors_with_a_bound() {
@@ -158,9 +489,14 @@ mod tests {
         fs::write(root.join("synthetic"), b"owned test data").unwrap();
         remove_owned_tree(&root, &mut Vec::new()).unwrap();
         assert_eq!(
-            fs::symlink_metadata(root).unwrap_err().kind(),
+            fs::symlink_metadata(&root).unwrap_err().kind(),
             io::ErrorKind::NotFound
         );
+        let (result, facts) = remove_owned_tree_observed(&root);
+        result.unwrap();
+        assert_eq!(facts.attempts, 1);
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Complete);
+        assert_eq!(facts.absent, Some(true));
     }
 
     #[cfg(windows)]
