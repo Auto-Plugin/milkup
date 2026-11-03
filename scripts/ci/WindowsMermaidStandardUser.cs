@@ -516,6 +516,17 @@ public static class WindowsMermaidStandardUser
         start.Arguments = InstallerArguments(installDirectory);
         return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "Installer", expectedSid, expectedSession, installDirectory);
     }
+    // Test-only diagnostic admission: callers cannot supply another test or any
+    // renderer/source arguments. The trusted parent test owns its LowBox child.
+    public const string TokenProbeParentTest = "launcher::token_diagnostic::parent_observes_suspended_and_self_tokens";
+    public static Dictionary<string, object> RunOwnedTokenProbe(string application, string directory,
+        string stdoutPath, string stderrPath, int timeoutMs) {
+        if (timeoutMs < 100 || timeoutMs > 120000) throw new ArgumentException("Token-probe deadline budget rejected");
+        var start = CapturedStart(application, directory);
+        foreach (string argument in new[] { "--exact", TokenProbeParentTest, "--ignored", "--nocapture", "--test-threads=1" })
+            start.ArgumentList.Add(argument);
+        return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "TokenProbe", null, 0, null);
+    }
     public static Dictionary<string, object> RunNodeScript(string application, string[] arguments,
         string directory, string stdoutPath, string stderrPath, int timeoutMs) {
         if (timeoutMs < 100 || timeoutMs > 900000) throw new ArgumentException("Node deadline budget rejected");
