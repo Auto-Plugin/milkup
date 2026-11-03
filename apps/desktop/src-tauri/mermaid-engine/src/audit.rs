@@ -19,14 +19,30 @@ pub(crate) fn emit(record: &Value) {
         .map(|duration| duration.as_millis())
         .unwrap_or_default());
     if let Ok(line) = serde_json::to_string(&record) {
-        // Refuse unexpected expansion; diagnostics cannot block or replace the
-        // actual native result with their own error. One bounded line per phase.
+        // A bounded, nonblocking producer keeps diagnostics off the render
+        // deadline. If stderr stops draining, evidence is incomplete and its
+        // acceptance check fails; the renderer still retains its own result.
         if line.len() <= 8192 {
-            use std::io::Write;
-            let _ = writeln!(
-                std::io::stderr().lock(),
-                "MILKUP_MERMAID_NATIVE_AUDIT {line}"
-            );
+            use std::sync::{mpsc::SyncSender, OnceLock};
+            static SENDER: OnceLock<Option<SyncSender<String>>> = OnceLock::new();
+            if let Some(sender) = SENDER.get_or_init(|| {
+                let (sender, receiver) = std::sync::mpsc::sync_channel::<String>(16);
+                std::thread::Builder::new()
+                    .name("mermaid-audit".into())
+                    .spawn(move || {
+                        use std::io::Write;
+                        for line in receiver {
+                            let _ = writeln!(
+                                std::io::stderr().lock(),
+                                "MILKUP_MERMAID_NATIVE_AUDIT {line}"
+                            );
+                        }
+                    })
+                    .ok()
+                    .map(|_| sender)
+            }) {
+                let _ = sender.try_send(line);
+            }
         }
     }
 }
@@ -62,6 +78,7 @@ pub(crate) fn finished(
     json!({
         "phase":"finished", "requestId":request_id,"productPid":std::process::id(),
         "successful":report["success"]==true,
+        "rendererErrorKind":renderer_error_kind(&report["rendererMetadata"]),
         "hostSid":report["hostToken"]["userSid"],
         "childSid":report["suspendedToken"]["userSid"],
         "browserSid":report["browserToken"]["userSid"],
@@ -86,9 +103,57 @@ pub(crate) fn finished(
         "osAllNetworkDenied":false
     })
 }
+fn renderer_error_kind(metadata: &Value) -> Option<&'static str> {
+    if metadata["status"] != "error" {
+        return None;
+    }
+    // The fixed engine wraps bootstrap's JSON result in engineMessage. Never
+    // forward the source-bearing message or classify a generic IPC failure.
+    let rendered = &metadata["engineMessage"];
+    let message = if rendered["phase"] == "error" {
+        rendered["message"].as_str()
+    } else {
+        None
+    };
+    Some(match message {
+        Some(message)
+            if message.starts_with(
+                "UnknownDiagramError: No diagram type detected matching given configuration",
+            ) =>
+        {
+            "unknown-diagram"
+        }
+        Some(message) if message.starts_with("Error: Parse error on line ") => "parse-error",
+        _ => "other",
+    })
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn renderer_error_kind_only_accepts_fixed_bootstrap_error_envelope() {
+        for (metadata, expected) in [
+            (
+                json!({"status":"error","engineMessage":{"phase":"error","message":"UnknownDiagramError: No diagram type detected matching given configuration for text: private source"}}),
+                Some("unknown-diagram"),
+            ),
+            (
+                json!({"status":"error","engineMessage":{"phase":"error","message":"Error: Parse error on line 2: private source"}}),
+                Some("parse-error"),
+            ),
+            (
+                json!({"status":"error","engineMessage":{"phase":"rendered","message":"UnknownDiagramError: No diagram type detected matching given configuration"}}),
+                Some("other"),
+            ),
+            (
+                json!({"status":"error","message":"UnknownDiagramError: No diagram type detected matching given configuration"}),
+                Some("other"),
+            ),
+            (json!({"status":"ok"}), None),
+        ] {
+            assert_eq!(renderer_error_kind(&metadata), expected);
+        }
+    }
     #[test]
     fn diagnostics_only_copy_closed_ownership_fields_never_source_paths_or_errors() {
         let input = json!({"success":true,"hostToken":{"userSid":"S-1-5-21-1-2-3-4","standardUserTokenEvidence":true},
