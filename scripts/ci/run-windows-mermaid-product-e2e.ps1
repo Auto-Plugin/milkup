@@ -127,6 +127,100 @@ function Import-Observer([string]$Path) {
     Assert-PlainPath $Path
     if (-not ('WindowsMermaidStandardUser' -as [type])) { Add-Type -Path $Path -ErrorAction Stop }
 }
+function Read-ExactProfileState([string]$Sid, [string]$KnownPath) {
+    $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\' + $Sid
+    $state = [ordered]@{
+        observedAt = [DateTime]::UtcNow.ToString('o'); sid = $Sid; readOnly = $true
+        profileKeyPresent = $null; profilePath = $KnownPath; profilePathPresent = $null
+        registryState = $null; registryRefCount = $null; hkuHivePresent = $null
+        cimLoaded = $null; cimMatches = $null; diagnosticErrors = @()
+    }
+    try {
+        $state.profileKeyPresent = Test-Path -LiteralPath $key -ErrorAction Stop
+        if ($state.profileKeyPresent) {
+            $properties = Get-ItemProperty -LiteralPath $key -ErrorAction Stop
+            $state.profilePath = [Environment]::ExpandEnvironmentVariables($properties.ProfileImagePath)
+            foreach ($pair in @(@('State', 'registryState'), @('RefCount', 'registryRefCount'))) {
+                $property = $properties.PSObject.Properties[$pair[0]]
+                if ($null -ne $property) { $state[$pair[1]] = $property.Value }
+            }
+        }
+        if ($state.profilePath) { $state.profilePathPresent = Test-Path -LiteralPath $state.profilePath -ErrorAction Stop }
+    } catch { $state.diagnosticErrors += $_.Exception.Message }
+    try { $state.hkuHivePresent = Test-Path -LiteralPath ('Registry::HKEY_USERS\' + $Sid) -ErrorAction Stop }
+    catch { $state.diagnosticErrors += $_.Exception.Message }
+    try {
+        $profiles = @(Get-CimInstance -ClassName Win32_UserProfile -Filter ("SID = '" + $Sid + "'") -OperationTimeoutSec 2 -ErrorAction Stop)
+        $state.cimMatches = $profiles.Count
+        if ($profiles.Count -eq 1) { $state.cimLoaded = [bool]$profiles[0].Loaded }
+        elseif ($profiles.Count -gt 1) { $state.diagnosticErrors += 'More than one profile matched the exact SID' }
+    } catch { $state.diagnosticErrors += $_.Exception.Message }
+    return $state
+}
+function Read-ExactSidProcesses([string]$Sid) {
+    return [WindowsMermaidStandardUser]::ObserveExactSidProcesses($Sid)
+}
+function Invoke-ExactProfileDelete([string]$Sid) {
+    [WindowsMermaidStandardUser]::DeleteTemporaryProfile($Sid)
+}
+function Remove-ExactProfileWithRetry([string]$Sid, $Audit) {
+    $record = [ordered]@{
+        maxAttempts = 6; retryWindowMs = 3000; retryDelayMs = 500
+        attempts = @(); processChecks = @(); lastProcessObservation = $null; firstSharingViolationState = $null
+        before = $null; after = $null; elapsedMs = 0
+    }
+    $Audit['profileCleanup'] = $record
+    $record.before = Read-ExactProfileState $Sid $Audit.actualWindowsProfile
+    if ($record.before.profilePath) { $Audit.actualWindowsProfile = $record.before.profilePath }
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $completed = $false
+    try {
+        if ($null -eq $record.before.profileKeyPresent) { throw 'Exact profile registry state could not be observed' }
+        if ($record.before.profileKeyPresent -and -not $Audit.actualWindowsProfile) { throw 'Exact profile path could not be observed' }
+        for ($attempt = 1; $attempt -le $record.maxAttempts; $attempt++) {
+            $observation = Read-ExactSidProcesses $Sid
+            $record.lastProcessObservation = $observation
+            $record.processChecks += @{ phase = 'before-delete'; attempt = $attempt; elapsedMs = $watch.ElapsedMilliseconds; complete = $observation.complete; matchCount = $observation.matchCount }
+            if ($observation.complete -ne $true -or $observation.matchCount -ne 0) {
+                throw 'Exact-SID processes remain or observation is incomplete; preserve profile/account without deleting or killing them'
+            }
+            if (-not $record.before.profileKeyPresent) { $completed = $true; break }
+            if ($attempt -gt 1 -and $watch.ElapsedMilliseconds -ge $record.retryWindowMs) { throw 'Profile sharing-violation retry window expired; see recorded Win32 errors' }
+            try {
+                Invoke-ExactProfileDelete $Sid
+                $record.attempts += @{ attempt = $attempt; elapsedMs = $watch.ElapsedMilliseconds; win32Error = $null; returnedSuccess = $true }
+                $completed = $true
+                break
+            } catch {
+                $exception = $_.Exception
+                while ($null -ne $exception -and $exception -isnot [ComponentModel.Win32Exception]) { $exception = $exception.InnerException }
+                $code = $(if ($null -ne $exception) { $exception.NativeErrorCode } else { $null })
+                $record.attempts += @{ attempt = $attempt; elapsedMs = $watch.ElapsedMilliseconds; win32Error = $code; returnedSuccess = $false; error = $_.Exception.Message }
+                if ($code -eq 32 -and $null -eq $record.firstSharingViolationState) {
+                    $record.firstSharingViolationState = Read-ExactProfileState $Sid $Audit.actualWindowsProfile
+                }
+                $observation = Read-ExactSidProcesses $Sid
+                $record.lastProcessObservation = $observation
+                $record.processChecks += @{ phase = 'after-delete-failure'; attempt = $attempt; elapsedMs = $watch.ElapsedMilliseconds; complete = $observation.complete; matchCount = $observation.matchCount }
+                if ($observation.complete -ne $true -or $observation.matchCount -ne 0) {
+                    throw 'Profile delete failed and exact-SID processes remain or observation is incomplete; preserve profile/account'
+                }
+                if ($code -ne 32 -or $attempt -ge $record.maxAttempts -or $watch.ElapsedMilliseconds -ge $record.retryWindowMs) { throw }
+                $remaining = $record.retryWindowMs - $watch.ElapsedMilliseconds
+                Start-Sleep -Milliseconds ([Math]::Min($record.retryDelayMs, $remaining))
+            }
+        }
+    } finally {
+        $record.elapsedMs = $watch.ElapsedMilliseconds
+        $record.after = Read-ExactProfileState $Sid $Audit.actualWindowsProfile
+    }
+    if (-not $completed -or $record.after.profileKeyPresent -ne $false -or
+        ($Audit.actualWindowsProfile -and $record.after.profilePathPresent -ne $false) -or
+        $record.after.hkuHivePresent -ne $false -or $record.after.cimLoaded -eq $true -or $record.after.cimMatches -gt 1) {
+        throw 'Exact temporary profile removal is unconfirmed; retain the account and profile diagnostics'
+    }
+    $Audit.profileDeleted = $true
+}
 function Invoke-StandardChild {
     Assert-HostedCandidate
     $spec = Read-SmallJson $ChildSpecPath
@@ -401,22 +495,17 @@ try {
     if ($null -ne $user) {
         if ($processesEmpty) {
             try {
-                $profileKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\' + $user.SID.Value
-                if (Test-Path -LiteralPath $profileKey) {
-                    $profile = [Environment]::ExpandEnvironmentVariables((Get-ItemProperty -LiteralPath $profileKey).ProfileImagePath)
-                    $audit.actualWindowsProfile = $profile
-                    [WindowsMermaidStandardUser]::DeleteTemporaryProfile($user.SID.Value)
-                    if ((Test-Path -LiteralPath $profileKey) -or (Test-Path -LiteralPath $profile)) { throw 'Exact temporary account profile remains' }
-                }
-                $audit.profileDeleted = $true
+                Remove-ExactProfileWithRetry $user.SID.Value $audit
             } catch { $audit.cleanupErrors += 'Exact temporary-profile cleanup failed: ' + $_.Exception.Message }
-            try {
-                $current = Get-LocalUser -Name $accountName -ErrorAction Stop
-                if ($current.SID.Value -cne $user.SID.Value -or $current.Description -cne $description) { throw 'Account identity changed; refuse removal' }
-                Remove-LocalUser -SID $user.SID -ErrorAction Stop
-                if (Get-LocalUser -SID $user.SID -ErrorAction SilentlyContinue) { throw 'Exact temporary account remains' }
-                $audit.accountDeleted = $true
-            } catch { $audit.cleanupErrors += 'Exact temporary-account cleanup failed: ' + $_.Exception.Message }
+            if ($audit.profileDeleted -eq $true) {
+                try {
+                    $current = Get-LocalUser -Name $accountName -ErrorAction Stop
+                    if ($current.SID.Value -cne $user.SID.Value -or $current.Description -cne $description) { throw 'Account identity changed; refuse removal' }
+                    Remove-LocalUser -SID $user.SID -ErrorAction Stop
+                    if (Get-LocalUser -SID $user.SID -ErrorAction SilentlyContinue) { throw 'Exact temporary account remains' }
+                    $audit.accountDeleted = $true
+                } catch { $audit.cleanupErrors += 'Exact temporary-account cleanup failed: ' + $_.Exception.Message }
+            } else { $audit.cleanupErrors += 'Profile removal unconfirmed: preserve the exact account for explicit review' }
         } else { $audit.cleanupErrors += 'Process emptiness uncertain: preserve the exact account/profile for explicit review' }
     }
     if ($stageCreated) {

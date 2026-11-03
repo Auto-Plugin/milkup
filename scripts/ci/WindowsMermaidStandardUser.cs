@@ -43,6 +43,8 @@ public static class WindowsMermaidStandardUser
     struct Luid { public uint low; public int high; }
     [StructLayout(LayoutKind.Sequential)]
     struct UserObjectFlags { public int inherit, reserved; public uint flags; }
+    [StructLayout(LayoutKind.Sequential)]
+    struct WtsProcess { public uint session, pid; public IntPtr name, sid; }
 
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern bool CreateProcessWithLogonW(string user, string domain, IntPtr password, uint logon,
@@ -68,6 +70,9 @@ public static class WindowsMermaidStandardUser
     [DllImport("kernel32.dll", SetLastError = true)] static extern bool ProcessIdToSessionId(uint pid, out uint session);
     [DllImport("kernel32.dll")] static extern uint WTSGetActiveConsoleSessionId();
     [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr pointer);
+    [DllImport("wtsapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool WTSEnumerateProcessesW(IntPtr server, uint reserved, uint version, out IntPtr records, out uint count);
+    [DllImport("wtsapi32.dll")] static extern void WTSFreeMemory(IntPtr memory);
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool GetTokenInformation(IntPtr token, int kind, IntPtr data, uint size, out uint needed);
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool ConvertSidToStringSidW(IntPtr sid, out IntPtr text);
@@ -253,6 +258,59 @@ public static class WindowsMermaidStandardUser
         Accounting value;
         Check(QueryInformationJobObject(job, 1, out value, (uint)Marshal.SizeOf<Accounting>(), IntPtr.Zero), "Query exact owned outer Job");
         return value.active;
+    }
+    public static Dictionary<string, object> ObserveExactSidProcesses(string expectedSid) {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(expectedSid, @"^S-1-5-21-\d+-\d+-\d+-\d+$"))
+            throw new ArgumentException("Expected exact temporary local-account SID");
+        var records = new List<Dictionary<string, object>>();
+        var errors = new List<string>();
+        var result = new Dictionary<string, object> {
+            { "sid", expectedSid }, { "readOnly", true }, { "complete", false },
+            { "recordLimit", 64 }, { "kernelEntriesWithoutSid", 0 }
+        };
+        IntPtr memory = IntPtr.Zero;
+        try {
+            uint count;
+            Check(WTSEnumerateProcessesW(IntPtr.Zero, 0, 1, out memory, out count), "Observe local process-owner SID snapshot");
+            if (count > 4096) throw new InvalidOperationException("Local process snapshot exceeds observation budget");
+            int stride = Marshal.SizeOf<WtsProcess>();
+            int matchingEntries = 0;
+            for (int index = 0; index < count; index++) {
+                var entry = Marshal.PtrToStructure<WtsProcess>(IntPtr.Add(memory, index * stride));
+                if (entry.sid == IntPtr.Zero) {
+                    if (entry.pid == 0 || entry.pid == 4)
+                        result["kernelEntriesWithoutSid"] = (int)result["kernelEntriesWithoutSid"] + 1;
+                    else errors.Add("A non-kernel process owner SID was unavailable");
+                    continue;
+                }
+                if (!String.Equals(Sid(entry.sid), expectedSid, StringComparison.Ordinal)) continue;
+                if (++matchingEntries > 64) throw new InvalidOperationException("Exact-SID process observation exceeds 64-record budget");
+                var record = ObserveProcesses(new[] { entry.pid })[0];
+                object observedToken;
+                var token = record.TryGetValue("token", out observedToken) ? observedToken as Dictionary<string, object> : null;
+                if (token == null || !Equals(token["sid"], expectedSid) || Convert.ToInt64(token["sessionId"]) != entry.session) {
+                    // Do not retain a replacement process belonging to another SID.
+                    errors.Add("Exact-SID PID " + entry.pid + " identity could not be confirmed against its snapshot");
+                    continue;
+                }
+                record["enumeratedSid"] = expectedSid;
+                record["enumeratedSessionId"] = entry.session;
+                object imageValue;
+                string image = record.TryGetValue("image", out imageValue) ? imageValue as string : null;
+                record["imageTruncated"] = image != null && image.Length > 1024;
+                if (image != null) record["image"] = image.Substring(0, Math.Min(image.Length, 1024));
+                string name = Marshal.PtrToStringUni(entry.name);
+                record["enumeratedImageTruncated"] = name != null && name.Length > 256;
+                record["enumeratedImage"] = name == null ? null : name.Substring(0, Math.Min(name.Length, 256));
+                records.Add(record);
+            }
+            result["complete"] = errors.Count == 0;
+        } catch (Exception error) { errors.Add(error.Message); }
+        finally { if (memory != IntPtr.Zero) WTSFreeMemory(memory); }
+        result["records"] = records.ToArray();
+        result["matchCount"] = records.Count;
+        result["errors"] = errors.ToArray();
+        return result;
     }
     sealed class BoundedCapture {
         public long Bytes;
