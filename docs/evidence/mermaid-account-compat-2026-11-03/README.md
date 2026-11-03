@@ -66,3 +66,35 @@ their exact outputs are retained separately. Separate real Windows
 pure-standard and filtered-admin product runs, plus actual elevated-host rejection,
 are required before claiming compatibility. Local policy tests or a matching
 account name are not native execution evidence.
+
+### First real Windows attempt: failed
+
+[Run 41675610602](https://github.com/Auto-Plugin/milkup/actions/runs/41675610602)
+tested `1f64a10fa6c7c86488ccca31fa90be221c86ca38`. Private Windows tests, desktop
+228 tests, production-assets linking, strict source checks and the actual
+elevated-host rejection test passed. Both fresh account fixtures produced the
+expected real host token: Default/standard and Limited/deny-only administrator.
+
+Both editor runs then failed step 02 before producing a diagram. Each has two
+admissions/two finished records, zero ready/browser events and zero diagram PNGs.
+The suspended standard child is low-integrity Default with two privileges, one
+outside the newly imposed sandbox list. The filtered child is low-integrity
+Limited with the same counts. Both were rejected before resume/source delivery.
+Host observations directly identify ChangeNotify and IncreaseWorkingSet; the
+original child records preserve counts only, so the second child's privilege
+name is not yet directly proven.
+
+Every created resource has clean teardown fields, and the exact new profiles,
+accounts, group memberships and staging directories were cleaned. The strict
+ledger nevertheless rejects these pre-ready rendering failures; resource cleanup
+must not be relabeled a passed rendering ledger or product acceptance. Only
+failure/window screenshots exist, so this attempt does not validate the new
+Windows C4 output or the wide clean-close path. [Original failure evidence](attempt-41675610602/analysis.json)
+is preserved without rewriting outcomes.
+
+The next step is a fixed, test-only token observation with no COM, WebView,
+Mermaid or document input. It will compare parent and LowBox self observations,
+including actual privilege names, linked-token type/impersonation level and
+actual handle access. A diagnostic success means observations and cleanup were
+complete, not that administrator rendering worked. The rendering gate remains
+unchanged while these facts are investigated.
