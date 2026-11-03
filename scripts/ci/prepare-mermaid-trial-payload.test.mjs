@@ -519,6 +519,8 @@ for (const scenario of [
   'missing-token-facts',
   'filtered-account-mixed-in',
   'native-privileged-browser',
+  'native-limited-child',
+  'native-limited-browser',
   'installer-disabled-debug-privilege',
 ]) {
   test(`final delivery gate rejects ${scenario}`, async (t) => {
@@ -551,6 +553,10 @@ for (const scenario of [
     if (scenario === 'filtered-account-mixed-in') f.product.expectedAccountKind = 'filtered-admin'
     if (scenario === 'native-privileged-browser')
       f.product.nativeAudit.at(-1).browserTokenEvidence.sandboxDisallowedPrivilegeCount = 1
+    if (scenario === 'native-limited-child')
+      f.product.nativeAudit.at(-1).childTokenEvidence.elevationType = 3
+    if (scenario === 'native-limited-browser')
+      f.product.nativeAudit.at(-1).browserTokenEvidence.elevationType = 3
     if (scenario === 'installer-disabled-debug-privilege')
       f.installation.installerRun.startedProcess.token.privileges[0] = {
         name: 'SeDebugPrivilege',

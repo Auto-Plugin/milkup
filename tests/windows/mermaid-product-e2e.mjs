@@ -272,7 +272,7 @@ function validateTokenAuthority(token, expectedSessionId, role, expectedAccountK
     assert.equal(token.administratorsGroupAttributes, filtered ? 16 : null)
   } else {
     assert(uint32(token.integrityRid) && token.integrityRid <= 4096, 'Low-integrity sandbox')
-    assert([1, 3].includes(token.elevationType), 'Non-elevated sandbox token type')
+    assert.equal(token.elevationType, 1, 'Default sandbox token without a linked token required')
     assert.equal(typeof token.administratorsGroupPresentIncludingDenyOnly, 'boolean')
     assert.equal(
       token.administratorsGroupAttributes,

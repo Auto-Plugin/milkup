@@ -223,7 +223,7 @@ const nativeToken = (kind = 'pure-standard', sandbox = false) => ({
   tokenType: 1,
   sessionId: 2,
   elevated: false,
-  elevationType: kind === 'filtered-admin' ? 3 : 1,
+  elevationType: !sandbox && kind === 'filtered-admin' ? 3 : 1,
   integrityRid: sandbox ? 4096 : 8192,
   uiAccess: false,
   ownerIsUser: true,
@@ -453,6 +453,9 @@ test('native audit checks filtered host class and exact low-privilege fresh chil
     browserTokenEvidence: nativeToken('filtered-admin', true),
   }
   const ledger = new AuditLedger(sid, 2, 'filtered-admin')
+  assert.equal(facts.hostTokenEvidence.elevationType, 3)
+  assert.equal(facts.childTokenEvidence.elevationType, 1)
+  assert.equal(facts.browserTokenEvidence.elevationType, 1)
   append(ledger, 'admitted')
   append(ledger, 'started', facts)
   append(ledger, 'finished', { ...completion, ...facts })
@@ -468,6 +471,8 @@ test('native audit checks filtered host class and exact low-privilege fresh chil
     { browserAppContainerSid: 'S-1-15-2-01-2-3-4-5-6-7' },
     { childTokenEvidence: { ...facts.childTokenEvidence, integrityRid: 8192 } },
     { childTokenEvidence: { ...facts.childTokenEvidence, sessionId: 3 } },
+    { childTokenEvidence: { ...facts.childTokenEvidence, elevationType: 3 } },
+    { browserTokenEvidence: { ...facts.browserTokenEvidence, elevationType: 3 } },
     { browserTokenEvidence: { ...facts.browserTokenEvidence, sandboxDisallowedPrivilegeCount: 1 } },
     { browserTokenEvidence: { ...facts.browserTokenEvidence, administratorsGroupAttributes: 20 } },
   ]) {
