@@ -473,5 +473,11 @@
     "42-flow-wide": "16 stages retained at natural PNG width; product horizontal-scroll acceptance remains separate"
   },
   "scope": "Native helper corpus; not 50-diagram product editor acceptance",
-  "cleanupEvidence": "linux-helper-native-corpus.log includes guardian cleanup-complete and checked private-directory-clean for every request"
+  "cleanupEvidence": {
+    "log": "linux-helper-native-corpus.log",
+    "guardianCleanupCompleteAsyncTraces": 49,
+    "confirmedGuardianExits": 50,
+    "confirmedPrivateDirectoryRemovals": 50,
+    "traceCaveat": "Guardian timing traces use a bounded asynchronous sender; one final cleanup trace was not retained. Direct parent checks succeeded for all 50."
+  }
 }

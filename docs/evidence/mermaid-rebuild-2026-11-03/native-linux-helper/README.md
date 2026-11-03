@@ -11,8 +11,10 @@ checked-cleanup tests. `linux-helper-native-cancel-final.log` records cancellati
 followed by another render; each guardian reports `cleanup-complete` only after
 its existing ownership loop observes `ECHILD`. The backend additionally confirms
 guardian exit and checks removal of its owned extension directory before
-publishing an image. The 50-case log records these same cleanup checks for each
-fixture. Denied removal is tested through an injected PermissionDenied result;
+publishing an image. The 50-case log has 50 confirmed guardian exits and 50
+checked directory removals. It retains 49 of the guardian's asynchronous,
+best-effort `cleanup-complete` trace messages; the missing trace is not counted
+as an additional recorded event. Denied removal is tested through an injected PermissionDenied result;
 NotFound is accepted as already cleaned. Cleanup failures stop further native
 launches and retain the owned path in the error.
 
