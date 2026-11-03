@@ -80,48 +80,126 @@ function Plain-Files([string]$Root) {
     }
     return $files.ToArray()
 }
+function Get-ChildEvidenceNames {
+    $names = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    foreach ($name in @('standard-context.json', 'standard-child-result.json', 'mermaid-product-e2e.json', 'node-stdout.log', 'node-stderr.log', 'edgedriver-native.log', 'edgedriver-stdio.log')) { $names.Add($name, $name) }
+    foreach ($fixture in @('ordinary', 'wide', 'c4', 'invalid')) {
+        $names.Add($fixture + '-product.log', $fixture + '-product.log')
+        foreach ($prefix in @('fixture-', 'saved-')) { $name = $prefix + $fixture + '.md'; $names.Add($name, $name + '.log') }
+    }
+    $steps = @('01-initial-disabled-source', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-invalid', '08-final-disable')
+    foreach ($step in $steps) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
+    $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
+    foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }
+    return ,$names
+}
+function Read-BoundedEvidenceProof([string]$Path, [long]$Limit, [string]$CopyTo = '', $Created = $null) {
+    Assert-PlainPath $Path
+    $inputStream = $null; $outputStream = $null; $hasher = $null
+    try {
+        $inputStream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+        $expected = $inputStream.Length
+        if ($expected -gt $Limit) { throw 'Evidence exceeds the read budget' }
+        if ($CopyTo) {
+            $outputStream = [IO.File]::Open($CopyTo, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+            if ($null -ne $Created) { $Created.Value = $true }
+        }
+        $hasher = [Security.Cryptography.IncrementalHash]::CreateHash([Security.Cryptography.HashAlgorithmName]::SHA256)
+        $buffer = [byte[]]::new(65536); [long]$total = 0
+        while ($true) {
+            $count = $inputStream.Read($buffer, 0, [int][Math]::Min($buffer.Length, $Limit - $total + 1))
+            if ($count -eq 0) { break }
+            $total += $count
+            if ($total -gt $Limit) { throw 'Evidence grew beyond the read budget' }
+            $hasher.AppendData($buffer, 0, $count)
+            if ($null -ne $outputStream) { $outputStream.Write($buffer, 0, $count) }
+        }
+        if ($total -ne $expected) { throw 'Evidence changed while reading' }
+        return [ordered]@{ bytes = $total; sha256 = [Convert]::ToHexString($hasher.GetHashAndReset()).ToLowerInvariant() }
+    } finally {
+        if ($null -ne $inputStream) { $inputStream.Dispose() }
+        if ($null -ne $outputStream) { $outputStream.Dispose() }
+        if ($null -ne $hasher) { $hasher.Dispose() }
+    }
+}
 function Copy-BoundedEvidence([string]$Source, [string]$Destination) {
-    $files = @(Plain-Files $Source)
-    if ($files.Count -gt 94) { throw 'Synthetic evidence leaves no room within the 96-file transfer budget' }
-    [long]$total = 0
-    foreach ($file in $files) {
-        $extension = $file.Extension.ToLowerInvariant()
-        $limit = $(if ($extension -ceq '.png') { 32MB } else { 2MB })
-        if ($extension -notin @('.json', '.png', '.log', '.txt', '.md') -or $file.Length -gt $limit) { throw 'Unexpected or oversized synthetic evidence file' }
-        $total += $file.Length
+    Assert-PlainPath $Source
+    $allowed = Get-ChildEvidenceNames
+    $state = @{ rejected = @(); rejectedCount = 0; hashBytes = 0L }
+    function Reject-Evidence($Item, [string]$Reason) {
+        $state.rejectedCount++
+        if ($state.rejected.Count -ge 64) { return }
+        $known = $null -ne $Item -and $allowed.ContainsKey($Item.Name)
+        $entry = [ordered]@{ relativePath = $null; nameSha256 = $null; bytes = $null; sha256 = $null; hashStatus = 'unavailable'; reason = $Reason }
+        if ($null -ne $Item) {
+            if ($known) { $entry.relativePath = $Item.Name }
+            else { $entry.nameSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Item.Name))).ToLowerInvariant(); $entry.hashStatus = 'not-read-unknown-name' }
+            if (-not $Item.PSIsContainer -and -not ($Item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                $entry.bytes = $Item.Length
+                if ($known) {
+                    $entry.hashStatus = 'not-read-budget'
+                    if ($Item.Length -le 32MB -and $state.hashBytes + $Item.Length + 1 -le 126MB) {
+                        try {
+                            $state.hashBytes += $Item.Length + 1
+                            $proof = Read-BoundedEvidenceProof $Item.FullName $Item.Length
+                            $entry.bytes = $proof.bytes; $entry.sha256 = $proof.sha256; $entry.hashStatus = 'complete'
+                        } catch { $entry.hashStatus = 'unavailable' }
+                    }
+                }
+            }
+        }
+        $state.rejected += $entry
     }
-    # Reserve two MiB for the manifest and the outer audit in the bounded artifact.
-    if ($total -gt 126MB) { throw 'Synthetic evidence leaves no room within the 128-MiB transfer budget' }
-    # Preserve only bounded, self-authored evidence as top-level files. The
-    # manifest records each original relative name; profile/UDF are outside Source.
-    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    [void]$names.Add('windows-standard-product-audit.json')
-    [void]$names.Add('evidence-files.json')
-    $records = @()
-    $number = 0
-    foreach ($file in $files) {
-        $number++
-        $relative = [IO.Path]::GetRelativePath($Source, $file.FullName)
-        $leaf = [regex]::Replace($file.Name, '[^a-zA-Z0-9._-]', '_')
-        if ($file.Extension.ToLowerInvariant() -in @('.txt', '.md')) { $leaf += '.log' }
-        $flat = $(if ($relative -ceq $file.Name) { $leaf } else { ('{0:d3}-' -f $number) + $leaf })
-        if (-not $names.Add($flat)) { throw 'Synthetic evidence filename collision' }
-        $target = Join-Path $Destination $flat
+    # Only known top-level harness files can pass the unchanged artifact whitelist.
+    # Never recurse into a profile/UDF or an unknown directory.
+    $items = [Collections.Generic.List[object]]::new()
+    $observed = 0
+    foreach ($path in [IO.Directory]::EnumerateFileSystemEntries($Source)) {
+        if (++$observed -ge 4096) { Reject-Evidence $null 'entry-limit'; break }
+        $item = Get-Item -LiteralPath $path -Force
+        if (-not $allowed.ContainsKey($item.Name)) { Reject-Evidence $item 'unapproved-name'; continue }
+        if ($item.PSIsContainer) { Reject-Evidence $item 'not-regular-file'; continue }
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { Reject-Evidence $item 'reparse-point'; continue }
+        $items.Add($item)
+    }
+    $records = @(); [long]$total = 0
+    # Preserve small diagnostic files before spending the aggregate budget on PNGs.
+    foreach ($file in ($items | Sort-Object @{ Expression = { $_.Extension -ceq '.png' } }, Name)) {
+        $limit = $(if ($file.Extension -ceq '.png') { 32MB } else { 2MB })
+        if ($file.Length -gt $limit) { Reject-Evidence $file 'file-size'; continue }
+        if ($records.Count -ge 94) { Reject-Evidence $file 'file-count'; continue }
+        if ($total + $file.Length -gt 126MB) { Reject-Evidence $file 'aggregate-size'; continue }
+        $target = Join-Path $Destination $allowed[$file.Name]
         Assert-Contained $target $Destination
-        if (Test-Path -LiteralPath $target) { throw 'Evidence destination collision' }
-        $proof = File-Proof $file.FullName
-        $records += [ordered]@{ relativePath = $relative; retainedName = $flat; bytes = $proof.bytes; sha256 = $proof.sha256; sourcePath = $file.FullName }
+        if (Test-Path -LiteralPath $target) { Reject-Evidence $file 'destination-exists'; continue }
+        $reason = 'source-read'
+        $created = $false
+        try {
+            $reason = 'copy-failed'
+            $proof = Read-BoundedEvidenceProof $file.FullName ([Math]::Min($limit, 126MB - $total)) $target ([ref]$created)
+            $retained = Read-BoundedEvidenceProof $target $limit
+            $reason = 'target-mismatch'
+            if ($retained.bytes -ne $proof.bytes -or $retained.sha256 -cne $proof.sha256) { throw 'Evidence copy mismatch' }
+            if ($file.Extension -ceq '.json') { $reason = 'invalid-json'; $null = Get-Content -LiteralPath $target -Raw | ConvertFrom-Json -ErrorAction Stop }
+            if ($file.Extension -ceq '.png') {
+                $reason = 'invalid-png'
+                $stream = [IO.File]::OpenRead($target)
+                try { $signature = [byte[]]::new(8); if ($stream.Read($signature, 0, 8) -ne 8 -or [Convert]::ToHexString($signature) -cne '89504E470D0A1A0A') { throw 'Invalid PNG signature' } } finally { $stream.Dispose() }
+            }
+            $records += [ordered]@{ relativePath = $file.Name; retainedName = $allowed[$file.Name]; bytes = $proof.bytes; sha256 = $proof.sha256 }
+            $total += $proof.bytes
+        } catch {
+            # This path was absent before our CreateNew copy. A partial copy is
+            # removed, never listed as complete or substituted with a truncated log.
+            if ($created -and (Test-Path -LiteralPath $target)) { Remove-Item -LiteralPath $target -Force -ErrorAction Stop }
+            Reject-Evidence $file $reason
+        }
     }
-    foreach ($record in $records) {
-        $target = Join-Path $Destination $record.retainedName
-        Copy-Item -LiteralPath $record.sourcePath -Destination $target -ErrorAction Stop
-        if ((File-Proof $target).sha256 -cne $record.sha256) { throw 'Evidence copy hash mismatch' }
-        [void]$record.Remove('sourcePath')
-    }
-    $manifest = [ordered]@{ schema = 1; files = $records; totalBytes = $total; source = 'new standard-account synthetic evidence only' }
+    $complete = $state.rejectedCount -eq 0
+    $omitted = $state.rejectedCount - $state.rejected.Count
+    $manifest = [ordered]@{ schema = 1; files = $records; totalBytes = $total; source = 'new standard-account synthetic evidence only'; complete = $complete; rejected = $state.rejected; rejectedCount = $state.rejectedCount; rejectionsOmitted = $omitted }
     Write-Json (Join-Path $Destination 'evidence-files.json') $manifest
-    return [ordered]@{ files = $files.Count; bytes = $total; manifest = 'evidence-files.json' }
-
+    return [ordered]@{ files = $records.Count; bytes = $total; manifest = 'evidence-files.json'; complete = $complete; rejected = $state.rejected; rejectedCount = $state.rejectedCount; rejectionsOmitted = $omitted }
 }
 function Import-Observer([string]$Path) {
     Assert-PlainPath $Path
@@ -473,14 +551,22 @@ try {
         if ($processesEmpty -and (Test-Path -LiteralPath $childEvidence -PathType Container)) {
             $audit.standardContext = Read-SmallJson (Join-Path $childEvidence 'standard-context.json')
             $audit.childResult = Read-SmallJson (Join-Path $childEvidence 'standard-child-result.json')
+            if ($audit.childResult.status -ceq 'failed') { $audit.error = $audit.childResult.error }
             $audit.evidenceCopy = Copy-BoundedEvidence $childEvidence $EvidenceDirectory
+            if (-not $audit.evidenceCopy.complete) {
+                $audit.status = 'failed'
+                if (-not $audit.error) { $audit.error = 'Evidence collection incomplete; see bounded rejection metadata' }
+            }
             if ($audit.standardContext.actualSid -cne $user.SID.Value) { throw 'Collected child evidence belongs to a different SID' }
         }
     }
     if ($audit.status -ceq 'passed' -and ($null -eq $audit.childResult -or $audit.childResult.status -cne 'passed')) { throw 'Successful supervisor lacks complete product-child evidence' }
     if (-not $processesEmpty) { throw 'Outer process-tree cleanup is uncertain' }
 } catch {
-    $audit.error = $_.Exception.Message
+    if ($null -ne $audit.childResult -and $audit.childResult.status -ceq 'failed' -and $audit.childResult.error) {
+        $audit.error = $audit.childResult.error
+        $audit['secondaryFailure'] = @{ reason = 'evidence-collection-exception'; exceptionType = $_.Exception.GetType().Name }
+    } else { $audit.error = $_.Exception.Message }
     if ($audit.status -ceq 'passed') { $audit.status = 'failed' }
 } finally {
     $password.Dispose()
