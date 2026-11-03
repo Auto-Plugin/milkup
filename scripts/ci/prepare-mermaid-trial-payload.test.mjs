@@ -282,6 +282,16 @@ async function installedFixture(t) {
       sha256: 'f'.repeat(64),
     })),
   }
+  const defaultLinkedAuthority = {
+    callerThreadTokenAbsent: true,
+    callerThreadQueryWin32Error: 1008,
+    queryAttempted: false,
+    querySucceeded: false,
+    queryWin32Error: null,
+    targetTokenType: null,
+    targetImpersonationLevel: null,
+    targetQueryWin32Error: null,
+  }
   const nativeToken = {
     tokenType: 1,
     sessionId: 2,
@@ -296,6 +306,7 @@ async function installedFixture(t) {
     hostDisallowedPrivilegeCount: 0,
     sandboxDisallowedPrivilegeCount: 0,
     seDebugPrivilegePresent: false,
+    linkedAuthority: null,
   }
   const processToken = {
     ...nativeToken,
@@ -387,8 +398,36 @@ async function installedFixture(t) {
     hostTokenClass: 'pure-standard',
     hostNonElevatedVerified: true,
     hostTokenEvidence: nativeToken,
-    childTokenEvidence: { ...nativeToken, integrityRid: 4096 },
-    browserTokenEvidence: { ...nativeToken, integrityRid: 4096 },
+    childTokenEvidence: {
+      ...nativeToken,
+      integrityRid: 4096,
+      linkedAuthority: { ...defaultLinkedAuthority },
+    },
+    browserTokenEvidence: {
+      ...nativeToken,
+      integrityRid: 4096,
+      linkedAuthority: { ...defaultLinkedAuthority },
+    },
+    helperSelfTokenEvidence: {
+      ...nativeToken,
+      integrityRid: 4096,
+      linkedAuthority: { ...defaultLinkedAuthority },
+    },
+    browserFromHelperTokenEvidence: {
+      ...nativeToken,
+      integrityRid: 4096,
+      linkedAuthority: { ...defaultLinkedAuthority },
+    },
+    helperNativeProofVerified: true,
+    helperSelfSid: sid,
+    browserFromHelperSid: sid,
+    helperSelfAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
+    browserFromHelperAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
+    helperPid: 222,
+    helperSelfObserverPid: 222,
+    helperSelfSubjectPid: 222,
+    browserFromHelperObserverPid: 222,
+    browserFromHelperSubjectPid: 333,
     appContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
     childAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
     browserAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
@@ -491,12 +530,47 @@ async function installedFixture(t) {
   await save()
   return { directory, expected, installation, comparison, audit, product, save }
 }
+const limitedNativeViews = (product) => {
+  for (const event of product.nativeAudit) {
+    if (!['started', 'finished'].includes(event.phase)) continue
+    for (const field of [
+      'childTokenEvidence',
+      'browserTokenEvidence',
+      'helperSelfTokenEvidence',
+      'browserFromHelperTokenEvidence',
+    ]) {
+      event[field] = {
+        ...event[field],
+        elevationType: 3,
+        linkedAuthority: {
+          callerThreadTokenAbsent: true,
+          callerThreadQueryWin32Error: 1008,
+          queryAttempted: true,
+          querySucceeded: true,
+          queryWin32Error: null,
+          targetTokenType: 2,
+          targetImpersonationLevel: 1,
+          targetQueryWin32Error: null,
+        },
+      }
+    }
+  }
+}
 test('final gate accepts consistent synthetic evidence without upgrading visual/IME claims', async (t) => {
   const fixture = await installedFixture(t)
   const proof = await verifyInstalledEvidence(fixture.directory, fixture.expected)
   assert.equal(proof.status, 'passed')
   assert.match(proof.scope, /no human visual\/IME\/DPI acceptance/)
   assert.equal(proof.records.length, 4)
+})
+test('installed standard-host evidence accepts Limited native views only with identification proofs', async (t) => {
+  const fixture = await installedFixture(t)
+  limitedNativeViews(fixture.product)
+  await fixture.save()
+  assert.equal(
+    (await verifyInstalledEvidence(fixture.directory, fixture.expected)).status,
+    'passed',
+  )
 })
 for (const scenario of [
   'installation-pending',
@@ -519,9 +593,18 @@ for (const scenario of [
   'missing-token-facts',
   'filtered-account-mixed-in',
   'native-privileged-browser',
-  'native-limited-child',
-  'native-limited-browser',
+  'native-limited-child-without-proof',
+  'native-limited-browser-without-proof',
   'installer-disabled-debug-privilege',
+  'native-missing-helper-self-proof',
+  'native-missing-browser-from-helper-proof',
+  'native-primary-linked-target',
+  'native-usable-impersonation-target',
+  'native-linked-query-failure',
+  'native-partial-linked-proof',
+  'native-impersonating-caller',
+  'native-spoofed-helper-pid',
+  'native-foreign-helper-appsid',
 ]) {
   test(`final delivery gate rejects ${scenario}`, async (t) => {
     const f = await installedFixture(t)
@@ -553,15 +636,40 @@ for (const scenario of [
     if (scenario === 'filtered-account-mixed-in') f.product.expectedAccountKind = 'filtered-admin'
     if (scenario === 'native-privileged-browser')
       f.product.nativeAudit.at(-1).browserTokenEvidence.sandboxDisallowedPrivilegeCount = 1
-    if (scenario === 'native-limited-child')
+    if (scenario === 'native-limited-child-without-proof')
       f.product.nativeAudit.at(-1).childTokenEvidence.elevationType = 3
-    if (scenario === 'native-limited-browser')
+    if (scenario === 'native-limited-browser-without-proof')
       f.product.nativeAudit.at(-1).browserTokenEvidence.elevationType = 3
     if (scenario === 'installer-disabled-debug-privilege')
       f.installation.installerRun.startedProcess.token.privileges[0] = {
         name: 'SeDebugPrivilege',
         attributes: 0,
       }
+    if (scenario === 'native-missing-helper-self-proof')
+      f.product.nativeAudit.at(-1).helperSelfTokenEvidence = null
+    if (scenario === 'native-missing-browser-from-helper-proof')
+      f.product.nativeAudit.at(-1).browserFromHelperTokenEvidence = null
+    if (
+      [
+        'native-primary-linked-target',
+        'native-usable-impersonation-target',
+        'native-linked-query-failure',
+        'native-partial-linked-proof',
+        'native-impersonating-caller',
+      ].includes(scenario)
+    ) {
+      limitedNativeViews(f.product)
+      const proof = f.product.nativeAudit.at(-1).browserFromHelperTokenEvidence.linkedAuthority
+      if (scenario === 'native-primary-linked-target') proof.targetTokenType = 1
+      if (scenario === 'native-usable-impersonation-target') proof.targetImpersonationLevel = 2
+      if (scenario === 'native-linked-query-failure') proof.queryWin32Error = 5
+      if (scenario === 'native-partial-linked-proof') delete proof.targetQueryWin32Error
+      if (scenario === 'native-impersonating-caller') proof.callerThreadTokenAbsent = false
+    }
+    if (scenario === 'native-spoofed-helper-pid')
+      f.product.nativeAudit.at(-1).helperSelfSubjectPid = 333
+    if (scenario === 'native-foreign-helper-appsid')
+      f.product.nativeAudit.at(-1).browserFromHelperAppContainerSid = 'S-1-15-2-8-2-3-4-5-6-7'
     await f.save()
     await assert.rejects(verifyInstalledEvidence(f.directory, f.expected))
   })

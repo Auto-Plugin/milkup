@@ -219,33 +219,60 @@ test('an aborted probe retains its raw result but cannot make a stale dialog dec
 
 const sid = 'S-1-5-21-11-22-33-1001'
 const appContainerSid = 'S-1-15-2-1-2-3-4-5-6-7'
+const linkedAuthority = (elevationType = 1) => ({
+  callerThreadTokenAbsent: true,
+  callerThreadQueryWin32Error: 1008,
+  queryAttempted: elevationType === 3,
+  querySucceeded: elevationType === 3,
+  queryWin32Error: null,
+  targetTokenType: elevationType === 3 ? 2 : null,
+  targetImpersonationLevel: elevationType === 3 ? 1 : null,
+  targetQueryWin32Error: null,
+})
+const noHelperProof = {
+  helperNativeProofVerified: false,
+  helperSelfSid: null,
+  browserFromHelperSid: null,
+  helperSelfAppContainerSid: null,
+  browserFromHelperAppContainerSid: null,
+  helperSelfObserverPid: null,
+  helperSelfSubjectPid: null,
+  browserFromHelperObserverPid: null,
+  browserFromHelperSubjectPid: null,
+  helperSelfTokenEvidence: null,
+  browserFromHelperTokenEvidence: null,
+}
 const nativeToken = (kind = 'pure-standard', sandbox = false) => ({
   tokenType: 1,
   sessionId: 2,
   elevated: false,
-  elevationType: !sandbox && kind === 'filtered-admin' ? 3 : 1,
+  elevationType: kind === 'filtered-admin' ? 3 : 1,
   integrityRid: sandbox ? 4096 : 8192,
   uiAccess: false,
   ownerIsUser: true,
   administratorsGroupPresentIncludingDenyOnly: kind === 'filtered-admin',
   administratorsGroupAttributes: kind === 'filtered-admin' ? 16 : null,
-  privilegeCount: sandbox ? 1 : 2,
+  privilegeCount: 2,
   hostDisallowedPrivilegeCount: 0,
   sandboxDisallowedPrivilegeCount: sandbox ? 0 : 1,
   seDebugPrivilegePresent: false,
+  linkedAuthority: sandbox ? linkedAuthority(kind === 'filtered-admin' ? 3 : 1) : null,
 })
-const processToken = (kind = 'pure-standard') => ({
-  ...nativeToken(kind),
-  sid,
-  ownerSid: sid,
-  pureStandardUser: kind === 'pure-standard',
-  filteredAdmin: kind === 'filtered-admin',
-  privilegesComplete: true,
-  privileges: [
-    { name: 'SeChangeNotifyPrivilege', attributes: 3 },
-    { name: 'SeShutdownPrivilege', attributes: 0 },
-  ],
-})
+const processToken = (kind = 'pure-standard') => {
+  const { linkedAuthority: _nativeOnlyProof, ...facts } = nativeToken(kind)
+  return {
+    ...facts,
+    sid,
+    ownerSid: sid,
+    pureStandardUser: kind === 'pure-standard',
+    filteredAdmin: kind === 'filtered-admin',
+    privilegesComplete: true,
+    privileges: [
+      { name: 'SeChangeNotifyPrivilege', attributes: 3 },
+      { name: 'SeShutdownPrivilege', attributes: 0 },
+    ],
+  }
+}
 const accountContext = (kind = 'pure-standard') => ({
   status: 'ready',
   actualSid: sid,
@@ -296,6 +323,18 @@ const ownership = {
   hostTokenEvidence: nativeToken(),
   childTokenEvidence: nativeToken('pure-standard', true),
   browserTokenEvidence: nativeToken('pure-standard', true),
+  helperSelfTokenEvidence: nativeToken('pure-standard', true),
+  browserFromHelperTokenEvidence: nativeToken('pure-standard', true),
+  helperNativeProofVerified: true,
+  helperSelfSid: sid,
+  browserFromHelperSid: sid,
+  helperSelfAppContainerSid: appContainerSid,
+  browserFromHelperAppContainerSid: appContainerSid,
+  helperPid: 222,
+  helperSelfObserverPid: 222,
+  helperSelfSubjectPid: 222,
+  browserFromHelperObserverPid: 222,
+  browserFromHelperSubjectPid: 333,
   appContainerSid,
   childAppContainerSid: appContainerSid,
   browserAppContainerSid: appContainerSid,
@@ -451,11 +490,13 @@ test('native audit checks filtered host class and exact low-privilege fresh chil
     hostTokenEvidence: nativeToken('filtered-admin'),
     childTokenEvidence: nativeToken('filtered-admin', true),
     browserTokenEvidence: nativeToken('filtered-admin', true),
+    helperSelfTokenEvidence: nativeToken('filtered-admin', true),
+    browserFromHelperTokenEvidence: nativeToken('filtered-admin', true),
   }
   const ledger = new AuditLedger(sid, 2, 'filtered-admin')
   assert.equal(facts.hostTokenEvidence.elevationType, 3)
-  assert.equal(facts.childTokenEvidence.elevationType, 1)
-  assert.equal(facts.browserTokenEvidence.elevationType, 1)
+  assert.equal(facts.childTokenEvidence.elevationType, 3)
+  assert.equal(facts.browserTokenEvidence.elevationType, 3)
   append(ledger, 'admitted')
   append(ledger, 'started', facts)
   append(ledger, 'finished', { ...completion, ...facts })
@@ -471,8 +512,8 @@ test('native audit checks filtered host class and exact low-privilege fresh chil
     { browserAppContainerSid: 'S-1-15-2-01-2-3-4-5-6-7' },
     { childTokenEvidence: { ...facts.childTokenEvidence, integrityRid: 8192 } },
     { childTokenEvidence: { ...facts.childTokenEvidence, sessionId: 3 } },
-    { childTokenEvidence: { ...facts.childTokenEvidence, elevationType: 3 } },
-    { browserTokenEvidence: { ...facts.browserTokenEvidence, elevationType: 3 } },
+    { childTokenEvidence: { ...facts.childTokenEvidence, elevationType: 2 } },
+    { browserTokenEvidence: { ...facts.browserTokenEvidence, elevationType: 2 } },
     { browserTokenEvidence: { ...facts.browserTokenEvidence, sandboxDisallowedPrivilegeCount: 1 } },
     { browserTokenEvidence: { ...facts.browserTokenEvidence, administratorsGroupAttributes: 20 } },
   ]) {
@@ -480,6 +521,286 @@ test('native audit checks filtered host class and exact low-privilege fresh chil
     append(invalid, 'admitted')
     assert.throws(() => append(invalid, 'started', { ...facts, ...changes }))
   }
+})
+
+const sandboxViews = [
+  'childTokenEvidence',
+  'browserTokenEvidence',
+  'helperSelfTokenEvidence',
+  'browserFromHelperTokenEvidence',
+]
+const filteredOwnership = () => ({
+  ...ownership,
+  hostPureStandard: false,
+  hostTokenClass: 'filtered-admin',
+  hostTokenEvidence: nativeToken('filtered-admin'),
+  ...Object.fromEntries(sandboxViews.map((name) => [name, nativeToken('filtered-admin', true)])),
+})
+const admitOwnership = (facts, kind = 'pure-standard') => {
+  const ledger = new AuditLedger(sid, 2, kind)
+  append(ledger, 'admitted')
+  append(ledger, 'started', facts)
+  append(ledger, 'finished', { ...completion, ...facts })
+  return ledger.verifyAll()
+}
+
+test('all four sandbox views require complete Default or Limited linked authority facts', () => {
+  for (const kind of ['pure-standard', 'filtered-admin']) {
+    const valid = kind === 'pure-standard' ? ownership : filteredOwnership()
+    assert.equal(admitOwnership(valid, kind).length, 1)
+    for (const field of sandboxViews) {
+      for (const key of Object.keys(linkedAuthority())) {
+        const facts = structuredClone(valid)
+        delete facts[field].linkedAuthority[key]
+        assert.throws(() => admitOwnership(facts, kind), undefined, `${field} missing ${key}`)
+      }
+      for (const change of [
+        { linkedAuthority: null },
+        { linkedAuthority: { ...valid[field].linkedAuthority, callerThreadTokenAbsent: false } },
+        { linkedAuthority: { ...valid[field].linkedAuthority, callerThreadQueryWin32Error: 5 } },
+        { linkedAuthority: { ...valid[field].linkedAuthority, queryWin32Error: 5 } },
+        { linkedAuthority: { ...valid[field].linkedAuthority, targetQueryWin32Error: 5 } },
+        { linkedAuthority: { ...valid[field].linkedAuthority, queryAttempted: 'true' } },
+        {
+          linkedAuthority: {
+            ...valid[field].linkedAuthority,
+            arbitraryDiagnostic: 'not part of production proof',
+          },
+        },
+      ]) {
+        const facts = structuredClone(valid)
+        Object.assign(facts[field], change)
+        assert.throws(() => admitOwnership(facts, kind), undefined, field)
+      }
+    }
+  }
+})
+
+test('Limited authority uses actual identification type and level without assuming QUERY-only grants', () => {
+  // The observed 0xF01FF handle grant is not a QUERY-only guarantee and is not
+  // projected into the closed product proof. Its actual type/level are required.
+  const facts = filteredOwnership()
+  assert.equal(admitOwnership(facts, 'filtered-admin').length, 1)
+  for (const field of sandboxViews) {
+    for (const changes of [
+      { targetTokenType: 1 },
+      { targetTokenType: null },
+      { targetTokenType: 0 },
+      { targetImpersonationLevel: 0 },
+      { targetImpersonationLevel: 2 },
+      { targetImpersonationLevel: 3 },
+      { targetImpersonationLevel: null },
+      { querySucceeded: false },
+      { queryAttempted: false },
+    ]) {
+      const invalid = structuredClone(facts)
+      Object.assign(invalid[field].linkedAuthority, changes)
+      assert.throws(() => admitOwnership(invalid, 'filtered-admin'), undefined, field)
+    }
+  }
+})
+
+test('Default authority cannot carry a queried linked target or reuse a Limited proof', () => {
+  for (const field of sandboxViews) {
+    for (const changes of [
+      { queryAttempted: true },
+      { querySucceeded: true },
+      { targetTokenType: 2 },
+      { targetImpersonationLevel: 1 },
+    ]) {
+      const facts = structuredClone(ownership)
+      Object.assign(facts[field].linkedAuthority, changes)
+      assert.throws(() => admitOwnership(facts))
+    }
+    const facts = structuredClone(ownership)
+    facts[field].elevationType = 3
+    assert.throws(() => admitOwnership(facts), /queryAttempted|Expected values/)
+  }
+})
+
+test('parent observations cannot substitute for helper-self and helper-context browser proofs', () => {
+  for (const changes of [
+    { helperNativeProofVerified: false },
+    { helperSelfTokenEvidence: null },
+    { browserFromHelperTokenEvidence: null },
+    { helperSelfSid: 'S-1-5-21-1-2-3-1002' },
+    { browserFromHelperSid: null },
+    { helperSelfAppContainerSid: 'S-1-15-2-8-2-3-4-5-6-7' },
+    { browserFromHelperAppContainerSid: null },
+    { helperPid: 111 },
+    { helperPid: 333 },
+    { helperPid: 0 },
+    { helperSelfObserverPid: 111 },
+    { helperSelfSubjectPid: 333 },
+    { browserFromHelperObserverPid: 333 },
+    { browserFromHelperSubjectPid: 222 },
+    { helperSelfTokenEvidence: { ...ownership.helperSelfTokenEvidence, sessionId: 3 } },
+    {
+      browserFromHelperTokenEvidence: {
+        ...ownership.browserFromHelperTokenEvidence,
+        sandboxDisallowedPrivilegeCount: 1,
+      },
+    },
+  ])
+    assert.throws(() => admitOwnership({ ...ownership, ...changes }))
+  const ledger = new AuditLedger(sid, 2)
+  append(ledger, 'admitted')
+  append(ledger, 'started', ownership)
+  append(ledger, 'finished', {
+    ...completion,
+    helperPid: 444,
+    helperSelfObserverPid: 444,
+    helperSelfSubjectPid: 444,
+    browserFromHelperObserverPid: 444,
+  })
+  assert.throws(() => ledger.verifyAll(), /Expected values/)
+})
+
+test('pre-ready cancellation keeps actual held helper facts without fabricating native self proofs', () => {
+  const canceled = {
+    ...completion,
+    ...noHelperProof,
+    successful: false,
+    cancelled: true,
+    browserSid: null,
+    browserPid: null,
+    browserTokenEvidence: null,
+    browserAppContainerSid: null,
+    browserAppContainer: false,
+    browserZeroCapabilities: false,
+    browserInOwnedJob: false,
+    ownedPidsBeforeStop: [222],
+    pngBytes: 0,
+    pngSha256: null,
+  }
+  const ledger = new AuditLedger(sid, 2)
+  append(ledger, 'admitted')
+  append(ledger, 'finished', canceled)
+  assert.equal(ledger.verifyAll().length, 1)
+  for (const changes of [
+    { helperNativeProofVerified: true },
+    { helperSelfSid: sid },
+    { helperSelfTokenEvidence: ownership.childTokenEvidence },
+  ]) {
+    const invalid = new AuditLedger(sid, 2)
+    append(invalid, 'admitted')
+    append(invalid, 'finished', { ...canceled, ...changes })
+    assert.throws(() => invalid.verifyAll())
+  }
+})
+
+test('pre-publish cancellation validates an observed parent browser without inventing helper readiness', () => {
+  const canceled = {
+    ...completion,
+    ...noHelperProof,
+    successful: false,
+    cancelled: true,
+    pngBytes: 0,
+    pngSha256: null,
+  }
+  const verify = (fields) => {
+    const ledger = new AuditLedger(sid, 2)
+    append(ledger, 'admitted')
+    append(ledger, 'finished', { ...canceled, ...fields })
+    return ledger.verifyAll()
+  }
+  assert.equal(verify({}).length, 1)
+  assert.equal(verify({ cancelled: false, deadlineExpired: true }).length, 1)
+  for (const fields of [
+    { browserSid: 'S-1-5-21-1-2-3-1002' },
+    { helperPid: 111 },
+    { browserPid: 0 },
+    { browserPid: 111 },
+    { browserPid: 222 },
+    { browserAppContainerSid: 'S-1-15-2-8-2-3-4-5-6-7' },
+    { browserAppContainer: false },
+    { browserZeroCapabilities: false },
+    { browserInOwnedJob: false },
+    { browserTokenEvidence: null },
+    { browserTokenEvidence: { ...ownership.browserTokenEvidence, sessionId: 3 } },
+    { browserTokenEvidence: { ...ownership.browserTokenEvidence, linkedAuthority: null } },
+    { helperNativeProofVerified: true },
+    { browserFromHelperTokenEvidence: ownership.browserTokenEvidence },
+  ])
+    assert.throws(() => verify(fields))
+  assert.throws(() => verify({ successful: true }), /ready\/ownership/)
+  assert.throws(() => admitOwnership({ ...ownership, ...noHelperProof }))
+})
+
+test('complete four-view audit records fit unchanged line, launch-log and product-report budgets', (t) => {
+  const largeSid = 'S-1-5-21-4294967295-4294967295-4294967295-4294967295'
+  const largeAppSid = 'S-1-15-2-' + Array(7).fill('4294967295').join('-')
+  const facts = filteredOwnership()
+  for (const name of ['hostSid', 'childSid', 'browserSid', 'helperSelfSid', 'browserFromHelperSid'])
+    facts[name] = largeSid
+  for (const name of [
+    'appContainerSid',
+    'childAppContainerSid',
+    'browserAppContainerSid',
+    'helperSelfAppContainerSid',
+    'browserFromHelperAppContainerSid',
+  ])
+    facts[name] = largeAppSid
+  const ledger = new AuditLedger(largeSid, 2, 'filtered-admin')
+  const outputs = []
+  let maximumLineBytes = 0
+  for (let launch = 0; launch < 4; launch++) {
+    const productPid = 1000 + launch
+    let log = ''
+    for (let index = 0; index < 8; index++) {
+      const requestId = `${launch}_${index}_` + 'r'.repeat(76)
+      const records = [
+        { phase: 'admitted', requestId, productPid },
+        { phase: 'started', requestId, productPid, ...facts },
+        {
+          phase: 'finished',
+          requestId,
+          productPid,
+          ...completion,
+          ...facts,
+          ipcThreadCleanup: ['stdout', 'stdin', 'stderr'].map((stream) => ({
+            stream,
+            elapsedMs: 250,
+            cancelRequested: false,
+            cancelCallSucceeded: null,
+            cancelWin32Error: null,
+            finished: true,
+            panicked: false,
+          })),
+          cleanupFailureKinds: [],
+          stdoutFailure: null,
+          stderrFailure: null,
+          rendererStatus: 'ok',
+          rendererErrorKind: null,
+          capturedPngBytes: 262144,
+        },
+      ]
+      for (const record of records) {
+        const line = 'MILKUP_MERMAID_NATIVE_AUDIT ' + JSON.stringify(record) + '\n'
+        maximumLineBytes = Math.max(maximumLineBytes, Buffer.byteLength(line))
+        assert(Buffer.byteLength(line) <= 8192, 'Native fixed record limit remains 8192 bytes')
+        log += line
+        ledger.accept(record, productPid)
+      }
+    }
+    assert(Buffer.byteLength(log) <= 512 * 1024, 'Per-product diagnostic cap unchanged')
+    outputs.push(log)
+  }
+  assert.equal(ledger.verifyAll().length, 32)
+  assert(ledger.events.length < 512)
+  const reportBytes = Buffer.byteLength(
+    JSON.stringify({ nativeAudit: ledger.events, launches: outputs }),
+  )
+  assert(reportBytes <= 2 * 1024 * 1024, 'Full synthetic UI audit remains within report cap')
+  t.diagnostic(
+    JSON.stringify({
+      maximumLineBytes,
+      maximumLaunchLogBytes: Math.max(...outputs.map((log) => Buffer.byteLength(log))),
+      reportBytes,
+      eventCount: ledger.events.length,
+      completedJobs: 32,
+    }),
+  )
 })
 
 test('only an exact completed native PNG binds to a successful output lease', () => {
@@ -549,6 +870,8 @@ test('early cancellation is distinguished from an owned parser rejection', () =>
     ...completion,
     successful: false,
     ownedJobCreated: false,
+    ...noHelperProof,
+    helperPid: null,
     profileCreated: false,
     jobActiveAfterStop: null,
     cancelled: true,
@@ -636,6 +959,8 @@ test('uncreated-job cancellation rejects contradictory identities and ownership 
     ...completion,
     successful: false,
     ownedJobCreated: false,
+    ...noHelperProof,
+    helperPid: null,
     profileCreated: false,
     jobActiveAfterStop: null,
     cancelled: true,

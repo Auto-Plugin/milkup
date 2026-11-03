@@ -250,6 +250,55 @@ const ordinaryPrivileges = new Set([
   'SeTimeZonePrivilege',
 ])
 
+const linkedAuthorityFields = [
+  'callerThreadTokenAbsent',
+  'callerThreadQueryWin32Error',
+  'queryAttempted',
+  'querySucceeded',
+  'queryWin32Error',
+  'targetTokenType',
+  'targetImpersonationLevel',
+  'targetQueryWin32Error',
+].sort()
+
+function validateLinkedAuthority(authority, elevationType) {
+  assert(
+    authority && typeof authority === 'object' && !Array.isArray(authority),
+    'Complete linked-token authority evidence required',
+  )
+  assert.deepEqual(
+    Object.keys(authority).sort(),
+    linkedAuthorityFields,
+    'Closed linked-token evidence fields',
+  )
+  assert.equal(authority.callerThreadTokenAbsent, true, 'Actual non-impersonating caller')
+  assert.equal(authority.callerThreadQueryWin32Error, 1008, 'Observed ERROR_NO_TOKEN')
+  assert.equal(authority.queryWin32Error, null, 'No failed linked-token query')
+  assert.equal(authority.targetQueryWin32Error, null, 'No incomplete linked-target observation')
+  if (elevationType === 1) {
+    assert.equal(
+      authority.queryAttempted,
+      false,
+      'Default token does not perform a linked-token query',
+    )
+    assert.equal(authority.querySucceeded, false)
+    assert.equal(authority.targetTokenType, null)
+    assert.equal(authority.targetImpersonationLevel, null)
+  } else {
+    assert.equal(elevationType, 3, 'Only Default or evidence-backed Limited sandbox tokens')
+    assert.equal(authority.queryAttempted, true)
+    assert.equal(authority.querySucceeded, true)
+    // Returned handle access is not inferred from TOKEN_QUERY. Even a broad
+    // grant does not substitute for the actual target type and level checks.
+    assert.equal(authority.targetTokenType, 2, 'Linked target must be an impersonation token')
+    assert.equal(
+      authority.targetImpersonationLevel,
+      1,
+      'Identification-only linked target required',
+    )
+  }
+}
+
 function validateTokenAuthority(token, expectedSessionId, role, expectedAccountKind) {
   assert(token && typeof token === 'object', 'Actual token facts required')
   assert(
@@ -272,7 +321,7 @@ function validateTokenAuthority(token, expectedSessionId, role, expectedAccountK
     assert.equal(token.administratorsGroupAttributes, filtered ? 16 : null)
   } else {
     assert(uint32(token.integrityRid) && token.integrityRid <= 4096, 'Low-integrity sandbox')
-    assert.equal(token.elevationType, 1, 'Default sandbox token without a linked token required')
+    validateLinkedAuthority(token.linkedAuthority, token.elevationType)
     assert.equal(typeof token.administratorsGroupPresentIncludingDenyOnly, 'boolean')
     assert.equal(
       token.administratorsGroupAttributes,
@@ -779,11 +828,17 @@ export class AuditLedger {
       uint32(token.sandboxDisallowedPrivilegeCount) &&
         token.sandboxDisallowedPrivilegeCount <= token.privilegeCount,
     )
-    if (role !== 'host')
+    if (role === 'host')
+      assert.equal(
+        token.linkedAuthority,
+        null,
+        'Host evidence does not claim a sandbox linked-token proof',
+      )
+    else
       assert.equal(
         token.sandboxDisallowedPrivilegeCount,
         0,
-        'Only change-notify privilege in sandbox',
+        'Only change-notify and increase-working-set privileges in sandbox',
       )
   }
   verifyAppContainer(value, role) {
@@ -803,9 +858,24 @@ export class AuditLedger {
     )
     this.verifyToken(value[`${role}TokenEvidence`], role)
   }
+  verifyParentBrowser(value) {
+    assert.equal(value.browserSid, this.expectedSid, 'Same-login parent-observed browser')
+    for (const field of ['browserAppContainer', 'browserZeroCapabilities', 'browserInOwnedJob'])
+      assert.equal(value[field], true, `Parent-observed ${field}`)
+    this.verifyAppContainer(value, 'browser')
+    assert(uint32(value.browserPid) && value.browserPid > 0, 'Observed browser PID')
+    assert.notEqual(value.browserPid, value.helperPid, 'Browser is distinct from helper')
+    assert.notEqual(value.browserPid, value.productPid, 'Browser is distinct from product')
+  }
   verifyOwnership(value) {
     this.verifyHost(value)
-    for (const field of ['hostSid', 'childSid', 'browserSid'])
+    for (const field of [
+      'hostSid',
+      'childSid',
+      'browserSid',
+      'helperSelfSid',
+      'browserFromHelperSid',
+    ])
       assert.equal(value[field], this.expectedSid, `Same-login ${field}`)
     for (const field of [
       'appContainer',
@@ -813,12 +883,23 @@ export class AuditLedger {
       'browserAppContainer',
       'browserZeroCapabilities',
       'browserInOwnedJob',
+      'helperNativeProofVerified',
     ]) {
       assert.equal(value[field], true, `Native ${field}`)
     }
     this.verifyAppContainer(value, 'child')
     this.verifyAppContainer(value, 'browser')
-    assert(Number.isSafeInteger(value.browserPid) && value.browserPid > 0, 'Observed browser PID')
+    this.verifyAppContainer(value, 'helperSelf')
+    this.verifyAppContainer(value, 'browserFromHelper')
+    assert(uint32(value.browserPid) && value.browserPid > 0, 'Observed browser PID')
+    assert(uint32(value.helperPid) && value.helperPid > 0, 'Observed held helper PID')
+    assert.notEqual(value.helperPid, value.productPid, 'Helper is distinct from product')
+    assert.notEqual(value.browserPid, value.helperPid, 'Browser is distinct from helper')
+    assert.notEqual(value.browserPid, value.productPid, 'Browser is distinct from product')
+    assert.equal(value.helperSelfObserverPid, value.helperPid)
+    assert.equal(value.helperSelfSubjectPid, value.helperPid)
+    assert.equal(value.browserFromHelperObserverPid, value.helperPid)
+    assert.equal(value.browserFromHelperSubjectPid, value.browserPid)
   }
   verifyFinished(job) {
     const finish = job.finished
@@ -849,7 +930,7 @@ export class AuditLedger {
     assert.equal(new Set(finish.ownedPidsBeforeStop).size, finish.ownedPidsBeforeStop.length)
     if (!finish.ownedJobCreated) {
       assert.deepEqual(finish.ownedPidsBeforeStop, [], 'Uncreated Job has no owned PIDs')
-      for (const field of ['childSid', 'browserSid', 'browserPid'])
+      for (const field of ['childSid', 'browserSid', 'browserPid', 'helperPid'])
         assert.equal(finish[field], null, 'No identity for an uncreated helper/browser')
       for (const field of [
         'childTokenEvidence',
@@ -867,6 +948,26 @@ export class AuditLedger {
       ])
         assert.equal(finish[field], false, 'No ownership claims for an uncreated helper/browser')
     }
+    if (!job.started && (finish.cancelled || finish.deadlineExpired)) {
+      assert.equal(
+        finish.helperNativeProofVerified,
+        false,
+        'No trusted native ready proof before ownership audit',
+      )
+      for (const field of [
+        'helperSelfTokenEvidence',
+        'browserFromHelperTokenEvidence',
+        'helperSelfSid',
+        'browserFromHelperSid',
+        'helperSelfAppContainerSid',
+        'browserFromHelperAppContainerSid',
+        'helperSelfObserverPid',
+        'helperSelfSubjectPid',
+        'browserFromHelperObserverPid',
+        'browserFromHelperSubjectPid',
+      ])
+        assert.equal(finish[field], null, 'No fabricated helper-native proof before ready')
+    }
     if (job.started || finish.successful || (!finish.cancelled && !finish.deadlineExpired)) {
       assert(job.started, 'Rendering requires actual ready/ownership audit')
       this.verifyOwnership(finish)
@@ -876,14 +977,23 @@ export class AuditLedger {
         'Native profile identity retained through cleanup',
       )
       assert.equal(finish.browserPid, job.started.browserPid)
+      assert.equal(finish.helperPid, job.started.helperPid)
       assert.equal(finish.ownedJobCreated, true)
       assert.equal(finish.profileCreated, true)
     } else if (finish.ownedJobCreated) {
+      assert(
+        uint32(finish.helperPid) && finish.helperPid > 0,
+        'Canceled owned helper retains actual PID',
+      )
+      assert.notEqual(finish.helperPid, finish.productPid, 'Owned helper is distinct from product')
       assert.equal(finish.childSid, this.expectedSid)
       assert.equal(finish.appContainer, true)
       assert.equal(finish.zeroCapabilities, true)
       this.verifyAppContainer(finish, 'child')
-      if (finish.browserSid !== null) this.verifyOwnership(finish)
+      // A checkpoint may cancel after parent observation but before native
+      // helper proofs are published. Validate those parent facts without
+      // treating them as a ready renderer or substituting for self-observation.
+      if (finish.browserSid !== null) this.verifyParentBrowser(finish)
     }
     if (finish.successful) {
       assert.equal(finish.cancelled, false)
