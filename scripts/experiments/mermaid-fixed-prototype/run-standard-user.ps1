@@ -5,7 +5,8 @@ param(
     [switch]$CaptureVisualEvidence,
     [switch]$DeleteDiagnostic,
     [ValidateSet('1','10')][int]$DeleteDiagnosticRepeats = 1,
-    [switch]$OriginalStdControl
+    [switch]$OriginalStdControl,
+    [switch]$FixedRuntime155
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -18,6 +19,8 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or
 if ($CaptureVisualEvidence -and $DeleteDiagnostic) { throw 'Deletion diagnostic cannot export the full visual matrix' }
 if (-not $DeleteDiagnostic -and $DeleteDiagnosticRepeats -ne 1) { throw 'Repeat scope requires deletion diagnostic' }
 if ($OriginalStdControl -and (-not $DeleteDiagnostic -or $DeleteDiagnosticRepeats -ne 1)) { throw 'Std control requires the fixed single-target corpus' }
+
+if ($FixedRuntime155 -and (-not $DeleteDiagnostic -or $DeleteDiagnosticRepeats -ne 1 -or $OriginalStdControl -or $CaptureVisualEvidence)) { throw 'Fixed Runtime155 requires single diagnostic corpus' }
 
 function Assert-PlainPath([string]$Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
@@ -63,6 +66,25 @@ function Read-CaseSummary([string]$Output, [string]$ExecutionName) {
                     sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($diagnosticBytes)).ToLowerInvariant() }
             }
         }
+        $fixedObservation = $launcher['fixedRuntime']
+        if ($null -ne $fixedObservation) {
+            $fixedBytes = [Text.Encoding]::UTF8.GetBytes(($fixedObservation | ConvertTo-Json -Depth 8 -Compress))
+            if ($fixedBytes.Length -gt 20480) { throw 'Fixed Runtime case observation exceeded 20 KiB' }
+        }
+        if ($FixedRuntime155 -and $record['ok'] -eq $true) {
+            if ($null -eq $fixedObservation -or $fixedObservation['version'] -cne '155.0.4283.62' -or
+                $fixedObservation['architecture'] -cne 'x64' -or
+                $fixedObservation['cabSha256'] -cne $fixed.proof.cabSha256 -or
+                $fixedObservation['manifestSha256'] -cne $fixed.manifestSha256 -or
+                $fixedObservation['filesPinnedAndHashed'] -ne 256 -or $fixedObservation['totalBytes'] -ne 705180320 -or
+                $fixedObservation['installed'] -ne $false -or
+                $fixedObservation['manifestImmutableToHost'] -ne $true -or
+                $fixedObservation['appContainerAccessVerified'] -ne $true -or
+                $fixedObservation['browserImagePathVerified'] -ne $true -or
+                $fixedObservation['pinsReleasedAfterJobEmpty'] -ne $true) {
+                throw 'Successful case lacks the verified pinned Fixed Runtime identity/access/lifetime proof'
+            }
+        }
         $summary = [ordered]@{
             executionName = $ExecutionName
             fixture = $record['fixture']; ok = $record['ok']; error = $record['error']
@@ -80,6 +102,7 @@ function Read-CaseSummary([string]$Output, [string]$ExecutionName) {
             privateTreeDeleteAttempts = $launcher['privateTreeDeleteAttempts']
             cleanupAccessObservation = $launcher['cleanupAccessObservation']
             privateTreeDeleteDiagnostic = $deleteObservation
+            fixedRuntime = $fixedObservation
             preparation = (Convert-PreparationSummary $launcher)
             cleanupSupervisorSid = $launcher['cleanupSupervisorSid']
             stopMatrixAfterThisCase = $launcher['stopMatrixAfterThisCase']
@@ -91,11 +114,12 @@ function Read-CaseSummary([string]$Output, [string]$ExecutionName) {
 
 Assert-PlainPath $PSScriptRoot
 Assert-PlainPath $Evidence
-Assert-PlainPath $Runtime
+if (-not $FixedRuntime155) { Assert-PlainPath $Runtime }
 Assert-PlainPath $Binary
 . (Join-Path $PSScriptRoot 'visual-evidence.ps1')
 . (Join-Path $PSScriptRoot 'cleanup-diagnostics.ps1')
 . (Join-Path $PSScriptRoot 'case-preparation.ps1')
+. (Join-Path $PSScriptRoot 'fixed-runtime155.ps1')
 Add-Type -Path (Join-Path $PSScriptRoot 'StandardUserProcess.cs')
 $runId = [guid]::NewGuid().ToString('N')
 $name = 'mkp' + $runId.Substring(0, 15)
@@ -114,7 +138,9 @@ $audit = [ordered]@{
     stage = $stage; stageRemoved = $false; executions = @(); cleanupErrors = @()
     passwordInLogsFilesArgumentsOrEnvironment = $false
     changedFirewallOrUac = $false; changedExistingDesktopAcl = $false
-    newRuntimeOrDependency = $false; productIntegrated = $false; artifactUpload = $false
+    newRuntimeOrDependency = $FixedRuntime155.IsPresent
+    newRuntimeDownloaded = $false; runtimeInstalled = $false
+    fixedRuntime155 = $FixedRuntime155.IsPresent; productIntegrated = $false; artifactUpload = $false
     captureVisualEvidence = $CaptureVisualEvidence.IsPresent; visualEvidenceEmitted = $false
     deleteDiagnostic = $DeleteDiagnostic.IsPresent; deleteDiagnosticRepeats = $DeleteDiagnosticRepeats; originalStdControl = $OriginalStdControl.IsPresent
 }
@@ -153,6 +179,18 @@ try {
     foreach ($leaf in @('code','fixtures','fixtures-negative','state','outputs')) {
         New-Item -ItemType Directory -Path (Join-Path $stage $leaf) -ErrorAction Stop | Out-Null
     }
+    if ($FixedRuntime155) {
+        $audit['fixedRuntimePreparationStarted'] = $true
+        $audit.newRuntimeDownloaded = $null # Preparation may fail after a partial download; do not claim none.
+        $fixed = Initialize-FixedRuntime155 -Stage $stage
+        $Runtime = $fixed.runtimePath
+        Assert-PlainPath $Runtime
+        # Trusted coordinator control on this NEW directory only; native adds exact AppContainer RX.
+        Set-PrivateDirectory $Runtime $sid 'FullControl'
+        $audit['fixedRuntimeProof'] = $fixed.proof
+        $audit.newRuntimeDownloaded = $true
+        Write-Output ('MILKUP_FIXED_RUNTIME_JSON ' + (@{source=$env:GITHUB_SHA; runId=$env:GITHUB_RUN_ID; proof=$fixed.proof; manifestSha256=$fixed.manifestSha256} | ConvertTo-Json -Depth 12 -Compress))
+    }
     Set-PrivateDirectory (Join-Path $stage 'state') $sid 'FullControl'
     Set-PrivateDirectory (Join-Path $stage 'outputs') $sid 'FullControl'
     foreach ($leaf in @('temp','profile','local','roaming')) {
@@ -178,6 +216,7 @@ try {
         "MILKUP_MERMAID_PROTOTYPE_EXPECTED_USER_SID=$sid",
         "MILKUP_MERMAID_PROTOTYPE_CLEANUP_OWNER_SID=$supervisorSid"
     )
+    if ($FixedRuntime155) { $environment += 'MILKUP_MERMAID_FIXED_RUNTIME=155.0.4283.62-x64' }
     $cases = @(
         @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000},
         @{name='positive'; manifest='fixtures-manifest.json'; selector=''; timeout=600000}

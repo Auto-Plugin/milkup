@@ -1,0 +1,883 @@
+{
+  "schemaVersion": 1,
+  "title": "Milkup fixed official Mermaid product integration acceptance preparation",
+  "productSource": "4f88dfe78e7687377bbfb9d8c0b770a8c62969ca",
+  "prototypePreparationSource": "7686155eefae5e3b096a1389db5b519c171ec08d",
+  "status": "prepared-not-executed",
+  "executionModel": "Declarative future test-case catalog; driver adapters and product PNG integration are not implemented by this file.",
+  "scope": {
+    "productCodeChanged": false,
+    "publicSdkOrIpcAdded": false,
+    "runtimeExecuted": false,
+    "testsExecuted": false,
+    "newDependencies": false,
+    "productBoundaryApproval": "Required before implementing or distributing the changed product trust boundary; existing prototype/evidence authorization is not expanded here."
+  },
+  "implementationRules": [
+    "Reuse existing service context guards and manager activation epochs.",
+    "Private host adapter only; no arbitrary-plugin access to the fixed rendering service.",
+    "Keep CI scaffold and product same-login coordinator distinct.",
+    "Keep every result null until an actual harness run supplies exact source/platform/evidence.",
+    "Unavailable resources or token contexts are blocked/unverified, never skipped-as-passed."
+  ],
+  "sourceRefs": {
+    "manager_render": {
+      "path": "apps/desktop/src/desktop-plugin-manager.ts",
+      "line": 1627,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/desktop-plugin-manager.ts#L1627"
+    },
+    "manager_epoch": {
+      "path": "apps/desktop/src/desktop-plugin-manager.ts",
+      "line": 1637,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/desktop-plugin-manager.ts#L1637"
+    },
+    "manager_revoke": {
+      "path": "apps/desktop/src/desktop-plugin-manager.ts",
+      "line": 2457,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/desktop-plugin-manager.ts#L2457"
+    },
+    "service_guards": {
+      "path": "apps/desktop/src/document-presentation-service.ts",
+      "line": 52,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/document-presentation-service.ts#L52"
+    },
+    "service_renderer_guard": {
+      "path": "apps/desktop/src/document-presentation-service.ts",
+      "line": 134,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/document-presentation-service.ts#L134"
+    },
+    "presentation_union": {
+      "path": "packages/core/src/document-presentation.ts",
+      "line": 128,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/packages/core/src/document-presentation.ts#L128"
+    },
+    "svg_image_owner": {
+      "path": "packages/view-dom/src/document-svg-image.ts",
+      "line": 14,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/packages/view-dom/src/document-svg-image.ts#L14"
+    },
+    "bundled_receipts": {
+      "path": "apps/desktop/src/main.ts",
+      "line": 1499,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/main.ts#L1499"
+    },
+    "live_invalidation": {
+      "path": "apps/desktop/src/main.ts",
+      "line": 1567,
+      "url": "https://github.com/Auto-Plugin/milkup/blob/4f88dfe78e7687377bbfb9d8c0b770a8c62969ca/apps/desktop/src/main.ts#L1567"
+    }
+  },
+  "fixtures": {
+    "deferred_renderer": {
+      "kind": "future-test-double",
+      "construction": "Use a test-owned deferred promise; independently control queue admission, process ready, renderer completion and image decode. No real plugin or browser execution in unit tests.",
+      "events": [
+        "admit",
+        "ready",
+        "resolve-output",
+        "reject-output",
+        "decode-success",
+        "decode-failure"
+      ],
+      "observations": [
+        "requests-started",
+        "jobs-stopped",
+        "leases-live",
+        "urls-live",
+        "fragments-visible",
+        "source-visible"
+      ]
+    },
+    "private_identities": {
+      "kind": "synthetic-identity-set",
+      "variants": [
+        "reviewed package fingerprint plus active catalog generation plus renderer ID plus host activation epoch",
+        "same plugin/renderer names but unreviewed package fingerprint",
+        "retired generation",
+        "pending candidate not yet published",
+        "disabled or tombstoned entry"
+      ],
+      "rule": "Identity originates from the host catalog; plugin-supplied claims never grant service access."
+    },
+    "png_buffers": {
+      "kind": "generated-in-memory",
+      "construction": "Generate a nonuniform PNG using the existing image test dependency; base dimensions 1280x74, complete chunks and matching declared metadata. Derive mutations without adding libraries.",
+      "variants": [
+        "valid",
+        "truncated-IDAT",
+        "missing-IEND",
+        "trailing-bytes",
+        "bad-chunk-CRC",
+        "metadata-dimension-mismatch",
+        "zero-IHDR-dimension",
+        "decoded-pixel-budget-overflow",
+        "APNG-control-chunks",
+        "compressed-output-budget-overflow"
+      ],
+      "rule": "Test each configured bound immediately below, at, and above the limit; the catalog does not invent a new product limit."
+    },
+    "lease_counter": {
+      "kind": "future-test-double",
+      "construction": "Instrument native output lease acquisition/release and Blob URL create/revoke independently; allow decode to settle after disposal.",
+      "observations": [
+        "live-native-leases",
+        "live-blob-urls",
+        "allocated-compressed-bytes",
+        "allocated-decoded-pixels",
+        "retained-old-plus-new-bytes",
+        "double-release-count"
+      ]
+    },
+    "document_pair": {
+      "kind": "self-authored-markdown",
+      "variants": [
+        "LF",
+        "CRLF",
+        "Chinese and emoji around a Mermaid fence",
+        "same document ID and version with a different source object",
+        "two documents with identical text",
+        "partially visible long fence"
+      ],
+      "rule": "Keep original bytes and independently record document identity, source identity, version, fence range/body hash and selection."
+    },
+    "plugin_history": {
+      "kind": "synthetic-catalog-and-package-receipts",
+      "variants": [
+        "bundled worker1.2.0 enabled",
+        "bundled worker1.2.0 disabled",
+        "bundled DOM1.1.1 disabled",
+        "active1.2.0 plus failed pending replacement",
+        "uninstalled tombstone",
+        "same ID manually imported package without reviewed bundled receipt"
+      ],
+      "rule": "Never modify an actual user catalog; all histories live in exclusive temporary stores."
+    },
+    "fixed_grammar": {
+      "kind": "existing-self-authored-corpus",
+      "manifest": "fixtures-manifest.json",
+      "manifestScope": "37 fixed Mermaid12.2.0 built-in registration IDs plus13 selected variants; not every grammar production.",
+      "additionalCoverage": "Before a full-version claim, enumerate supported syntax/options from the pinned official distribution; resolve optional external modules/icon assets explicitly rather than silently excluding them.",
+      "reuseOnly": true
+    },
+    "native_owned_process": {
+      "kind": "future-isolated-native-harness",
+      "construction": "Only self-authored inert helpers and fresh owned temporary roots; coordinator and child ownership are recorded. No installed product or third-party process attachment.",
+      "faults": [
+        "cancel-before-resume",
+        "cancel-after-ready",
+        "renderer-timeout",
+        "coordinator-exit",
+        "stdout-truncation",
+        "late-frame-after-cancel",
+        "private-tree-cleanup-failure"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "MI-01-private-package-identity",
+      "status": "prepared-not-executed",
+      "layer": "host-unit",
+      "sourceRefs": [
+        "manager_render",
+        "manager_epoch"
+      ],
+      "fixtures": [
+        "private_identities",
+        "deferred_renderer"
+      ],
+      "actions": [
+        {
+          "op": "request-render",
+          "identityVariant": "each"
+        },
+        {
+          "op": "replace-package-with-same-id-before-admission"
+        }
+      ],
+      "assertions": [
+        "Only the exact reviewed active package/generation/renderer/epoch combination may dispatch the fixed service.",
+        "An ID-only match, pending package, disabled entry or retired generation dispatches zero jobs.",
+        "No public plugin SDK method grants arbitrary code/config/path/URL execution."
+      ],
+      "evidenceRequired": [
+        "dispatch-counts",
+        "identity-validation-results"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-02-request-context-and-late-results",
+      "status": "prepared-not-executed",
+      "layer": "host-unit",
+      "sourceRefs": [
+        "service_guards",
+        "service_renderer_guard"
+      ],
+      "fixtures": [
+        "document_pair",
+        "deferred_renderer"
+      ],
+      "actions": [
+        {
+          "op": "defer-render"
+        },
+        {
+          "op": "mutate-context",
+          "variants": [
+            "document-switch",
+            "same-ID-source-replacement",
+            "version-change",
+            "fence-body-edit",
+            "theme-change",
+            "viewport-width-change",
+            "renderer-generation-change"
+          ]
+        },
+        {
+          "op": "resolve-output"
+        }
+      ],
+      "assertions": [
+        "Old results never become visible or hide source in the replacement context.",
+        "The existing service identity/version/theme/renderer guards are reused; the private adapter binds block hash, request ID and width without duplicating ownership state.",
+        "Discarded valid output releases its lease."
+      ],
+      "evidenceRequired": [
+        "deferred-operation-traces",
+        "visible-fragment-and-lease-counts"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-03-cancel-and-original-deadline",
+      "status": "prepared-not-executed",
+      "layer": "host-and-native",
+      "sourceRefs": [
+        "manager_revoke",
+        "service_guards"
+      ],
+      "fixtures": [
+        "deferred_renderer",
+        "native_owned_process"
+      ],
+      "actions": [
+        {
+          "op": "cancel-at-phase",
+          "variants": [
+            "queued",
+            "starting",
+            "ready",
+            "rendering",
+            "decoding"
+          ]
+        },
+        {
+          "op": "deliver-late-completion"
+        },
+        {
+          "op": "expire-original-deadline-during-queue"
+        }
+      ],
+      "assertions": [
+        "Queued cancellation starts no child; active cancellation terminates only the owned Job.",
+        "Queueing, preparation, rendering and decode cannot silently reset the caller deadline.",
+        "Late completion cannot repaint or renew deadlines; cleanup failure remains visible and prevents unsafe redispatch."
+      ],
+      "evidenceRequired": [
+        "monotonic-timing",
+        "owned-Job-empty-proof",
+        "lease-counts"
+      ],
+      "executionGate": "Requires an approved cancellable same-login coordinator; current prototype has no external cancellation API.",
+      "result": null
+    },
+    {
+      "id": "MI-04-png-validation-before-source-replacement",
+      "status": "prepared-not-executed",
+      "layer": "host-unit",
+      "sourceRefs": [
+        "presentation_union",
+        "svg_image_owner"
+      ],
+      "fixtures": [
+        "png_buffers",
+        "deferred_renderer"
+      ],
+      "actions": [
+        {
+          "op": "deliver-buffer",
+          "variants": "each png_buffers variant"
+        },
+        {
+          "op": "settle-image-decode",
+          "variants": [
+            "success",
+            "failure",
+            "after-owner-disposal"
+          ]
+        }
+      ],
+      "assertions": [
+        "Malformed or over-budget output is rejected before publication; source remains available with an accurate diagnostic.",
+        "A structurally accepted PNG still waits for successful image decode before hiding source.",
+        "PNG is represented by a private typed lease; it is not cast to svg-image or admitted by bypassing the public core validator."
+      ],
+      "evidenceRequired": [
+        "validation-error-codes",
+        "source-visibility",
+        "no-uncaught-errors"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-05-image-lease-lifetime-and-total-budget",
+      "status": "prepared-not-executed",
+      "layer": "view-unit",
+      "sourceRefs": [
+        "svg_image_owner",
+        "manager_revoke"
+      ],
+      "fixtures": [
+        "lease_counter",
+        "png_buffers",
+        "deferred_renderer"
+      ],
+      "actions": [
+        {
+          "op": "replace-decoded-image-with-pending-image"
+        },
+        {
+          "op": "repeat-replace-and-dispose",
+          "iterations": 20
+        },
+        {
+          "op": "fail-decode"
+        },
+        {
+          "op": "disable-plugin-before-decode"
+        }
+      ],
+      "assertions": [
+        "Budget includes native bytes, decoded pixels and simultaneous old/new images.",
+        "After replacement retirement or disable, every owned lease and Blob URL is released exactly once.",
+        "Late decode cannot resurrect a disposed owner; live counters return to the pretest baseline."
+      ],
+      "evidenceRequired": [
+        "counter-snapshots",
+        "budget-boundary-results"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-06-live-enable-edit-disable-flow",
+      "status": "prepared-not-executed",
+      "layer": "product-e2e",
+      "sourceRefs": [
+        "live_invalidation",
+        "manager_revoke"
+      ],
+      "fixtures": [
+        "document_pair",
+        "fixed_grammar"
+      ],
+      "actions": [
+        {
+          "op": "open-existing-document"
+        },
+        {
+          "op": "open-plugin-page-and-enable"
+        },
+        {
+          "op": "return-to-document"
+        },
+        {
+          "op": "edit-mermaid-body"
+        },
+        {
+          "op": "disable"
+        },
+        {
+          "op": "re-enable"
+        }
+      ],
+      "assertions": [
+        "Current document renders after enable without reopen/restart, updates after edit, restores source on disable, and renders again after re-enable.",
+        "Plugin order/scroll/focus stays stable; no stale UI or renderer contributions remount.",
+        "Run the same sequence in ordinary and windowed views, Live and Source modes; Source always preserves literal Markdown."
+      ],
+      "evidenceRequired": [
+        "continuous-interaction-screenshots-or-video",
+        "exact-product-binary-SHA",
+        "platform-and-view-mode"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-07-caret-focus-and-composition",
+      "status": "prepared-not-executed",
+      "layer": "product-e2e",
+      "sourceRefs": [
+        "live_invalidation",
+        "service_guards"
+      ],
+      "fixtures": [
+        "document_pair",
+        "fixed_grammar"
+      ],
+      "actions": [
+        {
+          "op": "place-caret",
+          "variants": [
+            "inside-fence",
+            "opening-boundary",
+            "closing-boundary",
+            "outside-fence"
+          ]
+        },
+        {
+          "op": "move-focus-to-plugin-page-and-enable"
+        },
+        {
+          "op": "start-and-finish-IME-composition"
+        },
+        {
+          "op": "cancel-composition"
+        }
+      ],
+      "assertions": [
+        "A stale unfocused caret does not indefinitely conceal successful rendering.",
+        "Editing source and selection mapping remain coherent; composition text remains visible and is neither duplicated nor lost.",
+        "Synthetic composition tests supplement, but do not substitute for, actual Windows system IME evidence."
+      ],
+      "evidenceRequired": [
+        "selection-and-source-snapshots",
+        "real-IME-recording-or-explicit-unverified-status"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-08-bundled-upgrade-and-preserved-intent",
+      "status": "prepared-not-executed",
+      "layer": "catalog-unit-and-product-e2e",
+      "sourceRefs": [
+        "bundled_receipts",
+        "manager_epoch"
+      ],
+      "fixtures": [
+        "plugin_history",
+        "deferred_renderer"
+      ],
+      "actions": [
+        {
+          "op": "restore-each-synthetic-history"
+        },
+        {
+          "op": "offer-reviewed-version-above-1.2.0"
+        },
+        {
+          "op": "enable-once"
+        },
+        {
+          "op": "fail-candidate-and-retry"
+        },
+        {
+          "op": "restart-test-instance"
+        }
+      ],
+      "assertions": [
+        "Add the delivered1.2.0 bundled receipt only through an explicitly reviewed migration; do not match ID alone.",
+        "Disabled and uninstalled intent survives; failed candidates remain visible and retryable; data is retained.",
+        "Old DOM1.1.1 stays unavailable on Windows; active/pending replacement cannot authorize or publish the wrong generation."
+      ],
+      "evidenceRequired": [
+        "catalog-before-after",
+        "dispatch-and-generation-traces",
+        "migration-GUI-evidence"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-09-markdown-save-and-history-integrity",
+      "status": "prepared-not-executed",
+      "layer": "product-e2e",
+      "sourceRefs": [
+        "service_guards"
+      ],
+      "fixtures": [
+        "document_pair",
+        "fixed_grammar"
+      ],
+      "actions": [
+        {
+          "op": "render-and-toggle-without-edit"
+        },
+        {
+          "op": "save-and-reopen"
+        },
+        {
+          "op": "edit-source-then-undo-redo"
+        },
+        {
+          "op": "switch-Live-Source-and-view-mode"
+        }
+      ],
+      "assertions": [
+        "Rendering and toggling alone preserve exact Markdown bytes, CRLF/LF, Unicode and dirty state.",
+        "Actual edits preserve correct undo/redo and saved-byte expectations; rendering never creates a document-edit transaction."
+      ],
+      "evidenceRequired": [
+        "before-after-file-SHA-and-bytes",
+        "undo-redo-checkpoints",
+        "saved-reopened-content"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-10-width-theme-scale-readability",
+      "status": "prepared-not-executed",
+      "layer": "product-e2e",
+      "sourceRefs": [
+        "svg_image_owner",
+        "service_guards"
+      ],
+      "fixtures": [
+        "fixed_grammar"
+      ],
+      "actions": [
+        {
+          "op": "render-representative-fixtures",
+          "variants": [
+            "flow-cjk",
+            "flow-mathml",
+            "flow-wide",
+            "flow-tall",
+            "c4",
+            "sequence-groups"
+          ]
+        },
+        {
+          "op": "vary-window",
+          "sizes": [
+            "760x520",
+            "1280x900"
+          ]
+        },
+        {
+          "op": "vary-theme",
+          "values": [
+            "light",
+            "dark"
+          ]
+        },
+        {
+          "op": "vary-native-scale",
+          "values": [
+            100,
+            125,
+            150,
+            200
+          ]
+        }
+      ],
+      "assertions": [
+        "Text is legible and real ink is not clipped; wide diagrams use readable intrinsic output and appropriate scrolling/zoom.",
+        "Upscaling an already downsampled1280x30 image is not accepted as restored detail.",
+        "Theme/width changes reject stale images and preserve selection and layout constraints."
+      ],
+      "evidenceRequired": [
+        "actual-pixel-images",
+        "viewport-and-native-scale-metadata",
+        "human-readability-review"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-11-same-login-coordinator-ownership",
+      "status": "prepared-not-executed",
+      "layer": "isolated-native",
+      "sourceRefs": [
+        "manager_revoke"
+      ],
+      "fixtures": [
+        "native_owned_process"
+      ],
+      "actions": [
+        {
+          "op": "start-coordinator-and-child-as-same-login"
+        },
+        {
+          "op": "inject-each-owned-process-fault"
+        },
+        {
+          "op": "verify-owned-process-and-file-cleanup"
+        }
+      ],
+      "assertions": [
+        "No different-SID privileged supervisor is needed to clean product-owned work.",
+        "Coordinator/child exit, timeout and cancellation leave no owned running child or unbounded pending operation.",
+        "Cleanup uncertainty remains a failure and preserves bounded diagnostic evidence."
+      ],
+      "evidenceRequired": [
+        "actual-token-facts",
+        "process-instance-and-Job-proof",
+        "temporary-tree-cleanup"
+      ],
+      "executionGate": "Needs an approved same-login design; current cross-SID CI account scaffold cannot be treated as product implementation.",
+      "result": null
+    },
+    {
+      "id": "MI-12-token-context-compatibility",
+      "status": "prepared-not-executed",
+      "layer": "isolated-native",
+      "sourceRefs": [
+        "manager_revoke"
+      ],
+      "fixtures": [
+        "native_owned_process"
+      ],
+      "actions": [
+        {
+          "op": "observe-existing-token-context",
+          "variants": [
+            "pure-standard-user",
+            "administrator-account-filtered-non-elevated",
+            "elevated-administrator"
+          ]
+        },
+        {
+          "op": "apply-reviewed-account-policy"
+        }
+      ],
+      "assertions": [
+        "Record elevation type, enabled/deny-only administrator group attributes and SeDebug presence, without adjusting them.",
+        "A filtered administrator is not mislabeled as elevated.",
+        "Until a reviewed policy and real eligible context exist, current filtered-token rejection remains explicitly unsupported; missing contexts are unverified rather than passed."
+      ],
+      "evidenceRequired": [
+        "token-observation-record",
+        "policy-decision",
+        "per-context-execution-or-blocker"
+      ],
+      "executionGate": "Do not alter UAC or privileges, or create account contexts beyond the separately authorized disposable test-account scope; unavailable eligible contexts remain unverified.",
+      "result": null
+    },
+    {
+      "id": "MI-13-fixed-official-grammar-and-pixels",
+      "status": "prepared-not-executed",
+      "layer": "isolated-renderer-then-product-e2e",
+      "sourceRefs": [
+        "manager_render",
+        "live_invalidation"
+      ],
+      "fixtures": [
+        "fixed_grammar"
+      ],
+      "actions": [
+        {
+          "op": "verify-pinned-engine-and-corpus-hashes"
+        },
+        {
+          "op": "render-each-declared-supported-fixture"
+        },
+        {
+          "op": "decode-retain-and-inspect-output"
+        },
+        {
+          "op": "repeat-in-product-document-path"
+        }
+      ],
+      "assertions": [
+        "Every claimed fixed-version built-in family has actual rendered-pixel evidence, not parser-only success.",
+        "Enumerated optional modules/assets and unsupported options have explicit decisions and diagnostics;37 entries/50 samples do not imply all syntax combinations.",
+        "Independent prototype output and actual product hot lifecycle evidence are separately identified."
+      ],
+      "evidenceRequired": [
+        "per-fixture-result-and-PNG-SHA",
+        "actual-images",
+        "precise-engine-version",
+        "product-sequence-evidence"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-14-data-only-and-output-safety",
+      "status": "prepared-not-executed",
+      "layer": "isolated-native-and-host-unit",
+      "sourceRefs": [
+        "manager_render",
+        "presentation_union"
+      ],
+      "fixtures": [
+        "document_pair",
+        "png_buffers"
+      ],
+      "actions": [
+        {
+          "op": "submit-synthetic-hostile-diagram",
+          "variants": [
+            "click-links",
+            "HTML-event-attributes",
+            "external-image-URL",
+            "font-URL",
+            "init-config-override",
+            "oversized-node-edge-input"
+          ]
+        },
+        {
+          "op": "attempt-native-bridge-or-third-party-code-input"
+        }
+      ],
+      "assertions": [
+        "Only bounded diagram text plus closed host parameters enters the fixed renderer; arbitrary JS, executable plugin modules, paths and native bridge messages are rejected.",
+        "Result is validated PNG; no active link/script/remote-resource surface is mounted.",
+        "Browser-level request controls are reported accurately; they never imply OS-wide UDP/network denial."
+      ],
+      "evidenceRequired": [
+        "negative-results",
+        "bounded-policy-observations",
+        "output-validation"
+      ],
+      "executionGate": "Use only approved fixed-code prototype scope and self-authored inputs; product trust-boundary approval remains separate.",
+      "result": null
+    },
+    {
+      "id": "MI-15-concurrency-and-retirement",
+      "status": "prepared-not-executed",
+      "layer": "host-and-native",
+      "sourceRefs": [
+        "service_renderer_guard",
+        "manager_revoke"
+      ],
+      "fixtures": [
+        "deferred_renderer",
+        "lease_counter",
+        "document_pair"
+      ],
+      "actions": [
+        {
+          "op": "queue-multiple-fences"
+        },
+        {
+          "op": "replace-document-and-plugin-generation"
+        },
+        {
+          "op": "settle-results-in-reverse-order"
+        },
+        {
+          "op": "fail-one-job-cleanup"
+        }
+      ],
+      "assertions": [
+        "No result crosses document, range or activation ownership; stable source order and existing competing-renderer conflict checks remain.",
+        "Global active-job and image budgets bound aggregate work.",
+        "An old owner cannot cancel or dispose resources belonging to a newer request; uncertain cleanup blocks its unsafe replacement."
+      ],
+      "evidenceRequired": [
+        "request-owner-map",
+        "queue-and-budget-counters",
+        "late-result-discard-counts"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    },
+    {
+      "id": "MI-16-runtime-provenance-and-comparability",
+      "status": "prepared-not-executed",
+      "layer": "isolated-native",
+      "sourceRefs": [],
+      "fixtures": [
+        "native_owned_process",
+        "fixed_grammar"
+      ],
+      "actions": [
+        {
+          "op": "record-runtime-source-and-architecture"
+        },
+        {
+          "op": "record-file-version-signature-and-hash"
+        },
+        {
+          "op": "compare-same-fixture-across-approved-available-runtime-contexts"
+        }
+      ],
+      "assertions": [
+        "Installed Evergreen and extracted Fixed Version packages are identified accurately; equal version strings do not prove identical installed layouts or image bytes.",
+        "No implicit Runtime installation, downgrade, system ACL widening or unreviewed fallback occurs.",
+        "Current success cannot be reported as the cause or repair of the historical155 cleanup failure."
+      ],
+      "evidenceRequired": [
+        "source-URL-or-installed-inventory",
+        "package-and-image-hashes",
+        "actual-file-versions",
+        "deployment-layout",
+        "exact-compiler-and-candidate-SHA"
+      ],
+      "executionGate": "Acquisition/execution must remain within the current authorized runtime/test scope.",
+      "result": null
+    },
+    {
+      "id": "MI-17-original-safety-regressions",
+      "status": "prepared-not-executed",
+      "layer": "product-e2e",
+      "sourceRefs": [
+        "bundled_receipts",
+        "live_invalidation"
+      ],
+      "fixtures": [
+        "document_pair",
+        "plugin_history"
+      ],
+      "actions": [
+        {
+          "op": "exercise-stable-card-and-context-toolbar-flows"
+        },
+        {
+          "op": "open-code-fences-and-switch-language"
+        },
+        {
+          "op": "cancel-save-and-reopen-recovery-copy"
+        },
+        {
+          "op": "disable-renderer-during-pending-output"
+        }
+      ],
+      "assertions": [
+        "Stable plugin cards, hidden Live fences, source-mode literal fences, contextual toolbar layout and byte-preserving saves remain correct.",
+        "Existing recovery safeguards and generic Windows DOM/PDF restrictions remain in force.",
+        "No actual installer, upgrade or rollback acceptance is inferred from editor tests."
+      ],
+      "evidenceRequired": [
+        "targeted-regression-results",
+        "exact-product-SHA",
+        "remaining-platform-boundaries"
+      ],
+      "executionGate": "Product adapter/harness implementation is not present; prepare only.",
+      "result": null
+    }
+  ],
+  "resultRecordRequirements": [
+    "caseId",
+    "candidateSource",
+    "productBinarySha256 where applicable",
+    "platform",
+    "runtime provenance/version/image hash where applicable",
+    "compiler where applicable",
+    "startedAt",
+    "finishedAt",
+    "actualOutcome",
+    "evidencePaths",
+    "failureOrUnverifiedReason",
+    "no assertion result inferred from this catalog"
+  ]
+}

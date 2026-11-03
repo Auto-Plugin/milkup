@@ -27,12 +27,14 @@ $captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]'
 $deleteDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-diagnostic]')
 $repeatDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-repeat]')
 $stdControl = $event.head_commit.message.Contains('[mermaid-delete-std-control]')
+$fixedRuntime155 = $event.head_commit.message.Contains('[mermaid-fixed-runtime-155]')
+if ($fixedRuntime155 -and (-not $deleteDiagnostic -or $repeatDiagnostic -or $stdControl -or $captureVisual)) { throw 'Fixed Runtime155 requires single diagnostic corpus only' }
 if ($stdControl -and (-not $deleteDiagnostic -or $repeatDiagnostic)) { throw 'Std control requires single diagnostic corpus only' }
 if ($repeatDiagnostic -and -not $deleteDiagnostic) { throw 'Repeat marker requires diagnostic mode' }
 $deleteDiagnosticRepeats = $(if ($repeatDiagnostic) { 10 } else { 1 })
 if ($captureVisual -and $deleteDiagnostic) { throw 'Incompatible diagnostic execution markers' }
 $renderingBaseline = '82fb49e95caf99ea45654f552992eff81f72bee9'
-$nativeBaseline = $(if ($deleteDiagnostic) { '0a40abfb1eb571f9c67099fca775dfabcd758c29' } else { '7aa222e85859d217c33eedcb244e89ca1089ebbb' })
+$nativeBaseline = $(if ($fixedRuntime155) { 'dbc9811d0c405ba59d7c9ca93182d1889b6286f0' } elseif ($deleteDiagnostic) { '0a40abfb1eb571f9c67099fca775dfabcd758c29' } else { '7aa222e85859d217c33eedcb244e89ca1089ebbb' })
 if ($captureVisual -or $deleteDiagnostic) {
     # The new native observation code is pinned separately, never broadly
     # excluded. All rendering/assets/dependency/security inputs retain 82fb.
@@ -50,6 +52,7 @@ if ($captureVisual -or $deleteDiagnostic) {
             'scripts/experiments/mermaid-fixed-prototype/src/launcher/delete_diagnostic.rs'
         )
     }
+    if ($fixedRuntime155) { $approvedNativePaths += 'scripts/experiments/mermaid-fixed-prototype/src/launcher/fixed_runtime.rs' }
     $nativeChanges = @(git diff --name-only $renderingBaseline $nativeBaseline -- 'scripts/experiments/mermaid-fixed-prototype/src')
     if ($LASTEXITCODE -ne 0 -or @(Compare-Object ($approvedNativePaths | Sort-Object) ($nativeChanges | Sort-Object)).Count) {
         throw 'Native diagnostic baseline contains unreviewed source paths'
@@ -82,16 +85,17 @@ $candidates = @(foreach ($directory in $roots) {
         }
     }
 })
-if ($candidates.Count -eq 0) { throw 'No existing WebView2; no Runtime installation fallback' }
-$runtime = ($candidates | Sort-Object version -Descending | Select-Object -First 1).path
+if ($candidates.Count -eq 0 -and -not $fixedRuntime155) { throw 'No existing WebView2; no Runtime installation fallback' }
+$runtime = $(if ($fixedRuntime155) { 'fixed155-pending-verified-staging' } else { ($candidates | Sort-Object version -Descending | Select-Object -First 1).path })
 $runtimeFileVersion = [ordered]@{ directoryVersion = [IO.Path]::GetFileName($runtime); readSucceeded = $false; fileVersion = $null; productVersion = $null; errorType = $null }
-try {
+if (-not $fixedRuntime155) { try {
     $versionInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $runtime 'msedgewebview2.exe'))
     # Read only the already selected Runtime; no update, installation or network verification.
     $runtimeFileVersion.fileVersion = $versionInfo.FileVersion
     $runtimeFileVersion.productVersion = $versionInfo.ProductVersion
     $runtimeFileVersion.readSucceeded = $true
-} catch { $runtimeFileVersion.errorType = $_.Exception.GetType().FullName }
+} catch { $runtimeFileVersion.errorType = $_.Exception.GetType().FullName } }
+if ($fixedRuntime155) { $runtimeFileVersion = $null }
 $proof = Join-Path $env:RUNNER_TEMP ('mermaid-fixed-prototype-evidence-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $proof -ErrorAction Stop | Out-Null
 "evidence_root=$proof" >> $env:GITHUB_OUTPUT
@@ -129,6 +133,8 @@ $execution = [ordered]@{
     deleteDiagnostic = $deleteDiagnostic
     deleteDiagnosticRepeats = $deleteDiagnosticRepeats
     originalStdControl = $stdControl
+    fixedRuntime155 = $fixedRuntime155
+    requestedFixedRuntimeVersion = $(if ($fixedRuntime155) { '155.0.4283.62' } else { $null })
     diagnosticCorpus = $(if ($deleteDiagnostic) { @('flowchart-v2','gitGraph') } else { $null })
     renderingInputsBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $renderingBaseline } else { $null })
     nativeSourceBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $nativeBaseline } else { $null })
@@ -137,6 +143,6 @@ $execution = [ordered]@{
 }
 $execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
 Write-Output ('MILKUP_EXECUTION_JSON ' + ($execution | ConvertTo-Json -Depth 5 -Compress))
-& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic -DeleteDiagnosticRepeats $deleteDiagnosticRepeats -OriginalStdControl:$stdControl
+& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic -DeleteDiagnosticRepeats $deleteDiagnosticRepeats -OriginalStdControl:$stdControl -FixedRuntime155:$fixedRuntime155
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }
