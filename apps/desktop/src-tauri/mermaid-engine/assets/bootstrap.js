@@ -23,6 +23,59 @@
     box.width >= 0 &&
     box.height >= 0
 
+  function improveC4NodeContrast(svg) {
+    const geometryNames = new Set(['rect', 'circle', 'ellipse', 'path', 'polygon'])
+    for (const node of svg.querySelectorAll('.c4-shape')) {
+      const shapes = [...node.children].filter((child) => geometryNames.has(child.localName))
+      for (const label of node.querySelectorAll('.label')) {
+        if (label.closest('.c4-shape') !== node) continue
+        const bounds = label.getBoundingClientRect()
+        const center = new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+        // Read the actual opaque shape behind the label, including document C4
+        // style choices. Theme names and shape types do not determine contrast.
+        const shape = shapes.findLast((candidate) => {
+          const matrix = candidate.getScreenCTM()
+          if (!matrix || !candidate.isPointInFill(center.matrixTransform(matrix.inverse())))
+            return false
+          const style = getComputedStyle(candidate)
+          return style.fill !== 'none' && Number(style.fillOpacity) === 1
+        })
+        if (!shape) continue
+        const color = getComputedStyle(shape).fill.match(/^rgba?\(([^)]+)\)$/)
+        if (!color) continue // Gradients and unresolved paints have no single known background.
+        const rgb = color[1].split(',').map((channel) => Number(channel.trim()))
+        if (
+          (rgb.length !== 3 && rgb.length !== 4) ||
+          rgb
+            .slice(0, 3)
+            .some((channel) => !Number.isFinite(channel) || channel < 0 || channel > 255) ||
+          (rgb.length === 4 && rgb[3] !== 1)
+        )
+          continue
+        let opaque = true
+        for (
+          let ancestor = shape;
+          ancestor && ancestor !== svg;
+          ancestor = ancestor.parentElement
+        ) {
+          if (Number(getComputedStyle(ancestor).opacity) !== 1) opaque = false
+        }
+        if (!opaque) continue
+        const linear = rgb.slice(0, 3).map((channel) => {
+          const srgb = channel / 255
+          return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4
+        })
+        const luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+        const blackContrast = (luminance + 0.05) / 0.05
+        const whiteContrast = 1.05 / (luminance + 0.05)
+        const ink = blackContrast >= whiteContrast ? '#000000' : '#ffffff'
+        for (const text of label.querySelectorAll('text, tspan')) {
+          text.style.setProperty('fill', ink, 'important')
+        }
+      }
+    }
+  }
+
   function liftC4Labels(svg, background, theme) {
     if (!svg.querySelector('.c4-shape')) return 0
     let count = 0
@@ -210,6 +263,7 @@
       await document.fonts.ready
       await frame()
       await frame()
+      improveC4NodeContrast(svg)
       const adjustedC4Labels = liftC4Labels(svg, background, data.theme)
       const { width, height, box } = measureNaturalOutput(svg, target)
       await frame()

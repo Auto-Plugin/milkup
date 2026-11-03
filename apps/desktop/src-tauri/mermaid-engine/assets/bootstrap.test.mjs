@@ -160,6 +160,55 @@ async function startBrowser() {
   }
 }
 
+async function assertC4NodeContrast(browser, records, id, theme) {
+  const labels = await browser.evaluate(`(()=>{
+    const rows=[];
+    for(const node of document.querySelectorAll('#target .c4-shape')) {
+      const shape=[...node.children].find(child=>['rect','circle','ellipse','path','polygon'].includes(child.localName));
+      if(!shape) continue;
+      for(const leaf of node.querySelectorAll('.label text, .label tspan')) {
+        if(leaf.children.length || !leaf.textContent.trim()) continue;
+        rows.push({text:leaf.textContent,shapeClass:node.getAttribute('class'),
+          fill:getComputedStyle(shape).fill,ink:getComputedStyle(leaf).fill});
+      }
+    }
+    return rows;
+  })()`)
+  assert.ok(labels.length > 0, 'C4 fixture has visible leaf labels')
+  const luminance = (color) => {
+    const channels = color
+      .match(/[\d.]+/g)
+      .slice(0, 3)
+      .map(Number)
+      .map((value) => {
+        const srgb = value / 255
+        return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4
+      })
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+  }
+  for (const label of labels) {
+    const background = luminance(label.fill)
+    const foreground = luminance(label.ink)
+    label.contrast =
+      (Math.max(background, foreground) + 0.05) / (Math.min(background, foreground) + 0.05)
+    assert.ok(
+      label.contrast >= 4.5,
+      `${label.text}: actual ${label.ink} on ${label.fill} has ${label.contrast.toFixed(2)}:1 contrast`,
+    )
+    if (id !== 'custom-backgrounds') {
+      const expected = /c4-(person|system)(?:\s|$)/.test(label.shapeClass)
+        ? 'rgb(255, 255, 255)'
+        : 'rgb(0, 0, 0)'
+      assert.equal(
+        label.ink,
+        expected,
+        `${label.text}: deep blue retains white; lighter fill uses black`,
+      )
+    }
+  }
+  records.push({ id, theme, labels })
+}
+
 const wide =
   'flowchart LR\n' + Array.from({ length: 16 }, (_, i) => `N${i + 1}[Stage ${i + 1}]`).join(' --> ')
 const c4 =
@@ -174,6 +223,7 @@ test(
   },
   async (t) => {
     const browser = await startBrowser()
+    const contrastRecords = []
     try {
       for (const theme of ['default', 'dark']) {
         await t.test(`wide diagram remains natural size in ${theme}`, async () => {
@@ -225,6 +275,7 @@ test(
             theme === 'dark' ? 'rgb(30, 30, 30)' : 'rgb(255, 255, 255)',
           )
           assert.equal(geometry.ink, theme === 'dark' ? 'rgb(226, 228, 233)' : 'rgb(68, 68, 68)')
+          await assertC4NodeContrast(browser, contrastRecords, 'component', theme)
           const png = await browser.snapshot(`c4-component-${theme}`)
           assert.equal(png.width, result.width)
           assert.equal(png.height, result.height)
@@ -247,6 +298,14 @@ test(
           'container',
           'C4Container\nPerson(reader, "Reader")\nContainer(editor, "Editor", "Desktop", "Notes")\nRel(reader, editor, "Writes")',
         ],
+        [
+          'dynamic',
+          'C4Dynamic\nPerson(reader, "Reader")\nSystem(editor, "Editor", "Writes notes")\nRel(reader, editor, "Writes")',
+        ],
+        [
+          'deployment',
+          'C4Deployment\nDeployment_Node(workstation, "Workstation", "Windows") {\nContainer(editor, "Editor", "Desktop", "Notes")\n}',
+        ],
       ]) {
         for (const theme of ['default', 'dark']) {
           await t.test(
@@ -254,7 +313,7 @@ test(
             async () => {
               const result = await browser.render(source, { width: 640, theme })
               assert.equal(result.phase, 'rendered', result.message)
-              assert.equal(result.adjustedC4Labels, 1)
+              assert.equal(result.adjustedC4Labels, kind === 'deployment' ? 0 : 1)
               const padding =
                 await browser.evaluate(`(()=>{const svg=document.querySelector('#target>svg');
               const box=svg.getBBox(); const view=svg.viewBox.baseVal; return {
@@ -268,6 +327,7 @@ test(
               }
               assert.ok(result.width - result.svgBBox.width <= 34, 'no large horizontal C4 canvas')
               assert.ok(result.height - result.svgBBox.height <= 34, 'no large vertical C4 canvas')
+              await assertC4NodeContrast(browser, contrastRecords, kind, theme)
               const png = await browser.snapshot(`c4-${kind}-${theme}`)
               assert.equal(png.width, result.width)
               assert.equal(png.height, result.height)
@@ -275,6 +335,43 @@ test(
           )
         }
       }
+      for (const theme of ['default', 'dark']) {
+        await t.test(`C4 contrast follows actual custom backgrounds in ${theme}`, async () => {
+          const result = await browser.render(
+            c4 +
+              '\nUpdateElementStyle(parser, $bgColor="#ffffff", $fontColor="#ffffff")\nUpdateElementStyle(view, $bgColor="#123456", $fontColor="#000000")',
+            { width: 640, theme },
+          )
+          assert.equal(result.phase, 'rendered', result.message)
+          await assertC4NodeContrast(browser, contrastRecords, 'custom-backgrounds', theme)
+          const labels = contrastRecords.at(-1).labels
+          assert.ok(
+            labels.some(
+              (label) => label.fill === 'rgb(255, 255, 255)' && label.ink === 'rgb(0, 0, 0)',
+            ),
+          )
+          assert.ok(
+            labels.some(
+              (label) => label.fill === 'rgb(18, 52, 86)' && label.ink === 'rgb(255, 255, 255)',
+            ),
+          )
+          await browser.snapshot(`c4-custom-backgrounds-${theme}`)
+        })
+      }
+      if (evidence)
+        await writeFile(
+          join(evidence, 'c4-contrast-results.json'),
+          JSON.stringify(
+            {
+              scope:
+                'Local Chromium C4 nominal leaf-text contrast and retained actual PNGs; not native Windows acceptance',
+              browser: await browser.evaluate('navigator.userAgent'),
+              records: contrastRecords,
+            },
+            null,
+            2,
+          ),
+        )
       await t.test(
         'small diagrams are cropped to their actual content and neo remains supported',
         async () => {
