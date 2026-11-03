@@ -280,6 +280,57 @@ profile remains unverifiable. Local reports are in
 `windows/reflow-teardown-profile-regressions/`; the next real Windows run must
 supply actual pixels and cleanup results.
 
+Run `41646316340` at candidate `e727fbbe4cd3333657ed70aff8ae0b35eacf1f22`
+passed private Rust tests (13), desktop tests (228 passed / 3 ignored), linking
+and every strict source snapshot. The standard-user Node harness returned actual
+exit 1 after 44,353ms, with drained streams and no forced Node termination. Its
+specific product failure cannot be established: evidence copying rejected an
+unexpected or oversized file before copying any child report, log or PNG. The
+error omitted the rejected filename/size. No retained evidence supports either
+render success or native inner-cleanup acceptance. An unbounded driver protocol
+log is a possible source of the size violation, not a proven historical cause.
+The original ZIP, four verified manifest files and raw workflow log are retained
+in `windows/product-attempt-41646316340/`; missing child evidence is not recreated.
+
+This run does independently prove its own outer/account/profile cleanup: the
+outer Job was already empty, exact-SID observation was complete with zero matching
+processes, and the first DeleteProfile call succeeded. Final ProfileList/path/HKU
+were absent and Win32_UserProfile had zero matches; account and stage removal
+also succeeded, with no cleanup errors. This fresh runner/account cannot establish
+that the failed profile from run `41642093459` was subsequently removed.
+
+Commit `6da36701` fixes a separately reviewed exit-observation race: a late
+WebDriver query response could falsely classify a timely application exit as
+late. Child exit-event monotonic time and the original abort/deadline now govern
+queries and owned-fixture discard actions. The unchanged 15-second budget still
+rejects late exits; synchronous deadline checks prevent late action dispatch even
+when timer callbacks are delayed. All 32 local helper tests pass and the original
+code fails the new targeted regression, retained in `windows/exit-budget-regression/`.
+These pure callback tests do not establish Windows product acceptance.
+Commit `c309dd43` requests driver WARNING-level diagnostics to avoid repetitive
+protocol bodies; complete product/native reports and their limits are unchanged.
+The option is supported by the [Selenium Edge documentation](https://www.selenium.dev/documentation/webdriver/browsers/edge/)
+and [Chromium driver logging source](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/chrome/test/chromedriver/logging.cc).
+It is not a claim that the missing historical oversized file has been identified.
+
+Commit `187a9c31` retains approved in-budget child evidence when a different
+file is rejected, prioritizing reports/logs before PNGs. Exact names, original
+2-MiB/32-MiB per-file and 126-MiB child-total limits remain enforced; unknown names
+are represented only by hashes, with no unknown contents read. Rejection records
+and their hashing work have explicit budgets. Copies are hashed and validated;
+partial copies are removed only when this invocation actually created them.
+Original child failure remains the primary error. Incomplete evidence forces
+outer failure, enforced again by the artifact staging check (`06e6a525`).
+
+Six actual local PowerShell collector scenarios and ten Node staging cases passed,
+including oversized/unknown/invalid files, bounded hash omission, preserving good
+reports, and rejecting a preexisting destination collision without deleting it.
+PowerShell output was fed through the real artifact stager. The collision case
+correctly fails staging, while ordinary incomplete collections can be retained
+only with failed status. Scripts and actual outputs are retained in
+`windows/partial-evidence-regression/`. No Windows APIs or remote UI were exercised
+by these local collector regressions; the next product run remains necessary.
+
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
