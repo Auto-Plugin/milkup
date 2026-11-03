@@ -231,6 +231,55 @@ version assertions, and retains readonly status-notice diagnostics on timeout.
 Three async readiness regressions were added; all 14 local harness tests and
 syntax checks passed. Product initialization/IPC/catalog code was not changed.
 
+Run `41642093459` at candidate `9e12638dca09ede0251ec410c92423ac19af10ae`
+again passed build/tests/link and the unchanged source gate. The card readiness
+wait worked: step 1 passed, including actual Diagrams 1.3.0 details and disabled
+state. Step 2 enabled the real switch and native work was admitted, but the test
+aborted on its overly broad assertion that every later card retain the same Y.
+Original WebDriver responses prove that Diagrams itself stayed at Y=202.59375;
+its height changed from 178 to 157 after the pending-version line disappeared.
+Every following card retained its ID/order and shifted up exactly 21 pixels.
+The corrected geometry test must still verify target anchoring, full order and
+height-consistent downstream spacing; it must not accept arbitrary card movement.
+
+This failed attempt also exposes a test cleanup defect: failure closed the
+product by force before its admitted render completed. Only an `admitted` audit
+was retained, no native completion or diagram PNG. Outer cleanup found two live
+owned processes, then obtained an empty Job; exact temporary profile deletion
+subsequently failed with Win32 32 (sharing violation). Account and stage deletion
+succeeded, but `profileDeleted=false` and the cleanup error remain failures.
+The failed profile was `C:\Users\mkme0b98d3013ee14f` (the exact SID and
+action are in `profile-cleanup-blocker.json`). The completed hosted runner has
+no accessible execution channel here, so later residual state is uncertain;
+no claim is made that this old profile was subsequently removed.
+No inner-cleanup or pixel pass is claimed. Failure cleanup must first allow a
+bounded native drain and normal UI close, retaining any failure; external forced
+cleanup cannot substitute for product cleanup. Profile retries, if added, must
+remain bounded to the exact new SID after confirmed process emptiness.
+
+`windows/product-attempt-41642093459/` retains all 20 verified manifest files,
+three actual product UI screenshots, original ZIP/log, extracted geometry and
+root image review. The current Windows output remains **not accepted**.
+
+Commits `4807c4b9`, `60b3d2bb` and `90bae1a2` correct the harness's
+geometry and failure teardown, and strengthen exact-profile cleanup. The actual
+ten-card geometry replays successfully; 25 local harness tests pass, including
+reorder/anchor/spacing rejection and asynchronous close-confirm handling. Both
+success and failure paths now drain native jobs for a bounded 45 seconds, request
+real UI close, observe exit/stdio and verify final native cleanup. All errors are
+retained, and an identity-verified forced fallback can never satisfy acceptance.
+
+Profile cleanup observes the exact new SID's processes without changing them,
+rechecks PID/SID/session identity, and retains the account if observation or
+profile removal is incomplete. Only Win32 32 permits up to six bounded delete
+attempts. Registry/path/hive and loaded-profile diagnostics are retained, including
+the first sharing violation. Account deletion requires independently confirmed
+profile removal. Ten local mocked profile cases and ten SID-classification cases
+pass; these are not actual Windows cleanup proof. The original runner's failed
+profile remains unverifiable. Local reports are in
+`windows/reflow-teardown-profile-regressions/`; the next real Windows run must
+supply actual pixels and cleanup results.
+
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
