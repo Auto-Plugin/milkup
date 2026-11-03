@@ -62,6 +62,22 @@ fn trace(phase: &'static str) {
         eprintln!("MILKUP_FIXED_MERMAID {phase}");
     }
 }
+fn checked_cleanup_with(
+    path: &std::path::Path,
+    remove: impl FnOnce(&std::path::Path) -> std::io::Result<()>,
+) -> Result<()> {
+    match remove(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(format!(
+            "Mermaid owned directory cleanup failed at {}: {e}",
+            path.display()
+        )),
+    }
+}
+fn checked_cleanup(path: &std::path::Path) -> Result<()> {
+    checked_cleanup_with(path, |path| fs::remove_dir_all(path))
+}
 struct Private(PathBuf);
 impl Private {
     fn new() -> Result<Self> {
@@ -83,7 +99,11 @@ impl Private {
 }
 impl Drop for Private {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
+        // Early-return fallback is observable. Successful renders additionally
+        // require explicit checked cleanup before they may publish a PNG.
+        if let Err(e) = checked_cleanup(&self.0) {
+            eprintln!("{e}");
+        }
     }
 }
 
@@ -135,6 +155,10 @@ pub fn render(input: &Value, control: &Control) -> Result<Rendered> {
     ]);
     command
         .env("MILKUP_INTERNAL_MERMAID_DIRECTORY", &private.0)
+        .env(
+            "MILKUP_INTERNAL_DOM_INSTANCE_ID",
+            input["requestId"].as_str().unwrap_or("fixed-mermaid"),
+        )
         // Do not let inherited developer switches disable this helper's sandbox
         // or open a remote inspector. Keep the installed runtime/library lookup.
         .env_remove("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS")
@@ -229,8 +253,11 @@ pub fn render(input: &Value, control: &Control) -> Result<Rendered> {
             Ok(Some(status)) => {
                 if !status.success() {
                     control.mark_cleanup_uncertain();
-                    return Err("Mermaid guardian cleanup failed".into());
+                    let message = format!("Mermaid guardian cleanup failed; owned directory retained for inspection: {}",private.0.display());
+                    std::mem::forget(private);
+                    return Err(message);
                 }
+                trace("guardian-exited-clean");
                 break;
             }
             Ok(None) if Instant::now() >= cleanup_deadline => {
@@ -243,6 +270,16 @@ pub fn render(input: &Value, control: &Control) -> Result<Rendered> {
             Ok(None) => std::thread::sleep(Duration::from_millis(10)),
         }
     }
+    // Cleanup is part of successful publication, not a best-effort Drop side
+    // effect. The guardian may already have removed its owned extension folder.
+    if let Err(e) = checked_cleanup(&private.0) {
+        control.mark_cleanup_uncertain();
+        // Keep the evidence target intact for review/retry, rather than make a
+        // best-effort second attempt from Drop after reporting a cleanup failure.
+        std::mem::forget(private);
+        return Err(e);
+    }
+    trace("private-directory-clean");
     result
 }
 
@@ -256,17 +293,21 @@ pub fn run_helper_if_requested() -> bool {
 fn run_guarded() {
     let result = crate::plugin_dom::supervise_native_output(helper);
     // Guardian owns this directory even when the editor dies or times out.
-    if let Some(path) = std::env::var_os("MILKUP_INTERNAL_MERMAID_DIRECTORY") {
+    let cleanup = if let Some(path) = std::env::var_os("MILKUP_INTERNAL_MERMAID_DIRECTORY") {
         let path = PathBuf::from(path);
         if path.parent() == Some(std::env::temp_dir().as_path())
             && path
                 .file_name()
                 .is_some_and(|p| p.to_string_lossy().starts_with("milkup-mermaid-"))
         {
-            let _ = fs::remove_dir_all(path);
+            checked_cleanup(&path)
+        } else {
+            Err("Mermaid guardian refused an unowned cleanup path".into())
         }
-    }
-    if let Err(e) = result {
+    } else {
+        Err("Mermaid guardian owned cleanup directory missing".into())
+    };
+    if let Err(e) = result.and(cleanup) {
         eprintln!("Fixed Mermaid guardian: {e}");
         std::process::exit(1);
     }
@@ -629,6 +670,20 @@ mod tests {
     fn result_frame_rejects_large_length_before_allocating_payload() {
         let mut bytes = std::io::Cursor::new(100_000u32.to_le_bytes());
         assert!(frame_read(&mut bytes, 4096).is_err());
+    }
+    #[test]
+    fn cleanup_denial_is_reported_with_owned_path_and_missing_is_success() {
+        let path = std::path::Path::new("/tmp/milkup-mermaid-test-owned");
+        let denied = checked_cleanup_with(path, |_| {
+            Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied))
+        })
+        .unwrap_err();
+        assert!(denied.contains("milkup-mermaid-test-owned"));
+        assert!(denied.contains("Permission denied") || denied.contains("permission denied"));
+        assert!(checked_cleanup_with(path, |_| Err(std::io::Error::from(
+            std::io::ErrorKind::NotFound
+        )))
+        .is_ok());
     }
     #[test]
     #[ignore = "private subprocess entry; not a standalone test"]
