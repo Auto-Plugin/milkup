@@ -6,7 +6,8 @@ param(
     [switch]$DeleteDiagnostic,
     [ValidateSet('1','10')][int]$DeleteDiagnosticRepeats = 1,
     [switch]$OriginalStdControl,
-    [switch]$FixedRuntime155
+    [switch]$FixedRuntime155,
+    [switch]$HistoricalPrefix
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -21,6 +22,7 @@ if (-not $DeleteDiagnostic -and $DeleteDiagnosticRepeats -ne 1) { throw 'Repeat 
 if ($OriginalStdControl -and (-not $DeleteDiagnostic -or $DeleteDiagnosticRepeats -ne 1)) { throw 'Std control requires the fixed single-target corpus' }
 
 if ($FixedRuntime155 -and (-not $DeleteDiagnostic -or $DeleteDiagnosticRepeats -ne 1 -or $OriginalStdControl -or $CaptureVisualEvidence)) { throw 'Fixed Runtime155 requires single diagnostic corpus' }
+if ($HistoricalPrefix -and -not $FixedRuntime155) { throw 'Historical prefix requires exact Fixed Runtime155 diagnostic' }
 
 function Assert-PlainPath([string]$Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
@@ -140,7 +142,7 @@ $audit = [ordered]@{
     changedFirewallOrUac = $false; changedExistingDesktopAcl = $false
     newRuntimeOrDependency = $FixedRuntime155.IsPresent
     newRuntimeDownloaded = $false; runtimeInstalled = $false
-    fixedRuntime155 = $FixedRuntime155.IsPresent; productIntegrated = $false; artifactUpload = $false
+    fixedRuntime155 = $FixedRuntime155.IsPresent; historicalPrefix = $HistoricalPrefix.IsPresent; productIntegrated = $false; artifactUpload = $false
     captureVisualEvidence = $CaptureVisualEvidence.IsPresent; visualEvidenceEmitted = $false
     deleteDiagnostic = $DeleteDiagnostic.IsPresent; deleteDiagnosticRepeats = $DeleteDiagnosticRepeats; originalStdControl = $OriginalStdControl.IsPresent
 }
@@ -225,8 +227,12 @@ try {
         $cases = @(
             @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000}
         )
-        for ($index=1; $index -le $DeleteDiagnosticRepeats; $index++) {
-            $cases += @{name=('delete-diagnostic-{0:d2}' -f $index); manifest='fixtures-manifest.json'; selector='gitGraph'; timeout=120000}
+        if ($HistoricalPrefix) {
+            $cases += @{name='historical-prefix'; manifest='fixtures-manifest.json'; selector='historical-prefix-6'; timeout=300000}
+        } else {
+            for ($index=1; $index -le $DeleteDiagnosticRepeats; $index++) {
+                $cases += @{name=('delete-diagnostic-{0:d2}' -f $index); manifest='fixtures-manifest.json'; selector='gitGraph'; timeout=120000}
+            }
         }
     }
     if (-not $CaptureVisualEvidence -and -not $DeleteDiagnostic) {
@@ -275,7 +281,13 @@ try {
             throw ('Standard-user ' + $case.name + ' failed; no subsequent dispatch')
         }
         $report = Get-Content -LiteralPath (Join-Path $output 'report.json') -Raw | ConvertFrom-Json
-        if ($DeleteDiagnostic -and ($report.records.Count -ne 1 -or $report.acceptedAssertions -ne 1 -or $report.records[0].fixture -cne $case.selector)) { throw 'Incomplete single-fixture deletion diagnostic' }
+        if ($DeleteDiagnostic) {
+            $expectedFixtures = @(if ($case.selector -ceq 'historical-prefix-6') { 'c4','flowchart-v2','agentflow','swimlane','er','gitGraph' } else { $case.selector })
+            if ($report.records.Count -ne $expectedFixtures.Count -or $report.acceptedAssertions -ne $expectedFixtures.Count) { throw 'Incomplete exact deletion diagnostic corpus' }
+            for ($index=0; $index -lt $expectedFixtures.Count; $index++) {
+                if ($report.records[$index].fixture -cne $expectedFixtures[$index]) { throw 'Wrong diagnostic fixture order' }
+            }
+        }
         if ($case.name -ceq 'positive' -and ($report.records.Count -ne 50 -or $report.acceptedAssertions -ne 50)) { throw 'Incomplete positive matrix' }
         if ($case.name -ceq 'negative' -and ($report.records.Count -ne 5 -or $report.acceptedAssertions -ne 4)) { throw 'Incomplete negative matrix' }
         $audit[($case.name + 'AcceptedAssertions')] = $report.acceptedAssertions
