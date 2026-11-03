@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "events": [
+    {
+      "stage": "readback CLI fetch",
+      "result": "failed",
+      "reason": "GitHub temporary Azure blob redirect returned HTTP403. No Runtime execution or test rerun. Signed redirect URL excluded from evidence.",
+      "resolution": "Authorized GitHub connector retrieved exact job125863873596."
+    },
+    {
+      "stage": "scratch archive verification",
+      "result": "failed",
+      "reason": "Checker expected whitespace in JSON substring total_count. Actual API file is compact JSON. All hashes had already matched.",
+      "resolution": "Parsed unchanged API JSON, asserted integer total_count0 and empty artifacts array; passed."
+    }
+  ]
+}

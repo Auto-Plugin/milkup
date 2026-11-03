@@ -1,0 +1,550 @@
+{
+  "schema": 1,
+  "runId": 41620256524,
+  "source": "53a8637a314a8bfe4cd1cbc324410790382a3315",
+  "nativeSource": "3b03127cb46afcbda68180dbf28ba0cc3625401b",
+  "runtime": "156.0.4314.50",
+  "status": "reviewed-with-findings",
+  "reviewerKind": "assistant image inspection",
+  "method": "Three assistant reviewers viewed all50 original PNGs and corresponding authored mmd files; root additionally inspected9 representative originals. No image editing or Runtime execution was performed for this review.",
+  "count": 50,
+  "productVisualAcceptance": false,
+  "exhaustiveGrammarCoverage": false,
+  "pixelPerfectFullInkProven": false,
+  "humanUserAcceptanceRecorded": false,
+  "commonFinding": "The fixed1280px canvas leaves substantial right-side whitespace on many simple diagrams; naive scaling into a narrow editor would reduce text readability.",
+  "rootSpotChecks": [
+    "flow-mathml",
+    "flow-cjk",
+    "flow-wide",
+    "flow-shadow",
+    "wardley",
+    "timeline",
+    "treemap",
+    "c4-component",
+    "c4-dynamic"
+  ],
+  "files": [
+    {
+      "fixture": "c4",
+      "sha256": "8962edb75c2428ecb00b63bd4bf3b83b03d1089197d8d404f07768cfb9a27c42",
+      "width": 1280,
+      "height": 437,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Reader、Editor、Writes 均出现；类型说明字较小。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flowchart-v2",
+      "sha256": "23d3f4f7654d1b66c02c83eedd43be9277a96e0cf21f178d21bfddfe14a839eb",
+      "width": 1280,
+      "height": 74,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Read → Complete 两框及箭头完整、清楚。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "agentflow",
+      "sha256": "b29b52952ba6278552cab9bd39d7c3ca4566225deaa4c168d12fbbf360feddcf",
+      "width": 1280,
+      "height": 149,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Writer 容器、Draft、Check 及箭头完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "swimlane",
+      "sha256": "583c44ef601f4aa7bacaf1d40af29312b69f7f5af37a0f13214973b1ae994dbe",
+      "width": 1280,
+      "height": 426,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Writer/Reviewer 泳道、Draft/Check、连线完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "er",
+      "sha256": "96050410ca13f8b75a32b2270305651e206629651b910382613c0ced3f7e9fa1",
+      "width": 1280,
+      "height": 289,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "PERSON、NOTE、writes 及关系端点符号完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "gitGraph",
+      "sha256": "3ac8c4dedd8faf9b5e0cd4f52d27ed3762ba39f2762c45f3c43420da8bc9c4f9",
+      "width": 1280,
+      "height": 178,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "main/review 分支、提交点和连线完整；斜排提交标签较小。",
+      "qualityFindings": [
+        "small-commit-labels"
+      ]
+    },
+    {
+      "fixture": "gantt",
+      "sha256": "409e352b786b54152ea45fb663fde917cc7b2a9333c24d365d8d5094d0ae257c",
+      "width": 1280,
+      "height": 152,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Work、Draft/Review 和日期跨度呈现；日期刻度很小且较密。",
+      "qualityFindings": [
+        "small-dense-ticks"
+      ]
+    },
+    {
+      "fixture": "info",
+      "sha256": "90cf8bffb9f1a11ca622aaac61314ee37ed214a82019af1b556688fce92abf44",
+      "width": 1280,
+      "height": 154,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "实际显示 v12.2.0；其余空白符合 info 样例。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "pie",
+      "sha256": "ae601672850c20548dcafe0bee8ce1eb920e105ae7b152fc1d2d8a23a2e3d25d",
+      "width": 1280,
+      "height": 454,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Draft/Done 图例及 30%/70% 扇区完整，匹配3/7。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "quadrantChart",
+      "sha256": "6ff31de7e4938638cd6a985c059c0e7d0e422d51ca800999a579aade17b30826",
+      "width": 1280,
+      "height": 504,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "四象限、Low/High轴、Point均可见。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "xychart",
+      "sha256": "c76154a850cae34e6fdf14a2265bbacf9423eb46b3d074972c9e93f2d4861579",
+      "width": 1280,
+      "height": 504,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Count、One/Two、0–10刻度及3/7柱形完整；顶部刻度边距较紧。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "requirement",
+      "sha256": "3b160c1073b2e04cc1af8bac2fccfb402bb2bc69330461e14b9cbae5687f283a",
+      "width": 1280,
+      "height": 204,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "r1、ID1、Verify output、Low、Test 可读。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "sequence",
+      "sha256": "d733edcb0bc6d51ae86821bf667dc7d2bdf4c2af8efab551d919cdc3f35f516c",
+      "width": 1280,
+      "height": 263,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Reader/Editor、Write、Saved及生命线完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "classDiagram",
+      "sha256": "a0707e143a63febe41d48c84c5a545f834e0d849c7d81ee86a098a3a4a22d2d0",
+      "width": 1280,
+      "height": 164,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Note、+String title、+save()完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "stateDiagram",
+      "sha256": "8ddf99037172cc42f05f7873e2fe785fa05555e1e282f76c6ac1f909293fcb52",
+      "width": 1280,
+      "height": 248,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "起点→Draft→Saved→终点完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "journey",
+      "sha256": "13950a07813573f9cec8a4d8fd5beb0bdefe27f63e8ee983a3f192f037e5ae8a",
+      "width": 1280,
+      "height": 569,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Writing、Work、Draft/Review、Reader/Writer图例及情绪标记完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flowchart-elk",
+      "sha256": "23d3f4f7654d1b66c02c83eedd43be9277a96e0cf21f178d21bfddfe14a839eb",
+      "width": 1280,
+      "height": 74,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Read → Complete完整；此简单样例与普通流程图相同。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "timeline",
+      "sha256": "c2232c0ed39abd404db9c1731c3f62f17efcbde95de41065fe5884c62485e7ff",
+      "width": 1280,
+      "height": 476,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Releases、2025/Draft、2026/Review及箭头完整；浅紫底白字对比偏低。",
+      "qualityFindings": [
+        "low-contrast-labels"
+      ]
+    },
+    {
+      "fixture": "mindmap",
+      "sha256": "7ff6a50f902c8dcd69948329f8281993a3912dc6e20b823bef817f76935f449a",
+      "width": 1280,
+      "height": 92,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Notes圆形根节点连接Draft、Review，文字完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "kanban",
+      "sha256": "21dce9155971b6e0a5b1492497d6778f2cda5e1f0de3fa56d8b1420014378d9d",
+      "width": 1280,
+      "height": 103,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Todo、Done两列及Draft、Review卡片完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "sankey",
+      "sha256": "28ace5af056e2f253497add9d09a20c377fe54649d0295775a358a0f02e2400e",
+      "width": 1280,
+      "height": 404,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Draft3→Review3→Done2、渐变流带和节点可见；流带贴边，未见明显截断。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "packet",
+      "sha256": "5c6736dd6ffb4f415b9244c64ac90d268306cf2c0c7784eb931b71a2101ea305",
+      "width": 1280,
+      "height": 66,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Header、Data及0/7/8/15位编号完整；编号偏小。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "radar",
+      "sha256": "46fdeec979c56ab25d8b9931cd3912e4ace0d9ab44934a72881acefb30e6133b",
+      "width": 1280,
+      "height": 704,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "speed/quality/cost、sample图例、网格和曲线完整；轴标签偏小。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "block",
+      "sha256": "6702d3d4bee703486cac04304ba4e3bf8b14132fb34af2d318d08234909a563f",
+      "width": 1280,
+      "height": 54,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Draft、Review方框及箭头可见；连接间距很短。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "treeView",
+      "sha256": "269b491691e680b5c7416830114c74c3400f28344317aa35ee5f59b4ed077c1b",
+      "width": 1280,
+      "height": 112,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "根/、notes、draft.md、review.md及树线完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "architecture",
+      "sha256": "4315a4f8e93ff92b871ac8c097976dd09a8b02e22ef1121296794c934b10dc1b",
+      "width": 1280,
+      "height": 187,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "数据库/服务器图标、Notes/Editor及连线完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "eventmodeling",
+      "sha256": "daf1ac04259606c2cab9ee0642fd8d518977cb7ded8696c9b32cf6ebf3af80a8",
+      "width": 1280,
+      "height": 474,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "UI/Automation、Command/Read Model、Events及Editor→SaveNote→NoteSaved完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "ishikawa",
+      "sha256": "39786828b377210f56966ddb230e477b020c9f8dc767b5592310c7f0b6610abc",
+      "width": 1280,
+      "height": 582,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Process/Review wait、Equipment/Slow disk汇入Delayed note；图形集中左侧，留白明显。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "venn",
+      "sha256": "979a1fbf1272d307829ecc7a505d0f4cb2fa59bf4796e4a427eaaaa51169ca52",
+      "width": 1280,
+      "height": 454,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Draft、Review相交圆及Ready完整；黄色轮廓对比偏低。",
+      "qualityFindings": [
+        "low-contrast-outline"
+      ]
+    },
+    {
+      "fixture": "treemap",
+      "sha256": "e17547ab5212cf30e458dcddcb6d93530893d72e36e386fcacbc0b5c9d22284d",
+      "width": 1280,
+      "height": 375,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Notes10、Done7与Draft3分区完整；顶部白字较小且对比偏低。",
+      "qualityFindings": [
+        "low-contrast-small-labels"
+      ]
+    },
+    {
+      "fixture": "usecase",
+      "sha256": "18286dc9f0c3a06778adba2111116d094fa7959dcc3227deed2ab1df9316f476",
+      "width": 1280,
+      "height": 165,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Writer人形、箭头及Save note椭圆完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "wardley",
+      "sha256": "ce752e1650738ab26d01d5389bf537aa50785adc93042d5a9e1af59d8234454b",
+      "width": 1280,
+      "height": 604,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Reader/Editor、连接线、Visibility/Evolution及四阶段均出现；原始标签明显过小。",
+      "qualityFindings": [
+        "small-text"
+      ]
+    },
+    {
+      "fixture": "cynefin",
+      "sha256": "4b5cd39d96294b8c516b6adcef7d17a921119d5988c8866bc26de4800505af97",
+      "width": 1280,
+      "height": 684,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "四象限、Confusion、Explore/Repeat和说明出现；中央线靠近说明区域。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "railroad",
+      "sha256": "27b525c7040943ec82e1906107183dd22a8bfb5acd212d3e037e85b6394fd369",
+      "width": 1280,
+      "height": 109,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "word=、a、可选b支路和端点完整；左侧标签贴边。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "railroadEbnf",
+      "sha256": "27b525c7040943ec82e1906107183dd22a8bfb5acd212d3e037e85b6394fd369",
+      "width": 1280,
+      "height": 109,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "word=、a、可选b支路及端点完整；左侧贴边。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "railroadAbnf",
+      "sha256": "27b525c7040943ec82e1906107183dd22a8bfb5acd212d3e037e85b6394fd369",
+      "width": 1280,
+      "height": 109,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "a后接可选b完整，符合该样例。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "railroadPeg",
+      "sha256": "27b525c7040943ec82e1906107183dd22a8bfb5acd212d3e037e85b6394fd369",
+      "width": 1280,
+      "height": 109,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "a后接可选b完整，符合该样例。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-html-labels",
+      "sha256": "5b797a165c5ececccd353327cf953fb33f9d326ce16b945704254bf3dba75a72",
+      "width": 1280,
+      "height": 98,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Bold、Second line、Italic、换行及粗斜体实际可见。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-markdown-labels",
+      "sha256": "4ed6490f2e8df84ac3ab1c1b4155a5ec7c63e100ecbf2079acd605ec4be0a1ba",
+      "width": 1280,
+      "height": 122,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Strong加粗、emphasis斜体、second line及Done完整，无Markdown标记残留。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-mathml",
+      "sha256": "3934d104a2618dada2d8ba0a4de2536d3ecdfc66cd11a0ecf5d25178c10ce989",
+      "width": 1280,
+      "height": 80,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "分式a/b、加号、根号c及x²实际可见，无源码或缺字方框。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-cjk",
+      "sha256": "67a716d17d435a7b13c2af82ea336b1754328263336528393f17ca2f9700b0a3",
+      "width": 1280,
+      "height": 74,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "中文草稿、日本語の確認、한국어 완료完整可辨。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-wide",
+      "sha256": "b5a5e4f2939f3d4ad33147afc1c285e68bb4fe5e7ded93296163579a1e687802",
+      "width": 1280,
+      "height": 30,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Stage1–16均存在，但1280×30输出中的文字极小；可读性不合格。",
+      "qualityFindings": [
+        "unreadably-small-text"
+      ]
+    },
+    {
+      "fixture": "flow-tall",
+      "sha256": "2917be61be10384d7e441e355f78d3660bc3aa88afeea96260475b5c53616403",
+      "width": 1280,
+      "height": 2236,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Stage1–24及全部连接完整；首尾未见裁切，文字可读。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-shadow",
+      "sha256": "0fc5afd205fbeef96334f8c869f1259836a17907345f121e1d4eefc0324fbd78",
+      "width": 1280,
+      "height": 68,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Shadow粗边、Bounds、箭头及右下阴影可见；未见明显画布裁切。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "flow-subgraphs",
+      "sha256": "11a7354bcae6bd373e964ab0f1d958c0e91003536544794380c29b058adee8f7",
+      "width": 1280,
+      "height": 390,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Workspace/Draft两层容器及Read→Write→Review完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "sequence-groups",
+      "sha256": "34d206762cc0066252cd53bc58734fc341312d7e4c4bc99f490505f18dc11895",
+      "width": 1280,
+      "height": 462,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Writer/Editor、loop/alt分组、Save/Saved/Error完整。",
+      "qualityFindings": []
+    },
+    {
+      "fixture": "c4-container",
+      "sha256": "236dddd3acefc5e836ddcc32e3120486497810223296a863ca593a694a46b5ce",
+      "width": 1280,
+      "height": 437,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Reader、Editor、Container/Desktop、Notes完整；斜线穿过Writes标签。",
+      "qualityFindings": [
+        "label-line-overlap"
+      ]
+    },
+    {
+      "fixture": "c4-component",
+      "sha256": "efda62e8d979e23ab66745a01266549912ba5f725da659c80edf20c63174ab1e",
+      "width": 1280,
+      "height": 366,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Parser/View、TypeScript、Reads/Shows notes可见；Presents与连线/箭头重叠，尾部辨识受影响。",
+      "qualityFindings": [
+        "label-line-arrow-overlap",
+        "low-contrast-small-labels"
+      ]
+    },
+    {
+      "fixture": "c4-dynamic",
+      "sha256": "e795a4b29b3f6556266d2dae0d99cf37b938bfe34b26b19192df200726271eea",
+      "width": 1280,
+      "height": 437,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Reader、Editor、1. Writes可见；斜线穿过关系标签。",
+      "qualityFindings": [
+        "label-line-overlap"
+      ]
+    },
+    {
+      "fixture": "c4-deployment",
+      "sha256": "08dbf1c8bd6742cfb7c4fbbf53d83050c4777f406bf6d879d4348c1a5923a1e2",
+      "width": 1280,
+      "height": 472,
+      "imageViewed": true,
+      "structureVisible": true,
+      "observation": "Workstation、Windows框、Editor、Container/Desktop、Notes完整。",
+      "qualityFindings": []
+    }
+  ]
+}

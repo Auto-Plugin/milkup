@@ -1,5 +1,7 @@
 # Official Fixed Runtime 155 investigation and bounded test
 
+> **Current status: further Fixed155 execution is paused.** After the two completed tests below, the parent clarified that specific old-Runtime execution approval is still pending. The earlier conditional instruction had been interpreted as permitting temporary deployment; this differed from the parent’s clarified permission state. No further old-Runtime test will run. The review entry point now rejects that marker. Both completed CI runs already exited and deleted their temporary account/profile/stage; no system Runtime installation, installer execution, firewall or UAC change occurred. The Linux downloaded CAB remains as inert local evidence, never extracted or executed. The subsequent complete image run used preinstalled156 with no Runtime download.
+
 ## Verified provenance, before Windows execution
 
 On 2026-11-03 the [Microsoft WebView2 download page](https://developer.microsoft.com/en-us/microsoft-edge/webview2) listed Fixed Version `155.0.4283.62` for x64, x86 and arm64. The x64 URL below was read from the official page, not guessed or taken from a mirror:
@@ -49,3 +51,5 @@ The same-host follow-up completed successfully: [run41619345455](https://github.
 ## Outstanding Windows pixel evidence
 
 The next bounded visual run uses the existing installed Runtime, no Fixed download, the same reviewed native checkpoint `3b03127cb46afcbda68180dbf28ba0cc3625401b`, original standard-library deletion, one canary and all50 established positive fixtures. This is the previously authorized missing visual-evidence acceptance, not an unbounded repeat of the historical diagnostic. The existing post-cleanup PNG transport and independent reader enforce exact source, token/Job cleanup, zero artifacts, byte/CRC/SHA/decode checks. The reader's 15 synthetic tests passed with the new exact native checkpoint and explicit installed-only scope. Actual visual results remain pending at this source checkpoint.
+
+Observed successful diagnostic traversals retained a first benign `NtOpenFile/delete` result of Win32 `2` / NTSTATUS `0xC0000034` for the already-removed `code/mermaid-fixed-prototype.exe`, with `terminalFailure: null`. That observed missing-entry condition does not identify or explain the historical Win32 `5`; its original path/API remains unproven.

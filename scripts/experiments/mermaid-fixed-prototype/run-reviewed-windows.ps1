@@ -28,6 +28,8 @@ $deleteDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-diagnos
 $repeatDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-repeat]')
 $stdControl = $event.head_commit.message.Contains('[mermaid-delete-std-control]')
 $fixedRuntime155 = $event.head_commit.message.Contains('[mermaid-fixed-runtime-155]')
+# Latest parent instruction pauses any further old-Runtime execution pending explicit user confirmation.
+if ($fixedRuntime155) { throw 'Fixed Runtime155 execution paused pending explicit user confirmation; prior results are historical evidence only' }
 $historicalPrefix = $event.head_commit.message.Contains('[mermaid-delete-prefix]')
 if ($historicalPrefix -and -not $fixedRuntime155) { throw 'Historical prefix requires exact Fixed Runtime155 diagnostic' }
 if ($fixedRuntime155 -and (-not $deleteDiagnostic -or $repeatDiagnostic -or $stdControl -or $captureVisual)) { throw 'Fixed Runtime155 requires single diagnostic corpus only' }
