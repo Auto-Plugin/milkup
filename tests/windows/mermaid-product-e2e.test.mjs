@@ -403,6 +403,7 @@ const linkedAuthority = (elevationType = 1) => ({
 })
 const noHelperProof = {
   helperNativeProofVerified: false,
+  helperProtocolHandlesNonInheritable: null,
   helperSelfSid: null,
   browserFromHelperSid: null,
   helperSelfAppContainerSid: null,
@@ -498,6 +499,7 @@ const ownership = {
   helperSelfTokenEvidence: nativeToken('pure-standard', true),
   browserFromHelperTokenEvidence: nativeToken('pure-standard', true),
   helperNativeProofVerified: true,
+  helperProtocolHandlesNonInheritable: true,
   helperSelfSid: sid,
   browserFromHelperSid: sid,
   helperSelfAppContainerSid: appContainerSid,
@@ -828,6 +830,34 @@ test('parent observations cannot substitute for helper-self and helper-context b
   assert.throws(() => ledger.verifyAll(), /Expected values/)
 })
 
+test('protocol handle inheritance proof is required at both native ownership stages for both accounts', () => {
+  const field = 'helperProtocolHandlesNonInheritable'
+  for (const kind of ['pure-standard', 'filtered-admin']) {
+    const facts = kind === 'pure-standard' ? ownership : filteredOwnership()
+    assert.equal(admitOwnership(facts, kind).length, 1)
+    for (const value of [undefined, null, false, 'true', 1, {}]) {
+      for (const phase of ['started', 'finished']) {
+        const ledger = new AuditLedger(sid, 2, kind)
+        const invalid = { ...facts, [field]: value }
+        if (value === undefined) delete invalid[field]
+        append(ledger, 'admitted')
+        if (phase === 'started') {
+          assert.throws(
+            () => append(ledger, 'started', invalid),
+            /helperProtocolHandlesNonInheritable/,
+          )
+        } else {
+          append(ledger, 'started', facts)
+          const finish = { ...completion, ...invalid }
+          if (value === undefined) delete finish[field]
+          append(ledger, 'finished', finish)
+          assert.throws(() => ledger.verifyAll(), /helperProtocolHandlesNonInheritable/)
+        }
+      }
+    }
+  }
+})
+
 test('pre-ready cancellation keeps actual held helper facts without fabricating native self proofs', () => {
   const canceled = {
     ...completion,
@@ -851,6 +881,10 @@ test('pre-ready cancellation keeps actual held helper facts without fabricating 
   assert.equal(ledger.verifyAll().length, 1)
   for (const changes of [
     { helperNativeProofVerified: true },
+    { helperProtocolHandlesNonInheritable: true },
+    { helperProtocolHandlesNonInheritable: false },
+    { helperProtocolHandlesNonInheritable: 'true' },
+    { helperProtocolHandlesNonInheritable: undefined },
     { helperSelfSid: sid },
     { helperSelfTokenEvidence: ownership.childTokenEvidence },
   ]) {
@@ -892,6 +926,7 @@ test('pre-publish cancellation validates an observed parent browser without inve
     { browserTokenEvidence: { ...ownership.browserTokenEvidence, sessionId: 3 } },
     { browserTokenEvidence: { ...ownership.browserTokenEvidence, linkedAuthority: null } },
     { helperNativeProofVerified: true },
+    { helperProtocolHandlesNonInheritable: true },
     { browserFromHelperTokenEvidence: ownership.browserTokenEvidence },
   ])
     assert.throws(() => verify(fields))
@@ -1154,6 +1189,9 @@ test('uncreated-job cancellation rejects contradictory identities and ownership 
   }
   for (const changes of [
     { ownedPidsBeforeStop: [333] },
+    { helperProtocolHandlesNonInheritable: true },
+    { helperProtocolHandlesNonInheritable: false },
+    { helperProtocolHandlesNonInheritable: undefined },
     { childSid: sid },
     { browserPid: 333 },
     { browserInOwnedJob: true },

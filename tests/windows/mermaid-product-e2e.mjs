@@ -940,6 +940,7 @@ export class AuditLedger {
       'browserZeroCapabilities',
       'browserInOwnedJob',
       'helperNativeProofVerified',
+      'helperProtocolHandlesNonInheritable',
     ]) {
       assert.equal(value[field], true, `Native ${field}`)
     }
@@ -1011,6 +1012,7 @@ export class AuditLedger {
         'No trusted native ready proof before ownership audit',
       )
       for (const field of [
+        'helperProtocolHandlesNonInheritable',
         'helperSelfTokenEvidence',
         'browserFromHelperTokenEvidence',
         'helperSelfSid',

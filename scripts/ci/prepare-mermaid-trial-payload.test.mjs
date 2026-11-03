@@ -478,6 +478,7 @@ async function installedFixture(
       linkedAuthority: { ...defaultLinkedAuthority },
     },
     helperNativeProofVerified: true,
+    helperProtocolHandlesNonInheritable: true,
     helperSelfSid: sid,
     browserFromHelperSid: sid,
     helperSelfAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
