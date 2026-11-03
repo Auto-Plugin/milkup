@@ -373,10 +373,21 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     let width = input["width"].as_u64().unwrap() as i32;
     gtk::init().map_err(error)?;
     trace("gtk-ready");
-    let window = gtk::Window::new(gtk::WindowType::Toplevel);
+    let display = gtk::gdk::Display::default().ok_or("Mermaid display unavailable")?;
+    if display.type_().name() != "GdkX11Display" {
+        return Err(
+            "Native Mermaid rendering requires X11; this display backend is unsupported".into(),
+        );
+    }
+    // A managed Toplevel can be moved back on screen by the window manager,
+    // visibly covering the editor despite the requested offscreen position.
+    // X11 Popup windows use override-redirect and keep this fixed renderer
+    // outside WM placement and focus policy. Wayland needs a separate strategy.
+    let window = gtk::Window::new(gtk::WindowType::Popup);
     window.set_title("Milk up fixed diagram renderer");
     window.set_default_size(width, 768);
     window.set_accept_focus(false);
+    window.set_focus_on_map(false);
     window.set_skip_taskbar_hint(true);
     window.set_skip_pager_hint(true);
     window.move_(-20000, -20000);
