@@ -131,5 +131,15 @@ jobs:
         if: always()
         run: |
           $ErrorActionPreference = 'Stop'
-          if (git status --porcelain) { throw 'Source checkout changed during compile validation' }
+          # Reuse the repository's existing four-file generated-schema gate.
+          # It records exact git status, paths, lengths and SHA-256; source/lock
+          # drift and all other untracked files still fail. Never restore files
+          # before recording the evidence or simply suppress the dirty tree.
+          $proof = Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-source-build-tree.json'
+          node tests/windows/verify-build-tree.mjs $PWD $proof
+          $treeExit = $LASTEXITCODE
+          if (Test-Path -LiteralPath $proof) { Get-Content -LiteralPath $proof -Raw | Write-Host }
+          git diff --cached --exit-code
+          if ($LASTEXITCODE -ne 0) { throw 'Build modified the source index' }
+          if ($treeExit -ne 0) { throw 'Build changed a source, lockfile or unexpected output; see exact preserved status' }
           'Windows compile/link and unit tests only. The desktop binary is not executed. No WebView2 rendering, same-login runtime cleanup, native scale/IME, installer, upgrade/rollback or pixel acceptance. No Fixed Runtime, Runtime provisioning, remote-instance access, account/token changes or artifact upload.' >> $env:GITHUB_STEP_SUMMARY
