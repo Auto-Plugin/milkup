@@ -166,3 +166,36 @@ checked late-cancellation publication and partial parent-browser observations.
 The unchanged 4 KiB Ready and 8 KiB audit budgets cover the tested maximum
 records (1803, 4250 and 5803 bytes). [Final local preflight evidence](product-authority-preflight/README.md)
 does not claim Windows product execution.
+
+### Conditional policy: actual Windows body rendering, overall close failure
+
+[Run 41688389731](https://github.com/Auto-Plugin/milkup/actions/runs/41688389731)
+tested `c377f56212353ed26eda82a4fc24a1bcfb4b2e27`. Windows private tests
+(54 passed, 3 ignored), the separate actual elevated-host rejection, desktop
+tests (228 passed, 3 ignored), Node checks (137 passed), production-assets linking
+and the strict source gate passed. Pure-standard product acceptance passed in
+full. Filtered-admin completed all ten body steps and all seven actual diagram
+PNGs, but its final invalid-fixture window close failed the harness. The overall
+run remains **failed**. [Original attempt and independent checks](attempt-41688389731/README.md)
+preserve this distinction.
+
+The 81 native events cover 29 finished jobs with complete teardown and bind all
+14 body PNGs to actual successful outputs. All four native token observations
+are present on prepared jobs, including the conditional Limited/identification
+checks under the administrator fixture. Both temporary Windows profiles,
+accounts, Users/Administrators memberships and staging directories were removed
+with direct post-cleanup evidence. The two accounts' seven diagram images match
+pixel-for-pixel. Six also match delivered beta.8; the C4 image changes only
+374 pixels to restore the View node's border, without changing its 564x118 size.
+Independent visual review confirms ordinary/wide images and body placement.
+
+The failed close probe retained the exact HTTP 404 response with
+`value.error: "target frame detached"`. It was classified as a generic probe
+error at 18:04:06.477Z and immediately entered fallback. The held product process
+then exited normally with code 0/no signal and drained stdio at 18:04:06.481Z;
+fallback's PID lookup failed because the process had already exited. This is
+evidence for a narrow close-harness correction, not permission to rewrite the
+original failure. The correction must still require the held process's normal
+exit within the original 15-second deadline, retain raw responses, reject an
+actually observed unsaved dialog and reject generic unknown errors. A new full
+two-account run is required for overall acceptance.

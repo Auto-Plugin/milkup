@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "scope": "Read-only actual failed close observation; original failure preserved",
+  "candidateSha": "c377f56212353ed26eda82a4fc24a1bcfb4b2e27",
+  "workflowRunId": "41688389731",
+  "reportStatus": "failed",
+  "outerStatus": "failed",
+  "stepsPassed": 10,
+  "fixture": "invalid",
+  "productPid": 1704,
+  "uiExitWait": {
+    "phase": "ui-exit-wait",
+    "startedAt": "2026-11-03T18:04:06.381Z",
+    "ok": false,
+    "error": "Error: WebDriver HTTP 404: {\"value\":{\"error\":\"target frame detached\",\"message\":\"target frame detached\\n  (failed to check if window was closed: disconnected: Unable to receive message from renderer)\\n  (Session info: MicrosoftEdge=156.0.4314.50)\",\"stacktrace\":\"Symbols not available. Dumping unresolved backtrace:\\n\\t(No symbol) [0x7ff6429209d5]\\n\\t(No symbol) [0x7ff6428675b4]\\n\\t(No symbol) [0x7ff6425f4593]\\n\\t(No symbol) [0x7ff6425e6f58]\\n\\t(No symbol) [0x7ff6425e608d]\\n\\t(No symbol) [0x7ff642601808]\\n\\t(No symbol) [0x7ff642600eda]\\n\\t(No symbol) [0x7ff64267e3a1]\\n\\t(No symbol) [0x7ff642635d5c]\\n\\t(No symbol) [0x7ff642634f4a]\\n\\t(No symbol) [0x7ff642635b83]\\n\\t(No symbol) [0x7ff642775981]\\n\\t(No symbol) [0x7ff642785638]\\n\\t(No symbol) [0x7ff6429c96b5]\\n\\t(No symbol) [0x7ff6429cfd31]\\n\\t(No symbol) [0x7ff64287368c]\\n\\t(No symbol) [0x7ff64286dea4]\\n\\t(No symbol) [0x7ff64286dfca]\\n\\t(No symbol) [0x7ff64285f3d8]\\n\\t(No symbol) [0x7ffc324add37]\\n\\t(No symbol) [0x7ffc339ff2bc]\\n\"}}",
+    "finishedAt": "2026-11-03T18:04:06.477Z"
+  },
+  "fallbackAttempt": {
+    "phase": "owned-process-fallback",
+    "startedAt": "2026-11-03T18:04:06.477Z",
+    "ok": false,
+    "error": "AssertionError [ERR_ASSERTION]: Unique expected process identity observation",
+    "finishedAt": "2026-11-03T18:04:07.509Z"
+  },
+  "exitCode": 0,
+  "signal": null,
+  "exitedAt": "2026-11-03T18:04:06.481Z",
+  "stdioClosedAt": "2026-11-03T18:04:06.481Z",
+  "exitAfterUiWaitErrorMs": 4.0,
+  "uiWaitElapsedMs": 96.0,
+  "closedByUi": false,
+  "teardownErrors": [
+    "ui-exit-wait: Error: WebDriver HTTP 404: {\"value\":{\"error\":\"target frame detached\",\"message\":\"target frame detached\\n  (failed to check if window was closed: disconnected: Unable to receive message from renderer)\\n  (Session info: MicrosoftEdge=156.0.4314.50)\",\"stacktrace\":\"Symbols not available. Dumping unresolved backtrace:\\n\\t(No symbol) [0x7ff6429209d5]\\n\\t(No symbol) [0x7ff6428675b4]\\n\\t(No symbol) [0x7ff6425f4593]\\n\\t(No symbol) [0x7ff6425e6f58]\\n\\t(No symbol) [0x7ff6425e608d]\\n\\t(No symbol) [0x7ff642601808]\\n\\t(No symbol) [0x7ff642600eda]\\n\\t(No symbol) [0x7ff64267e3a1]\\n\\t(No symbol) [0x7ff642635d5c]\\n\\t(No symbol) [0x7ff642634f4a]\\n\\t(No symbol) [0x7ff642635b83]\\n\\t(No symbol) [0x7ff642775981]\\n\\t(No symbol) [0x7ff642785638]\\n\\t(No symbol) [0x7ff6429c96b5]\\n\\t(No symbol) [0x7ff6429cfd31]\\n\\t(No symbol) [0x7ff64287368c]\\n\\t(No symbol) [0x7ff64286dea4]\\n\\t(No symbol) [0x7ff64286dfca]\\n\\t(No symbol) [0x7ff64285f3d8]\\n\\t(No symbol) [0x7ffc324add37]\\n\\t(No symbol) [0x7ffc339ff2bc]\\n\"}}",
+    "Owned product did not exit within the UI-close deadline; forced termination is not inner cleanup acceptance",
+    "owned-process-fallback: AssertionError [ERR_ASSERTION]: Unique expected process identity observation"
+  ],
+  "fallbackSuccessfullyStoppedProduct": false,
+  "outerCleanup": {
+    "accountDeleted": true,
+    "accountGroupCleanupConfirmed": true,
+    "profileDeleted": true,
+    "stageRemoved": true,
+    "cleanupErrors": []
+  },
+  "outerJobActiveBeforeCleanup": 0,
+  "outerJobEmpty": true,
+  "nativeFinalVerification": {
+    "phase": "native-final-verification",
+    "startedAt": "2026-11-03T18:04:07.509Z",
+    "result": {
+      "admittedJobs": 2,
+      "innerCleanupVerified": true
+    },
+    "ok": true,
+    "finishedAt": "2026-11-03T18:04:07.509Z"
+  },
+  "overallAcceptancePassed": false,
+  "explanation": "A target-frame-detached close probe failed before the configured wait budget elapsed. A fallback was attempted and failed identity observation; the held product separately reported exit code 0. These facts do not rewrite the failed close gate."
+}
