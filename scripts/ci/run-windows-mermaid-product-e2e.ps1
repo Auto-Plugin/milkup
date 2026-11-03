@@ -5,6 +5,11 @@ param(
     [Parameter(Mandatory, ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$ExpectedCommit,
     [Parameter(Mandatory, ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedBinarySha256,
     [Parameter(ParameterSetName = 'Parent')][switch]$ProductionAssetsConfirmed,
+    [Parameter(ParameterSetName = 'Parent')][string]$Installer,
+    [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedInstallerSha256,
+    [Parameter(ParameterSetName = 'Parent')][string]$ExpectedVersion,
+    [Parameter(ParameterSetName = 'Parent')][string]$PackageManifest,
+    [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedPackageManifestSha256,
     [Parameter(Mandatory, ParameterSetName = 'Child')][switch]$Child,
     [Parameter(Mandatory, ParameterSetName = 'Child')][string]$ChildSpecPath,
     [Parameter(Mandatory, ParameterSetName = 'Inspect')][switch]$InspectProcesses,
@@ -13,8 +18,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Prepared driver only. It is never called by the compile-only workflow. No
-# installer, Runtime provisioning, account reuse, token adjustment or ACL edit.
+# This opt-in driver never runs in the compile-only workflow. Optional NSIS
+# installation runs only inside the new pure-standard coordinator's owned Job.
+# No Runtime provisioning, account reuse, token adjustment or existing ACL edit.
 function Assert-HostedCandidate {
     if (-not $IsWindows -or $PSVersionTable.PSVersion.Major -lt 7 -or
         $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
@@ -82,7 +88,7 @@ function Plain-Files([string]$Root) {
 }
 function Get-ChildEvidenceNames {
     $names = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
-    foreach ($name in @('standard-context.json', 'standard-child-result.json', 'mermaid-product-e2e.json', 'node-stdout.log', 'node-stderr.log', 'edgedriver-native.log', 'edgedriver-stdio.log')) { $names.Add($name, $name) }
+    foreach ($name in @('standard-context.json', 'standard-child-result.json', 'mermaid-product-e2e.json', 'node-stdout.log', 'node-stderr.log', 'edgedriver-native.log', 'edgedriver-stdio.log', 'installation-result.json', 'installed-binary-comparison.json', 'installed-binary-comparison-stderr.log', 'installer-stdout.log', 'installer-stderr.log')) { $names.Add($name, $name) }
     foreach ($fixture in @('ordinary', 'wide', 'c4', 'invalid')) {
         $names.Add($fixture + '-product.log', $fixture + '-product.log')
         foreach ($prefix in @('fixture-', 'saved-')) { $name = $prefix + $fixture + '.md'; $names.Add($name, $name + '.log') }
@@ -299,6 +305,101 @@ function Remove-ExactProfileWithRetry([string]$Sid, $Audit) {
     }
     $Audit.profileDeleted = $true
 }
+function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Version, [string]$BuiltHash) {
+    if ($Manifest.schema -ne 1 -or $Manifest.candidateSha -cne $Commit -or
+        $Manifest.version -cne $Version -or $Version -cnotmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' -or
+        $Manifest.builtBinarySha256 -cne $BuiltHash -or
+        $Manifest.expectedInstalledBinarySha256 -cnotmatch '^[a-f0-9]{64}$' -or
+        $Manifest.installMode -cne 'currentUser' -or $Manifest.webviewInstallMode -cne 'skip') {
+        throw 'Installer manifest identity or per-user/no-runtime-install policy mismatch'
+    }
+    if (@($Manifest.resources).Count -ne 1) { throw 'Expected only the declared file.ico resource' }
+    foreach ($item in $Manifest.resources) {
+        if ($item.relativePath -cne 'file.ico' -or $item.bytes -le 0 -or $item.bytes -gt 4MB -or
+            $item.sha256 -cnotmatch '^[a-f0-9]{64}$') { throw 'Unexpected installed resource declaration' }
+    }
+    if (@($Manifest.bundledPlugins).Count -lt 1 -or @($Manifest.bundledPlugins).Count -gt 32) { throw 'Bounded embedded plugin inventory required' }
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $reviewedMermaid = 0
+    foreach ($plugin in $Manifest.bundledPlugins) {
+        if ($plugin.id -cnotmatch '^[a-z0-9]+(?:[.-][a-z0-9]+)*$' -or
+            $plugin.version -cnotmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' -or
+            $plugin.archiveFile -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._-]*\.milkup-plugin$' -or
+            $plugin.sha256 -cnotmatch '^[a-f0-9]{64}$' -or $plugin.bytes -le 0 -or $plugin.bytes -gt 64MB -or
+            -not $names.Add($plugin.archiveFile)) { throw 'Invalid or duplicate embedded plugin inventory entry' }
+        if ($plugin.id -ceq 'milkup.diagrams' -and $plugin.version -ceq '1.3.0') { $reviewedMermaid++ }
+    }
+    if ($reviewedMermaid -ne 1) { throw 'Exact reviewed Mermaid 1.3.0 package missing or ambiguous' }
+}
+function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]$Evidence) {
+    $installDirectory = Join-Path $Scratch 'install'
+    Assert-Contained $installDirectory $Scratch
+    $record = [ordered]@{
+        schema = 1; status = 'failed'; candidateSha = $Spec.candidateSha; mode = 'nsis-current-user'
+        expectedSid = $Spec.expectedSid; actualSid = $Context.actualSid
+        expectedSessionId = $Spec.expectedSessionId; sessionId = $Context.sessionId
+        installer = $Spec.installer; installerRun = $null; installDirectory = $installDirectory
+        installedBinary = $null; binaryComparison = $null; comparisonRun = $null; resources = @()
+        bundledPlugins = @(); embeddedPluginBinding = $null; productAcceptance = 'not-started'
+        expectedVersion = $Spec.expectedVersion; error = $null; cleanupErrors = @()
+        cleanupScope = 'Entire exact newly created standard-account profile after confirmed process emptiness; includes this install directory and HKCU'
+    }
+    try {
+        if (-not $Context.pureStandard -or -not $Context.interactive -or $Context.actualSid -cne $Spec.expectedSid -or
+            $Context.sessionId -ne $Spec.expectedSessionId) { throw 'Installer requires the verified exact pure-standard interactive coordinator' }
+        if (Test-Path -LiteralPath $installDirectory) { throw 'Refuse to install over an existing directory' }
+        foreach ($inputFile in @($Spec.installer, $Spec.packageManifest, $Spec.binaryVerifier)) { Assert-Hash $inputFile.path $inputFile.sha256 }
+        $manifest = Read-SmallJson $Spec.packageManifest.path
+        Assert-InstallationManifest $manifest $Spec.candidateSha $Spec.expectedVersion $Spec.binary.sha256
+        $record.bundledPlugins = @($manifest.bundledPlugins)
+        $record.installerRun = [WindowsMermaidStandardUser]::RunOwnedInstaller(
+            $Spec.installer.path, $installDirectory, $Scratch,
+            (Join-Path $Evidence 'installer-stdout.log'), (Join-Path $Evidence 'installer-stderr.log'),
+            $Spec.expectedSid, [uint32]$Spec.expectedSessionId, 120000)
+        if ($record.installerRun.status -cne 'passed' -or $record.installerRun.exitCode -ne 0 -or
+            $record.installerRun.identityVerified -ne $true) { throw 'Same-standard-account installer did not complete with verified identity and exit zero' }
+        Assert-PlainPath $installDirectory
+        $installedPath = Join-Path $installDirectory 'milkup-desktop.exe'
+        Assert-Contained $installedPath $Scratch
+        $proof = File-Proof $installedPath
+        if ($proof.bytes -gt 64MB -or $proof.sha256 -cne $manifest.expectedInstalledBinarySha256) { throw 'Installed binary differs from exact expected NSIS image' }
+        $versionInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo($installedPath)
+        if ($versionInfo.FileVersion -cne $Spec.expectedVersion -or $versionInfo.ProductVersion -cne $Spec.expectedVersion) { throw 'Installed file/product version differs from candidate version' }
+        $reader = [IO.BinaryReader]::new([IO.File]::OpenRead($installedPath))
+        try {
+            $reader.BaseStream.Position = 0x3c
+            $reader.BaseStream.Position = $reader.ReadInt32()
+            if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) { throw 'Installed application is not PE x64' }
+        } finally { $reader.Dispose() }
+        $record.installedBinary = [ordered]@{ path = $proof.path; bytes = $proof.bytes; sha256 = $proof.sha256
+            fileVersion = $versionInfo.FileVersion; productVersion = $versionInfo.ProductVersion; peMachine = '0x8664' }
+        $record.comparisonRun = [WindowsMermaidStandardUser]::RunNodeScript(
+            $Spec.node.path, [string[]]@($Spec.binaryVerifier.path, $Spec.binary.path, $installedPath), $Scratch,
+            (Join-Path $Evidence 'installed-binary-comparison.json'),
+            (Join-Path $Evidence 'installed-binary-comparison-stderr.log'), 30000)
+        if ($record.comparisonRun.status -cne 'passed') { throw 'Exact installed-binary comparison failed' }
+        $comparison = Read-SmallJson (Join-Path $Evidence 'installed-binary-comparison.json')
+        if ($comparison.status -cne 'passed' -or $comparison.builtSha256 -cne $Spec.binary.sha256 -or
+            $comparison.expectedInstalledSha256 -cne $manifest.expectedInstalledBinarySha256 -or
+            $comparison.installedSha256 -cne $proof.sha256 -or $comparison.bytes -ne $proof.bytes) { throw 'Installed-binary comparison does not bind the frozen candidate' }
+        $record.binaryComparison = $comparison
+        foreach ($resource in $manifest.resources) {
+            $path = Join-Path $installDirectory $resource.relativePath
+            Assert-Contained $path $installDirectory
+            $actual = File-Proof $path
+            if ($actual.sha256 -cne $resource.sha256 -or $actual.bytes -ne $resource.bytes) { throw 'Installed resource differs from candidate manifest' }
+            $record.resources += [ordered]@{ relativePath = $resource.relativePath; bytes = $actual.bytes; sha256 = $actual.sha256; verified = $true }
+        }
+        # Bundled plugin archives are Vite-embedded data, not external resource
+        # files. The build manifest records sealed archives; full byte equality
+        # (with only Tauri's exact bundle marker substitution) binds that image.
+        # The unchanged UI harness additionally observes Diagrams version 1.3.0.
+        $record.embeddedPluginBinding = 'exact-installed-image-byte-comparison'
+        $record.status = 'passed'
+    } catch { $record.error = $_.Exception.Message }
+    finally { Write-Json (Join-Path $Evidence 'installation-result.json') $record }
+    return $record
+}
 function Invoke-StandardChild {
     Assert-HostedCandidate
     $spec = Read-SmallJson $ChildSpecPath
@@ -323,6 +424,7 @@ function Invoke-StandardChild {
     $env:TEMP = Join-Path $scratch 'temp'
     $env:TMP = $env:TEMP
     $result = [ordered]@{ status = 'blocked'; startedNode = $false; nodeExitCode = $null; error = $null }
+    $installation = $null
     $context = [ordered]@{
         status = 'blocked'; actualSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
         expectedSid = $spec.expectedSid; pureStandard = $false; interactive = $false
@@ -346,9 +448,16 @@ function Invoke-StandardChild {
         if ($context.blockedReasons.Count -gt 0) { throw 'Standard-account interactive desktop is unavailable under existing permissions' }
         $context.status = 'ready'
         Write-Json (Join-Path $evidence 'standard-context.json') $context
+        $application = $spec.binary
+        if ($spec.mode -ceq 'nsis-current-user') {
+            $result.status = 'failed'
+            $installation = Invoke-StandardInstallation $spec $context $scratch $evidence
+            if ($installation.status -cne 'passed') { throw "Standard-account installation failed: $($installation.error)" }
+            $application = $installation.installedBinary
+        } elseif ($spec.mode -cne 'linked-binary') { throw 'Unknown product input mode' }
         $variables = @{
-            MILKUP_WINDOWS_MERMAID_APP = $spec.binary.path
-            MILKUP_WINDOWS_MERMAID_APP_SHA256 = $spec.binary.sha256
+            MILKUP_WINDOWS_MERMAID_APP = $application.path
+            MILKUP_WINDOWS_MERMAID_APP_SHA256 = $application.sha256
             MILKUP_WINDOWS_MERMAID_EDGE_DRIVER = $spec.driver.path
             MILKUP_WINDOWS_MERMAID_WORK = $work
             MILKUP_WINDOWS_MERMAID_EVIDENCE = $evidence
@@ -361,6 +470,10 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $spec.wrapper.path
             MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
         }
+        if ($null -ne $installation) {
+            $inventory = @($installation.bundledPlugins | ForEach-Object { @{ id = $_.id; version = $_.version } })
+            $variables['MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY'] = ConvertTo-Json -InputObject $inventory -Depth 4 -Compress
+        }
         foreach ($entry in $variables.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process') }
         $result.startedNode = $true
         $result.status = 'failed'
@@ -372,11 +485,20 @@ function Invoke-StandardChild {
         if ($result.nodeRun.status -cne 'passed') { throw "Windows product Node harness failed: $($result.nodeRun.error)" }
         $report = Read-SmallJson (Join-Path $evidence 'mermaid-product-e2e.json')
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
+        if ($null -ne $installation) {
+            if ($report.applicationSha256 -cne $installation.installedBinary.sha256 -or
+                $report.application -cne $installation.installedBinary.path) { throw 'Product report did not use the installed executable' }
+            $installation.productAcceptance = 'passed'
+        }
         $result.status = 'passed'
     } catch {
         $result.error = $_.Exception.Message
         if (-not $result.startedNode) { $context.blockedReasons += $result.error }
     } finally {
+        if ($null -ne $installation) {
+            if ($result.status -cne 'passed' -and $result.startedNode) { $installation.productAcceptance = 'failed' }
+            Write-Json (Join-Path $evidence 'installation-result.json') $installation
+        }
         Write-Json (Join-Path $evidence 'standard-context.json') $context
         Write-Json (Join-Path $evidence 'standard-child-result.json') $result
     }
@@ -395,7 +517,15 @@ if ($InspectProcesses) {
 }
 if ($Child) { Invoke-StandardChild; exit 1 }
 Assert-HostedCandidate
-if (-not $ProductionAssetsConfirmed) { throw 'A linked binary with embedded production assets must be explicitly confirmed; no installer or dev URL' }
+if (-not $ProductionAssetsConfirmed) { throw 'A linked binary with embedded production assets must be explicitly confirmed; no dev URL' }
+$installerMode = -not [string]::IsNullOrEmpty($Installer)
+if ($installerMode) {
+    if (-not $ExpectedInstallerSha256 -or -not $ExpectedVersion -or -not $PackageManifest -or -not $ExpectedPackageManifestSha256) {
+        throw 'Installer mode requires its exact hash, version and frozen package manifest/hash'
+    }
+} elseif ($ExpectedInstallerSha256 -or $ExpectedVersion -or $PackageManifest -or $ExpectedPackageManifestSha256) {
+    throw 'Installer-only arguments cannot be silently ignored in linked-binary mode'
+}
 if ($ExpectedCommit -cne $env:GITHUB_SHA) { throw 'Expected candidate SHA differs from the workflow source' }
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $head = @(git -C $repository rev-parse HEAD)
@@ -414,6 +544,8 @@ $observer = Join-Path $PSScriptRoot 'WindowsMermaidStandardUser.cs'
 $harness = Join-Path $repository 'tests/windows/mermaid-product-e2e.mjs'
 $audit = [ordered]@{
     schema = 1; status = 'failed'; source = $ExpectedCommit; runId = $env:GITHUB_RUN_ID; localRunId = $runId
+    mode = $(if ($installerMode) { 'nsis-current-user' } else { 'linked-binary' }); installation = $null
+    installedDirectoryRemoved = $null
     attempt = $env:GITHUB_RUN_ATTEMPT; runtime = $null; binary = $null; driver = $null; runnerContext = $null
     standardContext = $null; childResult = $null; supervisor = $null; evidenceCopy = $null
     accountName = $accountName; accountSid = $null; accountCreated = $false; accountDeleted = $false
@@ -444,6 +576,15 @@ try {
         if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) { throw 'Product binary is not PE x64' }
     } finally { $reader.Dispose() }
     $audit.binary = $binaryProof
+    $installerProof = $null; $manifestProof = $null
+    if ($installerMode) {
+        $installerProof = File-Proof $Installer
+        $manifestProof = File-Proof $PackageManifest
+        if ($installerProof.sha256 -cne $ExpectedInstallerSha256 -or $installerProof.bytes -gt 256MB -or
+            $manifestProof.sha256 -cne $ExpectedPackageManifestSha256) { throw 'Installer or manifest frozen identity mismatch' }
+        $manifest = Read-SmallJson $manifestProof.path
+        Assert-InstallationManifest $manifest $ExpectedCommit $ExpectedVersion $binaryProof.sha256
+    }
     $machineRoots = @(${env:ProgramFiles(x86)}, $env:ProgramFiles) | Where-Object { $_ } | Select-Object -Unique
     $candidates = @()
     foreach ($machineRoot in $machineRoots) {
@@ -470,6 +611,13 @@ try {
         Assert-PlainPath $pair[0]
         Copy-Item -LiteralPath $pair[0] -Destination (Join-Path $code $pair[1]) -ErrorAction Stop
         if ((File-Proof $pair[0]).sha256 -cne (File-Proof (Join-Path $code $pair[1])).sha256) { throw 'Frozen staging copy mismatch' }
+    }
+    if ($installerMode) {
+        foreach ($pair in @(@($installerProof.path, 'candidate-installer.exe'), @($manifestProof.path, 'installer-input.json'), @((Join-Path $repository 'tests/windows/verify-installed-binary.mjs'), 'verify-installed-binary.mjs'))) {
+            Assert-PlainPath $pair[0]
+            Copy-Item -LiteralPath $pair[0] -Destination (Join-Path $code $pair[1]) -ErrorAction Stop
+            if ((File-Proof $pair[0]).sha256 -cne (File-Proof (Join-Path $code $pair[1])).sha256) { throw 'Installer staging copy mismatch' }
+        }
     }
     $driverUrl = "https://msedgedriver.microsoft.com/$($runtime.version)/edgedriver_win64.zip"
     $archive = Join-Path $stage 'edgedriver.zip'
@@ -518,11 +666,17 @@ try {
     if ($groups.Count -ne 1 -or $groups[0] -cne 'S-1-5-32-545') { throw 'Fresh account has unexpected group membership' }
     $spec = [ordered]@{
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
-        candidateSha = $ExpectedCommit; runtime = $runtime
+        candidateSha = $ExpectedCommit; runtime = $runtime; mode = $audit.mode
         binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
         driver = (File-Proof $driver); harness = (File-Proof (Join-Path $code 'mermaid-product-e2e.mjs'))
         observer = (File-Proof (Join-Path $code 'WindowsMermaidStandardUser.cs'))
         wrapper = (File-Proof (Join-Path $code 'run-windows-mermaid-product-e2e.ps1'))
+    }
+    if ($installerMode) {
+        $spec['installer'] = File-Proof (Join-Path $code 'candidate-installer.exe')
+        $spec['packageManifest'] = File-Proof (Join-Path $code 'installer-input.json')
+        $spec['binaryVerifier'] = File-Proof (Join-Path $code 'verify-installed-binary.mjs')
+        $spec['expectedVersion'] = $ExpectedVersion
     }
     $specPath = Join-Path $code 'child-spec.json'
     Write-Json $specPath $spec
@@ -552,6 +706,11 @@ try {
             $audit.standardContext = Read-SmallJson (Join-Path $childEvidence 'standard-context.json')
             $audit.childResult = Read-SmallJson (Join-Path $childEvidence 'standard-child-result.json')
             if ($audit.childResult.status -ceq 'failed') { $audit.error = $audit.childResult.error }
+            if ($installerMode -and (Test-Path -LiteralPath (Join-Path $childEvidence 'installation-result.json'))) {
+                $audit.installation = Read-SmallJson (Join-Path $childEvidence 'installation-result.json')
+                $audit.installerExecuted = $null -ne $audit.installation.installerRun -and $audit.installation.installerRun.started -eq $true
+                if ($audit.installation.actualSid -cne $user.SID.Value -or $audit.installation.candidateSha -cne $ExpectedCommit) { throw 'Installation evidence belongs to a different identity or candidate' }
+            }
             $audit.evidenceCopy = Copy-BoundedEvidence $childEvidence $EvidenceDirectory
             if (-not $audit.evidenceCopy.complete) {
                 $audit.status = 'failed'
@@ -561,6 +720,8 @@ try {
         }
     }
     if ($audit.status -ceq 'passed' -and ($null -eq $audit.childResult -or $audit.childResult.status -cne 'passed')) { throw 'Successful supervisor lacks complete product-child evidence' }
+    if ($installerMode -and $audit.status -ceq 'passed' -and ($null -eq $audit.installation -or
+        $audit.installation.status -cne 'passed' -or $audit.installation.productAcceptance -cne 'passed' -or -not $audit.installerExecuted)) { throw 'Successful installed acceptance lacks complete installation/product proof' }
     if (-not $processesEmpty) { throw 'Outer process-tree cleanup is uncertain' }
 } catch {
     if ($null -ne $audit.childResult -and $audit.childResult.status -ceq 'failed' -and $audit.childResult.error) {
@@ -582,8 +743,13 @@ try {
         if ($processesEmpty) {
             try {
                 Remove-ExactProfileWithRetry $user.SID.Value $audit
+                if ($installerMode -and $null -ne $audit.installation) {
+                    Assert-Contained $audit.installation.installDirectory $audit.actualWindowsProfile
+                    $audit.installedDirectoryRemoved = -not (Test-Path -LiteralPath $audit.installation.installDirectory)
+                    if (-not $audit.installedDirectoryRemoved) { throw 'Exact installed directory remains after profile cleanup' }
+                }
             } catch { $audit.cleanupErrors += 'Exact temporary-profile cleanup failed: ' + $_.Exception.Message }
-            if ($audit.profileDeleted -eq $true) {
+            if ($audit.profileDeleted -eq $true -and (-not $installerMode -or $null -eq $audit.installation -or $audit.installedDirectoryRemoved -eq $true)) {
                 try {
                     $current = Get-LocalUser -Name $accountName -ErrorAction Stop
                     if ($current.SID.Value -cne $user.SID.Value -or $current.Description -cne $description) { throw 'Account identity changed; refuse removal' }
@@ -591,7 +757,7 @@ try {
                     if (Get-LocalUser -SID $user.SID -ErrorAction SilentlyContinue) { throw 'Exact temporary account remains' }
                     $audit.accountDeleted = $true
                 } catch { $audit.cleanupErrors += 'Exact temporary-account cleanup failed: ' + $_.Exception.Message }
-            } else { $audit.cleanupErrors += 'Profile removal unconfirmed: preserve the exact account for explicit review' }
+            } else { $audit.cleanupErrors += 'Profile or installed-directory removal unconfirmed: preserve the exact account for explicit review' }
         } else { $audit.cleanupErrors += 'Process emptiness uncertain: preserve the exact account/profile for explicit review' }
     }
     if ($stageCreated) {
