@@ -855,7 +855,12 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     let mut stderr_reader = None;
     let mut metadata = json!({"status":"error","pngBytes":0});
     let mut png = Vec::new();
+    // Admission means an actually created, uniquely owned native root. All
+    // subsequent failures pass through the complete ownership cleanup below.
+    crate::audit::emit(&json!({"phase":"admitted",
+        "requestId":input["requestId"],"productPid":std::process::id()}));
     let outcome = (|| -> Result<()> {
+        control.checkpoint()?;
         let system = system_directory()?;
         profile = Some(Profile::create(&unique)?);
         report["profileCreated"] = json!(true);

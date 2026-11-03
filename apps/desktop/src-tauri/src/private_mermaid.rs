@@ -76,3 +76,11 @@ pub fn private_mermaid_retire_owner(
     app.state::<Registry>()
         .retire_owner(&caller(&window)?, &owner_id)
 }
+
+#[tauri::command]
+pub async fn private_mermaid_shutdown(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    caller(&window)?;
+    tauri::async_runtime::spawn_blocking(move || app.state::<Registry>().shutdown_and_wait())
+        .await
+        .map_err(|error| error.to_string())?
+}

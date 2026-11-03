@@ -18,6 +18,9 @@ const MAX_RETAINED_BYTES: usize = 128 * 1024 * 1024;
 const MAX_RETAINED_PIXELS: u64 = 32 * 1024 * 1024;
 const MAX_IDENTITIES: usize = 65_536;
 const LEASE_TTL: Duration = Duration::from_secs(60);
+// Existing native teardown has a two-second Job stop, bounded IPC joins and
+// three-second owned-tree retries. This wait never changes a render deadline.
+const SHUTDOWN_CLEANUP_ALLOWANCE: Duration = Duration::from_secs(6);
 #[cfg(any(windows, test))]
 mod audit;
 #[cfg(any(windows, test))]
@@ -107,6 +110,8 @@ struct State {
     leases: HashMap<String, Retained>,
     active: bool,
     next_lease: u64,
+    closing: bool,
+    shutdown_deadline: Option<Instant>,
 }
 #[derive(Default)]
 pub struct Registry {
@@ -197,6 +202,9 @@ impl Registry {
         {
             let mut state = self.state.lock().map_err(|e| e.to_string())?;
             Self::reap(&mut state);
+            if state.closing {
+                return Err("Mermaid service is closing; new rendering is stopped".into());
+            }
             if self.unhealthy.load(Ordering::Acquire) {
                 return Err(
                     "Mermaid service stopped after uncertain native cleanup; restart required"
@@ -374,15 +382,61 @@ impl Registry {
         self.wake.notify_all();
         Ok(true)
     }
+    fn close_admission(state: &mut State) {
+        state.closing = true;
+        if state.shutdown_deadline.is_none() {
+            let now = Instant::now();
+            state.shutdown_deadline = Some(
+                state
+                    .jobs
+                    .values()
+                    .map(|control| control.deadline)
+                    .max()
+                    .unwrap_or(now)
+                    .max(now)
+                    + SHUTDOWN_CLEANUP_ALLOWANCE,
+            );
+        }
+        for control in state.jobs.values() {
+            control.cancelled.store(true, Ordering::Release);
+        }
+        state.leases.clear();
+    }
     pub fn stop_all(&self) {
-        self.unhealthy.store(true, Ordering::Release);
         if let Ok(mut state) = self.state.lock() {
-            for control in state.jobs.values() {
-                control.cancelled.store(true, Ordering::Release);
-            }
-            state.leases.clear();
+            Self::close_admission(&mut state);
         }
         self.wake.notify_all();
+    }
+    /// Stop admission under the same lock as render registration, cancel every
+    /// owned job, and await its actual backend teardown before process exit.
+    /// Repeated close attempts retain the first wait deadline. A later retry
+    /// may succeed once a pending backend has settled; it cannot revive rendering.
+    pub fn shutdown_and_wait(&self) -> std::result::Result<(), String> {
+        let mut state = self.state.lock().map_err(|e| e.to_string())?;
+        Self::close_admission(&mut state);
+        self.wake.notify_all();
+        let deadline = state
+            .shutdown_deadline
+            .expect("closed admission has a deadline");
+        while !state.jobs.is_empty() || state.active {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err("Mermaid shutdown still has unsettled native jobs".into());
+            }
+            state = self
+                .wake
+                .wait_timeout(state, remaining.min(Duration::from_millis(20)))
+                .map_err(|e| e.to_string())?
+                .0;
+        }
+        drop(state);
+        if self.unhealthy.load(Ordering::Acquire) {
+            return Err("Mermaid native cleanup is uncertain; window must remain open".into());
+        }
+        #[cfg(windows)]
+        audit::flush(Duration::from_secs(2))?;
+        Ok(())
     }
 }
 impl Drop for Registry {
@@ -424,20 +478,9 @@ pub fn render_native(input: &Value, control: &Control) -> std::result::Result<Re
     control.checkpoint()?;
     let runtime = installed_runtime()?;
     let request_id = input["requestId"].as_str().unwrap_or_default();
-    audit::emit(
-        &json!({"phase":"admitted","requestId":request_id,"productPid":std::process::id()}),
-    );
-    let output = match launcher::run(&runtime, input, control) {
-        Ok(output) => output,
-        Err(error) => {
-            audit::emit(
-                &json!({"phase":"finished","requestId":request_id,"productPid":std::process::id(),
-                "successful":false,"admissionFailed":true,"cancelled":control.cancelled.load(Ordering::Acquire),
-                "deadlineExpired":control.remaining().is_zero()}),
-            );
-            return Err(error.to_string());
-        }
-    };
+    // The launcher reports admission only after CREATE_NEW establishes owned
+    // native resources. Read-only preflight failures have nothing to tear down.
+    let output = launcher::run(&runtime, input, control).map_err(|error| error.to_string())?;
     if audit::enabled() {
         audit::emit(&audit::finished(
             request_id,

@@ -1037,6 +1037,7 @@ pub fn run() {
             private_mermaid::private_mermaid_cancel,
             private_mermaid::private_mermaid_release,
             private_mermaid::private_mermaid_retire_owner,
+            private_mermaid::private_mermaid_shutdown,
             appearance_theme::appearance_theme_load,
             appearance_theme::appearance_theme_read_candidate,
             appearance_theme::appearance_theme_commit_candidate,
@@ -1140,9 +1141,24 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to build milkup desktop app")
         .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = &event {
+                if app
+                    .state::<milkup_mermaid_engine::Registry>()
+                    .shutdown_and_wait()
+                    .is_err()
+                {
+                    api.prevent_exit();
+                    // Normal close reports this through its awaited private
+                    // command. Do not block this fallback on a failed stderr pipe.
+                }
+            }
             if matches!(event, tauri::RunEvent::Exit) {
                 app.state::<plugin_dom::DomRegistry>().stop_all();
-                app.state::<milkup_mermaid_engine::Registry>().stop_all();
+                // Covers exit paths that do not emit ExitRequested. The normal
+                // close command already awaits this before destroying its window.
+                let _ = app
+                    .state::<milkup_mermaid_engine::Registry>()
+                    .shutdown_and_wait();
             }
         });
 }

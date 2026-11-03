@@ -186,3 +186,127 @@ fn uncertain_cleanup_prevents_later_jobs_and_budget_counts_old_plus_new() {
         .render_with("main", request("after-release"), |_, _| Ok(output()))
         .is_ok());
 }
+
+#[test]
+fn shutdown_closes_admission_cancels_and_waits_for_owned_backend_cleanup() {
+    let registry = Arc::new(Registry::default());
+    let (started_tx, started_rx) = mpsc::channel();
+    let (cancelled_tx, cancelled_rx) = mpsc::channel();
+    let (cleanup_tx, cleanup_rx) = mpsc::channel();
+    let rendering = registry.clone();
+    let renderer = thread::spawn(move || {
+        rendering.render_with("main", request("active"), |_, control| {
+            started_tx.send(control.deadline).unwrap();
+            while control.checkpoint().is_ok() {
+                thread::yield_now();
+            }
+            cancelled_tx.send(control.deadline).unwrap();
+            cleanup_rx.recv().unwrap();
+            Ok(output())
+        })
+    });
+    let original_deadline = started_rx.recv().unwrap();
+    let queued_registry = registry.clone();
+    let queued = thread::spawn(move || {
+        queued_registry.render_with("main", request("queued-at-close"), |_, _| {
+            panic!("queued work must be cancelled before starting its backend")
+        })
+    });
+    let queue_observation_deadline = Instant::now() + Duration::from_secs(1);
+    while registry.state.lock().unwrap().jobs.len() != 2 {
+        assert!(Instant::now() < queue_observation_deadline);
+        thread::yield_now();
+    }
+    let closing = registry.clone();
+    let (settled_tx, settled_rx) = mpsc::channel();
+    let shutdown = thread::spawn(move || {
+        settled_tx.send(closing.shutdown_and_wait()).unwrap();
+    });
+    assert_eq!(cancelled_rx.recv().unwrap(), original_deadline);
+    assert!(queued.join().unwrap().unwrap_err().contains("cancelled"));
+    assert!(registry
+        .render_with("main", request("late"), |_, _| {
+            panic!("closing service must reject new work before backend admission")
+        })
+        .unwrap_err()
+        .contains("closing"));
+    assert!(
+        settled_rx.recv_timeout(Duration::from_millis(20)).is_err(),
+        "Cancellation acknowledgement must not stand in for backend cleanup"
+    );
+    cleanup_tx.send(()).unwrap();
+    assert!(renderer.join().unwrap().unwrap_err().contains("cancelled"));
+    settled_rx
+        .recv_timeout(Duration::from_secs(1))
+        .unwrap()
+        .unwrap();
+    shutdown.join().unwrap();
+    let state = registry.state.lock().unwrap();
+    assert!(state.jobs.is_empty() && state.leases.is_empty() && !state.active);
+}
+
+#[test]
+fn shutdown_retry_does_not_extend_deadline_or_hide_unsettled_work() {
+    let registry = Arc::new(Registry::default());
+    let (started_tx, started_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let rendering = registry.clone();
+    let renderer = thread::spawn(move || {
+        rendering.render_with("main", request("held"), |_, _| {
+            started_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+            Ok(output())
+        })
+    });
+    started_rx.recv().unwrap();
+    registry.stop_all();
+    let expired = Instant::now() - Duration::from_millis(1);
+    registry.state.lock().unwrap().shutdown_deadline = Some(expired);
+    for _ in 0..2 {
+        assert!(registry
+            .shutdown_and_wait()
+            .unwrap_err()
+            .contains("unsettled"));
+        let state = registry.state.lock().unwrap();
+        assert_eq!(state.shutdown_deadline, Some(expired));
+        assert_eq!(state.jobs.len(), 1);
+    }
+    release_tx.send(()).unwrap();
+    assert!(renderer.join().unwrap().is_err());
+    registry.shutdown_and_wait().unwrap();
+    assert_eq!(
+        registry.state.lock().unwrap().shutdown_deadline,
+        Some(expired)
+    );
+}
+
+#[test]
+fn shutdown_never_accepts_uncertain_cleanup_and_clears_completed_leases() {
+    let registry = Registry::default();
+    registry
+        .render_with("main", request("rendered"), |_, _| Ok(output()))
+        .unwrap();
+    registry.shutdown_and_wait().unwrap();
+    assert!(registry.state.lock().unwrap().leases.is_empty());
+    assert!(registry
+        .render_with("main", request("after-close"), |_, _| {
+            panic!("shutdown is permanent even after all work settled")
+        })
+        .is_err());
+
+    let registry = Registry::default();
+    assert!(registry
+        .render_with("main", request("uncertain"), |_, control| {
+            control.mark_cleanup_uncertain();
+            Err("owned cleanup could not be established".into())
+        })
+        .is_err());
+    assert!(registry
+        .shutdown_and_wait()
+        .unwrap_err()
+        .contains("uncertain"));
+    assert!(registry
+        .shutdown_and_wait()
+        .unwrap_err()
+        .contains("uncertain"));
+}
