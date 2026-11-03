@@ -550,7 +550,14 @@ impl Job {
         )
     }
     fn stop(&self) -> Result<()> {
-        check(unsafe { TerminateJobObject(self.0.as_raw_handle(), 1) })?;
+        self.stop_observed(|| {})
+    }
+    fn stop_observed(&self, after_terminate_request: impl FnOnce()) -> Result<()> {
+        // Capture a failed API call's error before the observation callback can
+        // issue another Win32 call. Observations never replace this outcome.
+        let termination = check(unsafe { TerminateJobObject(self.0.as_raw_handle(), 1) });
+        after_terminate_request();
+        termination?;
         let deadline = Instant::now() + Duration::from_secs(2);
         while self.active()? != 0 {
             if Instant::now() >= deadline {
@@ -560,6 +567,36 @@ impl Job {
         }
         Ok(())
     }
+}
+
+/// Zero-time observation of our original creation handle, never a PID lookup or
+/// a wait for the process. A signaled helper does not establish Job/pipe cleanup.
+fn helper_exit_observation(process: &OwnedHandle) -> Value {
+    let wait = unsafe { WaitForSingleObject(process.as_raw_handle(), 0) };
+    let win32_error = (wait == WAIT_FAILED)
+        .then(|| std::io::Error::last_os_error().raw_os_error())
+        .flatten()
+        .and_then(|code| u32::try_from(code).ok());
+    let mut exit_code = None;
+    let mut exit_code_win32_error = None;
+    if wait == WAIT_OBJECT_0 {
+        let mut value = 0;
+        if unsafe { GetExitCodeProcess(process.as_raw_handle(), &mut value) } != 0 {
+            exit_code = Some(value);
+        } else {
+            exit_code_win32_error = std::io::Error::last_os_error()
+                .raw_os_error()
+                .and_then(|code| u32::try_from(code).ok());
+        }
+    }
+    json!({
+        "waitStatus":match wait {
+            WAIT_OBJECT_0 => "signaled", WAIT_TIMEOUT => "timeout",
+            WAIT_FAILED => "failed", _ => "unexpected"
+        },
+        "waitResult":wait,"win32Error":win32_error,
+        "exitCode":exit_code,"exitCodeWin32Error":exit_code_win32_error
+    })
 }
 
 struct Attributes {
@@ -621,7 +658,9 @@ fn pipe(parent_reads: bool) -> Result<(File, OwnedHandle)> {
     let attrs = SECURITY_ATTRIBUTES {
         nLength: size_of::<SECURITY_ATTRIBUTES>() as u32,
         lpSecurityDescriptor: null_mut(),
-        bInheritHandle: 1,
+        // Neither end is exposed to unrelated inheriting spawns while creating
+        // the pair. Only the helper end below needs inheritance for HANDLE_LIST.
+        bInheritHandle: 0,
     };
     check(unsafe { CreatePipe(&mut read, &mut write, &attrs, 4096) })?;
     let (read, write) = unsafe { (owned(read)?, owned(write)?) };
@@ -630,7 +669,13 @@ fn pipe(parent_reads: bool) -> Result<(File, OwnedHandle)> {
     } else {
         (write, read)
     };
-    check(unsafe { SetHandleInformation(parent.as_raw_handle(), HANDLE_FLAG_INHERIT, 0) })?;
+    check(unsafe {
+        SetHandleInformation(
+            child.as_raw_handle(),
+            HANDLE_FLAG_INHERIT,
+            HANDLE_FLAG_INHERIT,
+        )
+    })?;
     Ok((File::from(parent), child))
 }
 
@@ -1155,6 +1200,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         "runtimeInstalled":false,"firewallChanged":false,"systemAclChanged":false,"elevationRequested":false});
     let mut profile = None;
     let mut job = None;
+    let mut helper_process = None;
     let mut pins = None;
     let mut readers = Vec::new();
     let mut writer = None;
@@ -1225,12 +1271,16 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         job = Some(Job::new()?);
         let job = job.as_ref().unwrap();
         let Spawned {
-            process,
+            process: created_process,
             thread: primary_thread,
             input: mut child_input,
             output: child_output,
             error: child_error,
         } = launch(&exe, &runtime, &state, &system, profile, job)?;
+        // Preserve the actual creation handle through the outcome, including
+        // every fallible token/Job proof below. No duplicate or reopened PID.
+        helper_process = Some(created_process);
+        let process = helper_process.as_ref().unwrap();
         report["helperProcessId"] = json!(unsafe { GetProcessId(process.as_raw_handle()) });
         let child_token = sandbox_token_info(process.as_raw_handle())?;
         report["suspendedToken"] = child_token.clone();
@@ -1407,7 +1457,27 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         report["preStopJob"] = job
             .sample()
             .unwrap_or_else(|e| json!({"inspectionError":e.to_string()}));
-        if let Err(error) = job.stop() {
+        let before_terminate = helper_process.as_ref().map(helper_exit_observation);
+        let mut after_terminate = None;
+        let mut helper_released = false;
+        let stopped = job.stop_observed(|| {
+            after_terminate = helper_process.as_ref().map(helper_exit_observation);
+            // Release before the original accounting poll, including a failed
+            // termination request. Holding a diagnostic process reference must
+            // not change that poll's lifetime/accounting assumptions.
+            if let Some(process) = helper_process.take() {
+                drop(process);
+                helper_released = true;
+            }
+        });
+        if let (Some(before), Some(after)) = (before_terminate, after_terminate) {
+            report["helperProcessExitObservation"] = json!({
+                "beforeTerminate":before,
+                "afterTerminateRequest":after,
+                "handleReleasedBeforeAccounting":helper_released
+            });
+        }
+        if let Err(error) = stopped {
             empty = false;
             cleanup_kinds.push("job-stop".into());
             cleanup_errors.push(error.to_string());
@@ -1564,6 +1634,68 @@ mod token_diagnostic;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn helper_exit_observation_does_not_query_exit_code_of_live_process() {
+        let current = unsafe { GetCurrentProcess() };
+        let mut duplicate = null_mut();
+        check(unsafe {
+            DuplicateHandle(
+                current,
+                current,
+                current,
+                &mut duplicate,
+                0,
+                0,
+                DUPLICATE_SAME_ACCESS,
+            )
+        })
+        .unwrap();
+        let process = unsafe { owned(duplicate).unwrap() };
+        assert_eq!(
+            helper_exit_observation(&process),
+            json!({"waitStatus":"timeout","waitResult":WAIT_TIMEOUT,
+                "win32Error":null,"exitCode":null,"exitCodeWin32Error":null})
+        );
+    }
+
+    #[test]
+    fn job_stop_observation_runs_after_failed_request_without_replacing_os_error() {
+        let job = Job::new().unwrap();
+        let current = unsafe { GetCurrentProcess() };
+        let mut duplicate = null_mut();
+        // A real query-only duplicate cannot terminate the owned, empty Job.
+        check(unsafe {
+            DuplicateHandle(
+                current,
+                job.0.as_raw_handle(),
+                current,
+                &mut duplicate,
+                0x0004, // JOB_OBJECT_QUERY (WinNT.h); test-only reduced rights.
+                0,
+                0,
+            )
+        })
+        .unwrap();
+        let query_only = Job(unsafe { owned(duplicate).unwrap() });
+        let mut observed = false;
+        let error = query_only
+            .stop_observed(|| {
+                observed = true;
+                unsafe { SetLastError(ERROR_INVALID_FUNCTION) };
+            })
+            .unwrap_err();
+        assert!(observed);
+        assert_eq!(
+            error
+                .downcast_ref::<std::io::Error>()
+                .unwrap()
+                .raw_os_error(),
+            Some(ERROR_ACCESS_DENIED as i32)
+        );
+        assert_eq!(job.active().unwrap(), 0);
+        job.stop().unwrap();
+    }
 
     /// A real elevated-host negative case, never a synthetic-token acceptance
     /// claim. Ordinary test runs leave it ignored; the reviewed Windows workflow
