@@ -27,6 +27,8 @@ mod audit;
 mod cleanup;
 #[cfg(windows)]
 mod engine;
+#[cfg(windows)]
+mod protocol_handles;
 #[cfg(any(windows, test))]
 mod ipc_observation;
 #[cfg(windows)]

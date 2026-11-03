@@ -19,6 +19,8 @@ pub(crate) fn prepare_started(
     report["readyJob"] = job;
     report["helperSelfToken"] = report["ready"]["helperSelfToken"].clone();
     report["browserFromHelperToken"] = report["ready"]["browserFromHelperToken"].clone();
+    report["protocolHandlesNonInheritable"] =
+        report["ready"]["protocolHandlesNonInheritable"].clone();
     report["helperNativeProofVerified"] = json!(true);
     Ok(())
 }
@@ -28,10 +30,12 @@ pub(crate) fn build(
     browser_pid: u32,
     helper: &Value,
     browser: &Value,
+    protocol_handles_non_inheritable: bool,
 ) -> Result<Value, &'static str> {
     let ready = json!({"phase":"ready","engine":"12.2.0","helperProcessId":helper_pid,
         "browserProcessId":browser_pid,"helperSelfToken":crate::token_policy::compact_sandbox_evidence(helper)?,
-        "browserFromHelperToken":crate::token_policy::compact_sandbox_evidence(browser)?});
+        "browserFromHelperToken":crate::token_policy::compact_sandbox_evidence(browser)?,
+        "protocolHandlesNonInheritable":protocol_handles_non_inheritable});
     let user = helper["userSid"].as_str().ok_or("Missing helper SID")?;
     let session = helper["sessionId"]
         .as_u64()
@@ -61,11 +65,13 @@ pub(crate) fn validate(
         "browserProcessId",
         "helperSelfToken",
         "browserFromHelperToken",
+        "protocolHandlesNonInheritable",
     ];
     if fields.len() != expected.len()
         || expected.iter().any(|field| !fields.contains_key(*field))
         || ready["phase"] != "ready"
         || ready["engine"] != "12.2.0"
+        || ready["protocolHandlesNonInheritable"] != true
         || held_helper_pid == 0
         || ready["helperProcessId"].as_u64() != Some(u64::from(held_helper_pid))
     {
@@ -109,7 +115,8 @@ pub(crate) fn maximum_sandbox() -> Value {
 #[test]
 fn two_maximum_native_proofs_fit_original_ready_budget_and_are_identity_bound() {
     let token = maximum_sandbox();
-    let ready = build(u32::MAX - 1, u32::MAX, &token, &token).unwrap();
+    let ready = build(u32::MAX - 1, u32::MAX, &token, &token, true).unwrap();
+    assert!(build(u32::MAX - 1, u32::MAX, &token, &token, false).is_err());
     let bytes = serde_json::to_vec(&ready).unwrap();
     println!(
         "NATIVE_READY_BUDGET bytes={} limit={MAX_READY}",
@@ -131,11 +138,18 @@ fn two_maximum_native_proofs_fit_original_ready_budget_and_are_identity_bound() 
         "browserProcessId",
         "helperSelfToken",
         "browserFromHelperToken",
+        "protocolHandlesNonInheritable",
     ] {
         let mut invalid = ready.clone();
         invalid.as_object_mut().unwrap().remove(field);
         assert!(check(&invalid).is_err());
     }
+    let mut invalid = ready.clone();
+    invalid["protocolHandlesNonInheritable"] = json!("true");
+    assert!(check(&invalid).is_err());
+    let mut invalid = ready.clone();
+    invalid["protocolHandlesNonInheritable"] = json!(false);
+    assert!(check(&invalid).is_err());
     let mut invalid = ready.clone();
     invalid["helperSelfToken"]["source"] = json!("untrusted");
     assert!(check(&invalid).is_err());
@@ -164,7 +178,7 @@ fn cancellation_during_job_sampling_never_publishes_unstarted_helper_proof() {
     };
     use std::time::{Duration, Instant};
     let token = maximum_sandbox();
-    let ready = build(100, 200, &token, &token).unwrap();
+    let ready = build(100, 200, &token, &token, true).unwrap();
     let original = json!({"ready":ready});
     let mut report = original.clone();
     let control = crate::Control {
@@ -189,6 +203,7 @@ fn cancellation_during_job_sampling_never_publishes_unstarted_helper_proof() {
     assert_eq!(report, original);
     prepare_started(&mut report, &control, || Ok(json!({"active":2}))).unwrap();
     assert_eq!(report["helperNativeProofVerified"], true);
+    assert_eq!(report["protocolHandlesNonInheritable"], true);
     assert_eq!(report["helperSelfToken"], ready["helperSelfToken"]);
     assert_eq!(
         report["browserFromHelperToken"],

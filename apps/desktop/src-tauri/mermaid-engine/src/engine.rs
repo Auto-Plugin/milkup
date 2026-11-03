@@ -145,6 +145,9 @@ fn input() -> Result<Value> {
 }
 
 pub fn run(runtime: &Path, private: &Path) -> Result<()> {
+    // Restrict all three inherited protocol endpoints before diagnostics, COM,
+    // or WebView can launch a descendant. Any failure stops the fixed helper.
+    let protocol_handles = crate::protocol_handles::confine_standard_handles()?;
     let startup_started = Instant::now();
     startup_phase(startup_started, "helper-enter", None);
     startup_phase(startup_started, "token-before", None);
@@ -519,11 +522,13 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     let helper_self = crate::launcher::child_token_report()?;
     let browser_from_helper =
         crate::launcher::browser_token_from_helper(browser_process_id, &helper_self)?;
+    protocol_handles.verify()?;
     let native_ready = crate::token_ready::build(
         std::process::id(),
         browser_process_id,
         &helper_self,
         &browser_from_helper,
+        true,
     )?;
     startup_phase(startup_started, "ready-frame-start", None);
     let ready_bytes = frame(&native_ready)?;
