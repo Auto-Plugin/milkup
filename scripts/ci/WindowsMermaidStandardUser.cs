@@ -355,7 +355,7 @@ public static class WindowsMermaidStandardUser
                 }
                 if (accepted != count) {
                     Exceeded = true;
-                    throw new IOException("Node output exceeded its two-MiB per-stream capture budget");
+                    throw new IOException("Captured output exceeded its two-MiB per-stream capture budget");
                 }
             }
         }
@@ -363,15 +363,95 @@ public static class WindowsMermaidStandardUser
     // Direct same-token child launch. No shell fallback, credentials, token or
     // Job changes: this child inherits the coordinator's existing owned Job.
     // This method also runs on Unix for local process/pipe regression tests.
-    public static Dictionary<string, object> RunNodeHarness(string application, string harness,
+    static ProcessStartInfo CapturedStart(string application, string directory) {
+        return new ProcessStartInfo {
+            FileName = application, WorkingDirectory = directory,
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true
+        };
+    }
+    // NSIS documents /D as the last argument, without quotes even for spaces:
+    // https://nsis.sourceforge.io/Docs/Chapter3.html#installerusagecommon
+    static string InstallerArguments(string installDirectory) {
+        if (String.IsNullOrEmpty(installDirectory) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(installDirectory, @"^[A-Za-z]:[\\/]"))
+            throw new ArgumentException("NSIS requires an absolute local Windows installation directory");
+        foreach (char character in installDirectory)
+            if (character == '"' || Char.IsControl(character))
+                throw new ArgumentException("NSIS installation directory contains a forbidden quote or control character");
+        if (!String.Equals(installDirectory, installDirectory.Trim(), StringComparison.Ordinal))
+            throw new ArgumentException("NSIS installation directory has ambiguous outer whitespace");
+        return "/S /D=" + installDirectory;
+    }
+    static Dictionary<string, object> CurrentInstallerIdentity(string expectedSid, uint expectedSession) {
+        var token = Token(GetCurrentProcess());
+        uint session;
+        Check(ProcessIdToSessionId(GetCurrentProcessId(), out session), "Observe installer coordinator session");
+        bool inJob;
+        Check(IsProcessInJob(GetCurrentProcess(), IntPtr.Zero, out inJob), "Observe installer coordinator Job membership");
+        if (!Equals(token["sid"], expectedSid) || !Equals(token["pureStandardUser"], true) ||
+            Convert.ToUInt32(token["sessionId"]) != expectedSession || session != expectedSession || session == 0 || !inJob)
+            throw new InvalidOperationException("Installer coordinator is not the exact pure-standard SID/session in the existing owned Job");
+        return new Dictionary<string, object> { { "pid", GetCurrentProcessId() }, { "token", token }, { "sessionId", session }, { "inJob", inJob } };
+    }
+    static Dictionary<string, object> StartedInstallerIdentity(Process process, string expectedImage, string expectedSid, uint expectedSession) {
+        // Process.Handle retains the process returned by Start. Never reopen by
+        // PID or infer a short-lived installer's identity from its parent.
+        IntPtr held = process.Handle;
+        var token = Token(held);
+        long creation, exit, kernel, user;
+        Check(GetProcessTimes(held, out creation, out exit, out kernel, out user), "Observe exact installer creation time");
+        uint length = 32768;
+        var image = new StringBuilder((int)length);
+        Check(QueryFullProcessImageNameW(held, 0, image, ref length), "Observe exact installer image");
+        bool inJob;
+        Check(IsProcessInJob(held, IntPtr.Zero, out inJob), "Observe exact installer inherited Job membership");
+        uint observedSession = Convert.ToUInt32(token["sessionId"]);
+        if (!Equals(token["sid"], expectedSid) || !Equals(token["pureStandardUser"], true) ||
+            observedSession != expectedSession || expectedSession == 0 || !inJob ||
+            !String.Equals(Path.GetFullPath(image.ToString()), Path.GetFullPath(expectedImage), StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Started installer SID/session/token/image/Job identity was not proved");
+        return new Dictionary<string, object> {
+            { "pid", process.Id }, { "token", token }, { "sessionId", observedSession }, { "inJob", inJob },
+            { "creationFileTime", creation.ToString(System.Globalization.CultureInfo.InvariantCulture) },
+            { "creationUtc", DateTime.FromFileTimeUtc(creation).ToString("o") },
+            { "image", image.ToString().Substring(0, Math.Min(image.Length, 1024)) }, { "imageTruncated", image.Length > 1024 }
+        };
+    }
+    public static Dictionary<string, object> RunOwnedInstaller(string application, string installDirectory,
+        string directory, string stdoutPath, string stderrPath, string expectedSid, uint expectedSession, int timeoutMs) {
+        if (timeoutMs < 100 || timeoutMs > 120000) throw new ArgumentException("Installer deadline budget rejected");
+        var start = CapturedStart(application, directory);
+        // ArgumentList would quote the /D token when the destination has spaces.
+        // This exact raw argument suffix is parsed by NSIS, never by a shell.
+        start.Arguments = InstallerArguments(installDirectory);
+        return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "Installer", expectedSid, expectedSession, installDirectory);
+    }
+    public static Dictionary<string, object> RunNodeScript(string application, string[] arguments,
         string directory, string stdoutPath, string stderrPath, int timeoutMs) {
         if (timeoutMs < 100 || timeoutMs > 900000) throw new ArgumentException("Node deadline budget rejected");
+        if (arguments == null || arguments.Length == 0 || arguments.Length > 16) throw new ArgumentException("Node script argument budget rejected");
+        var start = CapturedStart(application, directory);
+        foreach (string argument in arguments) {
+            if (argument == null || argument.IndexOf('\0') >= 0 || argument.Length > 32768) throw new ArgumentException("Invalid Node script argument");
+            start.ArgumentList.Add(argument);
+        }
+        return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "Node", null, 0, null);
+    }
+    public static Dictionary<string, object> RunNodeHarness(string application, string harness,
+        string directory, string stdoutPath, string stderrPath, int timeoutMs) {
+        return RunNodeScript(application, new[] { harness }, directory, stdoutPath, stderrPath, timeoutMs);
+    }
+    static Dictionary<string, object> RunCapturedProcess(ProcessStartInfo start, string stdoutPath, string stderrPath,
+        int timeoutMs, string label, string expectedSid, uint expectedSession, string installDirectory) {
         var audit = new Dictionary<string, object> {
             { "status", "failed" }, { "started", false }, { "exited", false },
             { "exitCode", null }, { "timedOut", false }, { "streamsDrained", false },
             { "useShellExecute", false }, { "createNoWindow", true },
             { "deadlineMs", timeoutMs }, { "captureLimitPerStream", 2097152 },
-            { "forcedNodeTermination", false }, { "error", null }
+            { "forcedNodeTermination", false }, { "forcedProcessTermination", false }, { "error", null },
+            { "tool", label }, { "identityRequired", installDirectory != null }, { "identityVerified", false },
+            { "callerIdentity", null }, { "startedProcess", null }, { "credentialsSpecified", false }, { "breakawayRequested", false }
         };
         var cleanup = new List<string>();
         var watch = Stopwatch.StartNew();
@@ -382,23 +462,35 @@ public static class WindowsMermaidStandardUser
         Task outputTask = null, errorTask = null;
         bool started = false;
         try {
+            if (installDirectory != null) {
+                if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Owned NSIS execution requires Windows");
+                if (String.IsNullOrEmpty(expectedSid) || expectedSession == 0) throw new ArgumentException("Exact installer SID/session required");
+                if (!Path.IsPathFullyQualified(start.FileName) || !Path.IsPathFullyQualified(installDirectory) ||
+                    !String.Equals(Path.GetFullPath(installDirectory), installDirectory, StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException("Installer paths must be absolute and canonical");
+                if (File.Exists(installDirectory) || Directory.Exists(installDirectory))
+                    throw new InvalidOperationException("Refusing to reuse an installation destination");
+                audit["callerIdentity"] = CurrentInstallerIdentity(expectedSid, expectedSession);
+            }
             stdout = new FileStream(stdoutPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
             stderr = new FileStream(stderrPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
-            var start = new ProcessStartInfo {
-                FileName = application, WorkingDirectory = directory,
-                UseShellExecute = false, CreateNoWindow = true,
-                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true
-            };
-            start.ArgumentList.Add(harness);
             process.StartInfo = start;
-            if (!process.Start()) throw new InvalidOperationException("Direct Node launch did not return a process");
+            if (!process.Start()) throw new InvalidOperationException("Direct " + label + " launch did not return a process");
             started = true; audit["started"] = true; audit["pid"] = process.Id;
-            // No inherited console stdin is needed. Closing our pipe gives Node EOF.
+            if (installDirectory != null) {
+                audit["startedProcess"] = StartedInstallerIdentity(process, start.FileName, expectedSid, expectedSession);
+                audit["identityVerified"] = true;
+            }
+            // No inherited console stdin is needed. Closing our pipe gives EOF.
             process.StandardInput.Close();
             outputTask = output.Drain(process.StandardOutput.BaseStream, stdout, cancellation.Token);
             errorTask = errorOutput.Drain(process.StandardError.BaseStream, stderr, cancellation.Token);
             long exitObservedAt = -1;
             while (true) {
+                if (watch.ElapsedMilliseconds >= timeoutMs) {
+                    audit["timedOut"] = true;
+                    throw new TimeoutException(label + " harness exceeded its explicit deadline");
+                }
                 if (outputTask.IsFaulted) outputTask.GetAwaiter().GetResult();
                 if (errorTask.IsFaulted) errorTask.GetAwaiter().GetResult();
                 if (process.WaitForExit(0)) {
@@ -410,42 +502,40 @@ public static class WindowsMermaidStandardUser
                         break;
                     }
                     if (watch.ElapsedMilliseconds - exitObservedAt >= 3000)
-                        throw new TimeoutException("Node exited but its output pipes did not reach EOF within three seconds");
-                }
-                if (watch.ElapsedMilliseconds >= timeoutMs) {
-                    audit["timedOut"] = true;
-                    throw new TimeoutException("Node harness exceeded its explicit deadline");
+                        throw new TimeoutException(label + " exited but its output pipes did not reach EOF within three seconds");
                 }
                 Thread.Sleep(20);
             }
-            if (process.ExitCode != 0) throw new InvalidOperationException("Node harness exited with code " + process.ExitCode);
+            if (process.ExitCode != 0) throw new InvalidOperationException(label + " harness exited with code " + process.ExitCode);
             audit["status"] = "passed";
         } catch (Exception error) { audit["error"] = error.Message; }
         finally {
             if (started) {
                 try {
                     if (!process.HasExited) {
-                        audit["forcedNodeTermination"] = true;
+                        audit["forcedNodeTermination"] = label == "Node";
+                        audit["forcedProcessTermination"] = true;
                         // Kill only the Process instance we started and still hold.
                         // The existing outer Job owns all descendant cleanup.
                         process.Kill();
                     }
-                    if (!process.WaitForExit(3000)) cleanup.Add("Exact Node process did not confirm exit");
+                    if (!process.WaitForExit(3000)) cleanup.Add("Exact " + label + " process did not confirm exit");
                     else { audit["exited"] = true; audit["exitCode"] = process.ExitCode; }
                 } catch (Exception error) { cleanup.Add(error.Message); }
             }
             cancellation.Cancel();
             if (started) {
+                try { process.StandardInput.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
                 try { process.StandardOutput.BaseStream.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
                 try { process.StandardError.BaseStream.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
             }
             if (outputTask != null && errorTask != null) {
                 try {
-                    if (!Task.WaitAll(new[] { outputTask, errorTask }, 1000)) cleanup.Add("Node output drain tasks exceeded cleanup budget");
+                    if (!Task.WaitAll(new[] { outputTask, errorTask }, 1000)) cleanup.Add(label + " output drain tasks exceeded cleanup budget");
                 } catch (AggregateException) {
                     // The primary capture failure is already recorded above.
                     // Cancellation during failed-run cleanup is expected.
-                    if (Equals(audit["status"], "passed")) cleanup.Add("Node output drain failed during cleanup");
+                    if (Equals(audit["status"], "passed")) cleanup.Add(label + " output drain failed during cleanup");
                 }
             }
             try { if (stdout != null) stdout.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
