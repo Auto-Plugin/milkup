@@ -112,6 +112,7 @@ fn validate_complete_png(png: &[u8]) -> Result<()> {
 }
 fn execute_matrix<'a>(
     fixtures: impl Iterator<Item = &'a Value>,
+    stop_on_case_failure: bool,
     mut run_case: impl FnMut(&Value) -> Result<Value>,
     mut save_case: impl FnMut(&Value) -> Result<()>,
 ) -> Result<(Vec<Value>, bool)> {
@@ -124,14 +125,15 @@ fn execute_matrix<'a>(
         save_case(&record)?;
         let stop = record["launcher"]["stopMatrixAfterThisCase"] == true;
         let observation = record["observationOnly"] == true;
-        any_failure |= stop
+        let case_failure = stop
             || if observation {
                 record["executionFailure"] != false
             } else {
                 record["ok"] != true
             };
+        any_failure |= case_failure;
         records.push(record);
-        if stop {
+        if stop || (stop_on_case_failure && case_failure) {
             break;
         }
     }
@@ -185,6 +187,50 @@ fn validate_png(metadata: &Value, png: &[u8]) -> Result<Value> {
     )
 }
 
+#[cfg(any(windows, test))]
+const HISTORICAL_PREFIX_6: [&str; 6] = [
+    "c4", "flowchart-v2", "agentflow", "swimlane", "er", "gitGraph",
+];
+
+#[cfg(any(windows, test))]
+fn validate_run_args(args: &[String]) -> Result<bool> {
+    let diagnostic = args.first().map(String::as_str) == Some("--run-delete-diagnostic");
+    if diagnostic
+        && (args.len() != 5
+            || !matches!(args[4].as_str(), "flowchart-v2" | "gitGraph" | "historical-prefix-6"))
+    {
+        return Err("Deletion diagnostic requires one fixed selector: flowchart-v2, gitGraph, or historical-prefix-6".into());
+    }
+    if !(4..=5).contains(&args.len()) || (args[0] != "--run" && !diagnostic) {
+        return Err("Usage: --run <existing-runtime-directory> <fixtures-manifest.json> <new-output-directory> [fixture-id]".into());
+    }
+    Ok(diagnostic)
+}
+
+#[cfg(any(windows, test))]
+fn select_fixtures<'a>(fixtures: &'a [Value], selector: Option<&str>, diagnostic: bool) -> Result<Vec<&'a Value>> {
+    if diagnostic {
+        match selector {
+            Some("historical-prefix-6") => {
+                // Compare complete records, not merely a sorted set of IDs.
+                // Runtime fixture bytes still pass the existing per-case SHA gate.
+                let reviewed: Value = serde_json::from_str(include_str!("../fixtures-manifest.json"))?;
+                let reviewed = reviewed["fixtures"].as_array().ok_or("Missing embedded reviewed fixtures")?;
+                if fixtures.len() < 6 || reviewed.len() < 6
+                    || fixtures[..6] != reviewed[..6]
+                    || fixtures[..6].iter().zip(HISTORICAL_PREFIX_6).any(|(fixture, id)| fixture["id"] != id)
+                {
+                    return Err("Historical diagnostic requires the exact original first six reviewed fixture records in order".into());
+                }
+                return Ok(fixtures[..6].iter().collect());
+            }
+            Some("flowchart-v2" | "gitGraph") => (),
+            _ => return Err("Unknown or missing closed deletion diagnostic selector".into()),
+        }
+    }
+    Ok(fixtures.iter().filter(|fixture| selector.is_none_or(|id| fixture["id"] == id)).collect())
+}
+
 #[cfg(windows)]
 fn run(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("--render-child") && args.len() == 3 {
@@ -195,13 +241,7 @@ fn run(args: &[String]) -> Result<()> {
     {
         return Err("Missing bounded prototype execution marker".into());
     }
-    let delete_diagnostic = args.first().map(String::as_str) == Some("--run-delete-diagnostic");
-    if delete_diagnostic && (args.len() != 5 || !matches!(args[4].as_str(), "flowchart-v2" | "gitGraph")) {
-        return Err("Deletion diagnostic requires one fixed canary or gitGraph fixture".into());
-    }
-    if args.len() < 4 || args.len() > 5 || (args[0] != "--run" && !delete_diagnostic) {
-        return Err("Usage: --run <existing-runtime-directory> <fixtures-manifest.json> <new-output-directory> [fixture-id]".into());
-    }
+    let delete_diagnostic = validate_run_args(args)?;
     let runtime = Path::new(&args[1]).canonicalize()?;
     if !runtime.join("msedgewebview2.exe").is_file() {
         return Err("Existing WebView2 Runtime required; no install fallback".into());
@@ -216,14 +256,13 @@ fn run(args: &[String]) -> Result<()> {
     if manifest["engine"]["version"] != "12.2.0" {
         return Err("Unexpected engine version".into());
     }
+    let fixtures = manifest["fixtures"].as_array().ok_or("Missing fixtures")?;
+    let selected = select_fixtures(fixtures, args.get(4).map(String::as_str), delete_diagnostic)?;
     let output = Path::new(&args[3]);
     std::fs::create_dir(output)?;
-    let fixtures = manifest["fixtures"].as_array().ok_or("Missing fixtures")?;
-    let selected = fixtures
-        .iter()
-        .filter(|fixture| args.len() != 5 || fixture["id"] == args[4]);
     let (records, any_failure) = execute_matrix(
-        selected,
+        selected.into_iter(),
+        delete_diagnostic && args.get(4).map(String::as_str) == Some("historical-prefix-6"),
         |fixture| {
             let id = fixture["id"].as_str().ok_or("Missing fixture ID")?;
             let path = fixture["path"].as_str().ok_or("Missing fixture path")?;
@@ -369,6 +408,67 @@ fn main() {
 mod tests {
     use super::*;
     #[test]
+    fn diagnostic_arguments_have_exact_arity_and_closed_selectors() {
+        let base = ["--run-delete-diagnostic", "runtime", "manifest", "output"];
+        let mut args: Vec<String> = base.iter().map(|value| value.to_string()).collect();
+        assert!(validate_run_args(&args).is_err());
+        for selector in ["flowchart-v2", "gitGraph", "historical-prefix-6"] {
+            args.push(selector.into());
+            assert!(validate_run_args(&args).unwrap());
+            args.push("extra".into()); assert!(validate_run_args(&args).is_err());
+            args.pop(); args.pop();
+        }
+        for selector in ["all", "", "prefix", "historical-prefix-5", "historical-prefix-50", "c4"] {
+            args.push(selector.into()); assert!(validate_run_args(&args).is_err()); args.pop();
+        }
+        assert!(validate_run_args(&[]).is_err());
+        args[0] = "--run".into(); assert!(!validate_run_args(&args).unwrap());
+        args.push("c4".into()); assert!(!validate_run_args(&args).unwrap());
+    }
+    #[test]
+    fn historical_selector_runs_only_the_original_six_complete_records_in_order() {
+        let manifest: Value = serde_json::from_str(include_str!("../fixtures-manifest.json")).unwrap();
+        let fixtures = manifest["fixtures"].as_array().unwrap();
+        let selected = select_fixtures(fixtures, Some("historical-prefix-6"), true).unwrap();
+        assert_eq!(selected.len(), 6);
+        assert_eq!(selected.iter().map(|fixture| fixture["id"].as_str().unwrap()).collect::<Vec<_>>(), HISTORICAL_PREFIX_6);
+        let mut reordered = fixtures.clone(); reordered.swap(0, 1);
+        assert!(select_fixtures(&reordered, Some("historical-prefix-6"), true).is_err());
+        let mut altered = fixtures.clone(); altered[5]["sha256"] = json!("0".repeat(64));
+        assert!(select_fixtures(&altered, Some("historical-prefix-6"), true).is_err());
+        assert!(select_fixtures(&fixtures[..5], Some("historical-prefix-6"), true).is_err());
+        for selector in [None, Some("all"), Some("historical-prefix-50")] {
+            assert!(select_fixtures(fixtures, selector, true).is_err());
+        }
+        assert_eq!(select_fixtures(fixtures, Some("gitGraph"), true).unwrap().len(), 1);
+        assert_eq!(select_fixtures(fixtures, Some("flowchart-v2"), true).unwrap().len(), 1);
+        assert_eq!(select_fixtures(fixtures, None, false).unwrap().len(), fixtures.len());
+        assert_eq!(select_fixtures(fixtures, Some("c4"), false).unwrap().len(), 1);
+        assert!(select_fixtures(fixtures, Some("historical-prefix-6"), false).unwrap().is_empty());
+    }
+    #[test]
+    fn historical_prefix_stops_on_first_render_failure_after_preserving_it() {
+        let fixtures = [json!("first"), json!("render-failed"), json!("later")];
+        for prefix in [true, false] {
+            let events = std::cell::RefCell::new(Vec::new());
+            let (records, failed) = execute_matrix(fixtures.iter(), prefix, |fixture| {
+                let id = fixture.as_str().unwrap();
+                events.borrow_mut().push(format!("run:{id}"));
+                Ok(json!({"fixture":id,"ok":id!="render-failed",
+                    "launcher":{"stopMatrixAfterThisCase":false}}))
+            }, |record| {
+                events.borrow_mut().push(format!("save:{}",record["fixture"].as_str().unwrap()));
+                Ok(())
+            }).unwrap();
+            assert!(failed);
+            assert_eq!(records.len(), if prefix {2} else {3});
+            assert_eq!(records[1]["launcher"]["stopMatrixAfterThisCase"], false);
+            let events = events.borrow();
+            assert_eq!(&events[..4], ["run:first","save:first","run:render-failed","save:render-failed"]);
+            assert_eq!(events.len(), if prefix {4} else {6});
+        }
+    }
+    #[test]
     fn data_contract_rejects_code_config_and_oversize() {
         let mut input = json!({"protocol":1,"requestId":"flowchart-v2","fixtureId":"flowchart-v2","source":"flowchart LR\n A-->B","width":1280,"theme":"default","look":"classic"});
         assert!(validate_input(&input).is_ok());
@@ -429,7 +529,7 @@ mod tests {
     fn cleanup_failure_saves_result_then_stops_before_next_helper() {
         let fixtures = [json!("first"), json!("uncertain"), json!("must-not-launch")];
         let events = std::cell::RefCell::new(Vec::new());
-        let (records, failed) = execute_matrix(fixtures.iter(), |fixture| {
+        let (records, failed) = execute_matrix(fixtures.iter(), false, |fixture| {
             let id = fixture.as_str().unwrap(); events.borrow_mut().push(format!("run:{id}"));
             Ok(json!({"fixture":id,"ok":true,"launcher":{"stopMatrixAfterThisCase":id=="uncertain"}}))
         }, |record| { events.borrow_mut().push(format!("save:{}", record["fixture"].as_str().unwrap())); Ok(()) }).unwrap();
@@ -445,6 +545,7 @@ mod tests {
         let fixtures = [json!("observe")];
         let (records, failed) = execute_matrix(
             fixtures.iter(),
+            false,
             |_| {
                 Ok(json!({
             "ok":null,"status":"observation-recorded","observationOnly":true,
@@ -459,6 +560,7 @@ mod tests {
         assert!(records[0]["ok"].is_null());
         let (_, failed) = execute_matrix(
             fixtures.iter(),
+            false,
             |_| {
                 Ok(json!({
             "ok":null,"observationOnly":true,"executionFailure":true,
