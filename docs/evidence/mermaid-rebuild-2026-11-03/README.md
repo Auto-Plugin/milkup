@@ -145,10 +145,32 @@ explicit `text eol=lf` stay clean throughout. See `windows/eol-diagnostic/` for
 raw logs, byte/index hashes, generator-source provenance and the earlier
 experimental limitations. `.gitattributes` now aligns these two checkout paths
 with Tauri's LF output. No source gate has been relaxed and no build output was
-restored to hide drift. Actual candidate build/UI verification follows separately.
+restored to hide drift. Actual candidate build/UI verification follows below.
 
-Neither run establishes Windows product rendering, same-login teardown,
-scale/theme, standard-user context or installer upgrade/rollback.
+Actual Windows product workflow `41635937295` at candidate
+`87bfeaf281ace926c54662d9508e88fd896c7cf0` independently passed frontend staging,
+private Windows checks/tests (13 pass), desktop checks/tests (228 pass / 3 ignored),
+production-asset binary link and the **unchanged strict clean-source gate**.
+Checkout, desktop-check and final snapshots all show the two schema HEAD/index/
+worktree byte hashes equal, LF, and completely empty raw Git status. Binary
+SHA-256 is `56b5e222408084d8131ed20e18a789198ffe3e19d218454d41983477a66851e6`
+(29,960,192 bytes). This closes the build-drift correction with a real build.
+
+The overall run still **failed** in the test wrapper before account creation:
+PowerShell found two Node executable paths and concatenated them. No standard
+account, product process or diagram was started. The runner's interactive desktop
+was observable and existing Evergreen 156.0.4314.50 plus its signed matching driver
+were found; this does not establish access from the intended standard account.
+The owned staging directory was removed, with no cleanup errors. Commit `16c2a422`
+selects the first resolved executable for Node/PowerShell; a two-match local
+regression reproduces the original bug and verifies the scalar result. The next
+attempt must still pass every source, identity and cleanup gate.
+
+`windows/product-attempt-41635937295/` retains the raw log, run metadata, original
+artifact ZIP and all four reports plus artifact manifest. The ZIP digest matches
+GitHub, and every artifact file size/SHA was verified. No PNG was produced in this
+attempt. These results do not establish Windows product rendering, same-login
+teardown, scale/theme or installer upgrade/rollback.
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
