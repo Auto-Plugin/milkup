@@ -104,6 +104,8 @@ image, wide nodes remain readable with a horizontal scrollbar, and C4 black text
 is visible on light blue shapes. The source and diagnostic are visible for the
 invalid fixture. The final report, 22 screenshots, complete evidence hashes and
 post-namespace process/port/display cleanup checks are retained in `product-linux/`.
+The actual runner, namespace mapping and initial failed-harness evidence are in
+`product-linux/reproduction/`; their machine-specific assumptions are explicit.
 This establishes only those four documents on Linux WebKitGTK 2.52.6, light/DPR1;
 it does not establish all 50 diagrams in the editor, dark/high-DPI/Windows/IME or
 installer behavior.
@@ -120,12 +122,26 @@ contains no actual shadow/filter and does not prove shadow-overflow handling.
 Windows run `41630133039` at candidate `ca10c4e1` passed the compile/test/link
 steps (private engine 11 tests; desktop 228 pass / 3 ignored), but the overall run
 **failed** at the final clean-checkout gate. Its original PowerShell conditional
-consumed the changed-file list without printing it, so that log cannot identify
-the exact paths. A diagnostic reproduction of the same source is required;
-schema generation is only a hypothesis until actual diffs are retained. Follow-up
-run `41630161068` was **skipped**, not passed. Neither result establishes Windows
-product rendering, same-login teardown, scale/theme, standard-user context or
-installer upgrade/rollback.
+consumed the changed-file list without printing it. Follow-up run `41630161068`
+was **skipped**, not passed.
+
+Exact-source diagnostic replay `41632477668` checked out the same full candidate
+`ca10c4e17fa1b8114ba65bd32da8082d625fbe16`, independently of instrumentation
+`8b9adfe551593bac125cd867f72e49f621f14a79`. Checkout, dependency restoration,
+plugin staging, frontend build and private engine checks/tests were clean. The
+first dirty status appeared after desktop `cargo check`: only
+`apps/desktop/src-tauri/gen/schemas/desktop-schema.json` and
+`apps/desktop/src-tauri/gen/schemas/windows-schema.json`, both ` M`. All captured
+text diffs against HEAD were empty and Git reported LF-to-CRLF conversion warnings.
+Desktop tests/link passed again; the strict final gate **failed** again. The
+original logs, per-phase empty diff files and structured analysis are retained in
+`windows/original-source-replay/`. Its path enumeration missed status-only paths,
+so raw schema-byte hashes were not captured; a separate controlled EOL mechanism
+experiment is required before asserting a precise cause or changing attributes.
+No source gate has been relaxed and no build output was restored to hide drift.
+
+Neither run establishes Windows product rendering, same-login teardown,
+scale/theme, standard-user context or installer upgrade/rollback.
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
