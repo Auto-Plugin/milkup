@@ -22,6 +22,7 @@ import {
   waitForNativeJobs,
   waitForOwnedExit,
   settleOwnedProduct,
+  stopOwnedProductAfterFailure,
   unwrapWebDriverValue,
   decodeWebDriverResponse,
   probeCloseConfirmation,
@@ -46,6 +47,10 @@ const confirmationReply =
   (raw, status = 200) =>
   (row) =>
     decodeWebDriverResponse(raw, status, row)
+
+// Exact bounded response retained from run 41688389731, filtered-admin invalid close.
+const detachedTargetResponse =
+  '{"value":{"error":"target frame detached","message":"target frame detached\\n  (failed to check if window was closed: disconnected: Unable to receive message from renderer)\\n  (Session info: MicrosoftEdge=156.0.4314.50)","stacktrace":"Symbols not available. Dumping unresolved backtrace:\\n\\t(No symbol) [0x7ff6429209d5]\\n\\t(No symbol) [0x7ff6428675b4]\\n\\t(No symbol) [0x7ff6425f4593]\\n\\t(No symbol) [0x7ff6425e6f58]\\n\\t(No symbol) [0x7ff6425e608d]\\n\\t(No symbol) [0x7ff642601808]\\n\\t(No symbol) [0x7ff642600eda]\\n\\t(No symbol) [0x7ff64267e3a1]\\n\\t(No symbol) [0x7ff642635d5c]\\n\\t(No symbol) [0x7ff642634f4a]\\n\\t(No symbol) [0x7ff642635b83]\\n\\t(No symbol) [0x7ff642775981]\\n\\t(No symbol) [0x7ff642785638]\\n\\t(No symbol) [0x7ff6429c96b5]\\n\\t(No symbol) [0x7ff6429cfd31]\\n\\t(No symbol) [0x7ff64287368c]\\n\\t(No symbol) [0x7ff64286dea4]\\n\\t(No symbol) [0x7ff64286dfca]\\n\\t(No symbol) [0x7ff64285f3d8]\\n\\t(No symbol) [0x7ffc324add37]\\n\\t(No symbol) [0x7ffc339ff2bc]\\n"}}'
 
 test('only literal boolean true proves a close dialog; null retains exact response and decision', async () => {
   for (const [value, decision] of [
@@ -112,6 +117,173 @@ test('unrelated WebDriver, malformed JSON and transport errors remain failures w
     assert(row.error.text.length > 0)
     assert.equal(record.unexpectedUnsavedConfirmation, undefined)
   }
+})
+
+test('actual detached-target 404 after requested close is inconclusive and retains its raw evidence', async () => {
+  const record = { teardown: { realUiCloseRequested: true } }
+  assert.equal(
+    await probeCloseConfirmation(record, confirmationReply(detachedTargetResponse, 404), true),
+    null,
+  )
+  const row = record.closeConfirmationProbes.observations[0]
+  assert.equal(row.decision, 'closed-context-awaiting-owned-exit')
+  assert.equal(row.webDriverErrorCode, 'target frame detached')
+  assert.equal(row.httpStatus, 404)
+  assert.equal(row.response.text, detachedTargetResponse)
+  assert.equal(row.response.bytes, 963)
+  assert.equal(
+    row.response.sha256,
+    'a6855c77d293d94d59f0645981ea0ae165b89a58cd5931fe2e4a86ab551d7191',
+  )
+  assert.equal(row.response.truncated, false)
+  assert.match(row.error.text, /WebDriver HTTP 404/)
+  assert.equal(Object.hasOwn(row, 'value'), false, 'An error never proves no visible dialog')
+  assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+  assert.equal(record.discardedOwnedUnsavedFixture, undefined)
+})
+
+test('detached-target exception requires requested close, exact structured code and HTTP 404', async () => {
+  for (const [requested, status, raw] of [
+    [false, 404, detachedTargetResponse],
+    [undefined, 404, detachedTargetResponse],
+    [true, 500, detachedTargetResponse],
+    [true, 200, detachedTargetResponse],
+    [true, 404, '{"error":"target frame detached"}'],
+    [true, 404, '{"value":{"message":"target frame detached"}}'],
+    [
+      true,
+      404,
+      detachedTargetResponse.replace('"error":"target frame detached"', '"error":"unknown error"'),
+    ],
+    [
+      true,
+      404,
+      detachedTargetResponse.replace(
+        '"error":"target frame detached"',
+        '"error":"Target frame detached"',
+      ),
+    ],
+  ]) {
+    const record = { teardown: { realUiCloseRequested: requested } }
+    await assert.rejects(probeCloseConfirmation(record, confirmationReply(raw, status), true))
+    const row = record.closeConfirmationProbes.observations[0]
+    assert.equal(row.decision, 'probe-error')
+    assert.equal(row.response.text, raw)
+    assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+  }
+})
+
+test('detached-target observations while the held product stays alive exhaust one original deadline', async (t) => {
+  let now = 0
+  t.mock.method(performance, 'now', () => now)
+  const record = { teardown: { realUiCloseRequested: true } }
+  assert.equal(
+    await waitForOwnedExit(
+      () => true,
+      15000,
+      1,
+      async (signal, checkpoint) => {
+        assert.equal(
+          await probeCloseConfirmation(
+            record,
+            confirmationReply(detachedTargetResponse, 404),
+            true,
+            signal,
+          ),
+          null,
+        )
+        now = 15000
+        checkpoint()
+      },
+    ),
+    false,
+  )
+  assert.equal(record.closeConfirmationProbes.total, 1)
+  assert.equal(record.discardedOwnedUnsavedFixture, undefined)
+})
+
+test('actual detached-target response awaits owned exit without accepting late, abnormal or previously dirty close', async (t) => {
+  for (const scenario of [
+    { name: 'delayed normal exit', exitCode: 0, signal: null, exitAt: 100 },
+    {
+      name: 'exit beyond original deadline',
+      exitCode: 0,
+      signal: null,
+      exitAt: 15001,
+      failure: /UI-close deadline/,
+    },
+    { name: 'nonzero exit', exitCode: 37, signal: null, exitAt: 100, failure: /Product exit code/ },
+    {
+      name: 'signal exit',
+      exitCode: null,
+      signal: 'SIGTERM',
+      exitAt: 100,
+      failure: /Product exit code|Product signal/,
+    },
+    {
+      name: 'previous actual dialog',
+      exitCode: 0,
+      signal: null,
+      exitAt: 100,
+      dialog: true,
+      failure: /actual unsaved close confirmation/,
+    },
+  ])
+    await t.test(scenario.name, async (subtest) => {
+      let now = 0,
+        observedExit,
+        exitCode,
+        signalCode
+      subtest.mock.method(performance, 'now', () => now)
+      const fixture = teardownFixture(),
+        record = { teardown: fixture.record },
+        exit = new AbortController()
+      if (scenario.dialog)
+        await probeCloseConfirmation(record, confirmationReply('{"value":true}'), true)
+      fixture.options.closeUi = async () => ({ realUiCloseRequested: true })
+      fixture.options.waitForExit = () =>
+        waitForOwnedExit(
+          fixture.options.isAlive,
+          15000,
+          1,
+          async (signal) => {
+            now = 96
+            assert.equal(
+              await probeCloseConfirmation(
+                record,
+                confirmationReply(detachedTargetResponse, 404),
+                true,
+                signal,
+              ),
+              null,
+            )
+            await Promise.resolve()
+            now = scenario.exitAt
+            observedExit = now
+            exitCode = scenario.exitCode
+            signalCode = scenario.signal
+            fixture.setAlive(false)
+            exit.abort()
+          },
+          { exitedAt: () => observedExit, exitSignal: exit.signal },
+        )
+      fixture.options.verifyExit = () => {
+        assert.equal(exitCode, 0, 'Product exit code')
+        assert.equal(signalCode, null, 'Product signal')
+        assertCleanCloseConfirmation(record)
+        return true
+      }
+      if (scenario.failure)
+        await assert.rejects(settleOwnedProduct(fixture.options), scenario.failure)
+      else await settleOwnedProduct(fixture.options)
+      assert.equal(fixture.record.closedByUi, !scenario.failure)
+      assert(!fixture.calls.includes('owned-kill'))
+      assert.equal(record.discardedOwnedUnsavedFixture, undefined)
+      assert.equal(
+        record.closeConfirmationProbes.observations.at(-1).decision,
+        'closed-context-awaiting-owned-exit',
+      )
+    })
 })
 
 test('null response can precede timely owned exit but never prove completion while product is alive', async () => {
@@ -1425,6 +1597,159 @@ test('UI exit-wait exception still uses identity-checked fallback and preserves 
   assert(fixture.calls.includes('identity-check') && fixture.calls.includes('owned-kill'))
   assert.equal(fixture.record.closedByUi, false)
   assert(fixture.record.errors.some((error) => error.includes('UI wait transport failed')))
+  assert.equal(fixture.record.uiExitWaitFailed, true)
+  assert.equal(fixture.record.uiExitDeadlineUnmet, undefined)
+  assert(!fixture.record.errors.some((error) => error.includes('did not exit within')))
+})
+
+test('fallback skips observation or signal only after the held process actually records exit', async () => {
+  for (const transition of ['before-observation', 'during-observation', 'observer-error']) {
+    let observations = 0,
+      verifications = 0,
+      kills = 0
+    const current = {
+      pid: 111,
+      exitCode: null,
+      signalCode: null,
+      kill() {
+        kills++
+        return true
+      },
+    }
+    if (transition === 'before-observation') current.exitCode = 0
+    const result = await stopOwnedProductAfterFailure({
+      current,
+      expectedPid: 111,
+      observeIdentity: async () => {
+        observations++
+        await Promise.resolve()
+        current.exitCode = 0
+        if (transition === 'observer-error')
+          throw Error('Observer exited after owned process: ' + 'x'.repeat(3000))
+        return []
+      },
+      verifyIdentity: () => {
+        verifications++
+      },
+    })
+    assert.equal(observations, transition === 'before-observation' ? 0 : 1)
+    assert.equal(verifications, 0)
+    assert.equal(kills, 0)
+    assert.equal(result.exactOwnedProcessAlreadyExited, true)
+    assert.equal(result.exitCode, 0)
+    assert.equal(result.signal, null)
+    assert.equal(result.forcedTermination, false)
+    assert.equal(result.innerCleanupAcceptance, false)
+    if (transition === 'observer-error') {
+      assert.equal(result.identityObservationError.truncated, true)
+      assert(Buffer.byteLength(result.identityObservationError.text) <= 2048)
+    }
+  }
+})
+
+test('fallback cannot infer owned exit from missing PID, observer failure or mismatched identity', async () => {
+  for (const failure of ['missing-pid', 'observer-error', 'wrong-held-pid']) {
+    let kills = 0
+    const current = {
+      pid: 111,
+      exitCode: null,
+      signalCode: null,
+      kill() {
+        kills++
+        return true
+      },
+    }
+    await assert.rejects(
+      stopOwnedProductAfterFailure({
+        current,
+        expectedPid: failure === 'wrong-held-pid' ? 222 : 111,
+        observeIdentity: async () => {
+          if (failure === 'observer-error') throw Error('Observer unavailable')
+          return []
+        },
+        verifyIdentity: (identities) =>
+          validateProcessIdentities(
+            identities,
+            new Map([[111, 'C:/milkup.exe']]),
+            sid,
+            2,
+            new Map(),
+            'pure-standard',
+          ),
+      }),
+    )
+    assert.equal(kills, 0)
+  }
+})
+
+test('fallback signals the held process only after identity verification and never proves inner cleanup', async () => {
+  const calls = []
+  const current = {
+    pid: 111,
+    exitCode: null,
+    signalCode: null,
+    kill() {
+      calls.push('kill')
+      this.signalCode = 'SIGTERM'
+      return true
+    },
+  }
+  const result = await stopOwnedProductAfterFailure({
+    current,
+    expectedPid: 111,
+    observeIdentity: async () => {
+      calls.push('observe')
+      return 'identity'
+    },
+    verifyIdentity: (identity) => {
+      calls.push('verify')
+      assert.equal(identity, 'identity')
+    },
+  })
+  assert.deepEqual(calls, ['observe', 'verify', 'kill'])
+  assert.deepEqual(result, {
+    exactOwnedProcessStopped: true,
+    forcedTermination: true,
+    innerCleanupAcceptance: false,
+  })
+})
+
+test('unknown close-probe error stays failed when the owned process exits during fallback observation', async () => {
+  const fixture = teardownFixture()
+  const current = {
+    pid: 111,
+    exitCode: null,
+    signalCode: null,
+    kill() {
+      assert.fail('Already exited product must not be killed')
+    },
+  }
+  fixture.options.closeUi = async () => ({ realUiCloseRequested: true })
+  fixture.options.waitForExit = async () => {
+    throw Error('Unrelated close-probe failure')
+  }
+  fixture.options.forceStop = () =>
+    stopOwnedProductAfterFailure({
+      current,
+      expectedPid: 111,
+      observeIdentity: async () => {
+        await Promise.resolve()
+        current.exitCode = 0
+        fixture.setAlive(false)
+        return []
+      },
+      verifyIdentity: () => assert.fail('No missing-PID inference needed after held exit'),
+    })
+  await assert.rejects(settleOwnedProduct(fixture.options), /Unrelated close-probe failure/)
+  assert.equal(fixture.record.closedByUi, false)
+  assert.equal(fixture.record.uiExitWaitFailed, true)
+  assert.equal(fixture.record.uiExitDeadlineUnmet, undefined)
+  assert.equal(
+    fixture.record.phases.find((row) => row.phase === 'owned-process-fallback').result
+      .forcedTermination,
+    false,
+  )
+  assert(!fixture.record.errors.some((error) => error.includes('did not exit within')))
 })
 
 test('delayed unsaved-close dialog is polled within one exit budget before natural exit', async () => {

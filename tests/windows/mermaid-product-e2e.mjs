@@ -81,11 +81,21 @@ const boundedResponse = (raw) => {
 export function decodeWebDriverResponse(raw, httpStatus, observation) {
   const response = boundedResponse(raw)
   if (observation) Object.assign(observation, { httpStatus, response })
-  const value = unwrapWebDriverValue(JSON.parse(raw))
+  const envelope = JSON.parse(raw)
+  const value = unwrapWebDriverValue(envelope)
   const code = typeof value?.error === 'string' ? value.error : undefined
   if (httpStatus < 200 || httpStatus >= 300 || code) {
     const error = new Error(`WebDriver HTTP ${httpStatus}: ${response.text}`)
     error.webDriverErrorCode = code
+    if (
+      envelope !== null &&
+      typeof envelope === 'object' &&
+      Object.hasOwn(envelope, 'value') &&
+      value !== null &&
+      typeof value === 'object' &&
+      Object.hasOwn(value, 'error')
+    )
+      error.webDriverValueErrorCode = code
     throw error
   }
   return value
@@ -137,7 +147,12 @@ export async function probeCloseConfirmation(record, read, successful, signal) {
     row.error = boundedResponse(String(error))
     if (signal?.aborted && error === signal.reason) row.decision = 'interrupted'
     else if (
-      ['no such window', 'no such frame', 'invalid session id'].includes(error?.webDriverErrorCode)
+      ['no such window', 'no such frame', 'invalid session id'].includes(
+        error?.webDriverErrorCode,
+      ) ||
+      (record.teardown?.realUiCloseRequested === true &&
+        row.httpStatus === 404 &&
+        error?.webDriverValueErrorCode === 'target frame detached')
     ) {
       row.decision = 'closed-context-awaiting-owned-exit'
       row.webDriverErrorCode = error.webDriverErrorCode
@@ -719,6 +734,41 @@ export async function waitForOwnedExit(
   }
 }
 
+// Only the directly spawned ChildProcess can prove it exited during fallback.
+// A missing PID in the observer snapshot is never exit evidence or kill authority.
+export async function stopOwnedProductAfterFailure({
+  current,
+  expectedPid,
+  observeIdentity,
+  verifyIdentity,
+}) {
+  assert.equal(current.pid, expectedPid, 'Fallback retains the exact owned product')
+  const isAlive = () => current.exitCode === null && current.signalCode === null
+  const alreadyExited = (error) => ({
+    exactOwnedProcessAlreadyExited: true,
+    exitCode: current.exitCode,
+    signal: current.signalCode,
+    forcedTermination: false,
+    innerCleanupAcceptance: false,
+    ...(error ? { identityObservationError: boundedResponse(String(error)) } : {}),
+  })
+  if (!isAlive()) return alreadyExited()
+  let observation
+  try {
+    observation = await observeIdentity()
+  } catch (error) {
+    if (isAlive()) throw error
+    return alreadyExited(error)
+  }
+  if (!isAlive()) return alreadyExited()
+  verifyIdentity(observation)
+  assert.equal(current.pid, expectedPid, 'Fallback still holds the exact owned product')
+  assert(isAlive(), 'Exact owned product remains active')
+  assert(current.kill(), 'Signal only the identity-verified owned product')
+  assert(await waitForOwnedExit(isAlive, 5000), 'Owned product stops after bounded fallback')
+  return { exactOwnedProcessStopped: true, forcedTermination: true, innerCleanupAcceptance: false }
+}
+
 // Both successful and failed test paths give admitted native jobs a bounded
 // opportunity to finish. Errors are accumulated, never replaced by outer kill.
 export async function settleOwnedProduct({
@@ -757,12 +807,17 @@ export async function settleOwnedProduct({
     record.realUiCloseRequested = requested?.realUiCloseRequested === true
     const exited = await attempt('ui-exit-wait', waitForExit)
     if (exited !== true) {
-      record.uiExitDeadlineUnmet = true
-      errors.push(
-        new Error(
-          'Owned product did not exit within the UI-close deadline; forced termination is not inner cleanup acceptance',
-        ),
-      )
+      record.uiExitWaitFailed = true
+      if (exited === false) {
+        record.uiExitDeadlineUnmet = true
+        errors.push(
+          new Error(
+            'Owned product did not exit within the UI-close deadline; forced termination is not inner cleanup acceptance',
+          ),
+        )
+      } else if (record.phases.at(-1).ok) {
+        errors.push(new Error('UI-close observation did not confirm the owned process exit'))
+      }
       if (isAlive()) {
         record.outerTerminationRequired = true
         await attempt('owned-process-fallback', forceStop)
@@ -774,6 +829,7 @@ export async function settleOwnedProduct({
   record.closedByUi =
     record.realUiCloseRequested === true &&
     normalExit === true &&
+    !record.uiExitWaitFailed &&
     !record.uiExitDeadlineUnmet &&
     !record.outerTerminationRequired
   await attempt('native-final-verification', verifyNative)
@@ -1782,43 +1838,40 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               exitSignal: exitController.signal,
             },
           ),
-        forceStop: async () => {
-          // Validate only this product, even if the failed driver's process is gone.
-          const { stdout } = await promisify(execFile)(
-            pwsh,
-            [
-              '-NoLogo',
-              '-NoProfile',
-              '-File',
-              processObserver,
-              '-InspectProcesses',
-              '-ProcessIds',
-              String(productPid),
-            ],
-            { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
-          )
-          const identities = JSON.parse(stdout.replace(/^\uFEFF/, ''))
-          validateProcessIdentities(
-            identities,
-            new Map([[productPid, application]]),
-            expectedSid,
-            expectedSessionId,
-            identityBirths,
-            expectedAccountKind,
-          )
-          record.teardown.fallbackIdentity = identities[0]
-          record.outerTerminationRequired = true
-          assert(
-            current === product && current.pid === productPid && isAlive(),
-            'Exact owned product remains active',
-          )
-          assert(current.kill(), 'Signal only the identity-verified owned product')
-          assert(
-            await waitForOwnedExit(isAlive, 5000),
-            'Owned product stops after bounded fallback',
-          )
-          return { exactOwnedProcessStopped: true, innerCleanupAcceptance: false }
-        },
+        forceStop: () =>
+          stopOwnedProductAfterFailure({
+            current,
+            expectedPid: productPid,
+            // Validate only this product, even if the failed driver's process is gone.
+            observeIdentity: () =>
+              promisify(execFile)(
+                pwsh,
+                [
+                  '-NoLogo',
+                  '-NoProfile',
+                  '-File',
+                  processObserver,
+                  '-InspectProcesses',
+                  '-ProcessIds',
+                  String(productPid),
+                ],
+                { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
+              ),
+            verifyIdentity: ({ stdout }) => {
+              const identities = JSON.parse(stdout.replace(/^\uFEFF/, ''))
+              validateProcessIdentities(
+                identities,
+                new Map([[productPid, application]]),
+                expectedSid,
+                expectedSessionId,
+                identityBirths,
+                expectedAccountKind,
+              )
+              record.teardown.fallbackIdentity = identities[0]
+              assert.equal(current, product, 'Fallback still owns this product object')
+              record.outerTerminationRequired = true
+            },
+          }),
         drainStdio: () =>
           until(() => record.stdioClosedAt, 'Product stdout/stderr fully drained', 5000, false),
         verifyExit: () => {
