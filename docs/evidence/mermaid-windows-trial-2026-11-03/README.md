@@ -58,3 +58,37 @@ particular, an ended runner's failed profile deletion is still uncertain, anothe
 native cleanup failure was not diagnosed, C4 retains a minor outline overlap,
 and installation/IME/DPI/upgrade coverage must not be inferred from earlier
 debug-binary acceptance.
+
+## First packaging run: 41665301060
+
+Candidate `d525c6a51d2d6a47615ff3a950a8852a2dde48ae` successfully compiled the
+release application, built NSIS, extracted the exact packaged image, and passed
+full official-engine/bootstrap and ten-plugin archive checks. The compiled EXE
+hash was `2c39f12222b4b64623e00e42d71ce3b8cbee15dad9a09bc198d60e6f44507fb1`;
+the extracted NSS image hash was
+`57d4402e40a8eead28e6b21b06153bee3a36780ef785fcb20954a1d4a9467408`.
+Preparation correctly remained `deliveryReady=false`.
+
+The run then **failed** the unchanged strict source gate: only
+`apps/desktop/src-tauri/Cargo.toml` had raw ` M` status. The retained text diff
+was empty, with an LF-to-CRLF warning. That run's snapshots covered only the two
+schemas, so its original Cargo.toml raw bytes were not captured and cannot be
+retroactively claimed. No account, installer execution, product launch, installed
+UI acceptance or delivery upload occurred. The small inspection artifact retains
+build evidence only.
+
+The locked Tauri CLI 2.11.4 manifest rewriter parses and serializes Cargo.toml,
+then writes it if original and serialized strings differ. A separate isolated
+Git model using the CLI's exact toml_edit 0.25.4+spec-1.1.0 reproduces clean CRLF
+checkout becoming LF-only dirty status with empty normalized diff. The explicit
+`text eol=lf` control remains clean across repeated serialization. The fix is
+limited to that one manifest's checkout attribute. No source reset, index refresh
+or dirty-file exception is introduced. All three source files now have raw,
+HEAD and index byte evidence in each phase; the next real build must verify the
+correction.
+
+The required retry also adds read-only inspection of the extracted PE's actual
+import table. Unexpected external VC redistributable or WebView2Loader DLL imports
+fail preparation; the full table and its byte hash enter the delivery manifest.
+This complements the [locked build-policy evidence](dependency-build-policy.json)
+and does not substitute for installed-product execution.

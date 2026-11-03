@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "status": "source-policy-verified; actual-package-imports-not-inspected",
+  "reviewedOn": "2026-11-03",
+  "repositoryHeadAtReview": "05a4eeea976c1c1fc4f9dc08f9fdd186d6b0b92e",
+  "associatedBuildRun": {
+    "id": "41665301060",
+    "url": "https://github.com/Auto-Plugin/milkup/actions/runs/41665301060",
+    "outcomeClaimedByThisRecord": false
+  },
+  "scope": "Locked source and linker-policy inspection only. This record does not execute or install any binary, download a delivery artifact, or change the running build.",
+  "lockedInputs": {
+    "tauriCli": {
+      "version": "2.11.4",
+      "lockfile": "pnpm-lock.yaml",
+      "tag": "tauri-cli-v2.11.4",
+      "commit": "8909f221d1515955fc843808032bdc5d62209c96",
+      "source": {
+        "url": "https://github.com/tauri-apps/tauri/blob/8909f221d1515955fc843808032bdc5d62209c96/crates/tauri-cli/src/interface/rust/desktop.rs#L151",
+        "gitBlobSha1": "ddde0a4f0a448941df8212bdf6b2ae1bccc75c09",
+        "relevantLines": [
+          151,
+          164
+        ],
+        "observation": "desktop::build sets STATIC_VCRUNTIME=true before spawning the production Cargo build unless the inherited value is exactly false."
+      }
+    },
+    "tauriBuild": {
+      "version": "2.6.3",
+      "lockfile": "apps/desktop/src-tauri/Cargo.lock",
+      "crateSha256": "bc9ce40b16101cb6ea63d3e221567affd1c3a9205f95d7bc574941a10636b632",
+      "crateVcsCommit": "6f6ab1207bb3923c2721fbc67d2fdb1c8deb0c7a",
+      "sources": [
+        {
+          "url": "https://github.com/tauri-apps/tauri/blob/6f6ab1207bb3923c2721fbc67d2fdb1c8deb0c7a/crates/tauri-build/src/lib.rs#L708",
+          "gitBlobSha1": "6c171a3005f98bb4a3d958385d05c3fefeabe5c1",
+          "localCrateFileSha256": "562607e65dca4377ef4a33ade8527990c54fe176514ae460ca00260d1ca2211f",
+          "observation": "For target_env=msvc and STATIC_VCRUNTIME=true, try_build calls static_vcruntime::build."
+        },
+        {
+          "url": "https://github.com/tauri-apps/tauri/blob/6f6ab1207bb3923c2721fbc67d2fdb1c8deb0c7a/crates/tauri-build/src/static_vcruntime.rs#L10",
+          "gitBlobSha1": "e5bc7429c0ae768fd1312e11f109a5770eef5b33",
+          "localCrateFileSha256": "ec6c013a15d44975e0e07312af564e82c3f2d7bcc3ada00aa2b30fb8d0672f48",
+          "observation": "Overrides Rust's msvcrt.lib, excludes dynamic vcruntime/default CRT variants, and selects libcmt.lib, libvcruntime.lib and ucrt.lib."
+        }
+      ]
+    },
+    "webview2ComSys": {
+      "version": "0.38.2",
+      "lockfile": "apps/desktop/src-tauri/Cargo.lock",
+      "crateSha256": "381336cfffd772377d291702245447a5251a2ffa5bad679c99e61bc48bacbf9c",
+      "crateVcsCommit": "b74dc5e2b394044bea5191052868ce7a106c202c",
+      "sources": [
+        {
+          "url": "https://github.com/wravery/webview2-rs/blob/b74dc5e2b394044bea5191052868ce7a106c202c/crates/bindings/src/lib.rs#L13",
+          "gitBlobSha1": "076baf9f02f6fad91a452538815d10fb594f0ab7",
+          "localCrateFileSha256": "bd953534fa9b15d39ac69c9afa82762adaaa81621a0adb687ba385327ee6689a",
+          "observation": "MSVC bindings use link(name=WebView2LoaderStatic, kind=static); the WebView2Loader.dll link is selected only for non-MSVC targets."
+        },
+        {
+          "url": "https://github.com/wravery/webview2-rs/blob/b74dc5e2b394044bea5191052868ce7a106c202c/crates/bindings/build.rs",
+          "gitBlobSha1": "be3d387b0f5dfbe14b918778931c5cf086eff035",
+          "localCrateFileSha256": "ea73d2566f434a25e8172d0fb9eaad5fa29ee687a8f05b9c2be02b19e4366e16",
+          "observation": "Copies the bundled libraries into OUT_DIR and adds the target-architecture directory to the native linker search path."
+        }
+      ],
+      "x64StaticLoader": {
+        "url": "https://github.com/wravery/webview2-rs/blob/b74dc5e2b394044bea5191052868ce7a106c202c/crates/bindings/x64/WebView2LoaderStatic.lib",
+        "localCrateFileSha256": "0659b741bde6348d4c4a6ec4ceb9af50e3d0048ed9cd3c8659bccbb61fde55ee",
+        "inspection": "Read-only strings scan of the packaged archive observed explicit DEFAULTLIB directives for ole32.lib and uuid.lib. This is supporting input inspection, not a final executable import table."
+      }
+    }
+  },
+  "projectConnection": {
+    "buildCommand": "pnpm --filter @milkup/desktop exec tauri build --target x86_64-pc-windows-msvc --bundles nsis --config scripts/ci/tauri-mermaid-trial.json --ci -- --locked",
+    "buildScript": "scripts/ci/build-windows-mermaid-trial.ps1",
+    "rustBuildScript": "apps/desktop/src-tauri/build.rs:23-31",
+    "observation": "The Windows branch calls tauri_build::try_build even when replacing Tauri's default manifest handling. The new workflow invokes Tauri CLI production build and does not set STATIC_VCRUNTIME=false.",
+    "installedRuntimePolicy": "scripts/ci/tauri-mermaid-trial.json sets webviewInstallMode.type=skip. The installed-product harness selects an existing machine Evergreen Runtime; no Runtime installation or Fixed Runtime fallback is authorized by this proof."
+  },
+  "interpretation": {
+    "conclusion": "Absence of a project crt-static Cargo setting or explicit workflow STATIC_VCRUNTIME=true does not imply a new VC redistributable prerequisite: the locked Tauri CLI supplies the static-vcruntime policy by default.",
+    "condition": "An inherited STATIC_VCRUNTIME value exactly equal to false would opt out. The source inspection does not capture the remote job's complete inherited environment.",
+    "ucrt": "This policy statically links the VC runtime/startup but intentionally uses ucrt.lib, the import library for Windows UCRT, rather than statically linking the whole CRT.",
+    "ucrtReference": "https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170",
+    "ucrtReferenceObservation": "Microsoft documents libvcruntime.lib as static, ucrt.lib as importing ucrtbase.dll, and UCRT as a Windows component included in Windows 10 and later.",
+    "webview": "The loader's static linkage does not bundle the Evergreen browser runtime; the existing-runtime prerequisite remains."
+  },
+  "limits": {
+    "actualPeImportsChecked": false,
+    "actualPackageVcRedistRequirement": "Not established by this source-only record. No new requirement is asserted.",
+    "noAdditionalWindowsRunRequiredByThisFinding": true,
+    "noBuildConfigurationChangeRequiredByThisFinding": true,
+    "additionalInspectionIfNeeded": "Bind the actual extracted application to the recorded expected NSIS image SHA-256, then read its normal and delay-import tables with existing dumpbin /IMPORTS (or another already available PE reader). Inspect supplied PE DLLs separately. Do not execute the installer merely to read imports.",
+    "actualRuntimeAcceptance": "Use the real installed Evergreen standard-user product test reports for runtime acceptance. This record does not promote pending or previous debug-binary results into a successful installed-release result.",
+    "existingLinuxInspectionTools": {
+      "objdump": "/usr/bin/objdump; GNU Binutils 2.44 reports pei-x86-64 support",
+      "sevenZip": "No 7z, 7zz, 7za or 7zr was found on PATH or in the inspected common locations. No replacement download or alternate route was attempted."
+    },
+    "excludedActions": [
+      "delivery-artifact download",
+      "installer execution",
+      "CI trigger",
+      "running-build configuration change",
+      "formal release",
+      "main merge",
+      "retry or alternate route for the restricted 7-Zip download"
+    ]
+  }
+}
