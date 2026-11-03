@@ -14,6 +14,9 @@ import {
   observe,
   decodeScript,
   waitForPluginCard,
+  parseExpectedPluginInventory,
+  inspectBundledPluginInventory,
+  waitForBundledPluginInventory,
   validateCardReflow,
   waitForNativeJobs,
   waitForOwnedExit,
@@ -330,6 +333,7 @@ test('browser observation/decode bodies parse without executing browser APIs', (
 
 const pluginCard = (changes = {}) => ({
   id: 'milkup.diagrams',
+  availableVersionText: '1.3.0 · 下次开启时应用',
   checked: 'false',
   busy: null,
   ariaDisabled: null,
@@ -338,6 +342,143 @@ const pluginCard = (changes = {}) => ({
   rect: { x: 20, y: 200, width: 600, height: 90 },
   switchRect: { x: 500, y: 220, width: 40, height: 24 },
   ...changes,
+})
+
+const pluginInventory = [
+  { id: 'milkup.diagrams', version: '1.3.0' },
+  { id: 'milkup.footnotes', version: '1.0.1' },
+]
+const bundledCards = () =>
+  pluginInventory.map(({ id, version }) =>
+    pluginCard({
+      id,
+      availableVersionText: `${version} · 下次开启时应用`,
+      visible: false,
+      rect: { x: 20, y: 1400, width: 600, height: 90 },
+    }),
+  )
+
+test('optional expected plugin inventory rejects empty, malformed and duplicate configuration', () => {
+  assert.equal(parseExpectedPluginInventory(undefined), null)
+  assert.deepEqual(parseExpectedPluginInventory(JSON.stringify(pluginInventory)), pluginInventory)
+  for (const raw of [
+    '',
+    '[]',
+    '{}',
+    'not json',
+    '[{"id":"milkup.diagrams"}]',
+    JSON.stringify([pluginInventory[0], pluginInventory[0]]),
+    JSON.stringify([{ id: 'milkup.diagrams', version: '1.3' }]),
+  ])
+    assert.throws(() => parseExpectedPluginInventory(raw))
+})
+
+test('bundled inventory waits for late cards, DOM versions, layout and settled busy state offscreen', async () => {
+  const complete = bundledCards()
+  const states = [
+    { cards: [complete[0]] },
+    { cards: [complete[0], { ...complete[1], availableVersionText: null }] },
+    { cards: [complete[0], { ...complete[1], rect: { width: 0, height: 0 } }] },
+    { cards: [complete[0], { ...complete[1], busy: 'true' }] },
+    { cards: complete },
+  ]
+  let reads = 0
+  const result = await waitForBundledPluginInventory(
+    async () => states[Math.min(reads++, states.length - 1)],
+    pluginInventory,
+    { timeoutMs: 1000, pollIntervalMs: 1 },
+  )
+  assert.equal(reads, states.length)
+  assert.equal(result.state, states.at(-1))
+  assert.deepEqual(
+    result.observed,
+    pluginInventory.map(({ id, version }) => ({
+      id,
+      version,
+      checked: 'false',
+      busy: null,
+    })),
+  )
+})
+
+test('bundled inventory rejects extra, duplicate, enabled and mismatched public versions', () => {
+  const cards = bundledCards()
+  assert.throws(
+    () =>
+      inspectBundledPluginInventory(
+        [...cards, pluginCard({ id: 'milkup.extra' })],
+        pluginInventory,
+      ),
+    /Unexpected bundled plugin/,
+  )
+  assert.throws(
+    () => inspectBundledPluginInventory([...cards, cards[0]], pluginInventory),
+    /Unique observed/,
+  )
+  assert.throws(
+    () =>
+      inspectBundledPluginInventory([{ ...cards[0], checked: 'true' }, cards[1]], pluginInventory),
+    /must be disabled/,
+  )
+  for (const version of ['1.3.01', '1.3.0-beta.1', '9.9.9'])
+    assert.throws(
+      () =>
+        inspectBundledPluginInventory(
+          [{ ...cards[0], availableVersionText: `${version} · 下次开启时应用` }, cards[1]],
+          pluginInventory,
+        ),
+      /version mismatch/,
+    )
+  assert.throws(
+    () =>
+      inspectBundledPluginInventory(
+        [{ ...cards[0], availableVersionText: 'not a version' }, cards[1]],
+        pluginInventory,
+      ),
+    /Unexpected public plugin version text/,
+  )
+  // A missing earlier expected card must not hide a wrong version on a later one.
+  assert.throws(
+    () =>
+      inspectBundledPluginInventory(
+        [{ ...cards[1], availableVersionText: '9.9.9 · 下次开启时应用' }],
+        pluginInventory,
+      ),
+    /version mismatch/,
+  )
+})
+
+test('missing bundled cards or DOM versions time out without manifest-supplied observations', async () => {
+  for (const cards of [
+    [],
+    bundledCards().map((card) => ({ ...card, availableVersionText: null })),
+    bundledCards().map((card) => ({ ...card, busy: 'true' })),
+  ]) {
+    assert.equal(inspectBundledPluginInventory(cards, pluginInventory), null)
+    await assert.rejects(
+      waitForBundledPluginInventory(async () => ({ cards }), pluginInventory, {
+        timeoutMs: 15,
+        pollIntervalMs: 1,
+      }),
+      /Timed out waiting for complete disabled bundled plugin inventory/,
+    )
+  }
+  await assert.rejects(
+    waitForBundledPluginInventory(
+      async () => ({ cards: [...bundledCards(), pluginCard({ id: 'milkup.extra' })] }),
+      pluginInventory,
+      { timeoutMs: 1000 },
+    ),
+    /Unexpected bundled plugin/,
+  )
+  await assert.rejects(
+    waitForBundledPluginInventory(
+      async () => ({ cards: [{ ...bundledCards()[0], checked: 'true' }, bundledCards()[1]] }),
+      pluginInventory,
+      { timeoutMs: 1000 },
+    ),
+    /must be disabled/,
+  )
 })
 
 test('plugin menu waits for asynchronous exact-card readiness independently of document ready', async () => {

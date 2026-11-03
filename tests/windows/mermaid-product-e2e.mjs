@@ -257,6 +257,117 @@ export async function waitForPluginCard(
   )
 }
 
+const pluginVersion = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/
+function validateExpectedPluginInventory(inventory) {
+  assert(Array.isArray(inventory) && inventory.length > 0 && inventory.length <= 64)
+  for (const entry of inventory) {
+    assert(
+      entry && typeof entry.id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(entry.id),
+    )
+    assert(
+      typeof entry.version === 'string' &&
+        entry.version.length <= 128 &&
+        pluginVersion.test(entry.version),
+    )
+  }
+  assert.equal(
+    new Set(inventory.map(({ id }) => id)).size,
+    inventory.length,
+    'Unique expected plugin IDs',
+  )
+  return inventory
+}
+
+export function parseExpectedPluginInventory(raw) {
+  if (raw === undefined) return null
+  assert(
+    typeof raw === 'string' && raw.length > 0 && raw.length <= 16384,
+    'Bounded plugin inventory JSON required',
+  )
+  return validateExpectedPluginInventory(JSON.parse(raw))
+}
+
+// Read only public card text. Missing versions/layouts and busy cards are still
+// pending; explicit identity, version or enabled-state mismatches cannot pass.
+export function inspectBundledPluginInventory(cards, inventory) {
+  validateExpectedPluginInventory(inventory)
+  assert(Array.isArray(cards), 'Observed plugin cards required')
+  const expected = new Map(inventory.map(({ id, version }) => [id, version]))
+  assert.equal(new Set(cards.map(({ id }) => id)).size, cards.length, 'Unique observed plugin IDs')
+  let pending = cards.length !== inventory.length
+  const observed = cards.map((card) => {
+    assert(expected.has(card.id), 'Unexpected bundled plugin: ' + card.id)
+    assert.equal(card.checked, 'false', 'Fresh bundled plugin must be disabled: ' + card.id)
+    assert([null, 'false', 'true'].includes(card.busy), 'Observed plugin busy state required')
+    const versionText = card.availableVersionText
+    assert(
+      versionText == null || typeof versionText === 'string',
+      'Observed plugin version text required',
+    )
+    const prefix = versionText?.match(/^(\S+) · /)?.[1]
+    if (versionText?.trim())
+      assert(
+        prefix && pluginVersion.test(prefix),
+        'Unexpected public plugin version text: ' + card.id,
+      )
+    const version = prefix ?? null
+    if (version !== null)
+      assert.equal(version, expected.get(card.id), 'Bundled plugin version mismatch: ' + card.id)
+    if (
+      version === null ||
+      card.busy === 'true' ||
+      !Number.isFinite(card.rect?.width) ||
+      card.rect.width <= 0 ||
+      !Number.isFinite(card.rect?.height) ||
+      card.rect.height <= 0
+    )
+      pending = true
+    return { id: card.id, version, checked: card.checked, busy: card.busy }
+  })
+  if (pending) return null
+  assert.deepEqual(
+    cards.map(({ id }) => id).sort(),
+    [...expected.keys()].sort(),
+    'Exact bundled plugin inventory',
+  )
+  return observed
+}
+
+export async function waitForBundledPluginInventory(
+  readState,
+  inventory,
+  { timeoutMs = 30000, pollIntervalMs = 100, guard = () => {} } = {},
+) {
+  validateExpectedPluginInventory(inventory)
+  const deadline = performance.now() + timeoutMs
+  let last
+  while (performance.now() < deadline) {
+    guard()
+    last = await readState()
+    const observed = inspectBundledPluginInventory(last.cards, inventory)
+    if (observed) return { observed, state: last }
+    const remaining = deadline - performance.now()
+    if (remaining > 0) await delay(Math.min(pollIntervalMs, remaining))
+  }
+  throw Error(
+    'Timed out waiting for complete disabled bundled plugin inventory: ' +
+      JSON.stringify({
+        expected: inventory,
+        cards: last?.cards
+          ?.slice(0, 64)
+          .map(({ id, availableVersionText, checked, busy, rect, visible }) => ({
+            id,
+            availableVersionText: availableVersionText?.slice(0, 200),
+            checked,
+            busy,
+            rect,
+            visible,
+          })),
+        applicationNotices: last?.applicationNotices,
+      }),
+  )
+}
+
 export function validateCardReflow(before, after, targetId = PLUGIN, tolerance = 1) {
   assert.deepEqual(
     after.map((card) => card.id),
@@ -588,7 +699,7 @@ return {url:location.href,protocol:location.protocol,hostname:location.hostname,
  vectorCount:document.querySelectorAll('[data-document-presentation] svg').length,
  source:[...document.querySelectorAll('.milkup-line,.milkup-code-source')].map(e=>({text:e.textContent,visible:visible(e)&&!e.classList.contains('milkup-marker-hidden'),rect:rect(e)})),
  notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,visible:visible(e)})),
- cards:[...document.querySelectorAll('.plugin-summary-card[data-plugin-id]')].map(e=>{const toggle=e.querySelector('[role="switch"]');return {id:e.dataset.pluginId,text:e.textContent,checked:toggle?.getAttribute('aria-checked'),busy:toggle?.getAttribute('aria-busy'),ariaDisabled:toggle?.getAttribute('aria-disabled'),switchDisabled:!!toggle?.disabled,switchRect:rect(toggle),visible:visible(e),switchVisible:visible(toggle),rect:rect(e)}}),
+ cards:[...document.querySelectorAll('.plugin-summary-card[data-plugin-id]')].map(e=>{const toggle=e.querySelector('[role="switch"]');return {id:e.dataset.pluginId,text:e.textContent,availableVersionText:e.querySelector('.plugin-card-update')?.textContent??null,checked:toggle?.getAttribute('aria-checked'),busy:toggle?.getAttribute('aria-busy'),ariaDisabled:toggle?.getAttribute('aria-disabled'),switchDisabled:!!toggle?.disabled,switchRect:rect(toggle),visible:visible(e),switchVisible:visible(toggle),rect:rect(e)}}),
  applicationNotices:[...document.querySelectorAll('[data-notice]')].map(e=>({text:e.textContent?.slice(0,2000),visible:visible(e)})),
  pluginText:document.querySelector('.plugin-manager')?.textContent??document.querySelector('[data-plugin-manager]')?.textContent};`
 
@@ -660,6 +771,9 @@ export async function main() {
   const expectedBinarySha = required('APP_SHA256'),
     runtimeVersion = required('RUNTIME_VERSION'),
     runtimeExe = path.resolve(required('RUNTIME_EXE'))
+  const expectedPluginInventory = parseExpectedPluginInventory(
+    process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY,
+  )
   assert(/^[A-Za-z0-9_-]{1,80}$/.test(runId) && /^[a-f0-9]{40}$/.test(candidateSha))
   assert(/^[a-f0-9]{64}$/.test(expectedBinarySha) && /^\d+\.\d+\.\d+\.\d+$/.test(runtimeVersion))
   for (const file of [application, edgeDriver, runtimeExe, processObserver, pwsh, work, evidence])
@@ -1441,7 +1555,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       const before = await state()
       assert.equal(before.dirty, false)
       await menu()
-      let current = await state()
+      const inventory = expectedPluginInventory
+        ? await waitForBundledPluginInventory(state, expectedPluginInventory, { guard })
+        : null
+      if (inventory) row.bundledPluginsObserved = inventory.observed
+      let current = inventory?.state ?? (await state())
       const initialCard = current.cards.find((card) => card.id === PLUGIN)
       assert(initialCard, 'Exact Diagrams card exists after asynchronous catalog readiness')
       assert.equal(initialCard.checked, 'false', 'Fresh Diagrams is actually disabled')
