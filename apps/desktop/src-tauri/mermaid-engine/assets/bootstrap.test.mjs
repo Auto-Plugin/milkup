@@ -140,12 +140,18 @@ async function startBrowser() {
       return result
     }
     const snapshot = async (id) => {
-      if (!evidence) return
-      await mkdir(evidence, { recursive: true })
       const { data } = await command('Page.captureScreenshot', { format: 'png' })
       const png = Buffer.from(data, 'base64')
-      await writeFile(join(evidence, `${id}.png`), png)
-      return { bytes: png.length, sha256: createHash('sha256').update(png).digest('hex') }
+      if (evidence) {
+        await mkdir(evidence, { recursive: true })
+        await writeFile(join(evidence, `${id}.png`), png)
+      }
+      return {
+        bytes: png.length,
+        sha256: createHash('sha256').update(png).digest('hex'),
+        width: png.readUInt32BE(16),
+        height: png.readUInt32BE(20),
+      }
     }
     return { close, evaluate, render, snapshot }
   } catch (error) {
@@ -219,8 +225,55 @@ test(
             theme === 'dark' ? 'rgb(30, 30, 30)' : 'rgb(255, 255, 255)',
           )
           assert.equal(geometry.ink, theme === 'dark' ? 'rgb(226, 228, 233)' : 'rgb(68, 68, 68)')
-          await browser.snapshot(`c4-component-${theme}`)
+          const png = await browser.snapshot(`c4-component-${theme}`)
+          assert.equal(png.width, result.width)
+          assert.equal(png.height, result.height)
+          assert.ok(
+            result.width - result.svgBBox.width <= 34,
+            'C4 has only horizontal crop padding',
+          )
+          assert.ok(
+            result.height - result.svgBBox.height <= 34,
+            'C4 has only vertical crop padding',
+          )
         })
+      }
+      for (const [kind, source] of [
+        [
+          'context',
+          'C4Context\nPerson(reader, "Reader")\nSystem(editor, "Editor", "Writes notes")\nRel(reader, editor, "Writes")',
+        ],
+        [
+          'container',
+          'C4Container\nPerson(reader, "Reader")\nContainer(editor, "Editor", "Desktop", "Notes")\nRel(reader, editor, "Writes")',
+        ],
+      ]) {
+        for (const theme of ['default', 'dark']) {
+          await t.test(
+            `C4 ${kind} ${theme} crops blank canvas and preserves ink padding`,
+            async () => {
+              const result = await browser.render(source, { width: 640, theme })
+              assert.equal(result.phase, 'rendered', result.message)
+              assert.equal(result.adjustedC4Labels, 1)
+              const padding =
+                await browser.evaluate(`(()=>{const svg=document.querySelector('#target>svg');
+              const box=svg.getBBox(); const view=svg.viewBox.baseVal; return {
+                left:box.x-view.x,top:box.y-view.y,right:view.x+view.width-box.x-box.width,
+                bottom:view.y+view.height-box.y-box.height}})()`)
+              for (const edge of ['left', 'top', 'right', 'bottom']) {
+                assert.ok(
+                  padding[edge] >= 16 && padding[edge] < 17,
+                  `${edge} is only the intended ink padding`,
+                )
+              }
+              assert.ok(result.width - result.svgBBox.width <= 34, 'no large horizontal C4 canvas')
+              assert.ok(result.height - result.svgBBox.height <= 34, 'no large vertical C4 canvas')
+              const png = await browser.snapshot(`c4-${kind}-${theme}`)
+              assert.equal(png.width, result.width)
+              assert.equal(png.height, result.height)
+            },
+          )
+        }
       }
       await t.test(
         'small diagrams are cropped to their actual content and neo remains supported',

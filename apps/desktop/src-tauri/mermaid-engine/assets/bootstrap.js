@@ -74,13 +74,17 @@
     const box = svg.getBBox()
     if (!finiteBox(box) || !finiteBox(original)) throw new Error('Invalid SVG geometry')
     const boxes = [box]
-    if (original.width > 0 && original.height > 0) boxes.push(original)
+    // C4 reserves a large positive-coordinate outer canvas even for tiny graphs.
+    // Its actual bbox already includes every node, relationship endpoint and
+    // adjusted label/backing. Crop that specific renderer to content plus padding.
+    const cropC4 = Boolean(svg.querySelector('.c4-shape'))
+    if (!cropC4 && original.width > 0 && original.height > 0) boxes.push(original)
     let left = Math.min(...boxes.map((value) => value.x))
     let top = Math.min(...boxes.map((value) => value.y))
     let right = Math.max(...boxes.map((value) => value.x + value.width))
     let bottom = Math.max(...boxes.map((value) => value.y + value.height))
-    // Boundaries include the renderer's own viewBox (markers/layout padding) and
-    // actual content bbox (negative coordinates and the corrected C4 labels).
+    // Other diagrams retain the renderer's viewBox (markers/layout padding)
+    // together with content bounds. C4's marker tips fit inside the 16px padding.
     // Padding covers ordinary strokes/shadows. It is not a universal SVG filter
     // paint-bound proof; retained native pixels remain an acceptance requirement.
     const padding = 16
@@ -224,7 +228,7 @@
         svgViewBox: svg.getAttribute('viewBox'),
         svgBBox: { x: box.x, y: box.y, width: box.width, height: box.height },
         boundary:
-          'Natural SVG units with viewBox/content union and 16px padding; native visual acceptance required',
+          'Natural SVG units, C4 content crop or other viewBox/content union, and 16px padding; native visual acceptance required',
       })
     } catch (error) {
       send({ phase: 'error', message: String(error).slice(0, 1000) })
