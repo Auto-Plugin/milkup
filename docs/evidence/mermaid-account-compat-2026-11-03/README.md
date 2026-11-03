@@ -7,6 +7,13 @@ This follow-up begins after its evidence commit
 `1494852518fb449191c839ef8573ba548bbefaa3`. It does not replace that ZIP,
 its Library copy, or its original reports. No main merge or Release is authorized.
 
+The subsequent **beta.9 installed delivery** is now independently verified for
+both account kinds in run `41713129442`, candidate
+`a5556beea5cdd1570361c528b2326bc0ad8ba0c4`.
+See [download identity, actual installed results and retained limits](../mermaid-windows-trial-beta9-2026-11-03/README.md).
+The source-run history below remains unchanged, including the original unresolved
+IPC 995 evidence; source acceptance alone is not the new installation result.
+
 ## Cause and intended boundary
 
 The original launcher rejected all Administrators membership, including
