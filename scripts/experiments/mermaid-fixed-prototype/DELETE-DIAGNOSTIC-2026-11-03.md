@@ -47,3 +47,23 @@ last outer attempt. Local Windows target, PowerShell and rustfmt are unavailable
 no Windows execution or formatting pass is claimed here. Adversarial junction
 execution remains untested. New CI results must be appended without erasing
 failures or converting a non-reproduction into a fix.
+
+## First actual Windows run: 41612414152
+
+Source6421ea767aeb85e701fbb2e4f1363542ff125dcf: all18 Windows tests passed,
+including six new diagnostic tests. Canary and gitGraph both rendered and
+completed native/outer cleanup. Historical OS5 was NOT reproduced; this is not
+a repair. Both deletion traces contained benign ERROR_FILE_NOT_FOUND entries
+from the locked traversal, with no terminal failure. Actual compiler remains
+58cf8f9c/1.99.1; installed WebView2 EXE FileVersion is now156.0.4314.50 rather than
+155.0.4283.62 from the last failure. No Runtime was installed by this task.
+Structured evidence: evidence/windows-delete-2026-11-03/run-41612414152.json.
+PNG bytes were not retained and no new visual acceptance is claimed.
+
+The next bounded reproducibility run keeps the same exact native candidate and
+fixed inputs: one canary then up to10 independently owned runs of ONLY gitGraph.
+Every result carries a distinct execution name; any native/outer failure stops
+dispatch immediately under existing cleanup gates. This samples an intermittent
+failure in the previously failing fixture, not the50-case diagram corpus. It
+uses an explicit repeat marker; default mode still runs one target. It changes
+no native deletion behavior and does not establish a fix if all attempts pass.

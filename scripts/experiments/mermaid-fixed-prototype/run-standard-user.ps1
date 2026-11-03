@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$Runtime,
     [Parameter(Mandatory)][string]$Evidence,
     [switch]$CaptureVisualEvidence,
-    [switch]$DeleteDiagnostic
+    [switch]$DeleteDiagnostic,
+    [ValidateSet('1','10')][int]$DeleteDiagnosticRepeats = 1
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -14,6 +15,7 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or
 }
 
 if ($CaptureVisualEvidence -and $DeleteDiagnostic) { throw 'Deletion diagnostic cannot export the full visual matrix' }
+if (-not $DeleteDiagnostic -and $DeleteDiagnosticRepeats -ne 1) { throw 'Repeat scope requires deletion diagnostic' }
 
 function Assert-PlainPath([string]$Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
@@ -38,7 +40,7 @@ function Set-PrivateDirectory([string]$Path, [string]$Sid, [string]$Rights) {
     }
     Set-Acl -LiteralPath $Path -AclObject $acl
 }
-function Read-CaseSummary([string]$Output) {
+function Read-CaseSummary([string]$Output, [string]$ExecutionName) {
     if (-not (Test-Path -LiteralPath $Output -PathType Container)) { return }
     Assert-PlainPath $Output
     foreach ($file in Get-ChildItem -LiteralPath $Output -File -Filter '*.json' | Sort-Object Name) {
@@ -57,6 +59,7 @@ function Read-CaseSummary([string]$Output) {
             }
         }
         $summary = [ordered]@{
+            executionName = $ExecutionName
             fixture = $record['fixture']; ok = $record['ok']; error = $record['error']
             rawRenderSucceeded = $record['rawRenderSucceeded']
             expectedRejection = $record['expectedRejection']
@@ -108,7 +111,7 @@ $audit = [ordered]@{
     changedFirewallOrUac = $false; changedExistingDesktopAcl = $false
     newRuntimeOrDependency = $false; productIntegrated = $false; artifactUpload = $false
     captureVisualEvidence = $CaptureVisualEvidence.IsPresent; visualEvidenceEmitted = $false
-    deleteDiagnostic = $DeleteDiagnostic.IsPresent
+    deleteDiagnostic = $DeleteDiagnostic.IsPresent; deleteDiagnosticRepeats = $DeleteDiagnosticRepeats
 }
 $password = [Security.SecureString]::new()
 $user = $null
@@ -176,9 +179,11 @@ try {
     )
     if ($DeleteDiagnostic) {
         $cases = @(
-            @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000},
-            @{name='delete-diagnostic'; manifest='fixtures-manifest.json'; selector='gitGraph'; timeout=120000}
+            @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000}
         )
+        for ($index=1; $index -le $DeleteDiagnosticRepeats; $index++) {
+            $cases += @{name=('delete-diagnostic-{0:d2}' -f $index); manifest='fixtures-manifest.json'; selector='gitGraph'; timeout=120000}
+        }
     }
     if (-not $CaptureVisualEvidence -and -not $DeleteDiagnostic) {
         $cases += @{name='negative'; manifest='negative-fixtures-manifest.json'; selector=''; timeout=180000}
@@ -194,7 +199,7 @@ try {
         $ownedProcessesCleared = $result.jobEmpty -and $result.cleanupErrors.Count -eq 0
         $audit.executions += @{name=$case.name; result=$result}
         Write-Output ('MILKUP_SUPERVISOR_JSON ' + (@{name=$case.name; result=$result} | ConvertTo-Json -Depth 12 -Compress))
-        Read-CaseSummary $output
+        Read-CaseSummary $output $case.name
         if (-not $result.success -and $ownedProcessesCleared) {
             try {
                 Write-OwnedCleanupDiagnosis -Output $output -PrivateTemp (Join-Path $stage 'state/temp') -OuterResult $result

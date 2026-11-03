@@ -25,6 +25,9 @@ if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Dirty or unreadable pro
 $root = $PSScriptRoot
 $captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]')
 $deleteDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-diagnostic]')
+$repeatDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-repeat]')
+if ($repeatDiagnostic -and -not $deleteDiagnostic) { throw 'Repeat marker requires diagnostic mode' }
+$deleteDiagnosticRepeats = $(if ($repeatDiagnostic) { 10 } else { 1 })
 if ($captureVisual -and $deleteDiagnostic) { throw 'Incompatible diagnostic execution markers' }
 $renderingBaseline = '82fb49e95caf99ea45654f552992eff81f72bee9'
 $nativeBaseline = $(if ($deleteDiagnostic) { '0a40abfb1eb571f9c67099fca775dfabcd758c29' } else { '7aa222e85859d217c33eedcb244e89ca1089ebbb' })
@@ -121,6 +124,7 @@ $execution = [ordered]@{
     nativeNetworkGuarantee = $false
     captureVisualEvidence = $captureVisual
     deleteDiagnostic = $deleteDiagnostic
+    deleteDiagnosticRepeats = $deleteDiagnosticRepeats
     diagnosticCorpus = $(if ($deleteDiagnostic) { @('flowchart-v2','gitGraph') } else { $null })
     renderingInputsBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $renderingBaseline } else { $null })
     nativeSourceBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $nativeBaseline } else { $null })
@@ -129,6 +133,6 @@ $execution = [ordered]@{
 }
 $execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
 Write-Output ('MILKUP_EXECUTION_JSON ' + ($execution | ConvertTo-Json -Depth 5 -Compress))
-& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic
+& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic -DeleteDiagnosticRepeats $deleteDiagnosticRepeats
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }
