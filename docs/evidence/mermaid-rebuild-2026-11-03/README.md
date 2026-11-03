@@ -204,6 +204,33 @@ bounded stdout/stderr. Four real-process local regressions passed: delayed exit
 and over-budget output rejection. This local check does not replace the next
 Windows product execution; no absent exit code is converted into success.
 
+Run `41639710787` on candidate `81ac628c3d80f8912bed734ff119a69cb70de41b`
+passed build/tests/link/strict-source checks again. All other marker workflows
+were skipped normally; the new queue setting was accepted remotely. The corrected
+waiter observed Node's actual exit code 1 after 11,539ms, complete stdout/stderr
+EOF, and no forced Node termination. Before outer cleanup the Job was already
+empty; the exact account/profile/stage were subsequently deleted without errors.
+
+The product loaded the real document and its menu, but the first UI assertion
+did not wait for asynchronous plugin initialization: the Diagrams card was
+absent (`cards=[]`), not explicitly disabled. Its source was visible, no native
+renderer audit existed, and zero UI steps passed. The retained two PNGs are actual
+product menu screenshots, **not Mermaid renders**. Root inspected the failure
+image and confirmed the empty list and legible Chinese menu text. Both complete
+PNG decodes match the browser's recorded RGBA hash. `windows/product-attempt-41639710787/`
+contains the original ZIP, 19 hash-verified manifest files, raw log and root review.
+
+The archives are Vite eager `?raw` imports embedded in the production JavaScript;
+they are not missing EXE-side resources. The window/document-ready path is separate
+from `desktopPluginManager.ready`, which renders the plugin list asynchronously.
+Whether that card eventually appears still requires the next actual run. The
+harness must wait a bounded time for the exact card before continuing to check
+its disabled state and version; a missing card is never accepted as disabled.
+Commit `bc83602f` adds that bounded DOM wait, preserves exact initial-disabled and
+version assertions, and retains readonly status-notice diagnostics on timeout.
+Three async readiness regressions were added; all 14 local harness tests and
+syntax checks passed. Product initialization/IPC/catalog code was not changed.
+
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
