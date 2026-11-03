@@ -199,3 +199,33 @@ original failure. The correction must still require the held process's normal
 exit within the original 15-second deadline, retain raw responses, reject an
 actually observed unsaved dialog and reject generic unknown errors. A new full
 two-account run is required for overall acceptance.
+
+### Next two-account run: administrator passed; standard native cleanup failed
+
+[Run 41692476025](https://github.com/Auto-Plugin/milkup/actions/runs/41692476025)
+tested `5e683405e48231595f66f998fb89d04d04f05514` and **failed**. Only the close
+harness and its tests changed outside evidence since the preceding candidate;
+native/product/plugin source objects were identical. The compiled binary has
+its own recorded hash and is not claimed to be byte-identical. Windows private
+tests (54 passed, 3 ignored), elevated-host rejection, desktop tests (228 passed,
+3 ignored), 150 Node checks and the strict source gate passed.
+
+The filtered administrator completed all ten body steps, seven actual diagram
+PNGs and four natural UI closes. Its twelve admitted requests all finished with
+verified native cleanup. The pure-standard account failed at step 02: one native
+request captured 2,606 PNG bytes and passed all four token observations, but
+cleanup was uncertain, so no PNG was published. Both stdout's trailing-byte read
+and stderr returned Win32 995 after successful synchronous-I/O cancellation.
+The owned Job reported zero active processes and the native profile was deleted;
+the private tree was **not** confirmed removed. The old audit does not preserve
+the tree deletion's exact error, number of calls or elapsed time, so a lock,
+permissions failure or retry exhaustion is not established.
+
+Standard-user shutdown did not complete within the original UI-close deadline;
+the held product process required the recorded SIGTERM fallback. Its successful
+outer account/profile/staging cleanup does not prove product-internal cleanup.
+[Original failure and independent verification](attempt-41692476025/README.md)
+remain failed. Neither the prior standard pass nor this administrator pass can
+be combined into a passed two-account run. The next change records bounded
+cleanup stages and numeric deletion facts while retaining strict EOF, ownership
+and cleanup requirements; complete two-account product acceptance remains due.
