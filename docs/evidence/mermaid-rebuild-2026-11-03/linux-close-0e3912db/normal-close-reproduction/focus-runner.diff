@@ -1,0 +1,28 @@
+--- run02/run-normal-close.py
++++ focus/run-focus-observation.py
+@@ -56,6 +56,7 @@
+         if 'window id # 0x' in observed.stdout:break
+         time.sleep(.05)
+     else:raise RuntimeError('Window manager readiness timeout')
++    sampler=launch(['python3','/workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/observe-x11.py'],'x11-observer.log')
+     driver=launch(['tauri-driver','--port','4450','--native-port','4451','--native-host','127.0.0.1','--native-driver','/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver'],'driver.log')
+     for attempt in range(100):
+         if driver.poll() is not None:raise RuntimeError('Owned driver exited')
+@@ -67,7 +68,7 @@
+     record.update({'root':str(root),'state':'ready','owned':[{'pid':c['pid'],'birth':c['birth'],'argv':c['argv']} for c in children],'status':status})
+     (root/'session.json').write_text(json.dumps(record,indent=2)+'\n')
+     print(json.dumps({'state':'ready','root':str(root),'ownedPids':[c['pid'] for c in children],'binarySha256':args.sha256}),flush=True)
+-    run=subprocess.run(['node','/workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/normal-close.mjs'],env=env,cwd='/workspace/milkup-mermaid-rebuild',stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=180)
++    run=subprocess.run(['node','/workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/normal-close-focus.mjs'],env=env,cwd='/workspace/milkup-mermaid-rebuild',stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=180)
+     (root/'harness.log').write_text(run.stdout)
+     print(run.stdout,flush=True)
+     exitcode=run.returncode
+@@ -90,7 +91,7 @@
+         item['exitCode']=p.poll();results.append(item);c['output'].close()
+     (root/'session-cleanup.json').write_text(json.dumps(results,indent=2)+'\n')
+     archive.mkdir(parents=True,exist_ok=False)
+-    for name in ['driver-env.json','session.json','session-cleanup.json','binary.json','driver.log','xvfb.log','xfwm4.log','xfconfd.log','harness.log','orchestration-error.json']:
++    for name in ['driver-env.json','session.json','session-cleanup.json','binary.json','driver.log','xvfb.log','xfwm4.log','xfconfd.log','x11-observer.log','harness.log','orchestration-error.json']:
+         if (root/name).exists():shutil.copy2(root/name,archive/name)
+     shutil.copytree(root/'evidence',archive/'evidence')
+     (archive/'run.json').write_text(json.dumps({'root':str(root),'exitCode':exitcode,'binarySha256':args.sha256,'archivedBinary':False,'cleanup':results},indent=2)+'\n')

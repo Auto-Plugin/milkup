@@ -1,0 +1,24 @@
+--- /workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/normal-close-focus.mjs	2026-11-03 14:48:51.977615785 +0000
++++ /workspace/mermaid-rebuild-evidence/linux-x11-popup/reproduction/normal-close-focus.mjs	2026-11-03 14:54:48.700189677 +0000
+@@ -21,10 +21,11 @@
+ const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+ const json = async (file) => JSON.parse(await readFile(file, 'utf8'))
+ const report = {
+-  candidateSha: '0e3912db3f2cc4d77dd73513ce73d5440ec36f54',
++  candidateSha: 'ee305c4c8e8fc2e2a8fb7356170a6ec59b6674e4',
+   currentWorktreeHead: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+   currentWorktreeStatus: execFileSync('git', ['status', '--porcelain=v1'], { encoding: 'utf8' }),
+   frozenBinaryAfterSourceFreezeReleased: true,
++  expectedX11PopupRegression: true,
+   binarySha256: expected,
+   startedAt: new Date().toISOString(),
+   status: 'running',
+@@ -54,7 +55,7 @@
+ }
+ try {
+   assert.equal(process.env.MILKUP_NORMAL_CLOSE_RUN, '1')
+-  assert.equal(report.candidateSha, '0e3912db3f2cc4d77dd73513ce73d5440ec36f54')
++  assert.equal(report.candidateSha, 'ee305c4c8e8fc2e2a8fb7356170a6ec59b6674e4')
+   report.helperFiles = []
+   for (const name of ['native-production.mjs','native-startup.mjs','native-beta5-fixture.mjs','native-updates-fixture.mjs','native-owned-process.mjs']) {
+     const current = await readFile('/workspace/milkup-mermaid-rebuild/tests/helpers/' + name)

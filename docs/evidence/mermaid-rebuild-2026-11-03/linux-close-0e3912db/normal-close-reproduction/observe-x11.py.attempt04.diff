@@ -1,0 +1,37 @@
+--- /workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/observe-x11-attempt-03.py	2026-11-03 14:48:51.977128343 +0000
++++ /workspace/mermaid-rebuild-evidence/linux-close-0e3912db/normal-close-reproduction/observe-x11.py	2026-11-03 14:48:51.977413325 +0000
+@@ -32,22 +32,30 @@
+     return rows
+ 
+ start = time.monotonic_ns(); count = 0; byte_count = 0; limit = 4*1024*1024; overflow = False
+-previous = None; last_written = 0; polls = 0; gaps = []; last_poll = start
++previous = None; last_written = 0; polls = 0; gaps = []; last_poll = start; screenshots = 0
+ with (evidence/'x11-observations.jsonl').open('x', buffering=1) as out:
+     while running and not stop_file.exists() and time.monotonic_ns()-start < 180_000_000_000:
+         now = time.monotonic_ns(); gaps.append(now-last_poll); last_poll = now; polls += 1
+         active = query(['xprop', '-root', '_NET_ACTIVE_WINDOW', '_NET_CLIENT_LIST_STACKING'])
+         tree = query(['xwininfo', '-root', '-tree'])
+-        signature = json.dumps([active, tree], sort_keys=True)
++        input_focus = query(['xdotool','getwindowfocus'])
++        signature = json.dumps([active, tree, input_focus], sort_keys=True)
+         if signature != previous or now-last_written >= 250_000_000:
+             ids = list(dict.fromkeys(re.findall(r'0x[0-9a-fA-F]+', active.get('stdout',''))))
+-            record = {'monotonicNs': now, 'activeAndClients': active, 'tree': tree,
++            record = {'monotonicNs': now, 'activeAndClients': active, 'inputFocus': input_focus, 'tree': tree,
++                      'windowAttributes': {wid: query(['xwininfo','-id',wid,'-all']) for wid in ids if wid != '0x0'},
+                       'clients': {wid: query(['xprop','-id',wid,'_NET_WM_PID','WM_CLASS','_NET_WM_NAME','WM_HINTS','_NET_WM_STATE']) for wid in ids if wid != '0x0'},
+                       'productProcesses': processes()}
++            helper_ids = [wid for wid,value in record['clients'].items() if 'Milk up fixed diagram renderer' in value.get('stdout','')]
++            if helper_ids and screenshots < 2:
++                # Read-only root capture while the observed renderer is managed.
++                name = 'renderer-observed-%02d-system.png' % screenshots
++                record['systemScreenshot'] = {'name':name,'capture':query(['/usr/bin/import','-display',os.environ['DISPLAY'],'-window','root',str(evidence/name)])}
++                screenshots += 1
+             line = json.dumps(record, ensure_ascii=False)+'\n'
+             if byte_count+len(line.encode()) > limit:
+                 overflow = True; break
+             out.write(line); byte_count += len(line.encode()); count += 1
+             previous = signature; last_written = now
+         time.sleep(.015)
+-(evidence/'x11-observation-summary.json').write_text(json.dumps({'readOnly':True,'startedMonotonicNs':start,'finishedMonotonicNs':time.monotonic_ns(),'polls':polls,'retainedSamples':count,'bytes':byte_count,'limit':limit,'overflow':overflow,'maximumPollGapMs':max(gaps or [0])/1e6,'stoppedByHarness':stop_file.exists()},indent=2)+'\n')
++(evidence/'x11-observation-summary.json').write_text(json.dumps({'readOnly':True,'screenshots':screenshots,'startedMonotonicNs':start,'finishedMonotonicNs':time.monotonic_ns(),'polls':polls,'retainedSamples':count,'bytes':byte_count,'limit':limit,'overflow':overflow,'maximumPollGapMs':max(gaps or [0])/1e6,'stoppedByHarness':stop_file.exists()},indent=2)+'\n')

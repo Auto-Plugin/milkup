@@ -1,0 +1,9 @@
+sequenceDiagram
+loop Each note
+  Writer->>Editor: Save
+  alt Valid
+    Editor-->>Writer: Saved
+  else Invalid
+    Editor-->>Writer: Error
+  end
+end
