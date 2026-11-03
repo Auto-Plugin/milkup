@@ -57,8 +57,32 @@ AppContainer, pins its executable copy, binds the child to a non-breakaway Job a
 creation, verifies child/browser user SID, token and Job membership before
 releasing text, and owns bounded IPC and teardown. Only an existing Evergreen
 Runtime is discovered; no fixed runtime, download or installation path is
-included. The reviewed pure-standard-user requirement remains: filtered
-administrator and elevated contexts are rejected without privilege changes.
+included. Standard-user hosts remain supported. Normal, non-elevated filtered
+administrator tokens are accepted only when the actual primary token is UAC
+Limited, non-elevated, medium integrity, has no UIAccess, retains Administrators
+as exactly deny-only, and holds only the closed ordinary-user privilege set.
+The audit distinguishes `filtered-admin` from `pure-standard`; the original
+`hostPureStandard` field remains false for filtered administrators. Elevated,
+unfiltered or unknown token contexts are rejected before native admission.
+No linked token, privilege adjustment or alternate process-creation API is used.
+Both suspended helper and actual WebView2 browser must retain the same user and
+session, low integrity, no UIAccess, no administrative authority, only
+SeChangeNotifyPrivilege (if present), the fresh AppContainer SID and zero
+capabilities. Sandbox elevation type must be Default (no linked token), even
+when its host is Limited. This conservative compatibility gate does not assert
+that a Limited AppContainer is proven exploitable. The creation-time Job and
+three-handle allowlist are unchanged.
+These predicates require separate actual Windows standard/filtered acceptance;
+policy unit tests alone do not establish OS or WebView2 compatibility.
+The distinction follows Microsoft's [token elevation types](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ne-winnt-token_elevation_type)
+and [deny-only SID semantics](https://learn.microsoft.com/en-us/windows/win32/secauthz/sid-attributes-in-an-access-token).
+The Windows-only ignored test
+`launcher::tests::elevated_host_is_rejected_before_native_resources` requires
+`MILKUP_MERMAID_ELEVATED_REJECTION=1` and
+`MILKUP_MERMAID_ELEVATED_REJECTION_RUNTIME` set to an absolute, already-installed
+Evergreen directory containing `msedgewebview2.exe`. It fails unless the actual
+host token is elevated, then tests the real launcher's rejection before native
+admission. This is an explicit negative native test, not elevated GUI support.
 Windows execution, native visual acceptance, same-login profile cleanup and
 installer delivery require actual Windows evidence and are not established by
 Linux checks. Historical error 5 is not claimed fixed.

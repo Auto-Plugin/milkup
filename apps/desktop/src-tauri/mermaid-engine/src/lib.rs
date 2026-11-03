@@ -32,6 +32,8 @@ mod launcher;
 mod png;
 #[cfg(windows)]
 mod stream;
+#[cfg(any(windows, test))]
+mod token_policy;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

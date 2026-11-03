@@ -26,7 +26,7 @@ use windows_sys::Win32::{
     Security::{Authorization::ConvertSidToStringSidW, Isolation::*, *},
     Storage::FileSystem::*,
     System::{
-        Com::CoTaskMemFree, JobObjects::*, Pipes::CreatePipe,
+        Com::CoTaskMemFree, JobObjects::*, Pipes::CreatePipe, RemoteDesktop::ProcessIdToSessionId,
         SystemInformation::GetSystemDirectoryW, Threading::*, IO::CancelSynchronousIo,
     },
 };
@@ -136,16 +136,39 @@ fn token_groups(token: HANDLE, class: TOKEN_INFORMATION_CLASS) -> Result<Vec<(St
         .map(|group| Ok((sid_text(group.Sid)?, group.Attributes)))
         .collect()
 }
-fn debug_privilege_info(token: HANDLE) -> Result<Value> {
+struct Privileges {
+    debug: Value,
+    count: usize,
+    host_disallowed: usize,
+    sandbox_disallowed: usize,
+}
+fn privilege_info(token: HANDLE) -> Result<Privileges> {
     // Name resolution and TOKEN_QUERY only: no AdjustTokenPrivileges, token
     // replacement, account changes, enablement or disablement is performed.
-    let name = wide(OsStr::new("SeDebugPrivilege"));
-    let mut luid = LUID::default();
-    check(unsafe { LookupPrivilegeValueW(null(), name.as_ptr(), &mut luid) })?;
+    // Closed ordinary-interactive-user allowlist. Presence, including disabled
+    // presence, counts: an untrusted process can enable a privilege it holds.
+    let names = [
+        "SeChangeNotifyPrivilege",
+        "SeShutdownPrivilege",
+        "SeUndockPrivilege",
+        "SeIncreaseWorkingSetPrivilege",
+        "SeTimeZonePrivilege",
+        "SeDebugPrivilege",
+    ];
+    let mut luids = Vec::new();
+    for name in names {
+        let name = wide(OsStr::new(name));
+        let mut luid = LUID::default();
+        check(unsafe { LookupPrivilegeValueW(null(), name.as_ptr(), &mut luid) })?;
+        luids.push(luid);
+    }
     let storage = token_buffer(token, TokenPrivileges)?;
     let bytes = storage.len() * size_of::<usize>();
     let offset = std::mem::offset_of!(TOKEN_PRIVILEGES, Privileges);
     let count = unsafe { storage.as_ptr().cast::<u32>().read() } as usize;
+    if count > 64 {
+        return Err("Token privilege count exceeds the observation budget".into());
+    }
     count
         .checked_mul(size_of::<LUID_AND_ATTRIBUTES>())
         .and_then(|length| offset.checked_add(length))
@@ -161,19 +184,34 @@ fn debug_privilege_info(token: HANDLE) -> Result<Value> {
             count,
         )
     };
+    let equal_luid = |a: &LUID, b: &LUID| a.LowPart == b.LowPart && a.HighPart == b.HighPart;
     let attributes = privileges
         .iter()
-        .find(|privilege| {
-            privilege.Luid.LowPart == luid.LowPart && privilege.Luid.HighPart == luid.HighPart
-        })
+        .find(|privilege| equal_luid(&privilege.Luid, &luids[5]))
         .map(|privilege| privilege.Attributes);
-    Ok(json!({
+    let debug = json!({
         "present":attributes.is_some(),
         "enabled":attributes.is_some_and(|flags| flags & SE_PRIVILEGE_ENABLED != 0),
         "enabledByDefault":attributes.is_some_and(|flags| flags & SE_PRIVILEGE_ENABLED_BY_DEFAULT != 0),
         "attributes":attributes,
         "readOnlyObservation":true
-    }))
+    });
+    Ok(Privileges {
+        debug,
+        count,
+        host_disallowed: privileges
+            .iter()
+            .filter(|privilege| {
+                !luids[..5]
+                    .iter()
+                    .any(|luid| equal_luid(&privilege.Luid, luid))
+            })
+            .count(),
+        sandbox_disallowed: privileges
+            .iter()
+            .filter(|privilege| !equal_luid(&privilege.Luid, &luids[0]))
+            .count(),
+    })
 }
 fn token_info(process: HANDLE) -> Result<Value> {
     let token = open_token(process, TOKEN_QUERY)?;
@@ -194,6 +232,8 @@ fn token_info(process: HANDLE) -> Result<Value> {
     }
     let user = token_buffer(token, TokenUser)?;
     let user_sid = sid_text(unsafe { (*(user.as_ptr().cast::<TOKEN_USER>())).User.Sid })?;
+    let owner = token_buffer(token, TokenOwner)?;
+    let owner_sid = sid_text(unsafe { (*(owner.as_ptr().cast::<TOKEN_OWNER>())).Owner })?;
     let integrity = token_buffer(token, TokenIntegrityLevel)?;
     let label = unsafe { &*integrity.as_ptr().cast::<TOKEN_MANDATORY_LABEL>() };
     let count = unsafe { *GetSidSubAuthorityCount(label.Label.Sid) };
@@ -212,24 +252,27 @@ fn token_info(process: HANDLE) -> Result<Value> {
     };
     let elevated = token_u32(token, TokenElevation)? != 0;
     let elevation_type = token_u32(token, TokenElevationType)?;
-    let debug_privilege = debug_privilege_info(token)?;
+    let privileges = privilege_info(token)?;
     Ok(json!({
         "isAppContainer":is_container,"capabilityCount":capabilities.len(),
         "capabilities":capabilities,"appContainerSid":app_sid,"integrityRid":integrity_rid,
-        "userSid":user_sid,"elevated":elevated,"elevationType":elevation_type,
+        "userSid":user_sid,"ownerSid":owner_sid,"elevated":elevated,"elevationType":elevation_type,
+        "tokenType":token_u32(token, TokenType)?,"sessionId":token_u32(token, TokenSessionId)?,
+        "uiAccess":token_u32(token, TokenUIAccess)? != 0,
         "administratorsGroupPresentIncludingDenyOnly":admin_group_present,
         "administratorsGroupAttributes":admin_group_attributes,
-        "seDebugPrivilege":debug_privilege,
-        "standardUserTokenEvidence":!elevated && !admin_group_present && elevation_type == TokenElevationTypeDefault as u32 && debug_privilege["present"] == false
+        "seDebugPrivilege":privileges.debug,
+        "privilegeCount":privileges.count,
+        "hostDisallowedPrivilegeCount":privileges.host_disallowed,
+        "sandboxDisallowedPrivilegeCount":privileges.sandbox_disallowed,
+        "standardUserTokenEvidence":!elevated && !admin_group_present && elevation_type == TokenElevationTypeDefault as u32 && privileges.debug["present"] == false
     }))
 }
 
 /// Called by our fixed helper before creating WebView2; not a plugin-callable API.
 pub fn child_token_report() -> Result<Value> {
     let token = token_info(unsafe { GetCurrentProcess() })?;
-    if token["isAppContainer"] != true || token["capabilityCount"] != 0 {
-        return Err("Fixed helper requires its zero-capability AppContainer token".into());
-    }
+    crate::token_policy::verify_sandbox(&token, None)?;
     Ok(token)
 }
 
@@ -911,11 +954,11 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         return Err("Installed Evergreen Runtime absent; no download fallback".into());
     }
     let host_token = token_info(unsafe { GetCurrentProcess() })?;
-    // Product coordinator and cleanup owner are the same login. Keep the
-    // reviewed pure-standard-user policy; filtered administrator is unverified.
-    if host_token["standardUserTokenEvidence"] != true {
-        return Err("Fixed Mermaid requires a pure standard-user token; filtered administrator and elevated contexts remain unsupported".into());
-    }
+    let mut process_session = 0;
+    check(unsafe { ProcessIdToSessionId(GetCurrentProcessId(), &mut process_session) })?;
+    // Read the actual current primary token. Never acquire a linked token,
+    // enable a privilege, or change process credentials to gain compatibility.
+    let host_class = crate::token_policy::classify_host(&host_token, process_session)?;
     let unique = format!(
         "milkup-fixed-mermaid-{}-{}",
         std::process::id(),
@@ -927,8 +970,9 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     fs::create_dir(&root)?; // CREATE_NEW semantics: a preexisting path is a hard failure.
     let mut report = json!({"name":unique,"runtime":runtime,"privateRoot":root,
         "hostToken":host_token,"standardUserEvidence":host_token["standardUserTokenEvidence"],
+        "hostTokenClass":host_class.name(),"hostNonElevatedVerified":true,
         "cleanupOwner":"same-login-coordinator",
-        "standardUserMeaning":"Host token has neither elevated status nor an Administrators SID, including deny-only membership, and SeDebugPrivilege is absent; CI location alone is not standard-user evidence. Privileges are observed without adjustment.",
+        "standardUserMeaning":"pure-standard retains its original no-Administrators-SID meaning. filtered-admin is a separately verified non-elevated UAC Limited primary token with medium integrity, no UIAccess, only deny-only administrator membership and ordinary-user privileges. Tokens are observed without adjustment.",
         "jobMemoryLimitBytes":JOB_MEMORY,"jobProcessLimit":JOB_PROCESSES,
         "remainingDeadlineMs":control.remaining().as_millis(),
         "aclOperations":[],"productIntegrated":true,"networkGuarantee":false,
@@ -1010,14 +1054,11 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         } = launch(&exe, &runtime, &state, &system, profile, job)?;
         let child_token = token_info(process.as_raw_handle())?;
         report["suspendedToken"] = child_token.clone();
-        if child_token["isAppContainer"] != true
-            || child_token["elevated"] != false
-            || child_token["seDebugPrivilege"]["present"] != false
-            || child_token["capabilityCount"] != 0
-            || child_token["userSid"] != host_token["userSid"]
-            || child_token["appContainerSid"] != sid
-            || job.active()? != 1
-        {
+        crate::token_policy::verify_sandbox(
+            &child_token,
+            Some((owner_sid, process_session, &sid)),
+        )?;
+        if job.active()? != 1 {
             return Err("Suspended child identity or creation-time Job binding mismatch".into());
         }
         report["executionAncestryAccessDenials"] =
@@ -1085,13 +1126,11 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         })?;
         report["browserProcessInOwnedJob"] = json!(in_job != 0);
         report["browserToken"] = token_info(browser.as_raw_handle())?;
-        if in_job == 0
-            || report["browserToken"]["isAppContainer"] != true
-            || report["browserToken"]["userSid"] != host_token["userSid"]
-            || report["browserToken"]["capabilityCount"] != 0
-            || report["browserToken"]["elevated"] != false
-            || report["browserToken"]["seDebugPrivilege"]["present"] != false
-        {
+        crate::token_policy::verify_sandbox(
+            &report["browserToken"],
+            Some((owner_sid, process_session, &sid)),
+        )?;
+        if in_job == 0 {
             return Err("WebView2 browser lacks the required Job/zero-capability AppContainer boundary; refusing render".into());
         }
         control.checkpoint()?;
@@ -1281,5 +1320,79 @@ fn recv_controlled(rx: &mpsc::Receiver<Event>, control: &Control) -> Result<Even
             Err(mpsc::RecvTimeoutError::Timeout) => (),
             Err(error) => return Err(error.into()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A real elevated-host negative case, never a synthetic-token acceptance
+    /// claim. Ordinary test runs leave it ignored; the reviewed Windows workflow
+    /// supplies an already-installed Runtime and explicitly opts in.
+    #[test]
+    #[ignore = "requires explicitly authorized real elevated Windows runner token"]
+    fn elevated_host_is_rejected_before_native_resources() {
+        assert_eq!(
+            std::env::var("MILKUP_MERMAID_ELEVATED_REJECTION").as_deref(),
+            Ok("1")
+        );
+        let runtime = PathBuf::from(
+            std::env::var_os("MILKUP_MERMAID_ELEVATED_REJECTION_RUNTIME")
+                .expect("Explicit existing Evergreen Runtime directory is required"),
+        );
+        assert!(runtime.is_absolute() && runtime.join("msedgewebview2.exe").is_file());
+        let host = token_info(unsafe { GetCurrentProcess() }).unwrap();
+        assert_eq!(
+            host["elevated"], true,
+            "This case requires a real elevated token"
+        );
+        assert!(host["integrityRid"].as_u64().unwrap() >= 0x3000);
+        assert!(matches!(host["elevationType"].as_u64(), Some(1 | 2)));
+        assert_ne!(
+            host["administratorsGroupAttributes"].as_u64().unwrap() & 4,
+            0
+        );
+        let prefix = format!("milkup-fixed-mermaid-{}-", std::process::id());
+        let owned_roots = || -> Vec<_> {
+            let mut names: Vec<_> = fs::read_dir(std::env::temp_dir())
+                .unwrap()
+                .map(|entry| entry.unwrap().file_name())
+                .filter(|name| name.to_string_lossy().starts_with(&prefix))
+                .collect();
+            names.sort();
+            names
+        };
+        let before = owned_roots();
+        let control = Control {
+            cancelled: Arc::new(AtomicBool::new(false)),
+            deadline: Instant::now() + Duration::from_secs(5),
+            unhealthy: Arc::new(AtomicBool::new(false)),
+        };
+        let result = run(
+            &runtime,
+            &json!({"requestId":"elevated-negative-self-authored",
+            "source":"flowchart LR\nA-->B","width":800,"theme":"default","look":"classic"}),
+            &control,
+        );
+        let error = match result {
+            Err(error) => error.to_string(),
+            Ok(_) => panic!("An elevated host must not reach a native render attempt"),
+        };
+        assert_eq!(error, "Elevated Mermaid host is unsupported; start Milkup normally without administrator elevation");
+        assert_eq!(
+            owned_roots(),
+            before,
+            "No owned root may be created before host rejection"
+        );
+        assert!(!control.unhealthy.load(Ordering::Acquire));
+        println!(
+            "MILKUP_MERMAID_ELEVATED_REJECTION {}",
+            json!({
+            "status":"passed","actualToken":crate::token_policy::audit_evidence(&host),
+            "rejectionKind":"elevated-host","rejectedBeforeAdmission":true,
+            "ownedRootsUnchanged":true,"helperLaunched":false,
+            "scope":"Actual native pre-admission rejection; not an elevated GUI acceptance"})
+        );
     }
 }

@@ -149,13 +149,7 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     startup_phase(startup_started, "helper-enter", None);
     startup_phase(startup_started, "token-before", None);
     let token = crate::launcher::child_token_report()?;
-    if token["isAppContainer"] != true
-        || token["capabilityCount"] != 0
-        || token["elevated"] != false
-        || token["seDebugPrivilege"]["present"] != false
-    {
-        return Err("Only the zero-capability AppContainer child may render".into());
-    }
+    crate::token_policy::verify_sandbox(&token, None)?;
     startup_phase(startup_started, "token-ok", None);
     startup_phase(startup_started, "com-start", None);
     let com_result = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };

@@ -160,19 +160,22 @@ pub(crate) fn flush(timeout: Duration) -> Result<(), String> {
         .flush_until(deadline)
 }
 pub(crate) fn started(request_id: &str, report: &Value) -> Value {
-    json!({
-        "phase":"started","requestId":request_id,"productPid":std::process::id(),
-        "hostSid":report["hostToken"]["userSid"],
-        "childSid":report["suspendedToken"]["userSid"],
-        "browserSid":report["browserToken"]["userSid"],
-        "hostPureStandard":report["hostToken"]["standardUserTokenEvidence"]==true,
-        "appContainer":report["suspendedToken"]["isAppContainer"]==true,
-        "zeroCapabilities":report["suspendedToken"]["capabilityCount"]==0,
-        "browserAppContainer":report["browserToken"]["isAppContainer"]==true,
-        "browserZeroCapabilities":report["browserToken"]["capabilityCount"]==0,
-        "browserPid":report["ready"]["browserProcessId"],
-        "browserInOwnedJob":report["browserProcessInOwnedJob"]==true
-    })
+    with_token_evidence(
+        report,
+        json!({
+            "phase":"started","requestId":request_id,"productPid":std::process::id(),
+            "hostSid":report["hostToken"]["userSid"],
+            "childSid":report["suspendedToken"]["userSid"],
+            "browserSid":report["browserToken"]["userSid"],
+            "hostPureStandard":report["hostToken"]["standardUserTokenEvidence"]==true,
+            "appContainer":report["suspendedToken"]["isAppContainer"]==true,
+            "zeroCapabilities":report["suspendedToken"]["capabilityCount"]==0,
+            "browserAppContainer":report["browserToken"]["isAppContainer"]==true,
+            "browserZeroCapabilities":report["browserToken"]["capabilityCount"]==0,
+            "browserPid":report["ready"]["browserProcessId"],
+            "browserInOwnedJob":report["browserProcessInOwnedJob"]==true
+        }),
+    )
 }
 pub(crate) fn finished(
     request_id: &str,
@@ -188,41 +191,68 @@ pub(crate) fn finished(
         .filter_map(|member| member["pid"].as_u64())
         .take(16)
         .collect();
-    json!({
-        "phase":"finished", "requestId":request_id,"productPid":std::process::id(),
-        "successful":report["success"]==true && !cancelled && !deadline_expired,
-        "rendererErrorKind":renderer_error_kind(&report["rendererMetadata"]),
-        "rendererStatus":match report["rendererMetadata"]["status"].as_str() {
-            Some("ok") => "ok", Some("error") => "error", _ => "unknown"
-        },
-        "capturedPngBytes":report["capturedPngBytes"].as_u64().filter(|bytes| *bytes <= crate::MAX_OUTPUT as u64),
-        "cleanupFailureKinds":cleanup_failure_kinds(&report["cleanupFailureKinds"]),
-        "ipcThreadCleanup":ipc_thread_cleanup(&report["ipcThreadCleanup"]),
-        "stdoutFailure":stdout_failure(&report["stdoutFailure"]),
-        "stderrFailure":stderr_failure(&report["stderrFailure"]),
-        "hostSid":report["hostToken"]["userSid"],
-        "childSid":report["suspendedToken"]["userSid"],
-        "browserSid":report["browserToken"]["userSid"],
-        "hostPureStandard":report["hostToken"]["standardUserTokenEvidence"]==true,
-        "appContainer":report["suspendedToken"]["isAppContainer"]==true,
-        "zeroCapabilities":report["suspendedToken"]["capabilityCount"]==0,
-        "browserAppContainer":report["browserToken"]["isAppContainer"]==true,
-        "browserZeroCapabilities":report["browserToken"]["capabilityCount"]==0,
-        "browserPid":report["ready"]["browserProcessId"],
-        "browserInOwnedJob":report["browserProcessInOwnedJob"]==true,
-        "ownedPidsBeforeStop":members,
-        "ownedJobCreated":!report["preStopJob"].is_null(),
-        "jobActiveAfterStop":report["jobActiveAfterStop"],
-        "ipcThreadsCompleted":report["ipcThreadsCompleted"]==true,
-        "profileCreated":report["profileCreated"]==true,
-        "profileDeleted":report["profileDeletedAndFolderAbsent"]==true,
-        "privateTreeRemoved":report["privateTreeRemoved"]==true,
-        "cleanupUncertain":report["stopMatrixAfterThisCase"]==true,
-        "cancelled":cancelled,"deadlineExpired":deadline_expired,
-        "pngBytes":png.len(),
-        "pngSha256":if png.is_empty(){None}else{Some(format!("{:x}",Sha256::digest(png)))},
-        "osAllNetworkDenied":false
-    })
+    with_token_evidence(
+        report,
+        json!({
+            "phase":"finished", "requestId":request_id,"productPid":std::process::id(),
+            "successful":report["success"]==true && !cancelled && !deadline_expired,
+            "rendererErrorKind":renderer_error_kind(&report["rendererMetadata"]),
+            "rendererStatus":match report["rendererMetadata"]["status"].as_str() {
+                Some("ok") => "ok", Some("error") => "error", _ => "unknown"
+            },
+            "capturedPngBytes":report["capturedPngBytes"].as_u64().filter(|bytes| *bytes <= crate::MAX_OUTPUT as u64),
+            "cleanupFailureKinds":cleanup_failure_kinds(&report["cleanupFailureKinds"]),
+            "ipcThreadCleanup":ipc_thread_cleanup(&report["ipcThreadCleanup"]),
+            "stdoutFailure":stdout_failure(&report["stdoutFailure"]),
+            "stderrFailure":stderr_failure(&report["stderrFailure"]),
+            "hostSid":report["hostToken"]["userSid"],
+            "childSid":report["suspendedToken"]["userSid"],
+            "browserSid":report["browserToken"]["userSid"],
+            "hostPureStandard":report["hostToken"]["standardUserTokenEvidence"]==true,
+            "appContainer":report["suspendedToken"]["isAppContainer"]==true,
+            "zeroCapabilities":report["suspendedToken"]["capabilityCount"]==0,
+            "browserAppContainer":report["browserToken"]["isAppContainer"]==true,
+            "browserZeroCapabilities":report["browserToken"]["capabilityCount"]==0,
+            "browserPid":report["ready"]["browserProcessId"],
+            "browserInOwnedJob":report["browserProcessInOwnedJob"]==true,
+            "ownedPidsBeforeStop":members,
+            "ownedJobCreated":!report["preStopJob"].is_null(),
+            "jobActiveAfterStop":report["jobActiveAfterStop"],
+            "ipcThreadsCompleted":report["ipcThreadsCompleted"]==true,
+            "profileCreated":report["profileCreated"]==true,
+            "profileDeleted":report["profileDeletedAndFolderAbsent"]==true,
+            "privateTreeRemoved":report["privateTreeRemoved"]==true,
+            "cleanupUncertain":report["stopMatrixAfterThisCase"]==true,
+            "cancelled":cancelled,"deadlineExpired":deadline_expired,
+            "pngBytes":png.len(),
+            "pngSha256":if png.is_empty(){None}else{Some(format!("{:x}",Sha256::digest(png)))},
+            "osAllNetworkDenied":false
+        }),
+    )
+}
+fn host_token_class(report: &Value) -> Value {
+    match report["hostTokenClass"].as_str() {
+        Some("pure-standard") => json!("pure-standard"),
+        Some("filtered-admin") => json!("filtered-admin"),
+        _ => Value::Null,
+    }
+}
+fn with_token_evidence(report: &Value, mut record: Value) -> Value {
+    let evidence = json!({
+        "hostTokenClass":host_token_class(report),
+        "hostNonElevatedVerified":report["hostNonElevatedVerified"]==true,
+        "hostTokenEvidence":crate::token_policy::audit_evidence(&report["hostToken"]),
+        "childTokenEvidence":crate::token_policy::audit_evidence(&report["suspendedToken"]),
+        "browserTokenEvidence":crate::token_policy::audit_evidence(&report["browserToken"]),
+        "appContainerSid":crate::token_policy::audit_app_sid(&report["appContainerSid"]),
+        "childAppContainerSid":crate::token_policy::audit_app_sid(&report["suspendedToken"]["appContainerSid"]),
+        "browserAppContainerSid":crate::token_policy::audit_app_sid(&report["browserToken"]["appContainerSid"]),
+    });
+    record
+        .as_object_mut()
+        .expect("closed audit record")
+        .extend(evidence.as_object().expect("closed token evidence").clone());
+    record
 }
 // These diagnostics explain an existing cleanup failure; they never override
 // its gates or accept arbitrary launcher text, private paths or error messages.
@@ -350,6 +380,38 @@ fn renderer_error_kind(metadata: &Value) -> Option<&'static str> {
 mod tests {
     use super::*;
     use std::sync::Mutex;
+
+    #[test]
+    fn filtered_account_facts_are_closed_and_do_not_claim_pure_standard() {
+        let token = json!({"userSid":"S-1-5-21-1-2-3-1001","ownerSid":"S-1-5-21-1-2-3-1001",
+            "tokenType":1,"sessionId":2,"elevated":false,"elevationType":3,
+            "integrityRid":8192,"uiAccess":false,"isAppContainer":false,
+            "appContainerSid":null,"capabilityCount":0,
+            "administratorsGroupPresentIncludingDenyOnly":true,"administratorsGroupAttributes":16,
+            "privilegeCount":5,"hostDisallowedPrivilegeCount":0,"sandboxDisallowedPrivilegeCount":4,
+            "seDebugPrivilege":{"present":false},"standardUserTokenEvidence":false,
+            "source":"never export this source"});
+        let mut report = json!({"hostToken":token,"hostTokenClass":"filtered-admin",
+            "hostNonElevatedVerified":true,"appContainerSid":"S-1-15-2-1-2-3-4-5-6-7"});
+        for record in [
+            started("request", &report),
+            finished("request", &report, &[], true, false),
+        ] {
+            assert_eq!(record["hostPureStandard"], false);
+            assert_eq!(record["hostTokenClass"], "filtered-admin");
+            assert_eq!(record["hostNonElevatedVerified"], true);
+            assert_eq!(
+                record["hostTokenEvidence"]["administratorsGroupAttributes"],
+                16
+            );
+            assert!(record["childTokenEvidence"].is_null());
+            assert!(record["browserAppContainerSid"].is_null());
+            assert!(!record.to_string().contains("never export"));
+            assert!(record.to_string().len() < MAX_LINE_BYTES);
+        }
+        report["hostTokenClass"] = json!("private unexpected text");
+        assert!(started("request", &report)["hostTokenClass"].is_null());
+    }
 
     #[derive(Default)]
     struct Captured {
