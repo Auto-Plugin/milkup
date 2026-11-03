@@ -75,6 +75,19 @@ jobs:
           $ErrorActionPreference = 'Stop'
           pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
           if ($LASTEXITCODE -ne 0) { throw 'Locked workspace restore failed' }
+          # The frozen old public SDK is intentionally not fetched from npm.
+          # Math's build-only KaTeX input is staged separately, without modifying
+          # any product/plugin manifest or lockfile or weakening archive seals.
+          $mathDependencies = Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-math-input'
+          npm install --prefix $mathDependencies --ignore-scripts --no-audit --no-fund katex@0.19.0
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned KaTeX build input restore failed' }
+          $katex = Join-Path $mathDependencies 'node_modules/katex'
+          if ((Get-Content (Join-Path $katex 'package.json') -Raw | ConvertFrom-Json).version -cne '0.19.0') { throw 'Wrong KaTeX build input' }
+          $mathModules = Join-Path $PWD 'plugins/math/node_modules'
+          New-Item -ItemType Directory -Force -Path $mathModules | Out-Null
+          $katexLink = Join-Path $mathModules 'katex'
+          if (Test-Path -LiteralPath $katexLink) { throw 'Unexpected preexisting math build input' }
+          New-Item -ItemType Junction -Path $katexLink -Target $katex | Out-Null
           node scripts/check-versions.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Product version mismatch' }
           node scripts/ci/prepare-bundled-plugins.mjs
