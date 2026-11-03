@@ -331,6 +331,60 @@ only with failed status. Scripts and actual outputs are retained in
 `windows/partial-evidence-regression/`. No Windows APIs or remote UI were exercised
 by these local collector regressions; the next product run remains necessary.
 
+Run `41649755144` at candidate `27b46adf5de00a1b64c57af726d2f0999ee45943`
+passed compilation/linking and every strict source snapshot. It then passed seven
+actual UI operations: initial disabled source, enable, edit/save/replacement,
+undo, redo, disable/re-enable, and wide rendering. All 13 retained PNGs fully
+decode and match recorded browser RGBA hashes; six diagram PNG hashes match
+successful native completion records (ordinary 448×102, wide 3528×126). Root
+inspected the actual edited graph, enabled output and wide product screenshot:
+Chinese labels/arrows are legible, the edit appears, and wide nodes retain their
+natural size with a horizontal scrollbar. These are real Windows outputs.
+
+Overall acceptance still **failed** on closing the wide document. Ten native
+requests were admitted; nine completed successfully with verified owned-Job,
+IPC, profile and private-tree cleanup. Ordinary-window UI close was verified.
+For the wide window, the drain completed at 14:11:09.084Z, but another request
+was admitted at 14:11:09.121Z during close; the product exited at 14:11:09.345Z
+without that request's completion record. The final gate correctly rejected this.
+C4, invalid syntax and final-disable steps were not reached. The collector retained
+all 26 child files with zero rejections; its 31-file artifact manifest, original ZIP,
+raw log, exact timeline and root visual review are in
+`windows/product-attempt-41649755144/`. Outer Job, exact account/profile/stage
+cleanup all passed independently; none substitutes for the missing native result.
+
+Product investigation identified that confirmation dismissal restores editor
+focus and may schedule rendering, while the old close path disposed temporary
+plugin storage then destroyed the window without awaiting Mermaid owners.
+Frontend fix `b286014b` synchronously closes new-render admission, awaits current
+and previously failed private-owner retirements, and invokes a main-only native
+shutdown before window destruction. Cleanup failure retains the window and can
+be retried; persistent plugin enable/approval preferences are unchanged. Three
+new manager regressions cover late admission, pending work, prior failures and
+retry. The complete desktop suite passes 981 tests plus four module-bootstrap
+tests, and TypeScript passes. Native shutdown and fresh platform UI verification
+remain necessary before claiming the fixed candidate passes.
+
+Native commits `498753e3` and `10d12798` complete the proposed close path:
+registry admission closes under the render-registration lock, owned jobs are
+cancelled and awaited, and uncertain cleanup refuses success. Repeated close
+attempts keep the first shutdown wait deadline; each render retains its original
+deadline. The separate shutdown wait includes six seconds for existing bounded
+teardown operations, not additional rendering time or a claim that synchronous
+Windows APIs have hard duration guarantees. Native admission evidence now starts
+when CREATE_NEW establishes an owned private root; earlier preflight failures
+own no native resources. Every later cancellation follows the same checked cleanup.
+
+A bounded audit barrier drains completed records before exit; dropped records or
+writer failures remain explicit failures. Cancelled/expired work cannot be logged
+as a successful published result. The main-only shutdown command and native exit
+fallback both await this boundary. All 22 portable Rust tests pass, including
+active/queued cancellation, late admission refusal, original deadlines, retry,
+uncertain cleanup and audit backpressure/failure handling. Linux desktop Rust
+checking also passes. These logs and the 981+4 frontend results are retained in
+`shutdown-regression/`. New Linux and Windows product runs are required to validate
+the combined implementation; prior binaries are not relabeled as this build.
+
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
