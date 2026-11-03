@@ -42,6 +42,23 @@ function New-Observation {
 $root = Join-Path ([IO.Path]::GetTempPath()) ('mermaid-token-probe-regression-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root | Out-Null
 try {
+    Case 'actual account description fits Windows 48-character limit and retains the full run identity' {
+        $assignments = @($ast.FindAll({ param($n)
+            $n -is [Management.Automation.Language.AssignmentStatementAst] -and
+            $n.Left -is [Management.Automation.Language.VariableExpressionAst] -and
+            $n.Left.VariablePath.UserPath -ceq 'description'
+        }, $true))
+        Assert-True ($assignments.Count -eq 1) 'Account ownership description must have one explicit constructor'
+        # Exercise the exact reviewed assignment, not a separately copied prefix.
+        $construct = [scriptblock]::Create('param([string]$runId) ' + $assignments[0].Extent.Text + '; return $description')
+        $identities = @('0123456789abcdef0123456789abcdef', 'fedcba9876543210fedcba9876543210')
+        $descriptions = @($identities | ForEach-Object { & $construct $_ })
+        for ($i = 0; $i -lt $identities.Count; $i++) {
+            Assert-True ($descriptions[$i].Length -eq 46 -and $descriptions[$i].Length -le 48) 'Description exceeds the Windows account boundary'
+            Assert-True ($descriptions[$i].EndsWith($identities[$i], [StringComparison]::Ordinal)) 'Full 32-hex run identity was truncated'
+        }
+        Assert-True ($descriptions[0] -cne $descriptions[1]) 'Distinct run ownership identities collapsed'
+    }
     Case 'accept completed observation without asserting identical runtime privilege-use flags' { Assert-TokenProbeObservation (New-Observation) 101 }
     foreach ($name in @('diagnosticOnly', 'hostPolicyAccepted', 'creationTimeJobVerified', 'parentAndSelfIdentityMatch')) {
         Case "reject missing or false $name" {

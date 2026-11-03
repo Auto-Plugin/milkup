@@ -412,7 +412,7 @@ $EvidenceDirectory = [IO.Path]::GetFullPath($EvidenceDirectory)
 Assert-Contained $EvidenceDirectory $env:RUNNER_TEMP
 New-OwnedDirectory $EvidenceDirectory
 $runId = [guid]::NewGuid().ToString('N'); $accountName = 'mkmt' + $runId.Substring(0, 14)
-$description = 'Mermaid token probe ' + $runId
+$description = 'Mermaid probe ' + $runId
 $stageParent = Join-Path $repository '.tmp'
 New-Item -ItemType Directory -Force -Path $stageParent | Out-Null
 Assert-PlainPath $stageParent
