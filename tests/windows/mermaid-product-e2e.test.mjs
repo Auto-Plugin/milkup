@@ -671,3 +671,158 @@ test('confirmation polling never resets or accepts an exit beyond the original c
   assert(!fixture.calls.includes('owned-kill'), 'Already exited product is never killed')
   assert.equal(fixture.record.closedByUi, false)
 })
+
+test('timely owned exit stays timely when a closing query completes after the deadline', async (t) => {
+  let now = 0,
+    alive = true,
+    observedExit
+  t.mock.method(performance, 'now', () => now)
+  const exit = new AbortController()
+  const result = await waitForOwnedExit(
+    () => alive,
+    20,
+    1,
+    async () => {
+      now = 5
+      observedExit = now
+      alive = false
+      exit.abort()
+      // A closing WebDriver response may arrive long after the actual exit.
+      now = 30
+    },
+    { exitedAt: () => observedExit, exitSignal: exit.signal },
+  )
+  assert.equal(result, true)
+})
+
+test('owned exit interrupts a stalled confirmation request without awaiting its normal timeout', async (t) => {
+  let now = 0,
+    alive = true,
+    observedExit,
+    queryAborted = false
+  t.mock.method(performance, 'now', () => now)
+  const exit = new AbortController()
+  const result = await waitForOwnedExit(
+    () => alive,
+    1000,
+    1,
+    (signal) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener(
+          'abort',
+          () => {
+            queryAborted = true
+            reject(signal.reason)
+          },
+          { once: true },
+        )
+        queueMicrotask(() => {
+          now = 5
+          observedExit = now
+          alive = false
+          exit.abort()
+        })
+      }),
+    { exitedAt: () => observedExit, exitSignal: exit.signal },
+  )
+  assert.equal(result, true)
+  assert.equal(queryAborted, true)
+})
+
+test('the original exit budget aborts a stalled request while the owned process remains alive', async (t) => {
+  let now = 0,
+    queryAborted = false
+  t.mock.method(performance, 'now', () => now)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const waiting = waitForOwnedExit(
+    () => true,
+    15,
+    1,
+    (signal) =>
+      new Promise((_resolve, reject) => {
+        signal.addEventListener(
+          'abort',
+          () => {
+            queryAborted = true
+            reject(signal.reason)
+          },
+          { once: true },
+        )
+      }),
+  )
+  now = 15
+  t.mock.timers.tick(15)
+  assert.equal(await waiting, false)
+  assert.equal(queryAborted, true)
+})
+
+test('a recorded owned exit after the original budget remains a failure', async (t) => {
+  let now = 0,
+    alive = true,
+    observedExit
+  t.mock.method(performance, 'now', () => now)
+  const exit = new AbortController()
+  const result = await waitForOwnedExit(
+    () => alive,
+    20,
+    1,
+    async () => {
+      now = 21
+      observedExit = now
+      alive = false
+      exit.abort()
+    },
+    { exitedAt: () => observedExit, exitSignal: exit.signal },
+  )
+  assert.equal(result, false)
+})
+
+test('confirmation errors unrelated to an owned exit are retained and pending observation is aborted', async () => {
+  let observedSignal
+  await assert.rejects(
+    waitForOwnedExit(
+      () => true,
+      1000,
+      1,
+      async (signal) => {
+        observedSignal = signal
+        throw Error('Exact fixture identity mismatch')
+      },
+    ),
+    /Exact fixture identity mismatch/,
+  )
+  assert.equal(observedSignal.aborted, true)
+})
+
+test('an interrupted query without an owned exit is never accepted as process completion', async () => {
+  const exit = new AbortController()
+  exit.abort()
+  assert.equal(
+    await waitForOwnedExit(() => true, 1000, 1, undefined, { exitSignal: exit.signal }),
+    false,
+  )
+})
+
+test('a continuation beyond the original deadline cannot dispatch discard before its timer runs', async (t) => {
+  let now = 0,
+    dispatched = false,
+    querySignal
+  t.mock.method(performance, 'now', () => now)
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const result = await waitForOwnedExit(
+    () => true,
+    15,
+    1,
+    async (signal, checkpoint) => {
+      querySignal = signal
+      now = 16
+      // An I/O continuation is ready, but the timer has deliberately not fired.
+      assert.equal(signal.aborted, false)
+      checkpoint()
+      dispatched = true
+    },
+  )
+  assert.equal(result, false)
+  assert.equal(dispatched, false)
+  assert.equal(querySignal.aborted, true)
+})

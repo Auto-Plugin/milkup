@@ -319,18 +319,64 @@ export async function waitForNativeJobs(
   return ledger.verifyAll(productPid)
 }
 
-export async function waitForOwnedExit(isAlive, timeoutMs, pollIntervalMs = 100, whileWaiting) {
+export async function waitForOwnedExit(
+  isAlive,
+  timeoutMs,
+  pollIntervalMs = 100,
+  whileWaiting,
+  { exitedAt = () => undefined, exitSignal } = {},
+) {
   const deadline = performance.now() + timeoutMs
-  while (isAlive()) {
-    const remaining = deadline - performance.now()
-    if (remaining <= 0) return false
-    if (whileWaiting) await whileWaiting()
-    const afterObservation = deadline - performance.now()
-    if (afterObservation <= 0) return false
-    if (!isAlive()) return true
-    await delay(Math.min(pollIntervalMs, afterObservation))
+  const controller = new AbortController()
+  const signal = exitSignal ? AbortSignal.any([controller.signal, exitSignal]) : controller.signal
+  let stopped
+  const interruption = new Promise((resolve) => {
+    stopped = resolve
+    if (signal.aborted) resolve()
+    else signal.addEventListener('abort', stopped, { once: true })
+  })
+  const timer = setTimeout(() => controller.abort(), Math.max(0, timeoutMs))
+  const checkpoint = () => {
+    // Timer delivery may lag a ready I/O continuation. Never dispatch another
+    // observation or discard action merely because its timer has not run yet.
+    if (performance.now() >= deadline) controller.abort()
+    signal.throwIfAborted()
   }
-  return true
+  const result = () => {
+    const observedExit = exitedAt()
+    // Use the directly spawned child's exit-event timestamp, not the time a
+    // closing WebDriver query eventually returns. A late exit remains a failure.
+    if (observedExit !== undefined) {
+      assert(Number.isFinite(observedExit), 'Monotonic owned exit timestamp required')
+      return observedExit <= deadline
+    }
+    if (!isAlive()) return performance.now() <= deadline
+    if (performance.now() >= deadline || signal.aborted) return false
+    return undefined
+  }
+  try {
+    for (;;) {
+      let outcome = result()
+      if (outcome !== undefined) return outcome
+      if (whileWaiting) {
+        try {
+          await Promise.race([whileWaiting(signal, checkpoint), interruption])
+        } catch (error) {
+          if (!signal.aborted || error !== signal.reason) throw error
+        }
+      }
+      outcome = result()
+      if (outcome !== undefined) return outcome
+      await Promise.race([
+        delay(Math.min(pollIntervalMs, Math.max(0, deadline - performance.now()))),
+        interruption,
+      ])
+    }
+  } finally {
+    clearTimeout(timer)
+    signal.removeEventListener('abort', stopped)
+    controller.abort()
+  }
 }
 
 // Both successful and failed test paths give admitted native jobs a bounded
@@ -750,23 +796,27 @@ export async function main() {
     }
     throw Error('Timed out: ' + label)
   }
-  const request = async (method, route, body) => {
+  const request = async (method, route, body, signal) => {
     report.lastRequest = { method, route, at: new Date().toISOString() }
     const response = await fetch(`http://127.0.0.1:${driverPort}${route}`, {
       method,
       headers: { 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(route === '/session' ? 60000 : 30000),
+      signal: AbortSignal.any([
+        AbortSignal.timeout(route === '/session' ? 60000 : 30000),
+        ...(signal ? [signal] : []),
+      ]),
     })
     const value = await response.json()
     assert(response.ok && !value.value?.error, `${method} ${route}: ${JSON.stringify(value)}`)
     return value.value ?? value
   }
-  const execute = (script, ...args) =>
-    request('POST', `/session/${session}/execute/sync`, { script, args })
+  const executeWithSignal = (signal, script, ...args) =>
+    request('POST', `/session/${session}/execute/sync`, { script, args }, signal)
+  const execute = (script, ...args) => executeWithSignal(undefined, script, ...args)
   const executeAsync = (script, ...args) =>
     request('POST', `/session/${session}/execute/async`, { script, args })
-  const state = () => execute(observe)
+  const state = (signal) => executeWithSignal(signal, observe)
   const identityBirths = new Map()
   const observeProcesses = async (includeProduct = true) => {
     const expected = new Map([
@@ -809,9 +859,12 @@ export async function main() {
     })
   }
   const control = (value) => keys(value, '\uE009')
-  const pointer = async (selector, left = false, beforeClick) => {
+  const pointer = async (selector, left = false, beforeClick, signal, checkpoint) => {
     for (let attempt = 0; attempt < 24; attempt++) {
-      const target = await execute(
+      checkpoint?.()
+      signal?.throwIfAborted()
+      const target = await executeWithSignal(
+        signal,
         `const e=document.querySelector(arguments[0]);if(!e)return null;const r=e.getBoundingClientRect(),x=arguments[1]?r.left+Math.min(8,r.width/2):(r.left+r.right)/2,y=(r.top+r.bottom)/2;
 let parent=e.parentElement;while(parent&&!(parent.scrollHeight>parent.clientHeight+1&&/(auto|scroll)/.test(getComputedStyle(parent).overflowY)))parent=parent.parentElement;
 const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);return {x,y,rect:r.toJSON(),disabled:!!e.disabled,hit:!!hit&&(e===hit||e.contains(hit)),scroll:p?{x:(p.left+p.right)/2,y:(p.top+p.bottom)/2,top:p.top,bottom:p.bottom}:null}`,
@@ -821,6 +874,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       assert(target && !target.disabled, 'Visible enabled UI target: ' + selector)
       if (target.hit && target.rect.width > 0 && target.rect.height > 0) {
         if (beforeClick) await beforeClick()
+        checkpoint?.()
+        signal?.throwIfAborted()
         report.inputs.push({
           at: new Date().toISOString(),
           kind: 'W3C-pointer-actions',
@@ -828,49 +883,60 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           x: target.x,
           y: target.y,
         })
-        await request('POST', `/session/${session}/actions`, {
-          actions: [
-            {
-              type: 'pointer',
-              id: 'mouse',
-              parameters: { pointerType: 'mouse' },
-              actions: [
-                {
-                  type: 'pointerMove',
-                  origin: 'viewport',
-                  x: Math.round(target.x),
-                  y: Math.round(target.y),
-                  duration: 50,
-                },
-                { type: 'pointerDown', button: 0 },
-                { type: 'pointerUp', button: 0 },
-              ],
-            },
-          ],
-        })
-        return
-      }
-      assert(target.scroll, 'UI target has a scrollable parent')
-      await request('POST', `/session/${session}/actions`, {
-        actions: [
+        await request(
+          'POST',
+          `/session/${session}/actions`,
           {
-            type: 'wheel',
-            id: 'wheel',
             actions: [
               {
-                type: 'scroll',
-                origin: 'viewport',
-                x: Math.round(target.scroll.x),
-                y: Math.round(target.scroll.y),
-                deltaX: 0,
-                deltaY: target.y < target.scroll.top ? -180 : 180,
-                duration: 150,
+                type: 'pointer',
+                id: 'mouse',
+                parameters: { pointerType: 'mouse' },
+                actions: [
+                  {
+                    type: 'pointerMove',
+                    origin: 'viewport',
+                    x: Math.round(target.x),
+                    y: Math.round(target.y),
+                    duration: 50,
+                  },
+                  { type: 'pointerDown', button: 0 },
+                  { type: 'pointerUp', button: 0 },
+                ],
               },
             ],
           },
-        ],
-      })
-      await delay(150)
+          signal,
+        )
+        return
+      }
+      assert(target.scroll, 'UI target has a scrollable parent')
+      checkpoint?.()
+      await request(
+        'POST',
+        `/session/${session}/actions`,
+        {
+          actions: [
+            {
+              type: 'wheel',
+              id: 'wheel',
+              actions: [
+                {
+                  type: 'scroll',
+                  origin: 'viewport',
+                  x: Math.round(target.scroll.x),
+                  y: Math.round(target.scroll.y),
+                  deltaX: 0,
+                  deltaY: target.y < target.scroll.top ? -180 : 180,
+                  duration: 150,
+                },
+              ],
+            },
+          ],
+        },
+        signal,
+      )
+      await delay(150, undefined, { signal })
     }
     assert.fail('Could not expose UI target: ' + selector)
   }
@@ -1053,7 +1119,12 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     report.launches.push(launch)
     const current = launch
     product.once('exit', (code, signal) =>
-      Object.assign(current, { exitCode: code, signal, exitedAt: new Date().toISOString() }),
+      Object.assign(current, {
+        exitCode: code,
+        signal,
+        exitedAt: new Date().toISOString(),
+        exitObservedMonotonicMs: performance.now(),
+      }),
     )
     product.once('close', () => {
       current.stdioClosedAt = new Date().toISOString()
@@ -1145,6 +1216,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       record = launch,
       productPid = record.productPid
     const isAlive = () => current.exitCode === null && current.signalCode === null
+    const exitController = new AbortController()
+    const stopExitQueries = () => exitController.abort()
+    current.once('exit', stopExitQueries)
+    if (!isAlive()) stopExitQueries()
     record.teardown = { afterFailure: !successful, ownedProductPid: productPid }
     const evidenceErrors = []
     try {
@@ -1190,29 +1265,47 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           return { realUiCloseRequested: requested }
         },
         waitForExit: () =>
-          waitForOwnedExit(isAlive, 15000, 100, async () => {
-            // flushEdits may expose confirmation after the close click. Keep one
-            // original exit budget instead of restarting it for each observation.
-            if (!session || record.discardedOwnedUnsavedFixture) return
-            const confirm = await execute(
-              `const e=document.querySelector('[data-close-confirm]');return !!e&&!e.hidden&&e.getClientRects().length>0`,
-            ).catch((error) => {
-              record.closeConfirmationDiagnostic = String(error)
-              return false
-            })
-            if (!confirm) return
-            if (successful) {
-              record.unexpectedUnsavedConfirmation = true
-              return
-            }
-            const owned = await state()
-            assert(
-              owned.path && samePath(owned.path, files[active].path),
-              'Only the exact self-authored fixture may be discarded during failed-test cleanup',
-            )
-            await pointer('[data-close-confirm-action="discard"]')
-            record.discardedOwnedUnsavedFixture = true
-          }),
+          waitForOwnedExit(
+            isAlive,
+            15000,
+            100,
+            async (signal, checkpoint) => {
+              // flushEdits may expose confirmation after the close click. Keep one
+              // original exit budget instead of restarting it for each observation.
+              if (!session || record.discardedOwnedUnsavedFixture) return
+              checkpoint()
+              const confirm = await executeWithSignal(
+                signal,
+                `const e=document.querySelector('[data-close-confirm]');return !!e&&!e.hidden&&e.getClientRects().length>0`,
+              ).catch((error) => {
+                record.closeConfirmationDiagnostic = String(error)
+                return false
+              })
+              checkpoint()
+              if (!confirm) return
+              if (successful) {
+                record.unexpectedUnsavedConfirmation = true
+                return
+              }
+              const owned = await state(signal)
+              assert(
+                owned.path && samePath(owned.path, files[active].path),
+                'Only the exact self-authored fixture may be discarded during failed-test cleanup',
+              )
+              await pointer(
+                '[data-close-confirm-action="discard"]',
+                false,
+                undefined,
+                signal,
+                checkpoint,
+              )
+              record.discardedOwnedUnsavedFixture = true
+            },
+            {
+              exitedAt: () => record.exitObservedMonotonicMs,
+              exitSignal: exitController.signal,
+            },
+          ),
         forceStop: async () => {
           // Validate only this product, even if the failed driver's process is gone.
           const { stdout } = await promisify(execFile)(
@@ -1280,6 +1373,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     } catch (error) {
       teardownFailure = error
     } finally {
+      current.removeListener('exit', stopExitQueries)
+      stopExitQueries()
       record.closedByUi = record.teardown.closedByUi === true
       try {
         await writeFile(
