@@ -25,10 +25,10 @@ adjustment, account switch, UAC change or desktop-ACL change is introduced into
 the product. Suspended helper, child self-check and browser token observations
 must verify low integrity, no administrative authority, zero capabilities,
 the same user/session and exact fresh AppContainer identity before proceeding.
-The helper/browser must also report Default elevation type, which has no linked
-token. Limited remains valid only for the host. A Limited-container combination
-has not been specifically verified here; rejecting it is conservative scope,
-not a claim that a vulnerability was discovered.
+The first candidate additionally required Default elevation type in the helper
+and browser, using its lack of a linked token as a conservative proxy. The
+subsequent isolated diagnostic below establishes why this proxy must be replaced
+by an actual identification-only token check for the supported Limited case.
 Elevated, UAC-disabled/default-admin and unrecognized tokens remain unsupported.
 
 Independent review found no need to add `CreateRestrictedToken` or
@@ -112,3 +112,45 @@ facts from this attempt. Both owned staging directories were removed, and no
 account, profile or native supervisor had been created. The correction shortens
 only the description prefix while retaining the complete unique run ID and exact
 ownership comparison; it does not change rendering admission.
+
+### Completed isolated diagnostic and revised implementation basis
+
+[Run 41683336878](https://github.com/Auto-Plugin/milkup/actions/runs/41683336878)
+tested `0783bd63aa92bef8908df8dd0ea3aa157b82ff2b` successfully. Both fresh-account
+native probes completed, with exact identity, process, Job, IPC, AppContainer,
+profile, account, group and staging cleanup proofs. The root independently
+checked the 25,239-byte ZIP against the API SHA-256
+`35c81f01539b1a6cc86f24a6f8c0d1f52716c494a2d0aefe6ca91e9516b619dd`
+and every one of the 19 original file records in its manifest. The archive has
+20 files including the manifest. [Original observations](token-attempt-41683336878/README.md)
+remain unchanged.
+
+Both parent and AppContainer-self views directly observed exactly
+`SeChangeNotifyPrivilege` (attributes 3) and `SeIncreaseWorkingSetPrivilege`
+(attributes 0). Standard containers were Default; both linked queries returned
+Win32 1312. Filtered containers were Limited, low integrity, zero capability,
+and administrator deny-only. Their linked handles had actual access `0xF01FF`,
+not QUERY-only. All three fixed handle-copy requests succeeded with actual
+rights 10, 9 and 12. Every linked target remained `TokenImpersonation` (2) at
+`SecurityIdentification` (1). Its high integrity, Full elevation, session 0 and
+administrative privileges were preserved as observations, not misrepresented as
+the current container's execution authority. No impersonation, token adjustment,
+COM, WebView, JavaScript or document execution occurred in this diagnostic.
+
+The implementation is being revised around the identification-level constraint,
+not the presence or absence of handle-copy rights. Windows documents that this
+level cannot impersonate, cannot be copied to a higher level or a primary token,
+and token type cannot be changed in place. These are the relevant constraints
+even when the handle has ALL_ACCESS. The product will query and close handles,
+without importing the test-only duplication experiments. The current executing
+helper/browser must still pass the original low-integrity, zero-capability,
+same-user/session/fresh-AppContainer checks and the exact ordinary privilege
+list. Native helper-self and browser observations from inside the AppContainer,
+plus independent coordinator HANDLE/Job observations, must precede document
+delivery. Missing, unknown or usable linked targets must fail closed.
+
+Primary references: [impersonation-level requirements](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-impersonateloggedonuser),
+[token-copy restrictions](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwduplicatetoken),
+[token type is fixed at creation](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-settokeninformation#remarks).
+This successful diagnostic is not product rendering acceptance. Actual Windows
+body PNGs, close behavior and C4 output still require the next product run.
