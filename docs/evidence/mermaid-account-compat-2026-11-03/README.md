@@ -229,3 +229,33 @@ remain failed. Neither the prior standard pass nor this administrator pass can
 be combined into a passed two-account run. The next change records bounded
 cleanup stages and numeric deletion facts while retaining strict EOF, ownership
 and cleanup requirements; complete two-account product acceptance remains due.
+
+### Observed deletion error: Win32 5 with clean IPC
+
+[Run 41699494037](https://github.com/Auto-Plugin/milkup/actions/runs/41699494037)
+tested `b2415e9ec06ac6a5defcac2833de81840a61b007` and **failed**. The standard
+account passed its first five steps and published four verified diagram PNGs,
+then failed step 06 on re-enabling diagrams. This failure has one cleanup kind,
+`private-tree-delete`: the first removal call returned Win32 5 (access denied)
+with zero recorded elapsed milliseconds. No retry or final absence check ran.
+All three IPC threads completed without cancellation; stdout and stderr reached
+normal EOF, stdin finished writing, the owned Job was empty and the native
+profile was deleted. The cleanup timeline records Job stop at 15 ms, IPC and
+pin release at 21 ms, profile deletion at 26 ms and the failed tree removal at
+26 ms. This does not establish which file failed or why Windows denied deletion.
+
+The administrator again passed all ten steps, seven diagram PNGs, four natural
+closes and twelve finished native jobs. Outer cleanup for both accounts passed,
+without overriding the standard account's internal failure. Its product process
+required the recorded SIGTERM fallback and did not pass its natural-close check.
+The
+72 files and 28 PNGs are retained in
+[this attempt's evidence](attempt-41699494037/README.md). Neither this run nor its
+normal IPC proves the cause of the older Win32 995 cancellations.
+
+The next candidate evaluates repeating the same owned-tree removal on error 5
+within the existing 31-call / three-second limits. It must still establish real
+removal and independent absence; persistent access denial remains a failure.
+It introduces no ACL/attribute modification or alternative deletion API. This
+is bounded recovery for an observed failure mode, not proof of a transient lock
+or permission-root-cause diagnosis, and requires new full product acceptance.
