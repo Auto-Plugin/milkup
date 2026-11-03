@@ -24,6 +24,9 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 mod appearance_theme;
 mod appearance_theme_store;
 mod native_search;
+mod private_mermaid;
+#[cfg(target_os = "linux")]
+pub mod private_mermaid_linux;
 pub mod output;
 mod piece_tree;
 mod plugin_catalog;
@@ -1012,6 +1015,7 @@ pub fn run() {
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
         .manage(SidecarRegistry::default())
         .manage(plugin_dom::DomRegistry::default())
+        .manage(milkup_mermaid_engine::Registry::default())
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
         .manage(updates::UpdateService::default())
@@ -1029,6 +1033,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            private_mermaid::private_mermaid_render,
+            private_mermaid::private_mermaid_cancel,
+            private_mermaid::private_mermaid_release,
+            private_mermaid::private_mermaid_retire_owner,
             appearance_theme::appearance_theme_load,
             appearance_theme::appearance_theme_read_candidate,
             appearance_theme::appearance_theme_commit_candidate,
@@ -1134,6 +1142,7 @@ pub fn run() {
         .run(|app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
                 app.state::<plugin_dom::DomRegistry>().stop_all();
+                app.state::<milkup_mermaid_engine::Registry>().stop_all();
             }
         });
 }
