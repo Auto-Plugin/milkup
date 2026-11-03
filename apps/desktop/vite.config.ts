@@ -20,6 +20,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@milkup/core/internal/document-png-image': fileURLToPath(
+        new URL('../../packages/core/src/document-png-image.ts', import.meta.url),
+      ),
       '@milkup/assets': packageSource('assets'),
       '@milkup/core': packageSource('core'),
       '@milkup/input': packageSource('input'),

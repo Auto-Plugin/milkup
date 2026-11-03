@@ -5,6 +5,7 @@ import { moveDesktopFocus, restoreDesktopFocus } from './desktop-focus'
 import { TitlebarMenu, isTitlebarDragGesture } from './titlebar-menu'
 import { locateDocumentPresentationTarget } from './document-navigation'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
+import { REVIEWED_MERMAID_PACKAGE } from './reviewed-mermaid-package'
 import { createDesktopOutputService } from './output-service'
 import {
   renderDesktopPluginManagerElement,
@@ -1495,9 +1496,17 @@ const desktopOutput = createDesktopOutputService({
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
+  ...(isTauriRuntime()
+    ? {
+        privateMermaid: { invoke: recoveryInvoke, reviewed: REVIEWED_MERMAID_PACKAGE },
+      }
+    : {}),
   reservedPluginIds: ['milkup.updates'],
   bundledUpgradeSources: {
-    'milkup.diagrams': ['bundled:milkup.diagrams-1.1.1.milkup-plugin'],
+    'milkup.diagrams': [
+      'bundled:milkup.diagrams-1.1.1.milkup-plugin',
+      'bundled:milkup.diagrams-1.2.0.milkup-plugin',
+    ],
     'milkup.formatting': ['bundled:milkup.formatting-1.0.0.milkup-plugin'],
   },
   executionUnavailableReason: (manifest) =>

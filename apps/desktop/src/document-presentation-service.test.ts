@@ -6,6 +6,11 @@ import {
 } from '@milkup/core'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
 import { parseMarkdownWindow } from '@milkup/markdown'
+import {
+  createDocumentPngImage,
+  disposeDocumentPngImages,
+  documentPngResourceStats,
+} from '@milkup/core/internal/document-png-image'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -31,6 +36,12 @@ function fixture(text = 'Hello $x$\n') {
   return { doc, source, window }
 }
 const declaration = { id: 'extension', pluginId: 'test', contexts: ['text'] as const }
+const tinyPng = Uint8Array.from(
+  Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+)
 function result(request: DocumentPresentationRequest) {
   const from = request.source.indexOf('$')
   return {
@@ -47,6 +58,37 @@ function result(request: DocumentPresentationRequest) {
   }
 }
 describe('desktop document presentation service', () => {
+  it.each(['accepted', 'revoked', 'conflict'] as const)(
+    'accounts private PNG ownership for %s provider results',
+    async (mode) => {
+      const { doc, source, window } = fixture('hello\n')
+      const release = vi.fn()
+      let generation = 1
+      const service = createDesktopDocumentPresentationService({
+        current: () => ({ source, identity: doc }),
+        theme: () => 'light',
+        rendererGeneration: () => generation,
+        renderers: () =>
+          mode === 'conflict' ? [declaration, { ...declaration, id: 'other' }] : [declaration],
+        render: async () => {
+          const content = createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release })
+          if (mode === 'revoked') generation++
+          return {
+            complete: true,
+            fragments: [{ from: 0, to: 5, layout: 'block', accessibleText: 'diagram', content }],
+          }
+        },
+      })
+      const response = await service.provide(window, { signal: new AbortController().signal })
+      if (mode === 'accepted') {
+        expect(release).not.toHaveBeenCalled()
+        expect(response.result.fragments).toHaveLength(1)
+        disposeDocumentPngImages(response.result)
+      } else expect(response.result.fragments).toHaveLength(0)
+      expect(release).toHaveBeenCalledTimes(mode === 'conflict' ? 2 : 1)
+      expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+    },
+  )
   it.each(['text', 'fence'] as const)(
     'preserves explicit %s provider preparation in the aggregate',
     async (kind) => {

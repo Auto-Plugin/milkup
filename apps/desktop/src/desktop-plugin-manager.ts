@@ -10,6 +10,8 @@ import {
   Trash2,
 } from 'lucide'
 import { iconSvg } from './icons'
+import { disposeDocumentPngImages } from '@milkup/core/internal/document-png-image'
+import { createPrivateMermaidOwner, type PrivateMermaidInvoke } from './private-mermaid-service'
 import type {
   ActionContext,
   ActionDefinition,
@@ -225,6 +227,16 @@ export interface DesktopPluginKeymapContext {
 }
 
 export interface DesktopPluginManagerOptions {
+  /** Closed desktop implementation; never supplied by a plugin manifest or RPC. */
+  readonly privateMermaid?: {
+    readonly invoke: PrivateMermaidInvoke
+    readonly reviewed: {
+      readonly pluginId: string
+      readonly rendererId: string
+      readonly manifestSha256: string
+      readonly contentSha256: string
+    }
+  }
   readonly catalog?: DesktopPluginCatalog
   /** Host-owned built-ins cannot also run as plugins; retained catalog/data are never removed. */
   readonly reservedPluginIds?: readonly string[]
@@ -367,6 +379,15 @@ export class ReservedPluginMigrationError extends Error {
 }
 
 export class DesktopPluginManager {
+  private readonly privateMermaid: DesktopPluginManagerOptions['privateMermaid']
+  private readonly mermaidOwners = new Map<
+    string,
+    {
+      readonly epoch: number
+      readonly generation: string
+      readonly owner: ReturnType<typeof createPrivateMermaidOwner>
+    }
+  >()
   private readonly catalog: DesktopPluginCatalog | undefined
   private readonly reservedPluginIds: ReadonlySet<string>
   private readonly hostPermissions: ReadonlySet<string>
@@ -456,6 +477,7 @@ export class DesktopPluginManager {
   readonly ready: Promise<void>
 
   constructor(options: DesktopPluginManagerOptions) {
+    this.privateMermaid = options.privateMermaid
     this.catalog = options.catalog
     this.reservedPluginIds = new Set(options.reservedPluginIds ?? [])
     this.bundledUpgradeSources = new Map(
@@ -1628,9 +1650,76 @@ export class DesktopPluginManager {
     pluginId: string,
     rendererId: string,
     request: DocumentPresentationRequest,
-    options: { readonly signal?: AbortSignal } = {},
+    options: { readonly signal?: AbortSignal; readonly deadline?: number } = {},
   ): Promise<DocumentPresentationResult> {
+    const config = this.privateMermaid
+    if (
+      config &&
+      request.target === 'screen' &&
+      pluginId === config.reviewed.pluginId &&
+      rendererId === config.reviewed.rendererId
+    ) {
+      const current = () => {
+        const entry = this.catalogEntry(pluginId)
+        const active = entry?.active
+        const gate = this.activationGates.get(pluginId)
+        const epoch = this.activationEpochs.get(pluginId)
+        if (
+          !this.catalog ||
+          !entry?.enabled ||
+          entry.tombstone ||
+          !active?.verified ||
+          active.approvedFingerprint !== active.capabilityFingerprint ||
+          active.manifestSha256 !== config.reviewed.manifestSha256 ||
+          active.contentSha256 !== config.reviewed.contentSha256 ||
+          this.publishedGenerations.get(pluginId) !== active.id ||
+          !gate?.committed ||
+          gate.epoch !== epoch ||
+          this.runtime.getPlugin(pluginId)?.state !== 'enabled' ||
+          !this.state().contributions.documentRenderers?.some(
+            (renderer) => renderer.pluginId === pluginId && renderer.id === rendererId,
+          )
+        )
+          return undefined
+        return { generation: active.id, epoch: epoch! }
+      }
+      const identity = current()
+      // Other independently installed packages continue through their existing
+      // bounded renderer. The private engine never receives their input.
+      if (identity) {
+        let owned = this.mermaidOwners.get(pluginId)
+        if (!owned || owned.epoch !== identity.epoch || owned.generation !== identity.generation) {
+          this.retireMermaidOwner(pluginId)
+          owned = { ...identity, owner: createPrivateMermaidOwner(config.invoke) }
+          this.mermaidOwners.set(pluginId, owned)
+        }
+        const result = await owned.owner.render(request, options)
+        const after = current()
+        if (
+          !after ||
+          after.epoch !== identity.epoch ||
+          after.generation !== identity.generation ||
+          options.signal?.aborted ||
+          this.mermaidOwners.get(pluginId) !== owned
+        ) {
+          disposeDocumentPngImages(result)
+          throw new Error('Private Mermaid activation was revoked')
+        }
+        return result
+      }
+    }
     return this.runtime.renderDocument(pluginId, rendererId, request, options)
+  }
+
+  private retireMermaidOwner(pluginId: string): void {
+    const owned = this.mermaidOwners.get(pluginId)
+    if (!owned) return
+    this.mermaidOwners.delete(pluginId)
+    const retired = owned.owner.retire()
+    void retired.catch(() => undefined)
+    const operations = this.retiringOperations.get(pluginId) ?? []
+    operations.push(() => owned.owner.retire())
+    this.retiringOperations.set(pluginId, operations)
   }
 
   /** Host-only instance identity for bounded presentation preparation. */
@@ -2400,6 +2489,7 @@ export class DesktopPluginManager {
     kind: 'renderer-timeout' | 'execution-host' = 'renderer-timeout',
   ): void {
     if (this.activationEpochs.get(pluginId) !== epoch) return
+    this.retireMermaidOwner(pluginId)
     this.activationEpochs.set(pluginId, epoch + 1)
     const published = this.publishedGenerations.get(pluginId)
     this.publishedGenerations.delete(pluginId)
@@ -2455,6 +2545,7 @@ export class DesktopPluginManager {
   }
 
   private revokeExecutionEpoch(pluginId: string): void {
+    this.retireMermaidOwner(pluginId)
     this.activationEpochs.set(pluginId, (this.activationEpochs.get(pluginId) ?? 0) + 1)
     const gate = this.activationGates.get(pluginId)
     if (gate) gate.committed = false

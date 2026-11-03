@@ -26,6 +26,7 @@ import {
   type DesktopPluginModuleCapabilities,
 } from './desktop-plugin-manager'
 import { readFileSync } from 'node:fs'
+import { webcrypto } from 'node:crypto'
 import type {
   DesktopPluginCatalog,
   PluginCatalogSnapshot,
@@ -216,6 +217,130 @@ class Catalog implements DesktopPluginCatalog {
     return this.read()
   }
 }
+
+describe('private fixed Mermaid package authorization', () => {
+  async function renderer(contentHash = '1'.repeat(64)) {
+    const catalog = new Catalog()
+    const invoke = vi.fn(async (command: string) => {
+      if (command === 'private_mermaid_render') throw Error('native-probe')
+      return null
+    })
+    const pkg = {
+      ...archive('1.3.0', ['document:read']),
+      manifest: {
+        ...manifest('1.3.0', ['document:read']),
+        contributes: {
+          documentRenderers: [
+            { id: 'diagram', contexts: ['fence'] as const, fenceLanguages: ['mermaid'] },
+          ],
+        },
+      },
+    }
+    const manager = new DesktopPluginManager({
+      catalog,
+      actionRegistry: new ActionRegistry(),
+      permissions: ['document:read'],
+      milkupVersion: '2.0.0',
+      pluginSdkVersion: '0.3.7',
+      privateMermaid: {
+        invoke,
+        reviewed: {
+          pluginId: 'test.lifecycle',
+          rendererId: 'diagram',
+          manifestSha256: 'a'.repeat(64),
+          contentSha256: contentHash,
+        },
+      },
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(pkg),
+      },
+      loadModule: async () => ({
+        module: {
+          runtimeHost: 'isolated',
+          activate: () => ({
+            documentRenderers: { diagram: () => ({ complete: true, fragments: [] }) },
+          }),
+        },
+        dispose: () => {},
+      }),
+    })
+    await manager.ready
+    await manager.installManifestPath('/test.milkup-plugin')
+    const source = '```mermaid\nflowchart LR\nA-->B\n```\n'
+    const request = {
+      documentId: 'auth-test',
+      version: 1,
+      source,
+      from: 0,
+      to: source.length,
+      fromLine: 1,
+      toLine: 5,
+      completeStart: true,
+      completeEnd: true,
+      contextKnown: true,
+      protectedRanges: [{ from: 0, to: source.length }],
+      blocks: [
+        {
+          kind: 'fence' as const,
+          from: 0,
+          to: source.length,
+          complete: true,
+          info: 'mermaid',
+          contentRanges: [{ from: 11, to: source.indexOf('```', 3) }],
+        },
+      ],
+      selection: { anchor: source.length, head: source.length },
+      theme: 'light' as const,
+      target: 'screen' as const,
+      width: 640,
+    }
+    return { manager, invoke, request, catalog }
+  }
+  it('requires committed activation and exact code seals, while export retains the plugin path', async () => {
+    vi.stubGlobal('crypto', webcrypto)
+    const s = await renderer()
+    try {
+      await s.manager.renderDocument('test.lifecycle', 'diagram', s.request).catch(() => {})
+      expect(s.invoke).not.toHaveBeenCalled()
+      await s.manager.enableFromUserIntent('test.lifecycle')
+      await expect(
+        s.manager.renderDocument('test.lifecycle', 'diagram', s.request),
+      ).rejects.toThrow('native-probe')
+      expect(
+        s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
+      ).toHaveLength(1)
+      await s.manager.renderDocument('test.lifecycle', 'diagram', {
+        ...s.request,
+        target: 'export',
+      })
+      expect(
+        s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
+      ).toHaveLength(1)
+      await s.manager.disable('test.lifecycle')
+      await s.manager.renderDocument('test.lifecycle', 'diagram', s.request).catch(() => {})
+      expect(
+        s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
+      ).toHaveLength(1)
+      expect(
+        s.invoke.mock.calls.some(([command]) => command === 'private_mermaid_retire_owner'),
+      ).toBe(true)
+    } finally {
+      await s.manager.disable('test.lifecycle')
+      vi.unstubAllGlobals()
+    }
+  })
+  it('does not authorize a same-ID same-permission package with different content', async () => {
+    const s = await renderer('f'.repeat(64))
+    try {
+      await s.manager.enableFromUserIntent('test.lifecycle')
+      await s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
+      expect(s.invoke).not.toHaveBeenCalled()
+    } finally {
+      await s.manager.disable('test.lifecycle')
+    }
+  })
+})
 function setup(
   options: { activate?: (version: string, context: any) => unknown; storage?: Storage } = {},
 ) {
