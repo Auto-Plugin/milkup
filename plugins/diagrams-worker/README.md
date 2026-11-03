@@ -1,9 +1,11 @@
-# 流程图与时序图（受限语法）
+# Mermaid 图表（导出受限）
 
-这是 Windows 的独立 Worker 归档，插件 ID 为 `milkup.diagrams`，版本为 `1.2.0`。
-Linux 继续使用 `plugins/diagrams` 的完整官方 Mermaid DOM 插件；本包不改变 DOM 平台门禁，不提供 DOM fallback，不声称支持完整 Mermaid。
+这是 Linux 和 Windows 的 Worker 归档，插件 ID 为 `milkup.diagrams`，版本为 `1.3.0`。
+配套桌面程序在正文中使用私有 Mermaid **12.2.0** 原生引擎。只有确切审查过、经正常目录启用且仍处于当前 activation epoch 的包才能触发该分派；公开 SDK 没有新增原生能力。macOS 仍分发 `plugins/diagrams` 的 DOM 1.1.1，本包不改变 DOM 平台门禁。
 
-在 `mermaid` 代码围栏内，支持：
+本目录的 Worker 本身仍是受限静态编译器，用于导出以及没有该私有引擎分派的宿主。独立重新构建的归档不自动获得原生分派资格。正文原生端到端与 Windows 验收需由具体桌面候选的证据确认，不能从本插件的单元测试推断。
+
+Worker 和导出在 `mermaid` 代码围栏内支持：
 
 - `flowchart TD` / `TB` / `LR` 或 `graph`：矩形 `A[文字]`、圆角矩形 `A(文字)`、菱形 `A{文字}`；`A --> B`、`A -->|文字| B`；中文和 emoji 纯文本标签。图必须无环，边连接相邻布局层。支持基础分支及合并，不支持跳层连线。
 - `sequenceDiagram`：隐式参与者或 `participant A as 别名`，普通消息 `A->>B: 文字` 和虚线返回 `B-->>A: 文字`。
@@ -14,7 +16,7 @@ Linux 继续使用 `plugins/diagrams` 的完整官方 Mermaid DOM 插件；本�
 
 每个图最多 8192 UTF-16 字符、128 行；流程图最多 20 节点、32 边，时序图最多 6 参与者、16 消息。标签最多 24 Unicode 码点，按最多 12 码点一行显示（菱形最多 12 码点，LR 横向边标签最多 4 码点，以避免覆盖形状）；布局最大 4096 × 4096。输出仅使用现有 SDK 的有限 `vector` 原语，没有 raw SVG、HTML、URL、样式字符串或事件处理器。主应用仍验证完整请求和返回结果。
 
-运行在现有可终止的 CSP Worker 中。使用现有 2 秒渲染截止时间、取消与 Worker 终止机制；不使用 `eval`、动态 Function、DOM、网络或新原生 Runtime。权限只有 `document:read`。浏览器证明不代替 Windows WebView2 原生与发行安装包验证。
+受限编译器运行在现有可终止的 CSP Worker 中，使用现有 2 秒渲染截止时间、取消与 Worker 终止机制；插件不使用 `eval`、动态 Function、DOM、网络或原生 bridge。权限只有 `document:read`。正文的私有引擎由宿主拥有和取消，插件不能提供可执行代码、文件路径或引擎选项。浏览器证明不代替 Windows WebView2 原生与发行安装包验证。
 
 ## 来源与独立构建
 
@@ -30,4 +32,6 @@ pnpm build
 node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.8.tgz /tmp/diagrams-worker-external
 ```
 
-独立构建仅依赖本目录和公开 SDK，最终 ESM 包没有运行时 imports 或新增依赖。`dist/milkup.diagrams-1.2.0.milkup-plugin` 包含 manifest、单文件入口、许可与来源记录。平台库存明确选择本归档，不能把旧 DOM manifest 改写为 Worker，也不能以插件 ID 绕过平台门禁。
+独立构建仅依赖本目录和公开 SDK，最终 ESM 包没有运行时 imports 或新增依赖。`dist/milkup.diagrams-1.3.0.milkup-plugin` 包含 manifest、单文件入口、许可与来源记录。平台库存明确选择本归档，不能把旧 DOM manifest 改写为 Worker，也不能以插件 ID 绕过平台门禁。
+
+桌面 staging 会使用 `scripts/package-seals.mjs` 计算与 Rust catalog 一致的 manifest/content SHA-256，并与 `apps/desktop/src/reviewed-mermaid-package.ts` 的固定审查值比较。manifest、代码或资源发生任何变化都会停止 staging；构建脚本不会自动更新授权值。修改固定值需重新审查包和相应验证证据。

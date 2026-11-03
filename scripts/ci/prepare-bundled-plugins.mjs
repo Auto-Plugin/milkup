@@ -3,6 +3,8 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { REVIEWED_MERMAID_PACKAGE } from '../../apps/desktop/src/reviewed-mermaid-package.ts'
+import { assertReviewedMermaidPackage } from '../../plugins/diagrams-worker/scripts/package-seals.mjs'
 import {
   readPublicPluginBuildInputs,
   publicBuildFile,
@@ -68,20 +70,22 @@ for (const item of plugins) {
   }
   if (manifest.icon && !resources.some((resource) => resource.path === manifest.icon))
     throw Error('Declared icon must be listed in plugin resources')
-  const archive =
-    JSON.stringify(
-      {
-        format: 'milkup-plugin',
-        version: 1,
-        manifest,
-        files: [
-          { path: 'dist/plugin.js', encoding: 'utf8', content: result.outputFiles[0].text },
-          ...resources,
-        ],
-      },
-      null,
-      2,
-    ) + '\n'
+  const packageValue = {
+    format: 'milkup-plugin',
+    version: 1,
+    manifest,
+    files: [
+      { path: 'dist/plugin.js', encoding: 'utf8', content: result.outputFiles[0].text },
+      ...resources,
+    ],
+  }
+  // A build never grants access to the private engine. Only the exact reviewed
+  // Worker package may be staged for that dispatch; retain the Darwin DOM path.
+  const reviewedSeals =
+    item.directory === 'plugins/diagrams-worker'
+      ? assertReviewedMermaidPackage(packageValue, REVIEWED_MERMAID_PACKAGE)
+      : undefined
+  const archive = JSON.stringify(packageValue, null, 2) + '\n'
   prepared.push({
     name: item.name,
     archive,
@@ -94,6 +98,7 @@ for (const item of plugins) {
       sdkVersion: frozenSdk?.sdkVersion ?? sdkVersion,
       hostSdkVersion: sdkVersion,
       ...(frozenSdk ? { sdkTarballSha256: frozenSdk.sdkTarballSha256 } : {}),
+      ...(reviewedSeals ? { reviewedNativeSeals: reviewedSeals } : {}),
       ...verification,
       installationProof:
         item.buildMode === 'frozen-closure'
