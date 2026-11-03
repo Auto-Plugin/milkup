@@ -323,8 +323,8 @@ try {
     $audit.driver = File-Proof $driver
     $audit.driver['version'] = $driverVersion
     $audit.driver['source'] = $driverUrl
-    $node = (Get-Command node -CommandType Application -ErrorAction Stop).Source
-    $pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop).Source
+    $node = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+    $pwsh = (Get-Command pwsh -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
     foreach ($path in @($node, $pwsh)) { Assert-PlainPath $path }
     if (Get-LocalUser -Name $accountName -ErrorAction SilentlyContinue) { throw 'Generated account already exists' }
     foreach ($character in 'aA1!'.ToCharArray()) { $password.AppendChar($character) }
