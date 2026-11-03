@@ -192,6 +192,14 @@ pub(crate) fn finished(
         "phase":"finished", "requestId":request_id,"productPid":std::process::id(),
         "successful":report["success"]==true && !cancelled && !deadline_expired,
         "rendererErrorKind":renderer_error_kind(&report["rendererMetadata"]),
+        "rendererStatus":match report["rendererMetadata"]["status"].as_str() {
+            Some("ok") => "ok", Some("error") => "error", _ => "unknown"
+        },
+        "capturedPngBytes":report["capturedPngBytes"].as_u64().filter(|bytes| *bytes <= crate::MAX_OUTPUT as u64),
+        "cleanupFailureKinds":cleanup_failure_kinds(&report["cleanupFailureKinds"]),
+        "ipcThreadCleanup":ipc_thread_cleanup(&report["ipcThreadCleanup"]),
+        "stdoutFailure":stdout_failure(&report["stdoutFailure"]),
+        "stderrFailure":stderr_failure(&report["stderrFailure"]),
         "hostSid":report["hostToken"]["userSid"],
         "childSid":report["suspendedToken"]["userSid"],
         "browserSid":report["browserToken"]["userSid"],
@@ -216,6 +224,91 @@ pub(crate) fn finished(
         "osAllNetworkDenied":false
     })
 }
+// These diagnostics explain an existing cleanup failure; they never override
+// its gates or accept arbitrary launcher text, private paths or error messages.
+fn cleanup_failure_kinds(value: &Value) -> Vec<&'static str> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .take(16)
+        .filter_map(|kind| match kind.as_str()? {
+            "job-stop" => Some("job-stop"),
+            "stdout-protocol" => Some("stdout-protocol"),
+            "stdout-join" => Some("stdout-join"),
+            "stdin-join" => Some("stdin-join"),
+            "stderr-join" => Some("stderr-join"),
+            "stderr-budget-or-read" => Some("stderr-budget-or-read"),
+            "profile-delete" => Some("profile-delete"),
+            "private-tree-delete" => Some("private-tree-delete"),
+            "job-not-empty" => Some("job-not-empty"),
+            _ => None,
+        })
+        .collect()
+}
+
+fn ipc_thread_cleanup(value: &Value) -> Vec<Value> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .take(3)
+        .filter_map(|entry| {
+            let stream = match entry["stream"].as_str()? {
+                "stdout" => "stdout",
+                "stdin" => "stdin",
+                "stderr" => "stderr",
+                _ => return None,
+            };
+            let elapsed_ms = entry["elapsedMs"].as_u64()?;
+            let cancel_requested = entry["cancelRequested"].as_bool()?;
+            let finished = entry["finished"].as_bool()?;
+            let panicked = entry["panicked"].as_bool()?;
+            let cancel_succeeded = match entry.get("cancelCallSucceeded") {
+                None | Some(Value::Null) => None,
+                Some(value) => Some(value.as_bool()?),
+            };
+            let cancel_error = match entry.get("cancelWin32Error") {
+                None | Some(Value::Null) => None,
+                Some(value) => Some(u32::try_from(value.as_u64()?).ok()?),
+            };
+            Some(json!({
+                "stream":stream, "elapsedMs":elapsed_ms, "cancelRequested":cancel_requested,
+                "cancelCallSucceeded":cancel_succeeded, "cancelWin32Error":cancel_error,
+                "finished":finished, "panicked":panicked
+            }))
+        })
+        .collect()
+}
+
+fn stdout_failure(value: &Value) -> Option<Value> {
+    let phase = match value["phase"].as_str()? {
+        "ready-frame" => "ready-frame",
+        "ready-event" => "ready-event",
+        "result-frame" => "result-frame",
+        "png-body" => "png-body",
+        "result-event" => "result-event",
+        "trailing-byte" => "trailing-byte",
+        _ => return None,
+    };
+    let stop_observed = value["stopRequestedWhenObserved"].as_bool()?;
+    Some(json!({"phase":phase,"stopRequestedWhenObserved":stop_observed}))
+}
+
+fn stderr_failure(value: &Value) -> Option<Value> {
+    let kind = match value["kind"].as_str()? {
+        "read" => "read",
+        "budget" => "budget",
+        _ => return None,
+    };
+    let stop_observed = value["stopRequestedWhenObserved"].as_bool()?;
+    let error = match value.get("win32Error") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(u32::try_from(value.as_u64()?).ok()?),
+    };
+    Some(json!({"kind":kind,"stopRequestedWhenObserved":stop_observed,"win32Error":error}))
+}
+
 fn renderer_error_kind(metadata: &Value) -> Option<&'static str> {
     if metadata["status"] != "error" {
         return None;
@@ -438,6 +531,191 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_failure_diagnostics_only_preserve_bounded_closed_kinds() {
+        let allowed = [
+            "job-stop",
+            "stdout-protocol",
+            "stdout-join",
+            "stdin-join",
+            "stderr-join",
+            "stderr-budget-or-read",
+            "profile-delete",
+            "private-tree-delete",
+            "job-not-empty",
+        ];
+        let mut supplied: Vec<Value> = allowed.iter().map(|kind| json!(kind)).collect();
+        supplied.extend([
+            json!("C:/private/source"),
+            json!({"kind":"job-stop","source":"private"}),
+            json!(true),
+            Value::Null,
+        ]);
+        let output = cleanup_failure_kinds(&json!(supplied));
+        assert_eq!(output, allowed);
+        assert_eq!(
+            cleanup_failure_kinds(&json!(vec!["job-stop"; 17])).len(),
+            16
+        );
+        assert!(cleanup_failure_kinds(&json!({"kind":"job-stop"})).is_empty());
+    }
+
+    fn ipc_diagnostic(stream: &str) -> Value {
+        json!({"stream":stream,"elapsedMs":27,"cancelRequested":true,
+            "cancelCallSucceeded":false,"cancelWin32Error":1168,"finished":true,"panicked":false})
+    }
+
+    #[test]
+    fn ipc_diagnostics_keep_only_seven_typed_fields_and_three_rows() {
+        let mut stdout = ipc_diagnostic("stdout");
+        stdout["privatePath"] = json!("C:/private-user-path");
+        stdout["source"] = json!("private source");
+        stdout["stderr"] = json!("secret stderr text");
+        stdout["successful"] = json!(true);
+        let mut stdin = ipc_diagnostic("stdin");
+        stdin["elapsedMs"] = json!(u64::MAX);
+        stdin["cancelWin32Error"] = json!(u32::MAX);
+        let mut stderr = ipc_diagnostic("stderr");
+        stderr["cancelRequested"] = json!(false);
+        stderr["cancelCallSucceeded"] = Value::Null;
+        stderr["cancelWin32Error"] = Value::Null;
+        let output = ipc_thread_cleanup(&json!([stdout, stdin, stderr, ipc_diagnostic("stdout")]));
+        assert_eq!(output.len(), 3);
+        for row in &output {
+            assert_eq!(row.as_object().unwrap().len(), 7);
+        }
+        assert_eq!(output[1]["elapsedMs"].as_u64(), Some(u64::MAX));
+        assert_eq!(
+            output[1]["cancelWin32Error"].as_u64(),
+            Some(u32::MAX as u64)
+        );
+        assert!(output[2]["cancelCallSucceeded"].is_null());
+        assert!(output[2]["cancelWin32Error"].is_null());
+        let serialized = serde_json::to_string(&output).unwrap();
+        for forbidden in ["private", "secret", "successful", "source", "C:/"] {
+            assert!(!serialized.contains(forbidden), "{forbidden}");
+        }
+    }
+
+    #[test]
+    fn ipc_diagnostics_reject_unknown_streams_coercions_and_out_of_range_error_codes() {
+        for (field, invalid) in [
+            ("stream", json!("stdout:C:/private")),
+            ("stream", json!("unknown")),
+            ("elapsedMs", json!(-1)),
+            ("elapsedMs", json!("27")),
+            ("elapsedMs", json!(1.5)),
+            ("cancelRequested", json!("true")),
+            ("cancelCallSucceeded", json!(1)),
+            ("cancelWin32Error", json!(u32::MAX as u64 + 1)),
+            ("cancelWin32Error", json!(-1)),
+            ("cancelWin32Error", json!("C:/private")),
+            ("finished", Value::Null),
+            ("panicked", json!("false")),
+        ] {
+            let mut row = ipc_diagnostic("stdout");
+            row[field] = invalid;
+            assert!(ipc_thread_cleanup(&json!([row])).is_empty(), "{field}");
+        }
+        assert!(ipc_thread_cleanup(&json!([null, "private source", 37])).is_empty());
+    }
+
+    #[test]
+    fn renderer_status_and_captured_png_size_cannot_be_spoofed_by_other_fields() {
+        for (status, expected) in [
+            ("ok", "ok"),
+            ("error", "error"),
+            ("C:/private/source", "unknown"),
+        ] {
+            let report = json!({"success":false,"rendererMetadata":{"status":status},"rendererStatus":"ok",
+                "capturedPngBytes":crate::MAX_OUTPUT,"cleanupFailureKinds":["private error"],
+                "ipcThreadCleanup":[{"stream":"stdout","source":"private source"}]});
+            let output = finished("opaque-id", &report, &[], false, false);
+            assert_eq!(output["rendererStatus"], expected);
+            assert_eq!(output["capturedPngBytes"], crate::MAX_OUTPUT);
+            assert_eq!(output["pngBytes"], 0);
+            assert_eq!(output["successful"], false);
+            assert_eq!(output["cleanupFailureKinds"], json!([]));
+            assert_eq!(output["ipcThreadCleanup"], json!([]));
+            for excluded in ["C:/private/source", "private error", "private source"] {
+                assert!(!output.to_string().contains(excluded));
+            }
+        }
+        for value in [
+            json!(crate::MAX_OUTPUT + 1),
+            json!(-1),
+            json!("100"),
+            Value::Null,
+        ] {
+            let output = finished(
+                "opaque-id",
+                &json!({"capturedPngBytes":value}),
+                &[],
+                false,
+                false,
+            );
+            assert!(output["capturedPngBytes"].is_null());
+            assert_eq!(output["rendererStatus"], "unknown");
+        }
+    }
+
+    #[test]
+    fn stdout_failure_only_exposes_the_closed_observed_stage_and_stop_sample() {
+        for phase in [
+            "ready-frame",
+            "ready-event",
+            "result-frame",
+            "png-body",
+            "result-event",
+            "trailing-byte",
+        ] {
+            for stopped in [true, false] {
+                let input = json!({"phase":phase,"stopRequestedWhenObserved":stopped,
+                    "path":"C:/private-user-path","message":"private source","causedByStop":true});
+                let output = stdout_failure(&input).unwrap();
+                assert_eq!(
+                    output,
+                    json!({"phase":phase,"stopRequestedWhenObserved":stopped})
+                );
+            }
+        }
+        for input in [
+            Value::Null,
+            json!({"phase":"unknown","stopRequestedWhenObserved":false}),
+            json!({"phase":"ready-frame:C:/private","stopRequestedWhenObserved":true}),
+            json!({"phase":"ready-event","stopRequestedWhenObserved":"false"}),
+            json!({"phase":"ready-frame"}),
+        ] {
+            assert!(stdout_failure(&input).is_none());
+        }
+    }
+
+    #[test]
+    fn stderr_failure_only_exposes_closed_kind_boolean_and_nullable_u32() {
+        for kind in ["read", "budget"] {
+            let input = json!({"kind":kind,"stopRequestedWhenObserved":false,"win32Error":u32::MAX,
+                "message":"private stderr","path":"C:/private-user-path","causedByStop":true});
+            assert_eq!(
+                stderr_failure(&input),
+                Some(json!({"kind":kind,"stopRequestedWhenObserved":false,"win32Error":u32::MAX}))
+            );
+        }
+        assert_eq!(
+            stderr_failure(&json!({"kind":"budget","stopRequestedWhenObserved":true})),
+            Some(json!({"kind":"budget","stopRequestedWhenObserved":true,"win32Error":null}))
+        );
+        for input in [
+            Value::Null,
+            json!({"kind":"C:/private","stopRequestedWhenObserved":true}),
+            json!({"kind":"read","stopRequestedWhenObserved":0}),
+            json!({"kind":"read","stopRequestedWhenObserved":false,"win32Error":u32::MAX as u64+1}),
+            json!({"kind":"read","stopRequestedWhenObserved":false,"win32Error":-1}),
+            json!({"kind":"read","stopRequestedWhenObserved":false,"win32Error":"private source"}),
+        ] {
+            assert!(stderr_failure(&input).is_none());
+        }
+    }
+
+    #[test]
     fn renderer_error_kind_only_accepts_fixed_bootstrap_error_envelope() {
         for (metadata, expected) in [
             (
@@ -481,11 +759,11 @@ mod tests {
             "secret",
             "https://",
             "rendererMetadata",
-            "stderr",
             "requestUri",
         ] {
             assert!(!serialized.contains(excluded), "{excluded}");
         }
+        assert!(output.get("stderr").is_none());
         assert_eq!(output["ownedPidsBeforeStop"], json!([42]));
         assert_eq!(output["hostSid"], "S-1-5-21-1-2-3-4");
         assert_eq!(output["pngBytes"], 8);
