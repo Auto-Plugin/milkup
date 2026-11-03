@@ -131,10 +131,16 @@ jobs:
         if: always()
         run: |
           $ErrorActionPreference = 'Stop'
-          # Reuse the repository's existing four-file generated-schema gate.
-          # It records exact git status, paths, lengths and SHA-256; source/lock
-          # drift and all other untracked files still fail. Never restore files
-          # before recording the evidence or simply suppress the dirty tree.
+          # Diagnose using the existing schema classifier, but keep the stricter
+          # original dirty-tree failure until actual Windows drift is reviewed.
+          # Never restore source or classify an unseen first-run difference as safe.
+          $dirty = @(git status --porcelain)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read exact source status' }
+          Write-Host '::group::exact-source-status'
+          $dirty | Write-Host
+          git diff --stat HEAD
+          git diff --no-ext-diff --no-textconv HEAD
+          Write-Host '::endgroup::'
           $proof = Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-source-build-tree.json'
           node tests/windows/verify-build-tree.mjs $PWD $proof
           $treeExit = $LASTEXITCODE
@@ -142,4 +148,5 @@ jobs:
           git diff --cached --exit-code
           if ($LASTEXITCODE -ne 0) { throw 'Build modified the source index' }
           if ($treeExit -ne 0) { throw 'Build changed a source, lockfile or unexpected output; see exact preserved status' }
+          if ($dirty.Count -ne 0) { throw 'Build tree remains dirty; exact changes are retained for review, including known generated schemas' }
           'Windows compile/link and unit tests only. The desktop binary is not executed. No WebView2 rendering, same-login runtime cleanup, native scale/IME, installer, upgrade/rollback or pixel acceptance. No Fixed Runtime, Runtime provisioning, remote-instance access, account/token changes or artifact upload.' >> $env:GITHUB_STEP_SUMMARY
