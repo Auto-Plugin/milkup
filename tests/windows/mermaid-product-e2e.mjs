@@ -1405,7 +1405,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     await persist()
     driver = spawn(
       edgeDriver,
-      [`--port=${driverPort}`, `--log-path=${path.join(evidence, 'edgedriver-native.log')}`],
+      [
+        `--port=${driverPort}`,
+        '--log-level=WARNING',
+        `--log-path=${path.join(evidence, 'edgedriver-native.log')}`,
+      ],
       { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: process.env },
     )
     report.driver.pid = driver.pid
