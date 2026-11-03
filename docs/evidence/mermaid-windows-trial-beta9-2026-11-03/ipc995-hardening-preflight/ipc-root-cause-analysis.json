@@ -1,0 +1,147 @@
+{
+  "sourceCandidate": "0811b899ea4c4f98294046f66524d4503307d279",
+  "runId": 41708284083,
+  "originalLogSha256": "000e87813148692233fae7d616f045cc33efe8c4e76749a41462dfc652ca4913",
+  "requestId": "7b60396d899c44c39ed512d12f3a68c8",
+  "provenFacts": {
+    "cancelled": false,
+    "deadlineExpired": false,
+    "capturedPngBytes": 2606,
+    "pngBytes": 0,
+    "rendererStatus": "ok",
+    "cleanupFailureKinds": [
+      "stdout-join",
+      "stdout-protocol",
+      "stderr-join",
+      "stderr-budget-or-read"
+    ],
+    "cleanupTimeline": {
+      "ipcJoinsFinishedMs": 126,
+      "jobStopFinishedMs": 5,
+      "pinsReleasedMs": 126,
+      "profileDeleteFinishedMs": 130,
+      "treeDeleteFinishedMs": 273
+    },
+    "ipcThreadCleanup": [
+      {
+        "cancelCallSucceeded": true,
+        "cancelRequested": true,
+        "cancelWin32Error": null,
+        "elapsedMs": 59,
+        "finished": true,
+        "panicked": false,
+        "progressAtCancel": {
+          "completion": "pending",
+          "phase": "trailing-byte"
+        },
+        "progressAtEnd": {
+          "completion": "read-error",
+          "phase": "trailing-byte"
+        },
+        "progressAtJoin": {
+          "completion": "pending",
+          "phase": "trailing-byte"
+        },
+        "stream": "stdout"
+      },
+      {
+        "cancelCallSucceeded": null,
+        "cancelRequested": false,
+        "cancelWin32Error": null,
+        "elapsedMs": 0,
+        "finished": true,
+        "panicked": false,
+        "progressAtCancel": null,
+        "progressAtEnd": {
+          "completion": "written",
+          "phase": "written-event"
+        },
+        "progressAtJoin": {
+          "completion": "written",
+          "phase": "written-event"
+        },
+        "stream": "stdin"
+      },
+      {
+        "cancelCallSucceeded": true,
+        "cancelRequested": true,
+        "cancelWin32Error": null,
+        "elapsedMs": 60,
+        "finished": true,
+        "panicked": false,
+        "progressAtCancel": {
+          "completion": "pending",
+          "phase": "stderr-read"
+        },
+        "progressAtEnd": {
+          "completion": "read-error",
+          "phase": "stderr-read"
+        },
+        "progressAtJoin": {
+          "completion": "pending",
+          "phase": "stderr-read"
+        },
+        "stream": "stderr"
+      }
+    ],
+    "privateTreeCleanup": {
+      "absenceChecked": true,
+      "absent": true,
+      "attempts": 2,
+      "elapsedMs": 143,
+      "failedAttempts": [
+        [
+          1,
+          5
+        ]
+      ],
+      "finalOsError": null,
+      "terminalPhase": "complete"
+    },
+    "privateTreeRemoved": true,
+    "profileDeleted": true,
+    "jobActiveAfterStop": 0,
+    "stdoutFailure": {
+      "kind": "read",
+      "phase": "trailing-byte",
+      "stopRequestedWhenObserved": true,
+      "win32Error": 995
+    },
+    "stderrFailure": {
+      "kind": "read",
+      "stopRequestedWhenObserved": true,
+      "win32Error": 995
+    }
+  },
+  "sourceInspection": [
+    "The supervisor requests CancelSynchronousIo on each exact owned reader thread when it remains unfinished 50 ms into its own join. Both successful cancellation calls and 995 read errors are recorded. This is not a user cancellation or rendering deadline failure.",
+    "The original launch function releases its local helper-side pipe handles on return. The parent-side pipe handles are transferred to one reader/writer each. No retained write end was found in this local Rust ownership path.",
+    "The fixed helper previously left all three protocol standard handles inheritable while starting WebView2. A browser descendant therefore could receive them through ordinary inheritance even though it needs no protocol authority.",
+    "The precise process or system component retaining each endpoint was not recorded, so neither inherited descendants nor concurrent unrelated parent spawns is proved to be the actual historical holder.",
+    "The application drops held helper/browser process handles before its Job stop and relies on ActiveProcesses zero. A zero-time held-process diagnostic can narrow termination order but must not reinterpret pending pipes as success."
+  ],
+  "changeScope": [
+    "Clear and independently recheck HANDLE_FLAG_INHERIT on exactly three distinct valid pipe standard handles before diagnostics, COM and WebView2.",
+    "Before Ready, recheck the original three standard handle identities and noninherit flags. Publish only a closed boolean native proof and require it in Ready validation.",
+    "Create parent pipe pairs noninheritable and only mark the required helper end inheritable. The finite generic parent-spawn inheritance window for that required helper end remains.",
+    "Do not change 50/250 ms reader cleanup, 2 second Job stop, input/output budgets, cleanup failure withholding, tokens, AppContainer capabilities or ACLs."
+  ],
+  "remainingLimitation": "Generic inheritance is blocked in the fixed helper; explicit DuplicateHandle by a library and parent-side concurrent process creation are separate possibilities. This patch alone is not proof that the original 995 cause is known or cured.",
+  "references": [
+    "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-sethandleinformation",
+    "https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-gethandleinformation",
+    "https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelsynchronousio",
+    "https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information"
+  ],
+  "implementationCommit": "ab046598",
+  "localValidation": {
+    "linuxUnitTests": 66,
+    "linuxPassed": true,
+    "windowsGnuTestsTypechecked": true,
+    "windowsNativeExecution": "pending CI",
+    "readyWorstBytes": 1840,
+    "readyLimit": 4096,
+    "auditWorstBytesAtCheck": 7758,
+    "auditLimit": 8192
+  }
+}

@@ -56,8 +56,8 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong source candidate' }
           git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
-          git diff --exit-code b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src plugins/diagrams-worker
-          if ($LASTEXITCODE -ne 0) { throw 'Accepted native, renderer or Diagrams implementation changed before packaging' }
+          git diff --exit-code d1149a6a4d29c8414e36fc1af200fbc95e4b1601 HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src plugins/diagrams-worker
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed native, renderer or Diagrams implementation changed before packaging' }
           $dirty = @(git status --porcelain)
           if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Dirty candidate checkout' }
           if (Test-Path scripts/experiments/mermaid-fixed-prototype) { throw 'Prototype must not enter installer' }
@@ -133,8 +133,11 @@ jobs:
       - name: Test private native contracts before packaging
         run: |
           $ErrorActionPreference = 'Stop'
-          cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib -- --test-threads=1
-          if ($LASTEXITCODE -ne 0) { throw 'Private engine regression tests failed' }
+          $nativeTests = @(& cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib -- --test-threads=1 --nocapture 2>&1)
+          $nativeTestsExit = $LASTEXITCODE
+          $nativeTests | Write-Host
+          $nativeTests | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/native-regression.log') -Encoding utf8
+          if ($nativeTestsExit -ne 0) { throw 'Private engine regression tests failed' }
           node tests/windows/capture-build-source-state.mjs $PWD desktop-check $env:GITHUB_SHA (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/mermaid-source-desktop-check.json')
           if ($LASTEXITCODE -ne 0) { throw 'Cannot retain source state' }
       - name: Build release NSIS and inspect exact engine and plugin payloads
@@ -211,7 +214,7 @@ jobs:
           $source = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
           $destination = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-retained'
           New-Item -ItemType Directory -Path $destination | Out-Null
-          $names = @('mermaid-source-checkout.json', 'mermaid-source-desktop-check.json', 'mermaid-source-final.json', 'nsis-image-proof.json', 'packaging-record.json', 'installer-input.json', 'packaged-production-binary-manifest.json', 'packaged-production-binary.manifest', 'public-plugins/staged-bundles.json', 'public-plugins/verification.json', 'mermaid-trial-preparation.json', 'mermaid-trial-finalization.json', 'windows-runtime-dependencies.json', 'windows-runtime-imports.log', 'owned-process-regression.log')
+          $names = @('mermaid-source-checkout.json', 'mermaid-source-desktop-check.json', 'mermaid-source-final.json', 'nsis-image-proof.json', 'packaging-record.json', 'installer-input.json', 'packaged-production-binary-manifest.json', 'packaged-production-binary.manifest', 'public-plugins/staged-bundles.json', 'public-plugins/verification.json', 'mermaid-trial-preparation.json', 'mermaid-trial-finalization.json', 'windows-runtime-dependencies.json', 'windows-runtime-imports.log', 'owned-process-regression.log', 'native-regression.log')
           $retained = @()
           foreach ($name in $names) {
             $path = Join-Path $source $name

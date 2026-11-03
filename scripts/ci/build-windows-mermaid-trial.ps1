@@ -41,7 +41,7 @@ $head = @(git rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong packaging candidate' }
 $sha = $head[0].Trim()
 Checked git @('merge-base', '--is-ancestor', 'b139a9891a086685d7e0e9e85472a29a629f7a45', $sha)
-Checked git @('diff', '--exit-code', 'b139a9891a086685d7e0e9e85472a29a629f7a45', $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'plugins/diagrams-worker')
+Checked git @('diff', '--exit-code', 'd1149a6a4d29c8414e36fc1af200fbc95e4b1601', $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'plugins/diagrams-worker')
 $dirty = @(git status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Packaging requires a strictly clean checkout' }
 Checked node @('scripts/check-versions.mjs')
@@ -109,6 +109,7 @@ Write-NewJson (Join-Path $EvidenceDirectory 'packaging-record.json') ([ordered]@
     runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT
     runUrl = "https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     acceptedImplementationBase = 'b139a9891a086685d7e0e9e85472a29a629f7a45'
+    reviewedImplementationBase = 'd1149a6a4d29c8414e36fc1af200fbc95e4b1601'
     installer = $installer; compiledApplication = $compiled; extractedApplication = $extracted
     dependencies = $dependencies; buildHostOsVersion = [Environment]::OSVersion.VersionString
     nsisInstallMode = 'currentUser'; webviewInstallMode = 'skip'; existingEvergreenRequired = $true
