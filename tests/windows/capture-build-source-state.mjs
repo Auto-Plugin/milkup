@@ -50,13 +50,16 @@ const measure = (bytes) => {
 const candidateSha = string('rev-parse', 'HEAD')
 assert.equal(candidateSha, expectedSha, 'Source snapshot candidate mismatch')
 const rawStatus = string('status', '--porcelain=v1', '--untracked-files=all')
-const files = ['desktop-schema.json', 'windows-schema.json'].map((name) => {
-  const path = `apps/desktop/src-tauri/gen/schemas/${name}`
+const files = [
+  'apps/desktop/src-tauri/Cargo.toml',
+  'apps/desktop/src-tauri/gen/schemas/desktop-schema.json',
+  'apps/desktop/src-tauri/gen/schemas/windows-schema.json',
+].map((path) => {
   const file = resolve(source, path)
   const stat = lstatSync(file)
   assert(
     stat.isFile() && !stat.isSymbolicLink() && stat.size <= 4 * 1024 * 1024,
-    'Bounded plain generated schema required',
+    'Bounded plain build input or generated schema required',
   )
   return {
     path,
