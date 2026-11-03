@@ -1,5 +1,10 @@
 # Independent Mermaid product rebuild — 2026-11-03
 
+For the final platform results, exact tested candidates and unresolved items, see
+[Current acceptance and limits](CURRENT-STATUS.md). The sections below retain the
+chronological investigations; statements about a next run describe that earlier
+point in the investigation, not the latest status.
+
 This is a new implementation in an independent worktree, **not recovery of the
 missing uncommitted files** from the offline engineering environment. That
 environment was not reset, archived, replaced, or used to start another process.
