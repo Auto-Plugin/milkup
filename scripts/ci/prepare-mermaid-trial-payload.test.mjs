@@ -12,6 +12,8 @@ import {
   inspectDistArchives,
   inspectEmbeddedEngine,
   verifyInstalledEvidence,
+  verifyInstalledAccountMatrix,
+  verifyInstalledProductCloses,
   verifyRuntimeDependencies,
 } from './prepare-mermaid-trial-payload.mjs'
 import { crc32, validatePng } from '../../tests/windows/mermaid-product-e2e.mjs'
@@ -259,15 +261,58 @@ function png() {
     chunk('IEND', Buffer.alloc(0)),
   ])
 }
-async function installedFixture(t) {
-  const directory = await temporary(t, 'milkup-trial-installed-')
-  const sid = 'S-1-5-21-11-22-33-1001'
+function cleanLaunch(fixture, productPid) {
+  const phases = [
+    'native-drain',
+    'ui-close',
+    'ui-exit-wait',
+    'stdio-drain',
+    'normal-exit',
+    'native-final-verification',
+    'webdriver-detach',
+  ].map((phase) => ({ phase, ok: true, result: true }))
+  phases[0].result = { admittedJobs: 1, innerCleanupVerified: true }
+  phases[1].result = { realUiCloseRequested: true }
+  phases[5].result = { admittedJobs: 1, innerCleanupVerified: true }
+  return {
+    fixture,
+    productPid,
+    exitCode: 0,
+    signal: null,
+    exitObservedMonotonicMs: 5,
+    exitedAt: '2026-11-03T00:00:01Z',
+    stdioClosedAt: '2026-11-03T00:00:01Z',
+    closedByUi: true,
+    teardown: {
+      afterFailure: false,
+      ownedProductPid: productPid,
+      uiCloseAttempted: true,
+      realUiCloseRequested: true,
+      closedByUi: true,
+      errors: [],
+      phases,
+    },
+  }
+}
+
+async function installedFixture(
+  t,
+  { accountKind = 'pure-standard', parent, sameSid = false } = {},
+) {
+  const filtered = accountKind === 'filtered-admin'
+  const directory = parent
+    ? path.join(parent, accountKind)
+    : await temporary(t, 'milkup-trial-installed-')
+  if (parent) await mkdir(directory)
+  const sid = 'S-1-5-21-11-22-33-' + (filtered && !sameSid ? '1002' : '1001')
   const bytes = png()
   const image = { file: 'fixture.png', ...validatePng(bytes), fullyDecoded: true, nonuniform: true }
   await writeFile(path.join(directory, image.file), bytes)
   const expected = {
     candidateSha: 'a'.repeat(40),
-    version: '2.0.0-beta.8',
+    version: '2.0.0-beta.9',
+    expectedAccountKind: accountKind,
+    harnessSha256: '8'.repeat(64),
     installerSha256: 'b'.repeat(64),
     installedSha256: 'c'.repeat(64),
     builtSha256: 'd'.repeat(64),
@@ -296,12 +341,12 @@ async function installedFixture(t) {
     tokenType: 1,
     sessionId: 2,
     elevated: false,
-    elevationType: 1,
+    elevationType: filtered ? 3 : 1,
     integrityRid: 8192,
     uiAccess: false,
     ownerIsUser: true,
-    administratorsGroupPresentIncludingDenyOnly: false,
-    administratorsGroupAttributes: null,
+    administratorsGroupPresentIncludingDenyOnly: filtered,
+    administratorsGroupAttributes: filtered ? 16 : null,
     privilegeCount: 1,
     hostDisallowedPrivilegeCount: 0,
     sandboxDisallowedPrivilegeCount: 0,
@@ -312,8 +357,8 @@ async function installedFixture(t) {
     ...nativeToken,
     sid,
     ownerSid: sid,
-    pureStandardUser: true,
-    filteredAdmin: false,
+    pureStandardUser: !filtered,
+    filteredAdmin: filtered,
     privilegesComplete: true,
     privileges: [{ name: 'SeChangeNotifyPrivilege', attributes: 3 }],
   }
@@ -321,9 +366,9 @@ async function installedFixture(t) {
     status: 'ready',
     actualSid: sid,
     expectedSid: sid,
-    pureStandard: true,
-    filteredAdmin: false,
-    expectedAccountKind: 'pure-standard',
+    pureStandard: !filtered,
+    filteredAdmin: filtered,
+    expectedAccountKind: accountKind,
     accountKindVerified: true,
     desktop: { token: processToken },
     interactive: true,
@@ -350,6 +395,7 @@ async function installedFixture(t) {
     status: 'passed',
     candidateSha: expected.candidateSha,
     mode: 'nsis-current-user',
+    expectedAccountKind: accountKind,
     expectedSid: sid,
     actualSid: sid,
     expectedSessionId: 2,
@@ -359,6 +405,7 @@ async function installedFixture(t) {
     installedBinary: {
       path: 'C:/Users/test/Milkup/milkup-desktop.exe',
       productVersion: expected.version,
+      fileVersion: expected.version,
       peMachine: '0x8664',
       sha256: expected.installedSha256,
     },
@@ -373,10 +420,22 @@ async function installedFixture(t) {
     status: 'passed',
     source: expected.candidateSha,
     accountSid: sid,
-    expectedAccountKind: 'pure-standard',
+    expectedAccountKind: accountKind,
     standardContext: context,
     accountCreated: true,
     accountDeleted: true,
+    accountGroupCleanupConfirmed: true,
+    accountGroupCleanup: {
+      sid,
+      readOnly: true,
+      complete: true,
+      errors: [],
+      groups: ['S-1-5-32-545', 'S-1-5-32-544'].map((groupSid) => ({
+        groupSid,
+        queried: true,
+        exactSidPresent: false,
+      })),
+    },
     profileDeleted: true,
     stageRemoved: true,
     installerExecuted: true,
@@ -387,15 +446,15 @@ async function installedFixture(t) {
     passwordInLogsFilesArgumentsOrEnvironment: false,
     cleanupErrors: [],
     supervisor: { jobEmpty: true, cleanupErrors: [] },
-    childResult: { status: 'passed', expectedAccountKind: 'pure-standard' },
+    childResult: { status: 'passed', expectedAccountKind: accountKind },
     evidenceCopy: { complete: true },
   }
   const ownership = {
     hostSid: sid,
     childSid: sid,
     browserSid: sid,
-    hostPureStandard: true,
-    hostTokenClass: 'pure-standard',
+    hostPureStandard: !filtered,
+    hostTokenClass: accountKind,
     hostNonElevatedVerified: true,
     hostTokenEvidence: nativeToken,
     childTokenEvidence: {
@@ -469,7 +528,8 @@ async function installedFixture(t) {
   const product = {
     status: 'passed',
     candidateSha: expected.candidateSha,
-    expectedAccountKind: 'pure-standard',
+    harnessSha256: expected.harnessSha256,
+    expectedAccountKind: accountKind,
     application: installation.installedBinary.path,
     applicationSha256: expected.installedSha256,
     context,
@@ -484,7 +544,9 @@ async function installedFixture(t) {
       { phase: 'started', requestId: 'r1', productPid: 111, ...ownership },
       { phase: 'finished', requestId: 'r1', productPid: 111, ...completion },
     ],
-    launches: Array.from({ length: 4 }, () => ({ closedByUi: true })),
+    launches: ['ordinary', 'wide', 'c4', 'invalid'].map((fixture, index) =>
+      cleanLaunch(fixture, 111 + index),
+    ),
   }
   product.steps[0].bundledPluginsObserved = expected.bundledPlugins.map((item) => ({
     id: item.id,
@@ -497,11 +559,14 @@ async function installedFixture(t) {
   installation.installer.path = 'C:/owned/trial.exe'
   const identity = {
     pid: 555,
+    expectedAccountKind: accountKind,
+    accountKindVerified: true,
     token: processToken,
     sessionId: 2,
     inJob: true,
   }
   Object.assign(installation.installerRun, {
+    expectedAccountKind: accountKind,
     identityVerified: true,
     streamsDrained: true,
     forcedProcessTermination: false,
@@ -523,6 +588,7 @@ async function installedFixture(t) {
     'windows-standard-product-audit.json': audit,
     'mermaid-product-e2e.json': product,
   }
+  if (filtered) limitedNativeViews(product)
   const save = async () => {
     for (const [name, value] of Object.entries(values))
       await writeJson(path.join(directory, name), value)
@@ -572,6 +638,168 @@ test('installed standard-host evidence accepts Limited native views only with id
     'passed',
   )
 })
+test('installed filtered-admin evidence preserves real Limited/deny-only identities throughout', async (t) => {
+  const fixture = await installedFixture(t, { accountKind: 'filtered-admin' })
+  const proof = await verifyInstalledEvidence(fixture.directory, fixture.expected)
+  assert.equal(proof.status, 'passed')
+  assert.equal(proof.expectedAccountKind, 'filtered-admin')
+  assert.equal(fixture.product.context.pureStandard, false)
+  assert.equal(fixture.installation.installerRun.startedProcess.token.elevationType, 3)
+})
+test('final account matrix requires two separately verified installations with distinct actual SIDs', async (t) => {
+  const parent = await temporary(t, 'milkup-trial-two-accounts-')
+  const pure = await installedFixture(t, { parent })
+  await installedFixture(t, { parent, accountKind: 'filtered-admin' })
+  const proof = await verifyInstalledAccountMatrix(parent, pure.expected)
+  assert.equal(proof.status, 'passed')
+  assert.equal(proof.naturalUiCloses, 8)
+  assert.deepEqual(Object.keys(proof.accounts), ['pure-standard', 'filtered-admin'])
+  for (const account of Object.values(proof.accounts)) assert.equal(account.records.length, 4)
+})
+for (const scenario of [
+  'missing-account',
+  'extra-account',
+  'same-sid',
+  'failed-admin',
+  'different-package',
+]) {
+  test(`final account matrix rejects ${scenario}`, async (t) => {
+    const parent = await temporary(t, 'milkup-trial-two-accounts-')
+    const pure = await installedFixture(t, { parent })
+    if (scenario !== 'missing-account') {
+      const admin = await installedFixture(t, {
+        parent,
+        accountKind: 'filtered-admin',
+        sameSid: scenario === 'same-sid',
+      })
+      if (scenario === 'failed-admin') admin.product.steps[5].passed = false
+      if (scenario === 'different-package') admin.installation.installer.sha256 = '9'.repeat(64)
+      await admin.save()
+    }
+    if (scenario === 'extra-account') await mkdir(path.join(parent, 'unexpected'))
+    await assert.rejects(verifyInstalledAccountMatrix(parent, pure.expected))
+  })
+}
+
+test('installed close gate preserves actual prior successes and failures without mutating raw reports', async () => {
+  for (const [run, outcomes] of [
+    ['41688389731', [true, false]],
+    ['41692476025', [false, true]],
+    ['41699494037', [false, true]],
+    ['41703213523', [true, true]],
+  ]) {
+    for (const [index, account] of ['pure-standard', 'filtered-admin'].entries()) {
+      const report = JSON.parse(
+        await readFile(
+          path.join(
+            root,
+            'docs/evidence/mermaid-account-compat-2026-11-03',
+            `attempt-${run}/extracted/${account}/mermaid-product-e2e.json`,
+          ),
+          'utf8',
+        ),
+      )
+      const before = JSON.stringify(report)
+      if (outcomes[index]) assert.equal(verifyInstalledProductCloses(report).naturalUiCloses, 4)
+      else assert.throws(() => verifyInstalledProductCloses(report))
+      assert.equal(JSON.stringify(report), before)
+    }
+  }
+})
+
+function responseHistory(value, decision, status = 200) {
+  const text = JSON.stringify({ value })
+  const bytes = Buffer.from(text)
+  const row = {
+    sequence: 1,
+    startedAt: '2026-11-03T00:00:00Z',
+    finishedAt: '2026-11-03T00:00:00Z',
+    decision,
+    httpStatus: status,
+    response: { text, bytes: bytes.length, sha256: hash(bytes), truncated: false },
+  }
+  if (value === false || value === null)
+    Object.assign(row, { value, valueType: value === null ? 'null' : 'boolean' })
+  else if (value?.error)
+    Object.assign(row, {
+      webDriverErrorCode: value.error,
+      error: {
+        text: 'protocol error',
+        bytes: 14,
+        sha256: hash(Buffer.from('protocol error')),
+        truncated: false,
+      },
+    })
+  return { retainedLimit: 32, total: 1, omitted: 0, observations: [row] }
+}
+test('close proof permits the final pending observation and truncated protocol evidence only with actual owned exit', () => {
+  const product = {
+    launches: ['ordinary', 'wide', 'c4', 'invalid'].map((name, i) => cleanLaunch(name, 111 + i)),
+  }
+  product.launches[0].closeConfirmationProbes = {
+    retainedLimit: 32,
+    total: 1,
+    omitted: 0,
+    observations: [{ sequence: 1, startedAt: '2026-11-03T00:00:00Z', decision: 'pending' }],
+  }
+  const history = responseHistory(
+    { error: 'target frame detached', message: 'a'.repeat(3000) },
+    'closed-context-awaiting-owned-exit',
+    404,
+  )
+  const response = history.observations[0].response
+  response.text = response.text.slice(0, 2048)
+  response.truncated = true
+  product.launches[1].closeConfirmationProbes = history
+  const summary = verifyInstalledProductCloses(product)
+  assert.equal(summary.naturalUiCloses, 4)
+  assert.equal(summary.independentMonotonicDeadlineRecomputed, false)
+  assert.equal(summary.dialogAbsenceInferredFromNullOrExit, false)
+  product.launches[1].signal = 'SIGTERM'
+  assert.throws(() => verifyInstalledProductCloses(product))
+})
+for (const scenario of [
+  'raw-positive-dialog',
+  'false-raw-mismatch',
+  'raw-hash-mismatch',
+  'detached-wrong-status',
+  'lost-positive-history',
+  'failed-close-phase',
+  'missing-stdio',
+  'missing-signal',
+  'deadline-unmet',
+  'fallback',
+  'native-not-clean',
+]) {
+  test(`installed close gate rejects ${scenario}`, () => {
+    const product = {
+      launches: ['ordinary', 'wide', 'c4', 'invalid'].map((name, i) => cleanLaunch(name, 111 + i)),
+    }
+    const launch = product.launches[0]
+    launch.closeConfirmationProbes = responseHistory(false, 'no-visible-unsaved-dialog')
+    if (scenario === 'raw-positive-dialog')
+      launch.closeConfirmationProbes = responseHistory(true, 'pending')
+    if (scenario === 'false-raw-mismatch')
+      launch.closeConfirmationProbes.observations[0].value = null
+    if (scenario === 'raw-hash-mismatch')
+      launch.closeConfirmationProbes.observations[0].response.sha256 = '0'.repeat(64)
+    if (scenario === 'detached-wrong-status')
+      launch.closeConfirmationProbes = responseHistory(
+        { error: 'target frame detached' },
+        'closed-context-awaiting-owned-exit',
+        500,
+      )
+    if (scenario === 'lost-positive-history') launch.closeConfirmationProbes.firstVisibleDialog = {}
+    if (scenario === 'failed-close-phase') launch.teardown.phases[2].ok = false
+    if (scenario === 'missing-stdio') delete launch.stdioClosedAt
+    if (scenario === 'missing-signal') delete launch.signal
+    if (scenario === 'deadline-unmet') launch.teardown.uiExitDeadlineUnmet = true
+    if (scenario === 'fallback') launch.teardown.outerTerminationRequired = true
+    if (scenario === 'native-not-clean')
+      launch.teardown.phases[0].result.innerCleanupVerified = false
+    assert.throws(() => verifyInstalledProductCloses(product))
+  })
+}
 for (const scenario of [
   'installation-pending',
   'wrong-installed-hash',
@@ -605,6 +833,12 @@ for (const scenario of [
   'native-impersonating-caller',
   'native-spoofed-helper-pid',
   'native-foreign-helper-appsid',
+  'wrong-harness',
+  'missing-installer-account-kind',
+  'unverified-installer-account',
+  'missing-file-version',
+  'group-membership-remains',
+  'missing-group-proof',
 ]) {
   test(`final delivery gate rejects ${scenario}`, async (t) => {
     const f = await installedFixture(t)
@@ -670,6 +904,15 @@ for (const scenario of [
       f.product.nativeAudit.at(-1).helperSelfSubjectPid = 333
     if (scenario === 'native-foreign-helper-appsid')
       f.product.nativeAudit.at(-1).browserFromHelperAppContainerSid = 'S-1-15-2-8-2-3-4-5-6-7'
+    if (scenario === 'wrong-harness') f.product.harnessSha256 = '0'.repeat(64)
+    if (scenario === 'missing-installer-account-kind')
+      delete f.installation.installerRun.expectedAccountKind
+    if (scenario === 'unverified-installer-account')
+      f.installation.installerRun.startedProcess.accountKindVerified = false
+    if (scenario === 'missing-file-version') delete f.installation.installedBinary.fileVersion
+    if (scenario === 'group-membership-remains')
+      f.audit.accountGroupCleanup.groups[1].exactSidPresent = true
+    if (scenario === 'missing-group-proof') delete f.audit.accountGroupCleanup
     await f.save()
     await assert.rejects(verifyInstalledEvidence(f.directory, f.expected))
   })

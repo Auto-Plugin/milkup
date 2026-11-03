@@ -12,7 +12,10 @@ import { REVIEWED_MERMAID_PACKAGE } from '../../apps/desktop/src/reviewed-mermai
 import { assertReviewedMermaidPackage } from '../../plugins/diagrams-worker/scripts/package-seals.mjs'
 import {
   AuditLedger,
+  assertCleanCloseConfirmation,
   fixtures,
+  unwrapWebDriverValue,
+  validateAccountKind,
   validateContext,
   validateHostProcessToken,
   validatePng,
@@ -457,7 +460,7 @@ async function verifyInputs(evidence) {
 }
 
 function readme(manifest) {
-  return `# Milkup ${manifest.version} 完整 Mermaid Windows 测试包\n\n源码提交：${manifest.candidateSha}\n构建记录：${manifest.runUrl}\n\n这是未签名的 Windows x64 NSIS 测试包，不是正式 Release。安装程序只面向当前用户；不会在本包中安装或下载 WebView2，需要电脑已经安装可用的 [Microsoft Evergreen WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。完整 Mermaid 原生服务目前要求纯标准用户；包含 Administrators 成员身份（含 deny-only）的管理员账户不在此支持范围内，保持源码回退。\n\n安装器：\`${manifest.installer.deliveredName}\`。应用内版本为 ${manifest.version}；完整提交与哈希在 manifest.json。可用 PowerShell 的 Get-FileHash -Algorithm SHA256 核对 SHA256SUMS.txt。请使用文档副本试用。\n\n10 个插件已经包含在应用中，首次安装默认全部不启用。在插件管理中查看权限后启用 Diagrams 1.3.0 即可测试；plugins 目录中的相同插件档案只供补装，不是正常使用的必需步骤。旧配置中的禁用或卸载选择应保留，不会借打包自动授权。\n\n正文预览接入固定官方 Mermaid 12.2.0 引擎。samples 包含普通图、宽图、C4 和故意无效语法四类；无效语法应显示源码或诊断。宽图保持自然尺寸并滚动查看。语法范围仍受固定引擎、输入与图片预算限制，不代表所有语法组合均已验收。导出仍走受限路径，不承诺正文图表一比一导出；Windows DOM/PDF 导出未开放。\n\n${manifest.deliveryReady ? '本候选已通过安装后同 SID 纯标准用户的 10 步自动化产品测试，并核对安装后 EXE 完整字节。' : '安装后产品测试尚未通过最终交付门禁；此目录仍是准备材料，不可作为已验收包上传。'} 自动化不是实际系统中文输入法、完整 DPI 矩阵或人工视觉验收。\n\n保留限制：Linux 原生路径目前限 X11，Wayland 未验收。真实旧配置升级与回滚尚未完整验收。历史运行 41642093459 的临时 profile 删除因 Win32 32 失败；旧 hosted runner 已结束，残留无法复查。运行 41653312849 的 native cleanupUncertain 原因未定，后续 debug 10/10 未复现，不宣称根因已修复。当前 C4 关系标签白底约 1px 擦到节点边框，文字与箭头完整，仍需保留这项视觉瑕疵。\n\n下载需要登录有仓库访问权的 GitHub 账户，在本次 Actions 运行的 Artifacts 中下载并解压。Artifacts 设置保留 7 天；准确到期时间以 GitHub 实际 artifact 记录及本次交付消息为准，本包不会推算或虚构日期。离线测试报告位于 reports 目录（只有最终门禁通过后才加入）；manifest.json 与 SHA256SUMS.txt 保留报告身份。反馈请填写 FEEDBACK.md。\n`
+  return `# Milkup ${manifest.version} 完整 Mermaid Windows 测试包\n\n源码提交：${manifest.candidateSha}\n构建记录：${manifest.runUrl}\n\n这是未签名的 Windows x64 NSIS 测试包，不是正式 Release。安装程序只面向当前用户；不会安装或下载 WebView2，需要电脑已经安装可用的 [Microsoft Evergreen WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。完整 Mermaid 支持标准用户和正常启动的未提权管理员账户；请勿选择“以管理员身份运行”。实际提权、关闭 UAC 后具有完整管理员权限等不符合隔离要求的启动仍不支持，并保留源码。\n\n安装器：\`${manifest.installer.deliveredName}\`。应用内版本为 ${manifest.version}；完整提交与哈希在 manifest.json。可用 PowerShell 的 Get-FileHash -Algorithm SHA256 核对 SHA256SUMS.txt。请使用文档副本试用。已交付的 beta.8 安装包保持独立，不由本包覆盖其下载文件。\n\n10 个插件已经包含在应用中，首次安装默认全部不启用。在插件管理中查看权限后启用 Diagrams 1.3.0 即可测试；plugins 目录中的相同插件档案只供补装，不是正常使用的必需步骤。旧配置中的禁用或卸载选择应保留，不会借打包自动授权。\n\n正文预览接入固定官方 Mermaid 12.2.0 引擎。samples 包含普通图、宽图、C4 和故意无效语法四类；无效语法应显示源码或诊断。宽图保持自然尺寸并滚动查看。本候选包含 C4 标签白底碰边修复，以及原生自建目录删除遇 Windows 错误 5 时的有界重试；仍必须确认实际清理完成才发布图像，未扩大权限或放宽失败门禁。语法范围仍受固定引擎、输入与图片预算限制，不代表所有语法组合均已验收。导出仍走受限路径，不承诺正文图表一比一导出；Windows DOM/PDF 导出未开放。\n\n${manifest.deliveryReady ? '本候选已分别通过标准用户和未提权管理员安装后的 10 步自动化产品测试、各 7 张正文图、各 4 次自然关闭以及原生和外层清理，并核对两次安装后 EXE 完整字节。' : '两种账户的安装后产品测试尚未通过最终交付门禁；此目录仍是准备材料，不可作为已验收包上传。'} 自动化不是实际系统中文输入法、完整 DPI 矩阵或人工视觉验收；另行人工复核情况以本次交付消息为准。\n\n保留限制：旧运行 41692476025 的管道读取 Win32 995 根因仍未明确，错误 5 的重试不代表修复了该问题；若再次出现，程序仍会拒绝未确认清理的图像。更早运行 41653312849 的 cleanupUncertain 原因同样未定。历史运行 41642093459 的临时 profile 删除曾因 Win32 32 失败，旧 hosted runner 已结束，残留无法复查。真实旧配置升级与回滚、安装器交互和 SmartScreen 提示尚未完整验收。本包只有 Windows x64；Linux 原生路径此前限 X11，Wayland 未验收。C4 修复只覆盖所测布局，不代表所有复杂布局均无碰边。\n\n下载需要登录有仓库访问权的 GitHub 账户，在本次 Actions 运行的 Artifacts 中下载并解压。Artifacts 设置保留 7 天；准确到期时间以 GitHub 实际 artifact 记录及本次交付消息为准，本包不会推算或虚构日期。两种账户的原始离线测试报告分别位于 reports/pure-standard 和 reports/filtered-admin（只有最终门禁通过后才加入）；manifest.json 与 SHA256SUMS.txt 保留报告身份。反馈请填写 FEEDBACK.md。\n`
 }
 const feedback = `# 测试反馈\n\n请记录应用“关于”版本、manifest.json 的 candidateSha、Windows 版本、账户类型、已安装 WebView2 版本、显示缩放、插件启用状态和使用的是新配置还是旧配置。\n\n1. 安装、启动、关闭是否成功？\n2. 插件是否首次默认关闭，启用 Diagrams 后原位置是否显示图表？\n3. 普通图编辑、保存、撤销和重做是否保持准确文本？\n4. 宽图是否能滚动且文字清晰？C4 标签、连线是否有重叠？\n5. 无效语法是否保留源码并显示可理解的诊断？\n6. 禁用、重新启用和关闭后是否有残留窗口或错误？\n7. 中文输入的拼音、选词、取消和“- 空格 / - [ ] ”输入行为如何？\n\n请提供最小可复现 Markdown、实际现象、操作顺序和截图；避免附带私人文档内容。导出结果请单独标注，正文通过不表示导出通过。\n`
 
@@ -526,7 +529,7 @@ export async function preparePayload(evidence, output) {
     systemDpiMatrixAccepted: false,
     visualReviewAccepted: false,
     windowsMermaid:
-      'Pinned official 12.2.0 host-private native screen rendering; pure standard user required',
+      'Pinned official 12.2.0 host-private native screen rendering; pure-standard or non-elevated filtered-admin, actual elevated hosts unsupported',
     export: 'Existing restricted export path; no full Mermaid or Windows DOM/PDF export acceptance',
     plugins: verified.plugins,
     verification: verified.verification,
@@ -571,7 +574,182 @@ export async function preparePayload(evidence, output) {
   return { status: manifest.status, deliveryReady: false, output, files: files.length + 1 }
 }
 
+function verifyBoundedCloseResponse(value) {
+  assert(value && typeof value === 'object', 'Bounded close response required')
+  assert.deepEqual(Object.keys(value).sort(), ['bytes', 'sha256', 'text', 'truncated'])
+  assert.equal(typeof value.text, 'string')
+  assert(Number.isSafeInteger(value.bytes) && value.bytes >= 0)
+  assert.match(value.sha256, /^[a-f0-9]{64}$/)
+  assert.equal(value.truncated, value.bytes > 2048)
+  const bytes = Buffer.from(value.text)
+  assert(bytes.length <= 2048)
+  if (value.truncated) {
+    // The complete-body digest cannot be recomputed from its UTF-8 prefix.
+    assert(bytes.length >= 2045 && bytes.length <= value.bytes)
+  } else {
+    assert.equal(bytes.length, value.bytes)
+    assert.equal(hash(bytes), value.sha256, 'Retained raw close response changed')
+  }
+  return !value.truncated
+}
+
+/** Recheck the frozen harness's actual owned-exit acceptance. The report does
+ * not expose its original monotonic deadline, so do not invent one from dates. */
+export function verifyInstalledProductCloses(product) {
+  assert(Array.isArray(product.launches))
+  assert.deepEqual(
+    product.launches.map((launch) => launch.fixture),
+    ['ordinary', 'wide', 'c4', 'invalid'],
+  )
+  const expectedPhases = [
+    'native-drain',
+    'ui-close',
+    'ui-exit-wait',
+    'stdio-drain',
+    'normal-exit',
+    'native-final-verification',
+    'webdriver-detach',
+  ]
+  for (const launch of product.launches) {
+    assert(Number.isSafeInteger(launch.productPid) && launch.productPid > 0)
+    assert.equal(launch.exitCode, 0, 'Held product must exit normally')
+    assert.equal(launch.signal, null, 'A signalled product exit is not a natural close')
+    assert(Number.isFinite(launch.exitObservedMonotonicMs) && launch.exitObservedMonotonicMs >= 0)
+    assert.equal(typeof launch.exitedAt, 'string')
+    assert.equal(typeof launch.stdioClosedAt, 'string', 'Actual product stdio drain required')
+    assert.equal(launch.closedByUi, true)
+    assertCleanCloseConfirmation(launch)
+    for (const key of ['discardedOwnedUnsavedFixture', 'outerTerminationRequired'])
+      assert.notEqual(launch[key], true, 'Forced/discarded close cannot pass')
+    const teardown = launch.teardown
+    assert(teardown && typeof teardown === 'object', 'Actual close teardown required')
+    assert.equal(teardown.afterFailure, false)
+    assert.equal(teardown.ownedProductPid, launch.productPid)
+    for (const key of ['uiCloseAttempted', 'realUiCloseRequested', 'closedByUi'])
+      assert.equal(teardown[key], true, 'Real UI close must be requested and accepted')
+    for (const key of ['uiExitWaitFailed', 'uiExitDeadlineUnmet', 'outerTerminationRequired'])
+      assert.notEqual(teardown[key], true, 'Failed wait or fallback cannot pass')
+    assert.deepEqual(teardown.errors, [])
+    assert(Array.isArray(teardown.phases))
+    assert.deepEqual(
+      teardown.phases.map((phase) => phase.phase),
+      expectedPhases,
+    )
+    assert(teardown.phases.every((phase) => phase.ok === true))
+    const phases = teardown.phases
+    assert.equal(phases[1].result?.realUiCloseRequested, true)
+    assert.equal(phases[2].result, true, 'Frozen harness must accept its original 15-second wait')
+    assert.equal(phases[4].result, true)
+    assert.equal(phases[0].result?.innerCleanupVerified, true)
+    assert.equal(phases[5].result?.innerCleanupVerified, true)
+    if (!Object.hasOwn(launch, 'closeConfirmationProbes')) continue
+    const history = launch.closeConfirmationProbes
+    assert.equal(history?.retainedLimit, 32)
+    assert(Number.isSafeInteger(history.total) && history.total >= 1 && history.total <= 4096)
+    assert(Number.isSafeInteger(history.omitted) && history.omitted >= 0)
+    assert(Array.isArray(history.observations))
+    assert.equal(history.observations.length, Math.min(history.total, 32))
+    assert(
+      !Object.hasOwn(history, 'firstVisibleDialog'),
+      'A retained positive dialog blocks delivery',
+    )
+    assert.deepEqual(
+      history.observations.map((row) => row.sequence),
+      Array.from({ length: history.observations.length }, (_, index) => index + 1),
+    )
+    const observations = [...history.observations]
+    if (history.total > 32) {
+      assert.equal(history.lastObservation?.sequence, history.total)
+      assert.equal(history.omitted, history.total - 33)
+      observations.push(history.lastObservation)
+    } else {
+      assert(!Object.hasOwn(history, 'lastObservation'))
+      assert.equal(history.omitted, 0)
+    }
+    for (const row of observations) {
+      assert.equal(typeof row.startedAt, 'string')
+      assert(
+        [
+          'no-visible-unsaved-dialog',
+          'null-result-awaiting-owned-exit',
+          'closed-context-awaiting-owned-exit',
+          'pending',
+          'interrupted',
+        ].includes(row.decision),
+      )
+      assert.notEqual(row.value, true, 'Observed unsaved dialog blocks delivery')
+      if (row.decision !== 'pending') assert.equal(typeof row.finishedAt, 'string')
+      if (['pending', 'interrupted'].includes(row.decision))
+        assert.equal(row.sequence, history.total)
+      if (Object.hasOwn(row, 'error')) verifyBoundedCloseResponse(row.error)
+      let decoded = false,
+        raw,
+        protocolError,
+        ownValueError = false
+      if (Object.hasOwn(row, 'response')) {
+        assert(
+          Number.isSafeInteger(row.httpStatus) && row.httpStatus >= 100 && row.httpStatus <= 599,
+        )
+        if (verifyBoundedCloseResponse(row.response)) {
+          const envelope = JSON.parse(row.response.text)
+          raw = unwrapWebDriverValue(envelope)
+          protocolError = typeof raw?.error === 'string' ? raw.error : undefined
+          ownValueError =
+            envelope !== null &&
+            typeof envelope === 'object' &&
+            Object.hasOwn(envelope, 'value') &&
+            raw !== null &&
+            typeof raw === 'object' &&
+            Object.hasOwn(raw, 'error')
+          decoded = true
+          assert.notEqual(raw, true, 'Actual raw unsaved dialog blocks delivery')
+          if (row.httpStatus >= 200 && row.httpStatus < 300 && !protocolError) {
+            if (Object.hasOwn(row, 'valueType'))
+              assert.equal(row.valueType, raw === null ? 'null' : typeof raw)
+            if (Object.hasOwn(row, 'value')) assert.deepEqual(row.value, raw)
+          }
+        }
+      }
+      if (['no-visible-unsaved-dialog', 'null-result-awaiting-owned-exit'].includes(row.decision)) {
+        const value = row.decision === 'no-visible-unsaved-dialog' ? false : null
+        assert.equal(row.valueType, value === null ? 'null' : 'boolean')
+        assert.equal(row.value, value)
+        assert(row.response && row.httpStatus >= 200 && row.httpStatus < 300)
+        if (decoded) {
+          assert.equal(raw, value)
+          assert.equal(protocolError, undefined)
+        }
+      } else if (row.decision === 'closed-context-awaiting-owned-exit') {
+        const code = row.webDriverErrorCode
+        assert(
+          [
+            'no such window',
+            'no such frame',
+            'invalid session id',
+            'target frame detached',
+          ].includes(code),
+        )
+        assert(row.response && row.error)
+        assert(!Object.hasOwn(row, 'value') && !Object.hasOwn(row, 'valueType'))
+        if (code === 'target frame detached') {
+          assert.equal(row.httpStatus, 404)
+          if (decoded) assert(ownValueError, 'Detached target needs own envelope.value.error')
+        }
+        if (decoded) assert.equal(protocolError, code)
+      }
+    }
+  }
+  return {
+    naturalUiCloses: 4,
+    configuredWaitBudgetMs: 15000,
+    independentMonotonicDeadlineRecomputed: false,
+    dialogAbsenceInferredFromNullOrExit: false,
+  }
+}
+
 export async function verifyInstalledEvidence(directory, expected) {
+  const accountKind = validateAccountKind(expected.expectedAccountKind)
+  assert.match(expected.harnessSha256, /^[a-f0-9]{64}$/)
   const names = [
     'installation-result.json',
     'installed-binary-comparison.json',
@@ -596,6 +774,11 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.equal(installation.mode, 'nsis-current-user')
   assert.equal(installation.candidateSha, expected.candidateSha)
   assert.equal(product.candidateSha, expected.candidateSha)
+  assert.equal(
+    product.harnessSha256,
+    expected.harnessSha256,
+    'Exact installed acceptance harness required',
+  )
   assert.equal(audit.source, expected.candidateSha)
   assert.equal(installation.installer.sha256, expected.installerSha256)
   assert.equal(installation.installerRun.started, true)
@@ -607,6 +790,8 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.equal(installation.installerRun.forcedProcessTermination, false)
   assert.equal(installation.installerRun.timedOut, false)
   assert.deepEqual(installation.installerRun.cleanupErrors, [])
+  assert.equal(installation.expectedAccountKind, accountKind)
+  assert.equal(installation.installerRun.expectedAccountKind, accountKind)
   for (const identity of [
     installation.installerRun.callerIdentity,
     installation.installerRun.startedProcess,
@@ -615,10 +800,12 @@ export async function verifyInstalledEvidence(directory, expected) {
       identity.token,
       installation.actualSid,
       installation.sessionId,
-      'pure-standard',
+      accountKind,
     )
     assert.equal(identity.sessionId, installation.sessionId)
     assert.equal(identity.inJob, true)
+    assert.equal(identity.expectedAccountKind, accountKind)
+    assert.equal(identity.accountKindVerified, true)
   }
   assert.equal(installation.installerRun.startedProcess.imageTruncated, false)
   assert.equal(
@@ -629,6 +816,7 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.equal(installation.productAcceptance, 'passed')
   assert.deepEqual(installation.cleanupErrors, [])
   assert.equal(installation.installedBinary.productVersion, expected.version)
+  assert.equal(installation.installedBinary.fileVersion, expected.version)
   assert.equal(installation.installedBinary.peMachine, '0x8664')
   assert.equal(installation.installedBinary.sha256, expected.installedSha256)
   assert.equal(product.applicationSha256, expected.installedSha256)
@@ -651,19 +839,20 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.equal(installation.actualSid, installation.expectedSid)
   assert.equal(installation.actualSid, audit.accountSid)
   assert.equal(installation.sessionId, installation.expectedSessionId)
-  assert.equal(audit.expectedAccountKind, 'pure-standard')
-  assert.equal(audit.childResult.expectedAccountKind, 'pure-standard')
-  assert.equal(product.expectedAccountKind, 'pure-standard')
+  assert.equal(audit.expectedAccountKind, accountKind)
+  assert.equal(audit.childResult.expectedAccountKind, accountKind)
+  assert.equal(product.expectedAccountKind, accountKind)
   validateContext(
     audit.standardContext,
     installation.actualSid,
     installation.sessionId,
-    'pure-standard',
+    accountKind,
   )
-  validateContext(product.context, installation.actualSid, installation.sessionId, 'pure-standard')
+  validateContext(product.context, installation.actualSid, installation.sessionId, accountKind)
   for (const key of [
     'accountCreated',
     'accountDeleted',
+    'accountGroupCleanupConfirmed',
     'profileDeleted',
     'stageRemoved',
     'installerExecuted',
@@ -679,6 +868,19 @@ export async function verifyInstalledEvidence(directory, expected) {
   ])
     assert.equal(audit[key], false, key + ' must remain false')
   assert.deepEqual(audit.cleanupErrors, [])
+  const groupCleanup = audit.accountGroupCleanup
+  assert.equal(groupCleanup?.sid, installation.actualSid)
+  assert.equal(groupCleanup.readOnly, true)
+  assert.equal(groupCleanup.complete, true)
+  assert.deepEqual(groupCleanup.errors, [])
+  assert.deepEqual(
+    groupCleanup.groups?.map((group) => group.groupSid),
+    ['S-1-5-32-545', 'S-1-5-32-544'],
+  )
+  assert(
+    groupCleanup.groups.every((group) => group.queried === true && group.exactSidPresent === false),
+    'Actual deleted SID must be absent from both Users and Administrators',
+  )
   assert.equal(audit.supervisor.jobEmpty, true)
   assert.deepEqual(audit.supervisor.cleanupErrors, [])
   assert.equal(audit.childResult.status, 'passed')
@@ -713,29 +915,25 @@ export async function verifyInstalledEvidence(directory, expected) {
     'Existing installed Evergreen selected by reviewed wrapper; no runtime installation',
   )
   assert.match(product.runtime.sha256, /^[a-f0-9]{64}$/)
-  const ledger = new AuditLedger(installation.actualSid, installation.sessionId, 'pure-standard')
+  const closes = verifyInstalledProductCloses(product)
+  const productPids = new Set(product.launches.map((launch) => launch.productPid))
+  const ledger = new AuditLedger(installation.actualSid, installation.sessionId, accountKind)
   assert(
     Array.isArray(product.nativeAudit) && product.nativeAudit.length > 0,
     'Real native ownership audit required',
   )
-  for (const event of product.nativeAudit) ledger.accept(event, event.productPid)
+  for (const event of product.nativeAudit) {
+    assert(
+      productPids.has(event.productPid),
+      'Native audit must belong to a launched installed product',
+    )
+    ledger.accept(event, event.productPid)
+  }
   ledger.verifyAll()
   assert(
     product.nativeAudit.some((event) => event.phase === 'started'),
     'Native rendering never started',
   )
-  assert(
-    Array.isArray(product.launches) && product.launches.length === 4,
-    'Four installed-product fixture launches required',
-  )
-  for (const launch of product.launches) {
-    assert.equal(launch.closedByUi, true, 'Product must close through its UI')
-    assert.notEqual(
-      launch.outerTerminationRequired,
-      true,
-      'Outer forced kill is not native cleanup acceptance',
-    )
-  }
   const pixels = []
   for (const step of product.steps) {
     assert(step.screenshot, 'Retained actual window screenshot required')
@@ -768,12 +966,51 @@ export async function verifyInstalledEvidence(directory, expected) {
   return {
     status: 'passed',
     scope:
-      'Exact installed image, same-SID pure-standard user, ten product operations, retained PNG hashes and native cleanup records; no human visual/IME/DPI acceptance',
+      'Exact installed image, same-SID verified account, ten product operations, retained PNG hashes and native cleanup records; no human visual/IME/DPI acceptance',
+    expectedAccountKind: accountKind,
+    closes,
     records: records.map(({ value: _value, ...record }) => record),
     pixels,
     runtime: product.runtime,
     account: { sid: installation.actualSid, sessionId: installation.sessionId },
     applicationSha256: product.applicationSha256,
+  }
+}
+
+export async function verifyInstalledAccountMatrix(parent, expected) {
+  const kinds = ['pure-standard', 'filtered-admin']
+  const info = await lstat(parent)
+  assert(info.isDirectory() && !info.isSymbolicLink(), 'Plain installed-evidence parent required')
+  assert.deepEqual(
+    (await readdir(parent)).sort(),
+    [...kinds].sort(),
+    'Exactly two independent installed-account evidence directories required',
+  )
+  const accounts = {}
+  for (const kind of kinds) {
+    const directory = path.join(parent, kind)
+    const info = await lstat(directory)
+    assert(
+      info.isDirectory() && !info.isSymbolicLink(),
+      'Plain installed-account directory required',
+    )
+    accounts[kind] = await verifyInstalledEvidence(directory, {
+      ...expected,
+      expectedAccountKind: kind,
+    })
+  }
+  assert.notEqual(
+    accounts['pure-standard'].account.sid,
+    accounts['filtered-admin'].account.sid,
+    'Installed account fixtures must have distinct actual SIDs',
+  )
+  return {
+    status: 'passed',
+    scope:
+      'Separate fresh pure-standard and non-elevated filtered-admin installations of the same verified package',
+    requiredAccountKinds: kinds,
+    naturalUiCloses: 8,
+    accounts,
   }
 }
 
@@ -806,7 +1043,7 @@ export async function finalizePayload(evidence, output, installedEvidence) {
     await json(path.join(evidence, 'public-plugins/verification.json')),
     verified.verification,
   )
-  const installed = await verifyInstalledEvidence(installedEvidence, {
+  const installed = await verifyInstalledAccountMatrix(installedEvidence, {
     candidateSha: verified.packaging.candidateSha,
     version: verified.packaging.version,
     installerSha256: verified.packaging.installer.sha256,
@@ -816,14 +1053,23 @@ export async function finalizePayload(evidence, output, installedEvidence) {
     markerOffset: verified.verification.embedded.markerOffset,
     bundledPlugins: verified.installerInput.bundledPlugins,
     resources: verified.installerInput.resources,
+    harnessSha256: hash(
+      await plainBytes(path.join(checkout, 'tests/windows/mermaid-product-e2e.mjs')),
+    ),
   })
   const manifest = await json(path.join(output, 'manifest.json'))
   assert.equal(manifest.deliveryReady, false)
   await mkdir(path.join(output, 'reports'))
-  for (const record of installed.records) {
-    const bytes = await plainBytes(path.join(installedEvidence, record.name), 4 * 1024 * 1024)
-    assert.equal(hash(bytes), record.sha256, 'Installed report changed before delivery copy')
-    await writeFile(path.join(output, 'reports', record.name), bytes, { flag: 'wx' })
+  for (const [kind, account] of Object.entries(installed.accounts)) {
+    await mkdir(path.join(output, 'reports', kind))
+    for (const record of account.records) {
+      const bytes = await plainBytes(
+        path.join(installedEvidence, kind, record.name),
+        4 * 1024 * 1024,
+      )
+      assert.equal(hash(bytes), record.sha256, 'Installed report changed before delivery copy')
+      await writeFile(path.join(output, 'reports', kind, record.name), bytes, { flag: 'wx' })
+    }
   }
   Object.assign(manifest, {
     status: 'verified-for-user-trial',
@@ -855,7 +1101,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   const [mode, evidence, output, installedEvidence] = process.argv.slice(2)
   assert(
     ['prepare', 'finalize'].includes(mode) && evidence && output,
-    'Usage: prepare-mermaid-trial-payload.mjs prepare|finalize <evidence> <new-payload> [installed-evidence]',
+    'Usage: prepare-mermaid-trial-payload.mjs prepare|finalize <evidence> <new-payload> [installed-evidence-parent-with-both-account-directories]',
   )
   assert(mode === 'prepare' ? !installedEvidence : !!installedEvidence)
   const result =
