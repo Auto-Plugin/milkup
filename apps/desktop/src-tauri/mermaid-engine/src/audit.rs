@@ -205,6 +205,7 @@ pub(crate) fn finished(
             "ipcThreadCleanup":ipc_thread_cleanup(&report["ipcThreadCleanup"]),
             "privateTreeCleanup":private_tree_cleanup(&report["privateTreeCleanup"]),
             "cleanupTimeline":cleanup_timeline(&report["cleanupTimeline"]),
+            "helperProcessExitObservation":helper_process_exit_observation(&report["helperProcessExitObservation"]),
             "stdoutFailure":stdout_failure(&report["stdoutFailure"]),
             "stderrFailure":stderr_failure(&report["stderrFailure"]),
             "hostSid":report["hostToken"]["userSid"],
@@ -239,6 +240,51 @@ fn host_token_class(report: &Value) -> Value {
         _ => Value::Null,
     }
 }
+
+// Zero-time observations of the original held helper process only. These do
+// not replace owned-Job accounting, EOF, or any cleanup acceptance condition.
+fn helper_process_exit_observation(value: &Value) -> Option<Value> {
+    fn snapshot(value: &Value) -> Option<Value> {
+        let status = value["waitStatus"].as_str()?;
+        let result = u32::try_from(value["waitResult"].as_u64()?).ok()?;
+        match status {
+            "signaled" if result == 0 => (),
+            "timeout" if result == 258 => (),
+            "failed" if result == u32::MAX => (),
+            "unexpected" if ![0, 258, u32::MAX].contains(&result) => (),
+            _ => return None,
+        }
+        let scalar = |name: &str| -> Option<Option<u32>> {
+            let value = value.get(name)?;
+            if value.is_null() {
+                Some(None)
+            } else {
+                Some(Some(u32::try_from(value.as_u64()?).ok()?))
+            }
+        };
+        let error = scalar("win32Error")?;
+        let exit = scalar("exitCode")?;
+        let exit_error = scalar("exitCodeWin32Error")?;
+        if (status != "failed" && error.is_some())
+            || (status != "signaled" && (exit.is_some() || exit_error.is_some()))
+            || (exit.is_some() && exit_error.is_some())
+        {
+            return None;
+        }
+        Some(
+            json!({"waitStatus":status,"waitResult":result,"win32Error":error,
+            "exitCode":exit,"exitCodeWin32Error":exit_error}),
+        )
+    }
+    if value["handleReleasedBeforeAccounting"] != true {
+        return None;
+    }
+    Some(json!({
+        "beforeTerminate":snapshot(&value["beforeTerminate"])?,
+        "afterTerminateRequest":snapshot(&value["afterTerminateRequest"])?,
+        "handleReleasedBeforeAccounting":true
+    }))
+}
 fn with_token_evidence(report: &Value, mut record: Value) -> Value {
     let verified = report["helperNativeProofVerified"] == true;
     let helper = if verified {
@@ -272,6 +318,9 @@ fn with_token_evidence(report: &Value, mut record: Value) -> Value {
         "childTokenEvidence":crate::token_policy::audit_evidence(&report["suspendedToken"]),
         "browserTokenEvidence":crate::token_policy::audit_evidence(&report["browserToken"]),
         "helperPid":helper_pid,"helperNativeProofVerified":verified,
+        "helperProtocolHandlesNonInheritable":if verified {
+            report["ready"]["protocolHandlesNonInheritable"].as_bool()
+        } else {None},
         "helperSelfTokenEvidence":crate::token_policy::audit_evidence(helper),
         "browserFromHelperTokenEvidence":crate::token_policy::audit_evidence(browser_from_helper),
         "helperSelfSid":sid(helper),"browserFromHelperSid":sid(browser_from_helper),
@@ -524,7 +573,8 @@ mod tests {
         host["appContainerSid"] = Value::Null;
         host["integrityRid"] = json!(8192);
         host.as_object_mut().unwrap().remove("linkedAuthority");
-        let ready = crate::token_ready::build(u32::MAX - 1, u32::MAX, &sandbox, &sandbox).unwrap();
+        let ready =
+            crate::token_ready::build(u32::MAX - 1, u32::MAX, &sandbox, &sandbox, true).unwrap();
         let mut report = json!({"hostToken":host,"hostTokenClass":"filtered-admin","hostNonElevatedVerified":true,
             "suspendedToken":sandbox,"browserToken":sandbox,"helperSelfToken":sandbox,"browserFromHelperToken":sandbox,
             "helperProcessId":u32::MAX-1,"helperNativeProofVerified":true,"ready":ready,
@@ -543,6 +593,10 @@ mod tests {
             "observations":(1..=31).map(|attempt|json!({"attempt":attempt,"osError":i32::MIN,"retryableWindowsDeleteError":false})).collect::<Vec<_>>()});
         report["cleanupTimeline"] = json!({"jobStopFinishedMs":u64::MAX,"ipcJoinsFinishedMs":u64::MAX,
             "pinsReleasedMs":u64::MAX,"profileDeleteFinishedMs":u64::MAX,"treeDeleteFinishedMs":u64::MAX});
+        let wait = json!({"waitStatus":"signaled","waitResult":0,"win32Error":null,
+            "exitCode":null,"exitCodeWin32Error":u32::MAX});
+        report["helperProcessExitObservation"] = json!({"beforeTerminate":wait,
+            "afterTerminateRequest":wait,"handleReleasedBeforeAccounting":true});
         for entry in report["ipcThreadCleanup"].as_array_mut().unwrap() {
             for field in ["progressAtJoin", "progressAtCancel", "progressAtEnd"] {
                 entry[field] = json!({"phase":"trailing-byte","completion":"channel-error"});
@@ -556,6 +610,7 @@ mod tests {
             record["timestampUnixMs"] = json!(u64::MAX);
             assert!(record["helperSelfTokenEvidence"].is_object());
             assert_eq!(record["helperSelfObserverPid"], u32::MAX - 1);
+            assert_eq!(record["helperProtocolHandlesNonInheritable"], true);
             assert_eq!(record["browserFromHelperSubjectPid"], u32::MAX);
             let length = serde_json::to_vec(&record).unwrap().len();
             println!(
@@ -573,6 +628,7 @@ mod tests {
         assert_eq!(partial["helperPid"], u32::MAX - 1);
         for field in [
             "helperSelfTokenEvidence",
+            "helperProtocolHandlesNonInheritable",
             "browserFromHelperTokenEvidence",
             "helperSelfSid",
             "browserFromHelperSid",
@@ -588,6 +644,56 @@ mod tests {
                 "Unverified {field} cannot claim native proof"
             );
         }
+    }
+
+    #[test]
+    fn protocol_handle_proof_requires_verified_native_ready_and_a_boolean() {
+        for (value, expected) in [
+            (json!(true), json!(true)),
+            (json!(false), json!(false)),
+            (json!("true"), Value::Null),
+            (Value::Null, Value::Null),
+        ] {
+            let mut report = json!({"helperNativeProofVerified":true,
+                "ready":{"protocolHandlesNonInheritable":value}});
+            for record in [
+                started("r", &report),
+                finished("r", &report, &[], false, false),
+            ] {
+                assert_eq!(record["helperProtocolHandlesNonInheritable"], expected);
+            }
+            report["helperNativeProofVerified"] = json!(false);
+            assert!(started("r", &report)["helperProtocolHandlesNonInheritable"].is_null());
+        }
+    }
+
+    #[test]
+    fn helper_exit_observation_is_closed_and_never_overrides_cleanup_failure() {
+        let timeout = json!({"waitStatus":"timeout","waitResult":258,"win32Error":null,
+            "exitCode":null,"exitCodeWin32Error":null,"privatePath":"not-output"});
+        let signaled = json!({"waitStatus":"signaled","waitResult":0,"win32Error":null,
+            "exitCode":1,"exitCodeWin32Error":null});
+        let mut observation = json!({"beforeTerminate":timeout,
+            "afterTerminateRequest":signaled,"handleReleasedBeforeAccounting":true});
+        let closed = helper_process_exit_observation(&observation).unwrap();
+        assert!(!closed.to_string().contains("not-output"));
+        assert_eq!(closed["afterTerminateRequest"]["exitCode"], 1);
+        let result = finished(
+            "r",
+            &json!({"helperProcessExitObservation":observation,
+            "stopMatrixAfterThisCase":true,"success":false}),
+            &[],
+            false,
+            false,
+        );
+        assert_eq!(result["cleanupUncertain"], true);
+        assert_eq!(result["successful"], false);
+        observation["beforeTerminate"]["waitResult"] = json!(0);
+        assert!(helper_process_exit_observation(&observation).is_none());
+        observation["beforeTerminate"] = timeout;
+        observation["afterTerminateRequest"]["exitCode"] = json!(u64::MAX);
+        assert!(helper_process_exit_observation(&observation).is_none());
+        assert!(helper_process_exit_observation(&Value::Null).is_none());
     }
 
     #[test]
