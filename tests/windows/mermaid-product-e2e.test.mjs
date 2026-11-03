@@ -13,6 +13,7 @@ import {
   isUnknownGrammarRejection,
   observe,
   decodeScript,
+  waitForPluginCard,
 } from './mermaid-product-e2e.mjs'
 
 const sid = 'S-1-5-21-11-22-33-1001'
@@ -321,4 +322,75 @@ test('uncreated-job cancellation rejects contradictory identities and ownership 
 test('browser observation/decode bodies parse without executing browser APIs', () => {
   assert.doesNotThrow(() => new Function(observe))
   assert.doesNotThrow(() => new Function(decodeScript))
+})
+
+const pluginCard = (changes = {}) => ({
+  id: 'milkup.diagrams',
+  checked: 'false',
+  busy: null,
+  ariaDisabled: null,
+  switchDisabled: false,
+  visible: true,
+  rect: { x: 20, y: 200, width: 600, height: 90 },
+  switchRect: { x: 500, y: 220, width: 40, height: 24 },
+  ...changes,
+})
+
+test('plugin menu waits for asynchronous exact-card readiness independently of document ready', async () => {
+  const states = [
+    { loading: 'ready', cards: [], pluginText: '安装本地插件' },
+    { loading: 'ready', cards: [pluginCard({ id: 'milkup.other' })] },
+    { loading: 'ready', cards: [pluginCard({ busy: 'true' })] },
+    { loading: 'ready', cards: [pluginCard()] },
+  ]
+  let reads = 0
+  const result = await waitForPluginCard(
+    async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      return states[Math.min(reads++, states.length - 1)]
+    },
+    { timeoutMs: 1000, pollIntervalMs: 1 },
+  )
+  assert.equal(reads, 4)
+  assert.equal(result.card.id, 'milkup.diagrams')
+  assert.equal(result.card.checked, 'false')
+})
+
+test('laid-out offscreen cards are ready for real wheel input without assuming disabled', async () => {
+  const card = pluginCard({
+    visible: false,
+    checked: 'true',
+    rect: { x: 20, y: 1400, width: 600, height: 90 },
+  })
+  const result = await waitForPluginCard(async () => ({ cards: [card] }), { timeoutMs: 100 })
+  assert.equal(result.card, card)
+  assert.equal(result.card.checked, 'true', 'Readiness does not convert enabled into disabled')
+})
+
+test('missing or unusable cards time out with public application notice diagnostics', async () => {
+  for (const cards of [
+    [],
+    [pluginCard({ checked: undefined })],
+    [pluginCard({ busy: 'true' })],
+    [pluginCard({ rect: { width: 0, height: 0 } })],
+    [pluginCard({ switchDisabled: true })],
+  ]) {
+    await assert.rejects(
+      waitForPluginCard(
+        async () => ({
+          menu: true,
+          cards,
+          pluginText: '安装本地插件',
+          applicationNotices: [{ text: '插件目录尚未就绪', visible: true }],
+        }),
+        { timeoutMs: 15, pollIntervalMs: 1 },
+      ),
+      (error) => {
+        assert.match(error.message, /Timed out waiting for laid-out nonbusy milkup\.diagrams card/)
+        assert.match(error.message, /插件目录尚未就绪/)
+        assert.match(error.message, /"visible":true/)
+        return true
+      },
+    )
+  }
 })

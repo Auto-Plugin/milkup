@@ -208,6 +208,55 @@ export function isUnknownGrammarRejection(job) {
   )
 }
 
+// Catalog readiness is independent of document readiness. The card may be laid
+// out below the scroll viewport; the real pointer helper reveals it before use.
+export async function waitForPluginCard(
+  readState,
+  { timeoutMs = 30000, pollIntervalMs = 100, guard = () => {} } = {},
+) {
+  const deadline = performance.now() + timeoutMs
+  let last
+  while (performance.now() < deadline) {
+    guard()
+    last = await readState()
+    const card = last.cards?.find((item) => item.id === PLUGIN)
+    if (
+      card &&
+      card.rect?.width > 0 &&
+      card.rect?.height > 0 &&
+      card.switchRect?.width > 0 &&
+      card.switchRect?.height > 0 &&
+      ['true', 'false'].includes(card.checked) &&
+      card.busy !== 'true' &&
+      card.switchDisabled === false &&
+      card.ariaDisabled !== 'true'
+    )
+      return { card, state: last }
+    const remaining = deadline - performance.now()
+    if (remaining > 0) await delay(Math.min(pollIntervalMs, remaining))
+  }
+  const diagnostic = {
+    menu: last?.menu,
+    cards: last?.cards
+      ?.slice(0, 64)
+      .map(({ id, checked, busy, visible, rect, switchRect, switchDisabled, ariaDisabled }) => ({
+        id,
+        checked,
+        busy,
+        visible,
+        rect,
+        switchRect,
+        switchDisabled,
+        ariaDisabled,
+      })),
+    applicationNotices: last?.applicationNotices,
+    pluginText: last?.pluginText?.slice(0, 4000),
+  }
+  throw Error(
+    `Timed out waiting for laid-out nonbusy ${PLUGIN} card: ${JSON.stringify(diagnostic)}`,
+  )
+}
+
 export class AuditLedger {
   constructor(expectedSid) {
     this.expectedSid = expectedSid
@@ -353,7 +402,8 @@ return {url:location.href,protocol:location.protocol,hostname:location.hostname,
  vectorCount:document.querySelectorAll('[data-document-presentation] svg').length,
  source:[...document.querySelectorAll('.milkup-line,.milkup-code-source')].map(e=>({text:e.textContent,visible:visible(e)&&!e.classList.contains('milkup-marker-hidden'),rect:rect(e)})),
  notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,visible:visible(e)})),
- cards:[...document.querySelectorAll('.plugin-summary-card[data-plugin-id]')].map(e=>({id:e.dataset.pluginId,text:e.textContent,checked:e.querySelector('[role="switch"]')?.getAttribute('aria-checked'),busy:e.querySelector('[role="switch"]')?.getAttribute('aria-busy'),rect:rect(e)})),
+ cards:[...document.querySelectorAll('.plugin-summary-card[data-plugin-id]')].map(e=>{const toggle=e.querySelector('[role="switch"]');return {id:e.dataset.pluginId,text:e.textContent,checked:toggle?.getAttribute('aria-checked'),busy:toggle?.getAttribute('aria-busy'),ariaDisabled:toggle?.getAttribute('aria-disabled'),switchDisabled:!!toggle?.disabled,switchRect:rect(toggle),visible:visible(e),switchVisible:visible(toggle),rect:rect(e)}}),
+ applicationNotices:[...document.querySelectorAll('[data-notice]')].map(e=>({text:e.textContent?.slice(0,2000),visible:visible(e)})),
  pluginText:document.querySelector('.plugin-manager')?.textContent??document.querySelector('[data-plugin-manager]')?.textContent};`
 
 // These asynchronous observations only read accepted DOM images or decode a
@@ -688,6 +738,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     await pointer('[data-menu-section="plugins"]')
     if (await execute('return !!document.querySelector(\'[data-plugin-action="back"]\')'))
       await pointer('[data-plugin-action="back"]')
+    return waitForPluginCard(state, { guard })
   }
   const closeMenu = async () => {
     if ((await state()).menu) await pointer('[data-menu-close]')
@@ -1034,7 +1085,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       assert.equal(before.dirty, false)
       await menu()
       let current = await state()
-      assert.equal(current.cards.find((card) => card.id === PLUGIN)?.checked, 'false')
+      const initialCard = current.cards.find((card) => card.id === PLUGIN)
+      assert(initialCard, 'Exact Diagrams card exists after asynchronous catalog readiness')
+      assert.equal(initialCard.checked, 'false', 'Fresh Diagrams is actually disabled')
+      assert.notEqual(initialCard.busy, 'true', 'Initial Diagrams switch is not busy')
+      assert.equal(initialCard.switchDisabled, false, 'Initial Diagrams switch is actionable')
       await pointer(`[data-plugin-action="details"][data-plugin-id="${PLUGIN}"]`)
       current = await state()
       assert(
