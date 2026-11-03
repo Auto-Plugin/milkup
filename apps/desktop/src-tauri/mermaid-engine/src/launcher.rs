@@ -715,34 +715,66 @@ enum Event {
     Written,
     Error(String),
 }
+struct OutputProblem {
+    message: String,
+    kind: &'static str,
+    win32_error: Option<u32>,
+}
+impl OutputProblem {
+    fn new(kind: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind,
+            win32_error: None,
+        }
+    }
+}
+impl From<&str> for OutputProblem {
+    fn from(message: &str) -> Self {
+        Self::new("schema", message)
+    }
+}
+impl From<std::io::Error> for OutputProblem {
+    fn from(error: std::io::Error) -> Self {
+        Self {
+            message: error.to_string(),
+            kind: "read",
+            win32_error: error
+                .raw_os_error()
+                .and_then(|code| u32::try_from(code).ok()),
+        }
+    }
+}
 fn read_exact_bounded(
     reader: &mut File,
     count: usize,
     total: &mut usize,
-) -> std::result::Result<Vec<u8>, String> {
+) -> std::result::Result<Vec<u8>, OutputProblem> {
     *total = total
         .checked_add(count)
         .filter(|n| *n <= MAX_OUTPUT)
         .ok_or("Output aggregate budget exceeded")?;
     let mut data = vec![0; count];
-    reader.read_exact(&mut data).map_err(|e| e.to_string())?;
+    reader.read_exact(&mut data).map_err(OutputProblem::from)?;
     Ok(data)
 }
 fn read_frame(
     reader: &mut File,
     cap: usize,
     total: &mut usize,
-) -> std::result::Result<Value, String> {
+) -> std::result::Result<Value, OutputProblem> {
     let prefix = read_exact_bounded(reader, 4, total)?;
     let bytes = u32::from_le_bytes(prefix.try_into().unwrap()) as usize;
     if bytes == 0 || bytes > cap {
         return Err("JSON frame exceeds its bounded schema envelope".into());
     }
     let data = read_exact_bounded(reader, bytes, total)?;
-    serde_json::from_slice(&data).map_err(|e| e.to_string())
+    serde_json::from_slice(&data).map_err(|error| OutputProblem::new("schema", error.to_string()))
 }
 struct OutputFailure {
     message: String,
+    kind: &'static str,
+    win32_error: Option<u32>,
     phase: &'static str,
     stop_requested_when_observed: bool,
 }
@@ -752,14 +784,15 @@ fn output_reader(
     stop_requested: Arc<AtomicBool>,
 ) -> std::result::Result<(), OutputFailure> {
     let mut phase = "ready-frame";
-    let result = (|| -> std::result::Result<(), String> {
+    let result = (|| -> std::result::Result<(), OutputProblem> {
         let mut total = 0;
         let ready = read_frame(&mut output, MAX_READY, &mut total)?;
         if ready["phase"] != "ready" {
             return Err("Helper did not send the expected ready frame".into());
         }
         phase = "ready-event";
-        tx.send(Event::Ready(ready)).map_err(|e| e.to_string())?;
+        tx.send(Event::Ready(ready))
+            .map_err(|error| OutputProblem::new("channel", error.to_string()))?;
         phase = "result-frame";
         let metadata = read_frame(&mut output, MAX_METADATA, &mut total)?;
         let bytes = metadata["pngBytes"]
@@ -775,20 +808,27 @@ fn output_reader(
         // part of successful rendering and cannot be awaited before that stop.
         phase = "result-event";
         tx.send(Event::Result(metadata, png, total))
-            .map_err(|e| e.to_string())?;
+            .map_err(|error| OutputProblem::new("channel", error.to_string()))?;
         phase = "trailing-byte";
         let mut tail = [0u8; 1];
         match output.read(&mut tail) {
             Ok(0) => (),
             Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => (),
-            Ok(_) => return Err("Unexpected trailing helper output".into()),
-            Err(error) => return Err(error.to_string()),
+            Ok(_) => {
+                return Err(OutputProblem::new(
+                    "trailing-data",
+                    "Unexpected trailing helper output",
+                ))
+            }
+            Err(error) => return Err(OutputProblem::from(error)),
         }
         Ok(())
     })();
-    result.map_err(|message| {
+    result.map_err(|problem| {
         let failure = OutputFailure {
-            message,
+            message: problem.message,
+            kind: problem.kind,
+            win32_error: problem.win32_error,
             phase,
             stop_requested_when_observed: stop_requested.load(Ordering::Acquire),
         };
@@ -1135,6 +1175,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             Some(Err(error)) => {
                 cleanup_kinds.push("stdout-protocol".into());
                 report["stdoutFailure"] = json!({"phase":error.phase,
+                    "kind":error.kind,"win32Error":error.win32_error,
                     "stopRequestedWhenObserved":error.stop_requested_when_observed});
                 cleanup_errors.push(format!("stdout protocol: {}", error.message));
             }

@@ -291,8 +291,21 @@ fn stdout_failure(value: &Value) -> Option<Value> {
         "trailing-byte" => "trailing-byte",
         _ => return None,
     };
+    let kind = match value["kind"].as_str()? {
+        "read" => "read",
+        "schema" => "schema",
+        "channel" => "channel",
+        "trailing-data" => "trailing-data",
+        _ => return None,
+    };
     let stop_observed = value["stopRequestedWhenObserved"].as_bool()?;
-    Some(json!({"phase":phase,"stopRequestedWhenObserved":stop_observed}))
+    let error = match value.get("win32Error") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(u32::try_from(value.as_u64()?).ok()?),
+    };
+    Some(
+        json!({"phase":phase,"kind":kind,"stopRequestedWhenObserved":stop_observed,"win32Error":error}),
+    )
 }
 
 fn stderr_failure(value: &Value) -> Option<Value> {
@@ -669,23 +682,53 @@ mod tests {
             "trailing-byte",
         ] {
             for stopped in [true, false] {
-                let input = json!({"phase":phase,"stopRequestedWhenObserved":stopped,
+                let input = json!({"phase":phase,"kind":"read","win32Error":995,"stopRequestedWhenObserved":stopped,
                     "path":"C:/private-user-path","message":"private source","causedByStop":true});
                 let output = stdout_failure(&input).unwrap();
                 assert_eq!(
                     output,
-                    json!({"phase":phase,"stopRequestedWhenObserved":stopped})
+                    json!({"phase":phase,"kind":"read","win32Error":995,"stopRequestedWhenObserved":stopped})
                 );
             }
         }
         for input in [
             Value::Null,
-            json!({"phase":"unknown","stopRequestedWhenObserved":false}),
-            json!({"phase":"ready-frame:C:/private","stopRequestedWhenObserved":true}),
-            json!({"phase":"ready-event","stopRequestedWhenObserved":"false"}),
-            json!({"phase":"ready-frame"}),
+            json!({"phase":"unknown","kind":"read","stopRequestedWhenObserved":false}),
+            json!({"phase":"ready-frame:C:/private","kind":"read","stopRequestedWhenObserved":true}),
+            json!({"phase":"ready-event","kind":"read","stopRequestedWhenObserved":"false"}),
+            json!({"phase":"ready-frame","kind":"read"}),
         ] {
             assert!(stdout_failure(&input).is_none());
+        }
+    }
+
+    #[test]
+    fn stdout_failure_never_infers_kind_or_win32_code_from_injected_text() {
+        for kind in ["read", "schema", "channel", "trailing-data"] {
+            let output = stdout_failure(&json!({"phase":"result-frame","kind":kind,
+                "stopRequestedWhenObserved":false,"message":"ReadFile failed with Win32 995: private source",
+                "raw_os_error":995})).unwrap();
+            assert_eq!(output["kind"], kind);
+            assert!(output["win32Error"].is_null());
+            assert_eq!(output.as_object().unwrap().len(), 4);
+            assert!(!output.to_string().contains("private"));
+        }
+        for kind in ["cancelled", "read:C:/private", "stderr"] {
+            assert!(stdout_failure(&json!({"phase":"result-frame","kind":kind,
+                "win32Error":995,"stopRequestedWhenObserved":true}))
+            .is_none());
+        }
+        for code in [
+            json!(-1),
+            json!(u32::MAX as u64 + 1),
+            json!("995"),
+            json!("Win32 995: C:/private"),
+            json!(true),
+            json!({"code":995}),
+        ] {
+            assert!(stdout_failure(&json!({"phase":"result-frame","kind":"read",
+                "win32Error":code,"stopRequestedWhenObserved":false}))
+            .is_none());
         }
     }
 
