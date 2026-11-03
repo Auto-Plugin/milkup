@@ -53,10 +53,12 @@ fn remove_with_retry(
             // The caller must still independently verify its absence.
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
             Err(error) => {
-                let retryable = matches!(error.raw_os_error(), Some(32 | 33));
+                // Retry these numeric Windows deletion errors within the same
+                // budget, without inferring the cause of an access denial.
+                let retryable = matches!(error.raw_os_error(), Some(5 | 32 | 33));
                 observations.push(json!({
                     "attempt":attempt,"osError":error.raw_os_error(),
-                    "retryableSharingOrLockViolation":retryable
+                    "retryableWindowsDeleteError":retryable
                 }));
                 if !retryable || attempt == ATTEMPTS || started.elapsed() >= RETRY_DEADLINE {
                     return Err(error);
@@ -203,28 +205,28 @@ mod tests {
 
     #[test]
     fn observed_nonretryable_error_is_preserved_without_pause_or_absence_probe() {
-        let original = io::Error::from_raw_os_error(5);
+        let original = io::Error::from_raw_os_error(87);
         let original_kind = original.kind();
         let original_message = original.to_string();
         let mut original = Some(original);
         let (result, facts) = remove_owned_tree_observed_with(
             || Err(original.take().expect("Exactly one remove call")),
-            || panic!("Error 5 must not pause"),
+            || panic!("Error 87 must not pause"),
             || panic!("A failed remove must not probe absence"),
         );
         let error = result.unwrap_err();
-        assert_eq!(error.raw_os_error(), Some(5));
+        assert_eq!(error.raw_os_error(), Some(87));
         assert_eq!(error.kind(), original_kind);
         assert_eq!(error.to_string(), original_message);
         assert_eq!(facts.attempts, 1);
-        assert_eq!(facts.final_os_error, Some(5));
+        assert_eq!(facts.final_os_error, Some(87));
         assert_eq!(facts.terminal_phase, TreeRemovalPhase::Remove);
         assert!(!facts.absence_checked);
         assert_eq!(facts.absent, None);
         assert_eq!(
             facts.observations,
             vec![json!({
-                "attempt":1,"osError":5,"retryableSharingOrLockViolation":false
+                "attempt":1,"osError":87,"retryableWindowsDeleteError":false
             })]
         );
     }
@@ -254,8 +256,98 @@ mod tests {
         assert_eq!(
             facts.observations,
             vec![
-                json!({"attempt":1,"osError":32,"retryableSharingOrLockViolation":true}),
-                json!({"attempt":2,"osError":33,"retryableSharingOrLockViolation":true}),
+                json!({"attempt":1,"osError":32,"retryableWindowsDeleteError":true}),
+                json!({"attempt":2,"osError":33,"retryableWindowsDeleteError":true}),
+            ]
+        );
+    }
+
+    #[test]
+    fn access_denied_retry_success_records_numeric_error_and_retry_eligibility() {
+        let mut calls = 0;
+        let mut pauses = 0;
+        let mut probes = 0;
+        let (result, facts) = remove_owned_tree_observed_with(
+            || {
+                calls += 1;
+                match calls {
+                    1 => Err(io::Error::from_raw_os_error(5)),
+                    2 => Ok(()),
+                    _ => panic!("No remove call after success"),
+                }
+            },
+            || pauses += 1,
+            || {
+                probes += 1;
+                absent()
+            },
+        );
+        result.unwrap();
+        assert_eq!((calls, pauses, probes, facts.attempts), (2, 1, 1, 2));
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Complete);
+        assert!(facts.absence_checked);
+        assert_eq!(facts.absent, Some(true));
+        assert_eq!(facts.final_os_error, None);
+        assert_eq!(
+            facts.observations,
+            vec![json!({
+                "attempt":1,"osError":5,"retryableWindowsDeleteError":true
+            })]
+        );
+    }
+
+    #[test]
+    fn persistent_access_denied_exhausts_the_same_attempt_bound_and_stays_failed() {
+        let mut pauses = 0;
+        let (result, facts) = remove_owned_tree_observed_with(
+            || Err(io::Error::from_raw_os_error(5)),
+            || pauses += 1,
+            || panic!("Exhausted access denial must not probe absence"),
+        );
+        assert_eq!(result.unwrap_err().raw_os_error(), Some(5));
+        assert_eq!(facts.attempts as usize, ATTEMPTS);
+        assert_eq!(pauses, ATTEMPTS - 1);
+        assert_eq!(facts.observations.len(), ATTEMPTS);
+        assert_eq!(facts.final_os_error, Some(5));
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Remove);
+        assert!(!facts.absence_checked);
+        assert_eq!(facts.absent, None);
+        for (index, observation) in facts.observations.iter().enumerate() {
+            assert_eq!(
+                observation,
+                &json!({"attempt":index+1,"osError":5,
+                    "retryableWindowsDeleteError":true})
+            );
+        }
+    }
+
+    #[test]
+    fn other_error_after_access_denied_retry_returns_that_exact_error_immediately() {
+        let mut calls = 0;
+        let mut pauses = 0;
+        let (result, facts) = remove_owned_tree_observed_with(
+            || {
+                calls += 1;
+                match calls {
+                    1 => Err(io::Error::from_raw_os_error(5)),
+                    2 => Err(io::Error::from_raw_os_error(87)),
+                    _ => panic!("Error 87 must stop retries"),
+                }
+            },
+            || pauses += 1,
+            || panic!("Failed removal must not probe absence"),
+        );
+        assert_eq!(result.unwrap_err().raw_os_error(), Some(87));
+        assert_eq!((calls, pauses, facts.attempts), (2, 1, 2));
+        assert_eq!(facts.final_os_error, Some(87));
+        assert_eq!(facts.terminal_phase, TreeRemovalPhase::Remove);
+        assert!(!facts.absence_checked);
+        assert_eq!(facts.absent, None);
+        assert_eq!(
+            facts.observations,
+            vec![
+                json!({"attempt":1,"osError":5,"retryableWindowsDeleteError":true}),
+                json!({"attempt":2,"osError":87,"retryableWindowsDeleteError":false}),
             ]
         );
     }
@@ -280,7 +372,7 @@ mod tests {
             assert_eq!(
                 entry,
                 &json!({"attempt":index+1,"osError":32,
-                "retryableSharingOrLockViolation":true})
+                "retryableWindowsDeleteError":true})
             );
         }
     }
@@ -379,7 +471,7 @@ mod tests {
         assert_eq!(
             value["observations"],
             json!([
-                {"attempt":1,"osError":null,"retryableSharingOrLockViolation":false}
+                {"attempt":1,"osError":null,"retryableWindowsDeleteError":false}
             ])
         );
         assert!(!value.to_string().contains("private path"));
@@ -399,21 +491,21 @@ mod tests {
         let error = remove_owned_tree_with(
             Path::new("unused because remove fails before metadata"),
             &mut observations,
-            || Err(io::Error::from_raw_os_error(5)),
+            || Err(io::Error::from_raw_os_error(87)),
         )
         .unwrap_err();
-        assert_eq!(error.raw_os_error(), Some(5));
+        assert_eq!(error.raw_os_error(), Some(87));
         assert_eq!(
             observations,
             vec![
                 json!({"previousCall":true}),
-                json!({"attempt":1,"osError":5,"retryableSharingOrLockViolation":false})
+                json!({"attempt":1,"osError":87,"retryableWindowsDeleteError":false})
             ]
         );
     }
 
     #[test]
-    fn retry_only_transient_windows_sharing_errors_with_a_bound() {
+    fn retry_selected_windows_errors_with_a_bound() {
         let mut observations = Vec::new();
         let mut calls = 0;
         let mut pauses = 0;
@@ -447,9 +539,9 @@ mod tests {
         assert!(remove_with_retry(
             || {
                 calls += 1;
-                Err(io::Error::from_raw_os_error(5))
+                Err(io::Error::from_raw_os_error(87))
             },
-            || panic!("Access denial must not be retried"),
+            || panic!("Error 87 must not be retried"),
             &mut Vec::new()
         )
         .is_err());

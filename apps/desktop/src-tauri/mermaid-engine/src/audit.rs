@@ -540,7 +540,7 @@ mod tests {
             "stderrFailure":{"kind":"budget","stopRequestedWhenObserved":true,"win32Error":u32::MAX}});
         report["privateTreeCleanup"] = json!({"attempts":31,"elapsedMs":u64::MAX,
             "finalOsError":i32::MIN,"terminalPhase":"absence-check","absenceChecked":true,"absent":null,
-            "observations":(1..=31).map(|attempt|json!({"attempt":attempt,"osError":i32::MIN,"retryableSharingOrLockViolation":false})).collect::<Vec<_>>()});
+            "observations":(1..=31).map(|attempt|json!({"attempt":attempt,"osError":i32::MIN,"retryableWindowsDeleteError":false})).collect::<Vec<_>>()});
         report["cleanupTimeline"] = json!({"jobStopFinishedMs":u64::MAX,"ipcJoinsFinishedMs":u64::MAX,
             "pinsReleasedMs":u64::MAX,"profileDeleteFinishedMs":u64::MAX,"treeDeleteFinishedMs":u64::MAX});
         for entry in report["ipcThreadCleanup"].as_array_mut().unwrap() {

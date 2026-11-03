@@ -117,6 +117,16 @@ was published. Its exact tree deletion error was not present in that earlier
 audit and remains unknown. Filtered-admin passed its product steps and cleanup
 in that run; the required complete two-account acceptance remains pending.
 
+Run 41699494037 isolated another failure: ordinary-user re-enable captured a
+PNG, all IPC threads ended normally, but the first owned-tree removal returned
+OS error 5 without an absence check. That run remains failed; the denied subpath
+and underlying cause are unknown. The next candidate retries exactly Windows
+errors 5, 32 and 33 within the existing 31-call, 100 ms pause and three-second
+budget, repeating the same removal operation without changing ACLs or file
+attributes. Persistent denial, failed absence verification, or any earlier
+cleanup error still prevents success. This change does not address the earlier
+pipe error 995 and does not establish complete two-account acceptance.
+
 Actual token diagnostics passed in both account kinds on run 41683336878. Full
 Windows product rendering and cleanup acceptance for this new conditional
 policy remains pending its dedicated product run; policy tests, cross-compiling
