@@ -192,9 +192,12 @@ function Invoke-StandardChild {
         foreach ($entry in $variables.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process') }
         $result.startedNode = $true
         $result.status = 'failed'
-        & $spec.node.path $spec.harness.path 1> (Join-Path $evidence 'node-stdout.log') 2> (Join-Path $evidence 'node-stderr.log')
-        $result.nodeExitCode = $LASTEXITCODE
-        if ($LASTEXITCODE -ne 0) { throw "Windows product Node harness failed: $LASTEXITCODE" }
+        $result['nodeRun'] = [WindowsMermaidStandardUser]::RunNodeHarness(
+            $spec.node.path, $spec.harness.path, [IO.Path]::GetDirectoryName($spec.harness.path),
+            (Join-Path $evidence 'node-stdout.log'), (Join-Path $evidence 'node-stderr.log'), 900000)
+        $result.startedNode = $result.nodeRun.started
+        $result.nodeExitCode = $result.nodeRun.exitCode
+        if ($result.nodeRun.status -cne 'passed') { throw "Windows product Node harness failed: $($result.nodeRun.error)" }
         $report = Read-SmallJson (Join-Path $evidence 'mermaid-product-e2e.json')
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
         $result.status = 'passed'

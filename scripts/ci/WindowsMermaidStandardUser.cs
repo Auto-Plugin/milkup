@@ -3,10 +3,13 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 public static class WindowsMermaidStandardUser
 {
@@ -250,6 +253,127 @@ public static class WindowsMermaidStandardUser
         Accounting value;
         Check(QueryInformationJobObject(job, 1, out value, (uint)Marshal.SizeOf<Accounting>(), IntPtr.Zero), "Query exact owned outer Job");
         return value.active;
+    }
+    sealed class BoundedCapture {
+        public long Bytes;
+        public bool Exceeded;
+        public async Task Drain(Stream source, Stream destination, CancellationToken cancellation) {
+            const int limit = 2 * 1024 * 1024;
+            byte[] buffer = new byte[8192];
+            while (true) {
+                int count = await source.ReadAsync(buffer, 0, buffer.Length, cancellation).ConfigureAwait(false);
+                if (count == 0) return;
+                int accepted = (int)Math.Min(count, limit - Interlocked.Read(ref Bytes));
+                if (accepted > 0) {
+                    await destination.WriteAsync(buffer, 0, accepted, cancellation).ConfigureAwait(false);
+                    Interlocked.Add(ref Bytes, accepted);
+                }
+                if (accepted != count) {
+                    Exceeded = true;
+                    throw new IOException("Node output exceeded its two-MiB per-stream capture budget");
+                }
+            }
+        }
+    }
+    // Direct same-token child launch. No shell fallback, credentials, token or
+    // Job changes: this child inherits the coordinator's existing owned Job.
+    // This method also runs on Unix for local process/pipe regression tests.
+    public static Dictionary<string, object> RunNodeHarness(string application, string harness,
+        string directory, string stdoutPath, string stderrPath, int timeoutMs) {
+        if (timeoutMs < 100 || timeoutMs > 900000) throw new ArgumentException("Node deadline budget rejected");
+        var audit = new Dictionary<string, object> {
+            { "status", "failed" }, { "started", false }, { "exited", false },
+            { "exitCode", null }, { "timedOut", false }, { "streamsDrained", false },
+            { "useShellExecute", false }, { "createNoWindow", true },
+            { "deadlineMs", timeoutMs }, { "captureLimitPerStream", 2097152 },
+            { "forcedNodeTermination", false }, { "error", null }
+        };
+        var cleanup = new List<string>();
+        var watch = Stopwatch.StartNew();
+        var output = new BoundedCapture(); var errorOutput = new BoundedCapture();
+        var cancellation = new CancellationTokenSource();
+        var process = new Process();
+        FileStream stdout = null, stderr = null;
+        Task outputTask = null, errorTask = null;
+        bool started = false;
+        try {
+            stdout = new FileStream(stdoutPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
+            stderr = new FileStream(stderrPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
+            var start = new ProcessStartInfo {
+                FileName = application, WorkingDirectory = directory,
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true
+            };
+            start.ArgumentList.Add(harness);
+            process.StartInfo = start;
+            if (!process.Start()) throw new InvalidOperationException("Direct Node launch did not return a process");
+            started = true; audit["started"] = true; audit["pid"] = process.Id;
+            // No inherited console stdin is needed. Closing our pipe gives Node EOF.
+            process.StandardInput.Close();
+            outputTask = output.Drain(process.StandardOutput.BaseStream, stdout, cancellation.Token);
+            errorTask = errorOutput.Drain(process.StandardError.BaseStream, stderr, cancellation.Token);
+            long exitObservedAt = -1;
+            while (true) {
+                if (outputTask.IsFaulted) outputTask.GetAwaiter().GetResult();
+                if (errorTask.IsFaulted) errorTask.GetAwaiter().GetResult();
+                if (process.WaitForExit(0)) {
+                    audit["exited"] = true; audit["exitCode"] = process.ExitCode;
+                    if (exitObservedAt < 0) exitObservedAt = watch.ElapsedMilliseconds;
+                    if (outputTask.IsCompleted && errorTask.IsCompleted) {
+                        outputTask.GetAwaiter().GetResult(); errorTask.GetAwaiter().GetResult();
+                        audit["streamsDrained"] = true;
+                        break;
+                    }
+                    if (watch.ElapsedMilliseconds - exitObservedAt >= 3000)
+                        throw new TimeoutException("Node exited but its output pipes did not reach EOF within three seconds");
+                }
+                if (watch.ElapsedMilliseconds >= timeoutMs) {
+                    audit["timedOut"] = true;
+                    throw new TimeoutException("Node harness exceeded its explicit deadline");
+                }
+                Thread.Sleep(20);
+            }
+            if (process.ExitCode != 0) throw new InvalidOperationException("Node harness exited with code " + process.ExitCode);
+            audit["status"] = "passed";
+        } catch (Exception error) { audit["error"] = error.Message; }
+        finally {
+            if (started) {
+                try {
+                    if (!process.HasExited) {
+                        audit["forcedNodeTermination"] = true;
+                        // Kill only the Process instance we started and still hold.
+                        // The existing outer Job owns all descendant cleanup.
+                        process.Kill();
+                    }
+                    if (!process.WaitForExit(3000)) cleanup.Add("Exact Node process did not confirm exit");
+                    else { audit["exited"] = true; audit["exitCode"] = process.ExitCode; }
+                } catch (Exception error) { cleanup.Add(error.Message); }
+            }
+            cancellation.Cancel();
+            if (started) {
+                try { process.StandardOutput.BaseStream.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
+                try { process.StandardError.BaseStream.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
+            }
+            if (outputTask != null && errorTask != null) {
+                try {
+                    if (!Task.WaitAll(new[] { outputTask, errorTask }, 1000)) cleanup.Add("Node output drain tasks exceeded cleanup budget");
+                } catch (AggregateException) {
+                    // The primary capture failure is already recorded above.
+                    // Cancellation during failed-run cleanup is expected.
+                    if (Equals(audit["status"], "passed")) cleanup.Add("Node output drain failed during cleanup");
+                }
+            }
+            try { if (stdout != null) stdout.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
+            try { if (stderr != null) stderr.Dispose(); } catch (Exception error) { cleanup.Add(error.Message); }
+            process.Dispose(); cancellation.Dispose();
+            audit["stdoutBytes"] = Interlocked.Read(ref output.Bytes);
+            audit["stderrBytes"] = Interlocked.Read(ref errorOutput.Bytes);
+            audit["captureExceeded"] = output.Exceeded || errorOutput.Exceeded;
+            audit["elapsedMs"] = watch.ElapsedMilliseconds;
+            audit["cleanupErrors"] = cleanup.ToArray();
+            if (cleanup.Count != 0) audit["status"] = "failed";
+        }
+        return audit;
     }
     public static Dictionary<string, object> Run(string user, SecureString secret, string expectedSid,
         uint expectedSession, string application, string arguments, string directory,
