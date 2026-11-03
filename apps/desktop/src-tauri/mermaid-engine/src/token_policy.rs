@@ -1,7 +1,7 @@
 //! Private Windows launch policy. Account membership is not execution authority:
 //! a UAC limited token may retain Administrators only as an irreversible deny SID.
 //! These checks never select a linked token, change privileges, or request elevation.
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 const PRIMARY: u32 = 1;
@@ -10,6 +10,9 @@ const LIMITED: u32 = 3;
 const MEDIUM: u32 = 0x2000;
 const LOW: u32 = 0x1000;
 const DENY_ONLY: u32 = 0x10;
+const NO_TOKEN: u32 = 1008;
+const IMPERSONATION: u32 = 2;
+const IDENTIFICATION: u32 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum HostClass {
@@ -45,17 +48,88 @@ struct Facts {
     host_disallowed_privilege_count: u32,
     sandbox_disallowed_privilege_count: u32,
     se_debug_privilege: DebugPrivilege,
+    linked_authority: Option<LinkedAuthority>,
 }
 #[derive(Deserialize)]
 struct DebugPrivilege {
     present: bool,
 }
+
+/// Observations of the calling thread and, only for a limited token, its linked
+/// token. The limited branch requires an observed Identification impersonation
+/// token; these facts do not assert the linked handle's granted access rights.
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LinkedAuthority {
+    caller_thread_token_absent: bool,
+    caller_thread_query_win32_error: Option<u32>,
+    query_attempted: bool,
+    query_succeeded: bool,
+    query_win32_error: Option<u32>,
+    target_token_type: Option<u32>,
+    target_impersonation_level: Option<u32>,
+    target_query_win32_error: Option<u32>,
+}
+
+impl LinkedAuthority {
+    const KEYS: [&'static str; 8] = [
+        "callerThreadTokenAbsent",
+        "callerThreadQueryWin32Error",
+        "queryAttempted",
+        "querySucceeded",
+        "queryWin32Error",
+        "targetTokenType",
+        "targetImpersonationLevel",
+        "targetQueryWin32Error",
+    ];
+
+    fn permits(&self, elevation_type: u32) -> bool {
+        if !self.caller_thread_token_absent
+            || self.caller_thread_query_win32_error != Some(NO_TOKEN)
+        {
+            return false;
+        }
+        match elevation_type {
+            DEFAULT => {
+                !self.query_attempted
+                    && !self.query_succeeded
+                    && self.query_win32_error.is_none()
+                    && self.target_token_type.is_none()
+                    && self.target_impersonation_level.is_none()
+                    && self.target_query_win32_error.is_none()
+            }
+            LIMITED => {
+                self.query_attempted
+                    && self.query_succeeded
+                    && self.query_win32_error.is_none()
+                    && self.target_token_type == Some(IMPERSONATION)
+                    && self.target_impersonation_level == Some(IDENTIFICATION)
+                    && self.target_query_win32_error.is_none()
+            }
+            _ => false,
+        }
+    }
+}
+
 impl Facts {
     fn read(value: &Value) -> Result<Self, &'static str> {
         // Option-valued observations must be explicitly null, not omitted.
         for key in ["appContainerSid", "administratorsGroupAttributes"] {
             if value.get(key).is_none() {
                 return Err("Incomplete Windows token evidence");
+            }
+        }
+        if let Some(linked) = value
+            .get("linkedAuthority")
+            .filter(|value| !value.is_null())
+        {
+            // Serde accepts omitted Option fields by default. Require an actual
+            // observation (including explicit null) for every linked field.
+            if LinkedAuthority::KEYS
+                .iter()
+                .any(|key| linked.get(key).is_none())
+            {
+                return Err("Incomplete Windows linked-token evidence");
             }
         }
         serde_json::from_value(value.clone()).map_err(|_| "Incomplete Windows token evidence")
@@ -119,9 +193,10 @@ pub(crate) fn verify_sandbox(
 ) -> Result<(), &'static str> {
     let token = Facts::read(value)?;
     if !token.identity_is_ordinary()
-        // Default explicitly has no linked token. Host Limited is supported;
-        // an unverified linked-token association inside the sandbox is not.
-        || token.elevation_type != DEFAULT
+        || !token
+            .linked_authority
+            .as_ref()
+            .is_some_and(|linked| linked.permits(token.elevation_type))
         || token.integrity_rid > LOW
         || !token.is_app_container
         || token.capability_count != 0
@@ -145,6 +220,29 @@ pub(crate) fn verify_sandbox(
         }
     }
     Ok(())
+}
+
+/// Private ready-pipe proof: first enforce the complete sandbox policy, then
+/// reconstruct only the fields consumed by that policy. Native observations may
+/// contain extra diagnostics; none are carried into this bounded proof.
+pub(crate) fn compact_sandbox_evidence(value: &Value) -> Result<Value, &'static str> {
+    verify_sandbox(value, None)?;
+    let token = Facts::read(value)?;
+    Ok(json!({
+        "userSid":token.user_sid,"ownerSid":token.owner_sid,
+        "tokenType":token.token_type,"sessionId":token.session_id,
+        "elevated":token.elevated,"elevationType":token.elevation_type,
+        "integrityRid":token.integrity_rid,"uiAccess":token.ui_access,
+        "isAppContainer":token.is_app_container,"appContainerSid":token.app_container_sid,
+        "capabilityCount":token.capability_count,
+        "administratorsGroupPresentIncludingDenyOnly":token.administrators_group_present_including_deny_only,
+        "administratorsGroupAttributes":token.administrators_group_attributes,
+        "privilegeCount":token.privilege_count,
+        "hostDisallowedPrivilegeCount":token.host_disallowed_privilege_count,
+        "sandboxDisallowedPrivilegeCount":token.sandbox_disallowed_privilege_count,
+        "seDebugPrivilege":{"present":token.se_debug_privilege.present},
+        "linkedAuthority":token.linked_authority,
+    }))
 }
 
 fn valid_app_sid(sid: &str) -> bool {
@@ -185,7 +283,8 @@ pub(crate) fn audit_evidence(value: &Value) -> Value {
         "hostDisallowedPrivilegeCount":token.host_disallowed_privilege_count,
         "sandboxDisallowedPrivilegeCount":token.sandbox_disallowed_privilege_count,
         "seDebugPrivilegePresent":token.se_debug_privilege.present,
-        "ownerIsUser":token.owner_sid == token.user_sid})
+        "ownerIsUser":token.owner_sid == token.user_sid,
+        "linkedAuthority":token.linked_authority})
 }
 
 #[cfg(test)]
@@ -214,8 +313,22 @@ mod tests {
         value["isAppContainer"] = json!(true);
         value["integrityRid"] = json!(4096);
         value["appContainerSid"] = json!("S-1-15-2-1-2-3-4-5-6-7");
-        value["privilegeCount"] = json!(1);
+        value["privilegeCount"] = json!(2);
         value["sandboxDisallowedPrivilegeCount"] = json!(0);
+        value["linkedAuthority"] = json!({
+            "callerThreadTokenAbsent":true,"callerThreadQueryWin32Error":1008,
+            "queryAttempted":false,"querySucceeded":false,"queryWin32Error":null,
+            "targetTokenType":null,"targetImpersonationLevel":null,"targetQueryWin32Error":null
+        });
+        value
+    }
+    fn limited_sandbox() -> Value {
+        let mut value = sandbox();
+        value["elevationType"] = json!(3);
+        value["linkedAuthority"]["queryAttempted"] = json!(true);
+        value["linkedAuthority"]["querySucceeded"] = json!(true);
+        value["linkedAuthority"]["targetTokenType"] = json!(2);
+        value["linkedAuthority"]["targetImpersonationLevel"] = json!(1);
         value
     }
     #[test]
@@ -316,6 +429,200 @@ mod tests {
         assert!(verify_sandbox(&service, None).is_err());
     }
     #[test]
+    fn conditional_sandbox_accepts_only_the_observed_default_and_limited_shapes() {
+        let expected = Some(("S-1-5-21-1-2-3-1001", 2, "S-1-15-2-1-2-3-4-5-6-7"));
+        for token in [sandbox(), limited_sandbox()] {
+            assert!(verify_sandbox(&token, expected).is_ok());
+            // A pure-standard sandbox need not carry an Administrators SID.
+            let mut without_admin = token.clone();
+            without_admin["administratorsGroupPresentIncludingDenyOnly"] = json!(false);
+            without_admin["administratorsGroupAttributes"] = Value::Null;
+            assert!(verify_sandbox(&without_admin, expected).is_ok());
+            for elevation in [0, 2, 4, u32::MAX] {
+                let mut unknown = token.clone();
+                unknown["elevationType"] = json!(elevation);
+                assert!(verify_sandbox(&unknown, None).is_err());
+            }
+        }
+    }
+    #[test]
+    fn linked_evidence_is_required_closed_and_explicitly_nullable() {
+        for token in [sandbox(), limited_sandbox()] {
+            let mut missing = token.clone();
+            missing.as_object_mut().unwrap().remove("linkedAuthority");
+            assert!(verify_sandbox(&missing, None).is_err());
+            for malformed in [Value::Null, json!(false), json!([]), json!("observed")] {
+                let mut changed = token.clone();
+                changed["linkedAuthority"] = malformed;
+                assert!(verify_sandbox(&changed, None).is_err());
+            }
+            for key in LinkedAuthority::KEYS {
+                let mut missing = token.clone();
+                missing["linkedAuthority"]
+                    .as_object_mut()
+                    .unwrap()
+                    .remove(key);
+                assert!(verify_sandbox(&missing, None).is_err(), "missing {key}");
+                for malformed in [
+                    json!("false"),
+                    json!({}),
+                    json!([]),
+                    json!(-1),
+                    json!(1.5),
+                    json!(4294967296_u64),
+                ] {
+                    let mut changed = token.clone();
+                    changed["linkedAuthority"][key] = malformed;
+                    assert!(verify_sandbox(&changed, None).is_err(), "mistyped {key}");
+                }
+            }
+            for key in [
+                "callerThreadTokenAbsent",
+                "queryAttempted",
+                "querySucceeded",
+            ] {
+                for malformed in [Value::Null, json!(0), json!(1)] {
+                    let mut changed = token.clone();
+                    changed["linkedAuthority"][key] = malformed;
+                    assert!(verify_sandbox(&changed, None).is_err(), "non-boolean {key}");
+                }
+            }
+            for key in ["sessionId", "grantedAccess", "path", "source"] {
+                let mut extra = token.clone();
+                extra["linkedAuthority"][key] = json!("private");
+                assert!(verify_sandbox(&extra, None).is_err(), "extra {key}");
+                assert!(audit_evidence(&extra).is_null());
+            }
+        }
+    }
+    #[test]
+    fn neither_sandbox_class_accepts_unknown_or_present_caller_thread_authority() {
+        for token in [sandbox(), limited_sandbox()] {
+            for (key, value) in [
+                ("callerThreadTokenAbsent", json!(false)),
+                ("callerThreadQueryWin32Error", Value::Null),
+                ("callerThreadQueryWin32Error", json!(0)),
+                ("callerThreadQueryWin32Error", json!(5)),
+                ("callerThreadQueryWin32Error", json!(u32::MAX)),
+            ] {
+                let mut changed = token.clone();
+                changed["linkedAuthority"][key] = value;
+                assert!(verify_sandbox(&changed, None).is_err(), "field {key}");
+            }
+        }
+    }
+    #[test]
+    fn default_sandbox_rejects_query_attempts_and_residual_target_observations() {
+        for (key, value) in [
+            ("queryAttempted", json!(true)),
+            ("querySucceeded", json!(true)),
+            ("queryWin32Error", json!(0)),
+            ("queryWin32Error", json!(5)),
+            ("targetTokenType", json!(2)),
+            ("targetImpersonationLevel", json!(1)),
+            ("targetQueryWin32Error", json!(0)),
+            ("targetQueryWin32Error", json!(5)),
+        ] {
+            let mut changed = sandbox();
+            changed["linkedAuthority"][key] = value;
+            assert!(verify_sandbox(&changed, None).is_err(), "field {key}");
+        }
+    }
+    #[test]
+    fn limited_sandbox_rejects_failed_queries_primary_targets_and_other_levels() {
+        for (key, value) in [
+            ("queryAttempted", json!(false)),
+            ("querySucceeded", json!(false)),
+            ("queryWin32Error", json!(0)),
+            ("queryWin32Error", json!(5)),
+            ("targetQueryWin32Error", json!(0)),
+            ("targetQueryWin32Error", json!(5)),
+            ("targetTokenType", Value::Null),
+            ("targetTokenType", json!(0)),
+            ("targetTokenType", json!(1)),
+            ("targetTokenType", json!(3)),
+            ("targetTokenType", json!(u32::MAX)),
+            ("targetImpersonationLevel", Value::Null),
+            ("targetImpersonationLevel", json!(0)),
+            ("targetImpersonationLevel", json!(2)),
+            ("targetImpersonationLevel", json!(3)),
+            ("targetImpersonationLevel", json!(u32::MAX)),
+        ] {
+            let mut changed = limited_sandbox();
+            changed["linkedAuthority"][key] = value;
+            assert!(verify_sandbox(&changed, None).is_err(), "field {key}");
+        }
+    }
+    #[test]
+    fn linked_identification_never_relaxes_current_token_restrictions() {
+        let expected = Some(("S-1-5-21-1-2-3-1001", 2, "S-1-15-2-1-2-3-4-5-6-7"));
+        for (key, value) in [
+            ("integrityRid", json!(8192)),
+            ("elevated", json!(true)),
+            ("uiAccess", json!(true)),
+            ("tokenType", json!(2)),
+            ("sessionId", json!(3)),
+            ("sessionId", json!(0)),
+            ("sandboxDisallowedPrivilegeCount", json!(1)),
+            ("hostDisallowedPrivilegeCount", json!(1)),
+            ("privilegeCount", json!(65)),
+            ("seDebugPrivilege", json!({"present":true})),
+            ("capabilityCount", json!(1)),
+            ("isAppContainer", json!(false)),
+            ("administratorsGroupAttributes", json!(20)),
+            ("administratorsGroupPresentIncludingDenyOnly", json!(false)),
+            ("ownerSid", json!("S-1-5-32-544")),
+            ("appContainerSid", json!("S-1-15-2-8-8-8-8-8-8-8")),
+            ("userSid", json!("S-1-5-21-1-2-3-1002")),
+        ] {
+            let mut token = limited_sandbox();
+            token[key] = value;
+            assert!(verify_sandbox(&token, expected).is_err(), "field {key}");
+        }
+    }
+    #[test]
+    fn compact_proof_verifies_then_rebuilds_only_closed_required_fields() {
+        for token in [sandbox(), limited_sandbox()] {
+            let mut native = token.clone();
+            native["capabilities"] = json!([{"sid":"private raw observation"}]);
+            native["source"] = json!("private diagram");
+            native["path"] = json!("private path");
+            native["seDebugPrivilege"]["attributes"] = json!("private extras");
+            let proof = compact_sandbox_evidence(&native).unwrap();
+            assert_eq!(proof, token);
+            assert!(verify_sandbox(&proof, None).is_ok());
+            assert_eq!(proof["linkedAuthority"].as_object().unwrap().len(), 8);
+            assert_eq!(proof["seDebugPrivilege"].as_object().unwrap().len(), 1);
+            native["seDebugPrivilege"]["present"] = json!(true);
+            assert!(compact_sandbox_evidence(&native).is_err());
+            native["seDebugPrivilege"]["present"] = json!(false);
+            native["linkedAuthority"]["queryWin32Error"] = json!(5);
+            assert!(compact_sandbox_evidence(&native).is_err());
+        }
+    }
+    #[test]
+    fn compact_proof_remains_below_1600_bytes_at_accepted_field_bounds() {
+        let user = "S-1-5-21-4294967295-4294967295-4294967295-4294967295";
+        let app =
+            "S-1-15-2-4294967295-4294967295-4294967295-4294967295-4294967295-4294967295-4294967295";
+        for mut token in [sandbox(), limited_sandbox()] {
+            token["userSid"] = json!(user);
+            token["ownerSid"] = json!(user);
+            token["appContainerSid"] = json!(app);
+            token["sessionId"] = json!(u32::MAX);
+            for privileges in [0, 2, 64] {
+                token["privilegeCount"] = json!(privileges);
+                for integrity in [0, LOW] {
+                    token["integrityRid"] = json!(integrity);
+                    let proof = compact_sandbox_evidence(&token).unwrap();
+                    assert!(verify_sandbox(&proof, None).is_ok());
+                    let bytes = serde_json::to_vec(&proof).unwrap();
+                    assert!(bytes.len() < 1600, "proof is {} bytes", bytes.len());
+                }
+            }
+        }
+    }
+    #[test]
     fn closed_audit_facts_do_not_relabel_or_leak_unknown_fields() {
         let mut token = filtered();
         token["source"] = json!("private diagram");
@@ -324,6 +631,15 @@ mod tests {
         assert_eq!(evidence["administratorsGroupAttributes"], 16);
         assert!(evidence.get("source").is_none());
         assert!(evidence.get("userSid").is_none());
+        assert_eq!(evidence.get("linkedAuthority"), Some(&Value::Null));
+        token["linkedAuthority"] = Value::Null;
+        assert_eq!(classify_host(&token, 2), Ok(HostClass::FilteredAdmin));
+        for sandbox in [sandbox(), limited_sandbox()] {
+            assert_eq!(
+                audit_evidence(&sandbox)["linkedAuthority"],
+                sandbox["linkedAuthority"]
+            );
+        }
         token["privilegeCount"] = json!(65);
         assert!(audit_evidence(&token).is_null());
         for sid in [
