@@ -171,6 +171,39 @@ artifact ZIP and all four reports plus artifact manifest. The ZIP digest matches
 GitHub, and every artifact file size/SHA was verified. No PNG was produced in this
 attempt. These results do not establish Windows product rendering, same-login
 teardown, scale/theme or installer upgrade/rollback.
+Run `41637412776` attempt 1 was cancelled before any job executed. GitHub's
+annotation explicitly reports a higher-priority waiting request for the shared
+`mermaid-rebuild-windows-compile` concurrency group. Attempt 2 was then rerun
+individually on the same exact candidate `518125977a5424aa7bd5b7f04a6612b74a5c2526`.
+Its build/tests/link and strict clean-source gate all passed again. The original
+cancellation metadata and page annotation are preserved with the second attempt.
+Commit `13f198b1` adds `queue: max` to the four private Windows workflows,
+retaining the same serial concurrency group and `cancel-in-progress: false`;
+waiting marker-selected work is no longer replaced by another pending workflow.
+The setting is documented in GitHub’s [concurrency guidance](https://docs.github.com/actions/writing-workflows/choosing-what-your-workflow-does/control-the-concurrency-of-workflows-and-jobs).
+Local YAML validation is retained; remote validation awaits the next candidate.
+
+Attempt 2 reached a real standard user: no administrator group (including deny-only),
+no SeDebugPrivilege, WinSta0/Default in session 2. Read-only PID/SID/session/image/
+creation-time observations matched Node, EdgeDriver and the launched product.
+However, the wrapper did not wait for Node completion; reading the unset
+`$LASTEXITCODE` failed while the Node report was still `running`, with zero
+completed UI steps and zero native audit/PNG records. The outer cleanup stopped
+five remaining owned processes and confirmed an empty Job, then deleted the exact
+new account, profile and stage without cleanup errors. This is explicitly **not**
+product inner-cleanup or pixel acceptance. No existing ACL/UAC or runtime was changed.
+
+`windows/product-attempt-41637412776-2/` retains the original ZIP, all 15 manifest
+files, full log and verification. ZIP digest and each file size/SHA match GitHub
+and the retained manifest. The actual binary hash is
+`26d5532b432aeb0e2d1cd3b3015cc4f2de1c7f5cdd05d5804b9bb8ed2a696103`.
+Commit `c6a4bfb1` replaces the PowerShell implicit launch with a held process
+handle, explicit exit/EOF waits and actual exit code, while concurrently retaining
+bounded stdout/stderr. Four real-process local regressions passed: delayed exit
+37 with complete dual-stream output, success, timeout with exact-process cleanup,
+and over-budget output rejection. This local check does not replace the next
+Windows product execution; no absent exit code is converted into success.
+
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
