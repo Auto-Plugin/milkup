@@ -1,6 +1,7 @@
 //! Native ownership and bounded IPC for the separately authorized fixed-code prototype.
 //! This is not an OS-wide no-network guarantee. No product entry point uses this module.
 mod cleanup_observation;
+mod fixed_runtime;
 mod delete_diagnostic;
 
 use crate::Result;
@@ -824,6 +825,9 @@ pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOu
     if input_bytes.len() > MAX_INPUT || input_bytes.is_empty() {
         return Err("Input JSON exceeds the fixed prototype budget".into());
     }
+    if std::env::var_os("MILKUP_MERMAID_FIXED_RUNTIME").is_some() {
+        reject_reparse_ancestors(runtime)?;
+    }
     let runtime = fs::canonicalize(runtime)?;
     if !runtime.join("msedgewebview2.exe").is_file() {
         return Err("Installed Runtime absent; no installation or download fallback".into());
@@ -861,6 +865,7 @@ pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOu
     let mut profile = None;
     let mut job = None;
     let mut pins = None;
+    let mut fixed_runtime_guard = None;
     let mut readers = Vec::new();
     let mut writer = None;
     let mut stderr_reader = None;
@@ -918,6 +923,7 @@ pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOu
         pins = Some(pinned_copy(&std::env::current_exe()?, &exe)?);
         reject_reparse_ancestors(&exe)?;
         report["privateExecutableBytes"] = json!(fs::metadata(&exe)?.len());
+        fixed_runtime_guard = fixed_runtime::Guard::prepare(&runtime, &temp, &system, &sid, &mut report)?;
         job = Some(Job::new()?);
         let job = job.as_ref().unwrap();
         let Spawned {
@@ -940,6 +946,9 @@ pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOu
         }
         report["executionAncestryAccessDenials"] =
             check_code_parent_access(process.as_raw_handle(), &code)?;
+        if let Some(guard) = &fixed_runtime_guard {
+            guard.verify_child(process.as_raw_handle(), &mut report)?;
+        }
         report["suspendedJob"] = job.sample()?;
         let (tx, rx) = mpsc::channel();
         let output_tx = tx.clone();
@@ -999,6 +1008,9 @@ pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOu
             || report["browserToken"]["seDebugPrivilege"]["present"] != false
         {
             return Err("WebView2 browser lacks the required Job/zero-capability AppContainer boundary; refusing render".into());
+        }
+        if let Some(guard) = &fixed_runtime_guard {
+            guard.verify_browser(browser.as_raw_handle(), &mut report)?;
         }
         report["prepareElapsedMs"] = json!(prepare_started.elapsed().as_millis());
         report["readyJob"] = job.sample()?;
@@ -1091,6 +1103,17 @@ pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOu
     report["stopMatrixAfterThisCase"] = json!(!ipc_threads_completed || !empty);
     drop(job); // KILL_ON_JOB_CLOSE remains the last-resort ownership boundary.
     drop(pins);
+    if let Some(guard) = fixed_runtime_guard.take() {
+        if empty {
+            drop(guard);
+            report["fixedRuntime"]["pinsReleasedAfterJobEmpty"] = json!(true);
+        } else {
+            // Preserve pins until this supervised host exits if process emptiness
+            // could not be established. The failed matrix cannot continue.
+            std::mem::forget(guard);
+            report["fixedRuntime"]["pinsRetainedUntilHostExit"] = json!(true);
+        }
+    }
     if empty {
         if let Some(profile) = &mut profile {
             match profile.delete() {
