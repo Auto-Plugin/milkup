@@ -77,6 +77,7 @@ public static class WindowsMermaidStandardUser
     [DllImport("advapi32.dll", SetLastError = true)] static extern bool GetTokenInformation(IntPtr token, int kind, IntPtr data, uint size, out uint needed);
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool ConvertSidToStringSidW(IntPtr sid, out IntPtr text);
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool LookupPrivilegeValueW(string system, string name, out Luid value);
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool LookupPrivilegeNameW(string system, ref Luid value, StringBuilder name, ref uint length);
     [DllImport("userenv.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern bool DeleteProfileW(string sid, string path, string computer);
     [DllImport("user32.dll", SetLastError = true)] static extern IntPtr GetProcessWindowStation();
     [DllImport("user32.dll", SetLastError = true)] static extern IntPtr GetThreadDesktop(uint thread);
@@ -119,6 +120,59 @@ public static class WindowsMermaidStandardUser
             return Marshal.ReadInt32(data.Data);
         }
     }
+    static readonly HashSet<string> OrdinaryPrivileges = new HashSet<string>(StringComparer.Ordinal) {
+        "SeChangeNotifyPrivilege", "SeShutdownPrivilege", "SeUndockPrivilege",
+        "SeIncreaseWorkingSetPrivilege", "SeTimeZonePrivilege"
+    };
+    static bool UnsignedFact(Dictionary<string, object> facts, string key, out uint result) {
+        result = 0;
+        object value;
+        if (!facts.TryGetValue(key, out value)) return false;
+        if (value is uint) { result = (uint)value; return true; }
+        if (value is int && (int)value >= 0) { result = (uint)(int)value; return true; }
+        if (value is long && (long)value >= 0 && (long)value <= UInt32.MaxValue) { result = (uint)(long)value; return true; }
+        return false;
+    }
+    static bool CompleteOrdinaryPrivilegeSet(Dictionary<string, object> facts, uint count) {
+        object value;
+        if (!facts.TryGetValue("privileges", out value)) return false;
+        var records = value as Dictionary<string, object>[];
+        if (records == null || records.Length != count || records.Length > 64) return false;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var record in records) {
+            object name;
+            uint attributes;
+            if (record == null || !record.TryGetValue("name", out name) || !(name is string) ||
+                !seen.Add((string)name) || !OrdinaryPrivileges.Contains((string)name) ||
+                !UnsignedFact(record, "attributes", out attributes)) return false;
+        }
+        return true;
+    }
+    public static bool MatchesExpectedAccountKind(Dictionary<string, object> facts, string expectedKind) {
+        if (facts == null || (expectedKind != "pure-standard" && expectedKind != "filtered-admin")) return false;
+        uint type, elevation, integrity, count, disallowed;
+        object elevated, uiAccess, debug, complete, admin, attributes, sid, owner, ownerIsUser;
+        if (!UnsignedFact(facts, "tokenType", out type) || type != 1 ||
+            !UnsignedFact(facts, "elevationType", out elevation) ||
+            !UnsignedFact(facts, "integrityRid", out integrity) || integrity != 8192 ||
+            !UnsignedFact(facts, "privilegeCount", out count) || count > 64 ||
+            !UnsignedFact(facts, "hostDisallowedPrivilegeCount", out disallowed) || disallowed != 0 ||
+            !facts.TryGetValue("elevated", out elevated) || !Equals(elevated, false) ||
+            !facts.TryGetValue("uiAccess", out uiAccess) || !Equals(uiAccess, false) ||
+            !facts.TryGetValue("seDebugPrivilegePresent", out debug) || !Equals(debug, false) ||
+            !facts.TryGetValue("privilegesComplete", out complete) || !Equals(complete, true) ||
+            !facts.TryGetValue("administratorsGroupPresentIncludingDenyOnly", out admin) ||
+            !facts.TryGetValue("administratorsGroupAttributes", out attributes) ||
+            !facts.TryGetValue("sid", out sid) || !(sid is string) || String.IsNullOrEmpty((string)sid) ||
+            !facts.TryGetValue("ownerSid", out owner) || !Equals(owner, sid) ||
+            !facts.TryGetValue("ownerIsUser", out ownerIsUser) || !Equals(ownerIsUser, true) ||
+            !CompleteOrdinaryPrivilegeSet(facts, count)) return false;
+        if (expectedKind == "pure-standard")
+            return elevation == 1 && Equals(admin, false) && attributes == null;
+        uint flags;
+        return elevation == 3 && Equals(admin, true) &&
+            UnsignedFact(facts, "administratorsGroupAttributes", out flags) && flags == 0x10;
+    }
     static Dictionary<string, object> Token(IntPtr process) {
         IntPtr token;
         Check(OpenProcessToken(process, 8, out token), "Open process token for query only");
@@ -128,36 +182,71 @@ public static class WindowsMermaidStandardUser
                 if (data.Size < IntPtr.Size) throw new InvalidOperationException("Missing token user");
                 sid = Sid(Marshal.ReadIntPtr(data.Data));
             }
+            string ownerSid;
+            using (var data = new TokenBuffer(token, 4)) {
+                if (data.Size < IntPtr.Size) throw new InvalidOperationException("Missing token owner");
+                ownerSid = Sid(Marshal.ReadIntPtr(data.Data));
+            }
             bool admin = false, debug = false;
+            uint? adminAttributes = null;
             using (var data = new TokenBuffer(token, 2)) {
                 int count = Marshal.ReadInt32(data.Data), offset = IntPtr.Size == 8 ? 8 : 4;
                 int stride = IntPtr.Size == 8 ? 16 : 8;
-                if (count < 0 || (long)offset + (long)count * stride > data.Size)
+                if (count < 0 || count > 4096 || (long)offset + (long)count * stride > data.Size)
                     throw new InvalidOperationException("Token group extent rejected");
-                for (int i = 0; i < count; i++)
-                    if (Sid(Marshal.ReadIntPtr(data.Data, offset + i * stride)) == "S-1-5-32-544") admin = true;
+                for (int i = 0; i < count; i++) {
+                    if (Sid(Marshal.ReadIntPtr(data.Data, offset + i * stride)) != "S-1-5-32-544") continue;
+                    if (admin) throw new InvalidOperationException("Duplicate Administrators token group");
+                    admin = true;
+                    adminAttributes = unchecked((uint)Marshal.ReadInt32(data.Data, offset + i * stride + IntPtr.Size));
+                }
             }
-            Luid debugId;
-            Check(LookupPrivilegeValueW(null, "SeDebugPrivilege", out debugId), "Resolve debug privilege identifier without adjustment");
+            var privileges = new List<Dictionary<string, object>>();
+            var seenPrivileges = new HashSet<string>(StringComparer.Ordinal);
+            int disallowedPrivileges = 0;
             using (var data = new TokenBuffer(token, 3)) {
                 int count = Marshal.ReadInt32(data.Data);
-                if (count < 0 || 4L + (long)count * 12 > data.Size)
+                if (count < 0 || count > 64 || 4L + (long)count * 12 > data.Size)
                     throw new InvalidOperationException("Token privilege extent rejected");
                 for (int i = 0; i < count; i++) {
                     int offset = 4 + i * 12;
-                    if (unchecked((uint)Marshal.ReadInt32(data.Data, offset)) == debugId.low &&
-                        Marshal.ReadInt32(data.Data, offset + 4) == debugId.high) debug = true;
+                    var id = new Luid { low = unchecked((uint)Marshal.ReadInt32(data.Data, offset)), high = Marshal.ReadInt32(data.Data, offset + 4) };
+                    uint length = 256;
+                    var name = new StringBuilder((int)length);
+                    Check(LookupPrivilegeNameW(null, ref id, name, ref length), "Observe token privilege name without adjustment");
+                    if (length == 0 || length >= 256 || !seenPrivileges.Add(name.ToString()))
+                        throw new InvalidOperationException("Token privilege name is incomplete or duplicated");
+                    uint attributes = unchecked((uint)Marshal.ReadInt32(data.Data, offset + 8));
+                    privileges.Add(new Dictionary<string, object> { { "name", name.ToString() }, { "attributes", attributes } });
+                    if (!OrdinaryPrivileges.Contains(name.ToString())) disallowedPrivileges++;
+                    if (name.ToString() == "SeDebugPrivilege") debug = true;
                 }
             }
+            uint integrity;
+            using (var data = new TokenBuffer(token, 25)) {
+                if (data.Size < IntPtr.Size + 4) throw new InvalidOperationException("Missing token integrity label");
+                string label = Sid(Marshal.ReadIntPtr(data.Data));
+                if (!label.StartsWith("S-1-16-", StringComparison.Ordinal) ||
+                    !UInt32.TryParse(label.Substring(7), out integrity))
+                    throw new InvalidOperationException("Unrecognized token integrity SID");
+            }
             bool elevated = Scalar(token, 20) != 0;
-            int elevationType = Scalar(token, 18);
-            return new Dictionary<string, object> {
-                { "sid", sid }, { "elevated", elevated }, { "elevationType", elevationType },
-                { "sessionId", Scalar(token, 12) },
-                { "administratorsGroupPresentIncludingDenyOnly", admin },
-                { "seDebugPrivilegePresent", debug },
+            int elevationType = Scalar(token, 18), uiAccess = Scalar(token, 26);
+            if (uiAccess != 0 && uiAccess != 1) throw new InvalidOperationException("Unrecognized UIAccess token scalar");
+            var result = new Dictionary<string, object> {
+                { "sid", sid }, { "ownerSid", ownerSid }, { "ownerIsUser", sid == ownerSid },
+                { "elevated", elevated }, { "elevationType", elevationType },
+                { "sessionId", Scalar(token, 12) }, { "tokenType", Scalar(token, 8) },
+                { "integrityRid", integrity }, { "uiAccess", uiAccess == 1 },
+                { "administratorsGroupPresentIncludingDenyOnly", admin }, { "administratorsGroupAttributes", adminAttributes },
+                { "seDebugPrivilegePresent", debug }, { "privileges", privileges.ToArray() },
+                { "privilegeCount", privileges.Count }, { "hostDisallowedPrivilegeCount", disallowedPrivileges }, { "privilegesComplete", true },
+                // Preserve the historical observation; admission additionally
+                // requires primary/medium/UIAccess/complete privilege checks.
                 { "pureStandardUser", !elevated && !admin && !debug && elevationType == 1 }
             };
+            result["filteredAdmin"] = MatchesExpectedAccountKind(result, "filtered-admin");
+            return result;
         } finally { CloseHandle(token); }
     }
     static string ObjectName(IntPtr handle) {
@@ -389,7 +478,7 @@ public static class WindowsMermaidStandardUser
         Check(ProcessIdToSessionId(GetCurrentProcessId(), out session), "Observe installer coordinator session");
         bool inJob;
         Check(IsProcessInJob(GetCurrentProcess(), IntPtr.Zero, out inJob), "Observe installer coordinator Job membership");
-        if (!Equals(token["sid"], expectedSid) || !Equals(token["pureStandardUser"], true) ||
+        if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, "pure-standard") ||
             Convert.ToUInt32(token["sessionId"]) != expectedSession || session != expectedSession || session == 0 || !inJob)
             throw new InvalidOperationException("Installer coordinator is not the exact pure-standard SID/session in the existing owned Job");
         return new Dictionary<string, object> { { "pid", GetCurrentProcessId() }, { "token", token }, { "sessionId", session }, { "inJob", inJob } };
@@ -407,7 +496,7 @@ public static class WindowsMermaidStandardUser
         bool inJob;
         Check(IsProcessInJob(held, IntPtr.Zero, out inJob), "Observe exact installer inherited Job membership");
         uint observedSession = Convert.ToUInt32(token["sessionId"]);
-        if (!Equals(token["sid"], expectedSid) || !Equals(token["pureStandardUser"], true) ||
+        if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, "pure-standard") ||
             observedSession != expectedSession || expectedSession == 0 || !inJob ||
             !String.Equals(Path.GetFullPath(image.ToString()), Path.GetFullPath(expectedImage), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Started installer SID/session/token/image/Job identity was not proved");
@@ -553,17 +642,23 @@ public static class WindowsMermaidStandardUser
     public static Dictionary<string, object> Run(string user, SecureString secret, string expectedSid,
         uint expectedSession, string application, string arguments, string directory,
         string[] environment, uint timeoutMs) {
+        return Run(user, secret, expectedSid, expectedSession, "pure-standard", application, arguments, directory, environment, timeoutMs);
+    }
+    public static Dictionary<string, object> Run(string user, SecureString secret, string expectedSid,
+        uint expectedSession, string expectedAccountKind, string application, string arguments, string directory,
+        string[] environment, uint timeoutMs) {
         var audit = new Dictionary<string, object> {
             { "status", "blocked" }, { "success", false }, { "resumed", false },
             { "jobAssigned", false }, { "jobEmpty", false },
             { "inheritedParentEnvironment", false }, { "existingDesktopAclChanged", false },
-            { "productInnerCleanupProvedByOuterJob", false }
+            { "productInnerCleanupProvedByOuterJob", false }, { "expectedAccountKind", expectedAccountKind }, { "accountKindVerified", false }
         };
         var cleanup = new List<string>();
         IntPtr job = IntPtr.Zero, password = IntPtr.Zero, env = IntPtr.Zero;
         ProcessInfo process = default(ProcessInfo);
         bool assigned = false, coordinatorExited = false;
         try {
+            if (expectedAccountKind != "pure-standard" && expectedAccountKind != "filtered-admin") throw new ArgumentException("Unknown expected account kind");
             if (timeoutMs < 1000 || timeoutMs > 1200000) throw new ArgumentException("Outer deadline budget rejected");
             if (application.IndexOf('"') >= 0 || application.IndexOf('\0') >= 0 || directory.IndexOf('"') >= 0 || directory.IndexOf('\0') >= 0)
                 throw new ArgumentException("Unsafe native launch path");
@@ -581,7 +676,7 @@ public static class WindowsMermaidStandardUser
             password = Marshal.SecureStringToGlobalAllocUnicode(secret);
             try {
                 Check(CreateProcessWithLogonW(user, ".", password, 1, application, command,
-                    0x4 | 0x400 | 0x08000000, env, directory, ref startup, out process), "Create suspended standard-account coordinator");
+                    0x4 | 0x400 | 0x08000000, env, directory, ref startup, out process), "Create suspended fresh-account coordinator");
             } finally {
                 Marshal.ZeroFreeGlobalAllocUnicode(password); password = IntPtr.Zero;
             }
@@ -595,9 +690,11 @@ public static class WindowsMermaidStandardUser
             uint session;
             Check(ProcessIdToSessionId(process.pid, out session), "Observe suspended coordinator session");
             audit["sessionId"] = session;
-            if (!Equals(token["sid"], expectedSid) || !Equals(token["pureStandardUser"], true) || session != expectedSession || session == 0)
-                throw new InvalidOperationException("Pure-standard SID/session gate rejected the suspended coordinator");
-            Check(ResumeThread(process.thread) != UInt32.MaxValue, "Resume owned standard-account coordinator");
+            if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, expectedAccountKind) ||
+                Convert.ToUInt32(token["sessionId"]) != expectedSession || session != expectedSession || session == 0)
+                throw new InvalidOperationException("Expected account-kind/SID/session gate rejected the suspended coordinator");
+            audit["accountKindVerified"] = true;
+            Check(ResumeThread(process.thread) != UInt32.MaxValue, "Resume owned verified-account coordinator");
             audit["resumed"] = true;
             uint wait = WaitForSingleObject(process.process, timeoutMs);
             if (wait == 258) { audit["status"] = "failed"; throw new TimeoutException("Owned Windows product harness exceeded its deadline"); }
