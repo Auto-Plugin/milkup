@@ -143,8 +143,14 @@ for (const lfAttributes of [false, true]) {
     name,
   )
   for (const path of paths) unlinkSync(join(cwd, path))
-  git(cwd, 'checkout-index', '--all', '--force')
-  snapshot(cwd, `${name}-before-rewrite`, true)
+  git(cwd, 'checkout-index', '--index', '--all', '--force')
+  const control = snapshot(cwd, `${name}-before-rewrite`, true)
+  assert.equal(
+    control.status,
+    '',
+    'Synthetic control must start with a clean, refreshed checkout stat',
+  )
+  assert.equal(control.diffExit, 0)
   for (const path of paths) {
     const head = git(cwd, 'cat-file', 'blob', `HEAD:${path}`)
     // Only replace line endings; byte content and JSON semantics stay identical.
