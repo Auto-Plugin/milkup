@@ -1,4 +1,5 @@
 import type { DocumentSvgImage } from './document-svg-image'
+import type { DocumentPngImage } from './document-png-image'
 import {
   copyDocumentSvgImage,
   createDocumentOutputBudget,
@@ -127,6 +128,7 @@ export type DocumentVectorPrimitive =
     }
 export type DocumentPresentationNode =
   | DocumentSvgImage
+  | DocumentPngImage
   | { readonly type: 'text'; readonly text: string }
   | {
       readonly type: 'group' | 'emphasis' | 'code' | 'sup' | 'sub'
@@ -796,6 +798,7 @@ function serializeValidatedNode(
     return `<${p.type} ${attrs.join(' ')}>${text}</${p.type}>`
   }
   const render = (n: DocumentPresentationNode): string => {
+    if (n.type === 'host-png-image') throw new DocumentPresentationError('invalid-output')
     if (n.type === 'svg-image')
       return serializeDocumentSvgImage(n, {
         idPrefix: `${context.prefix ?? 'document-svg'}-${context.image++}`,

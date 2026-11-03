@@ -1,8 +1,6 @@
 import {
   copyDocumentPresentationRequest,
-  copyDocumentPresentationAggregate,
   type DocumentRendererDeclaration,
-  copyDocumentPresentationNode,
   DOCUMENT_PRESENTATION_LIMITS,
   type DocumentPresentationRequest,
   type DocumentPresentationResult,
@@ -11,6 +9,14 @@ import {
   type DocumentMathNode,
   type DocumentSvgImage,
 } from '@milkup/core'
+import {
+  copyHostDocumentPresentationAggregate,
+  copyHostDocumentPresentationNode,
+  disposeDocumentPngImages,
+  documentPngImages,
+  type DocumentPngImage,
+} from '@milkup/core/internal/document-png-image'
+import { createOwnedDocumentPngImage } from './document-png-image'
 import {
   createOwnedDocumentSvgImage,
   imageDecodeDeadlineMs,
@@ -92,9 +98,9 @@ function createOwnedPresentationNode(
   document: Document,
   value: DocumentPresentationNode,
   navigate?: (target: DocumentPresentationTarget) => void,
-  image?: (value: DocumentSvgImage) => Node,
+  image?: (value: DocumentSvgImage | DocumentPngImage) => Node,
 ): Node {
-  const root = copyDocumentPresentationNode(value)
+  const root = copyHostDocumentPresentationNode(value)
   function math(node: DocumentMathNode): Element {
     const element = document.createElementNS(mathNS, node.tag)
     if (node.text !== undefined) element.textContent = node.text
@@ -128,7 +134,7 @@ function createOwnedPresentationNode(
     return element
   }
   function build(node: DocumentPresentationNode): Node {
-    if (node.type === 'svg-image') {
+    if (node.type === 'svg-image' || node.type === 'host-png-image') {
       if (!image) throw new Error('SVG image presentation requires a lifetime owner')
       return image(node)
     }
@@ -273,6 +279,7 @@ export class DocumentPresentation {
       }
     | undefined
   private failedKey: string | undefined
+  private readonly releasedCachePngImages = new Set<DocumentPngImage>()
   private retryAfter = 0
   private preparationRetry:
     { timer: ReturnType<typeof setTimeout>; matches: () => boolean } | undefined
@@ -571,7 +578,7 @@ export class DocumentPresentation {
     this.epoch++
     this.job?.controller.abort()
     this.job = undefined
-    this.cache = undefined
+    this.clearCache()
     this.failedKey = undefined
     this.blocks = []
     this.restore(false, true)
@@ -604,7 +611,7 @@ export class DocumentPresentation {
     for (const name of ['pointerdown', 'beforeinput', 'input', 'compositionstart'])
       this.root.removeEventListener(name, this.clearProxyNavigation, true)
     this.restore()
-    this.cache = undefined
+    this.clearCache()
   }
   schedule(): void {
     if (this.stopped || this.scheduled) return
@@ -786,9 +793,10 @@ export class DocumentPresentation {
       this.observedIdentity = current.sourceIdentity
       this.observedVersion = current.sourceVersion
       this.failedKey = undefined
-      this.cache = undefined
+      this.clearCache()
     }
     if (!this.config || current.mode !== 'live') {
+      this.clearCache()
       this.job?.controller.abort()
       this.job = undefined
       if (this.saved.size || this.painted || this.notice || this.fragmentImages.size) this.restore()
@@ -836,7 +844,7 @@ export class DocumentPresentation {
       !sameSelection(this.cache.response.request.selection, current.selection)
     ) {
       this.restore()
-      this.cache = undefined
+      this.clearCache()
     }
     const job: Job = {
       key,
@@ -855,7 +863,7 @@ export class DocumentPresentation {
         this.failedKey = key
         this.retryAfter = Date.now() + 1000
         job.controller.abort()
-        this.cache = undefined
+        this.clearCache()
         this.restore(false, true)
         this.fallback('预览超时，保留 Markdown 源码。')
       }
@@ -866,46 +874,53 @@ export class DocumentPresentation {
     void Promise.resolve()
       .then(() => config.provide(window, { signal: job.controller.signal, deadline }))
       .then(async (response) => {
-        // Provider preparation has settled; a held pointer is not preparation time.
-        clearTimeout(timeout)
-        if (!this.valid(job)) return
-        if (performance.now() >= deadline) {
-          expirePreparation()
-          return
+        let transferred = false
+        try {
+          // Provider preparation has settled; a held pointer is not preparation time.
+          clearTimeout(timeout)
+          if (!this.valid(job)) return
+          if (performance.now() >= deadline) {
+            expirePreparation()
+            return
+          }
+          const request = copyDocumentPresentationRequest(response.request)
+          if (
+            request.from !== window.from ||
+            request.to !== window.to ||
+            request.source !== window.source ||
+            !sameSelection(request.selection, window.selection)
+          )
+            throw new Error('Presentation source changed')
+          const result = copyHostDocumentPresentationAggregate(
+            response.result,
+            request,
+            response.declarations,
+          )
+          if (performance.now() >= deadline) {
+            expirePreparation()
+            return
+          }
+          // A new input task can replace a released lease before this continuation.
+          // Keep the same result pending until there is no current valid gesture.
+          while (this.valid(job)) {
+            const pointer = this.waitForReferencePointer(job.controller.signal)
+            if (!pointer) break
+            await pointer
+          }
+          if (!this.valid(job)) return
+          this.clearCache()
+          this.cache = {
+            key,
+            baseKey,
+            identity: current.sourceIdentity,
+            documentVersion: current.documentVersion,
+            response: { request, result, declarations: response.declarations },
+          }
+          transferred = true
+          this.paint(this.cache.response)
+        } finally {
+          if (!transferred) disposeDocumentPngImages(response.result)
         }
-        const request = copyDocumentPresentationRequest(response.request)
-        if (
-          request.from !== window.from ||
-          request.to !== window.to ||
-          request.source !== window.source ||
-          !sameSelection(request.selection, window.selection)
-        )
-          throw new Error('Presentation source changed')
-        const result = copyDocumentPresentationAggregate(
-          response.result,
-          request,
-          response.declarations,
-        )
-        if (performance.now() >= deadline) {
-          expirePreparation()
-          return
-        }
-        // A new input task can replace a released lease before this continuation.
-        // Keep the same result pending until there is no current valid gesture.
-        while (this.valid(job)) {
-          const pointer = this.waitForReferencePointer(job.controller.signal)
-          if (!pointer) break
-          await pointer
-        }
-        if (!this.valid(job)) return
-        this.cache = {
-          key,
-          baseKey,
-          identity: current.sourceIdentity,
-          documentVersion: current.documentVersion,
-          response: { request, result, declarations: response.declarations },
-        }
-        this.paint(this.cache.response)
       })
       .catch(() => {
         clearTimeout(timeout)
@@ -913,7 +928,7 @@ export class DocumentPresentation {
           this.releaseReferencePointer()
           this.failedKey = key
           this.retryAfter = Date.now() + 1000
-          this.cache = undefined
+          this.clearCache()
           this.restore(false, true)
           this.fallback('预览不可用，保留 Markdown 源码。')
         }
@@ -1514,6 +1529,7 @@ export class DocumentPresentation {
   private hasFragmentImages(fragment: DocumentPresentationFragment): boolean {
     const visit = (node: DocumentPresentationNode): boolean =>
       node.type === 'svg-image' ||
+      node.type === 'host-png-image' ||
       ((node.type === 'group' ||
         node.type === 'emphasis' ||
         node.type === 'code' ||
@@ -1536,7 +1552,7 @@ export class DocumentPresentation {
         ...Array.from(this.previousFragmentImages.values(), (entry) => entry.owner.fragment),
         owner.fragment,
       ].sort((a, b) => a.from - b.from || a.to - b.to)
-      copyDocumentPresentationAggregate(
+      copyHostDocumentPresentationAggregate(
         { fragments, complete: false },
         response.request,
         response.declarations,
@@ -1555,6 +1571,7 @@ export class DocumentPresentation {
         if (fragmentKey(current.fragment) !== key) continue
         current.failed = true
         for (const image of current.images) image.dispose()
+        this.releaseFailedCacheImages(current.fragment)
       }
       this.imageRevision++
       this.schedule()
@@ -1590,9 +1607,9 @@ export class DocumentPresentation {
   ): FragmentImages | undefined {
     const existing = this.fragmentImages.get(fragment)
     if (existing) return existing
-    const nodes: DocumentSvgImage[] = []
+    const nodes: (DocumentSvgImage | DocumentPngImage)[] = []
     const collect = (node: DocumentPresentationNode): void => {
-      if (node.type === 'svg-image') nodes.push(node)
+      if (node.type === 'svg-image' || node.type === 'host-png-image') nodes.push(node)
       else if (
         node.type === 'group' ||
         node.type === 'emphasis' ||
@@ -1642,6 +1659,7 @@ export class DocumentPresentation {
         this.releaseReferencePointer()
         owner.failed = true
         for (const image of owner.images) image.dispose()
+        this.releaseFailedCacheImages(owner.fragment)
       }
       // One failed image invalidates the entire fragment. Pending siblings do
       // not hide any source; a retained failure cannot restart via observation.
@@ -1653,12 +1671,33 @@ export class DocumentPresentation {
     }
     try {
       for (const node of nodes)
-        owner.images.push(createOwnedDocumentSvgImage(this.content.ownerDocument, node, changed))
+        owner.images.push(
+          node.type === 'host-png-image'
+            ? createOwnedDocumentPngImage(this.content.ownerDocument, node, changed)
+            : createOwnedDocumentSvgImage(this.content.ownerDocument, node, changed),
+        )
     } catch {
       owner.failed = true
       for (const image of owner.images) image.dispose()
+      this.releaseFailedCacheImages(owner.fragment)
     }
     return owner
+  }
+  private clearCache(): void {
+    if (this.cache)
+      for (const image of documentPngImages(this.cache.response.result))
+        if (!this.releasedCachePngImages.has(image)) disposeDocumentPngImages(image)
+    this.cache = undefined
+    this.releasedCachePngImages.clear()
+  }
+  private releaseFailedCacheImages(fragment: DocumentPresentationFragment): void {
+    if (!this.cache) return
+    const cached = new Set(documentPngImages(this.cache.response.result))
+    for (const image of documentPngImages(fragment)) {
+      if (!cached.has(image) || this.releasedCachePngImages.has(image)) continue
+      this.releasedCachePngImages.add(image)
+      disposeDocumentPngImages(image)
+    }
   }
   private paintContext(): PaintContext {
     const snapshot = this.snapshot()
