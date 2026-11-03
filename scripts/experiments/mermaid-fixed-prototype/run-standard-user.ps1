@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory)][string]$Binary,
     [Parameter(Mandatory)][string]$Runtime,
     [Parameter(Mandatory)][string]$Evidence,
-    [switch]$CaptureVisualEvidence
+    [switch]$CaptureVisualEvidence,
+    [switch]$DeleteDiagnostic
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -11,6 +12,8 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or
     $env:GITHUB_REF -cne 'refs/heads/dot/milkup-v2-mermaid-prototype') {
     throw 'Temporary account is restricted to the reviewed disposable GitHub runner'
 }
+
+if ($CaptureVisualEvidence -and $DeleteDiagnostic) { throw 'Deletion diagnostic cannot export the full visual matrix' }
 
 function Assert-PlainPath([string]$Path) {
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
@@ -45,6 +48,14 @@ function Read-CaseSummary([string]$Output) {
         $record = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json -AsHashtable
         $launcher = $record['launcher']
         if ($null -eq $launcher) { $launcher = @{} }
+        $deleteObservation = $launcher['privateTreeDeleteDiagnostic']
+        if ($null -ne $deleteObservation) {
+            $diagnosticBytes = [Text.Encoding]::UTF8.GetBytes(($deleteObservation | ConvertTo-Json -Depth 16 -Compress))
+            if ($diagnosticBytes.Length -gt 20480) {
+                $deleteObservation = @{ projectionRejected=$true; reason='Over 20 KiB'; bytes=$diagnosticBytes.Length;
+                    sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($diagnosticBytes)).ToLowerInvariant() }
+            }
+        }
         $summary = [ordered]@{
             fixture = $record['fixture']; ok = $record['ok']; error = $record['error']
             rawRenderSucceeded = $record['rawRenderSucceeded']
@@ -60,6 +71,7 @@ function Read-CaseSummary([string]$Output) {
             privateTreeRemoved = $launcher['privateTreeRemoved']
             privateTreeDeleteAttempts = $launcher['privateTreeDeleteAttempts']
             cleanupAccessObservation = $launcher['cleanupAccessObservation']
+            privateTreeDeleteDiagnostic = $deleteObservation
             preparation = (Convert-PreparationSummary $launcher)
             cleanupSupervisorSid = $launcher['cleanupSupervisorSid']
             stopMatrixAfterThisCase = $launcher['stopMatrixAfterThisCase']
@@ -96,6 +108,7 @@ $audit = [ordered]@{
     changedFirewallOrUac = $false; changedExistingDesktopAcl = $false
     newRuntimeOrDependency = $false; productIntegrated = $false; artifactUpload = $false
     captureVisualEvidence = $CaptureVisualEvidence.IsPresent; visualEvidenceEmitted = $false
+    deleteDiagnostic = $DeleteDiagnostic.IsPresent
 }
 $password = [Security.SecureString]::new()
 $user = $null
@@ -161,13 +174,20 @@ try {
         @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000},
         @{name='positive'; manifest='fixtures-manifest.json'; selector=''; timeout=600000}
     )
-    if (-not $CaptureVisualEvidence) {
+    if ($DeleteDiagnostic) {
+        $cases = @(
+            @{name='canary'; manifest='fixtures-manifest.json'; selector='flowchart-v2'; timeout=120000},
+            @{name='delete-diagnostic'; manifest='fixtures-manifest.json'; selector='gitGraph'; timeout=120000}
+        )
+    }
+    if (-not $CaptureVisualEvidence -and -not $DeleteDiagnostic) {
         $cases += @{name='negative'; manifest='negative-fixtures-manifest.json'; selector=''; timeout=180000}
     }
     foreach ($case in $cases) {
         $output = Join-Path $stage ('outputs/' + $case.name)
         $manifest = Join-Path $stage $case.manifest
-        $arguments = '--run "' + $Runtime + '" "' + $manifest + '" "' + $output + '"'
+        $verb = $(if ($DeleteDiagnostic) { '--run-delete-diagnostic' } else { '--run' })
+        $arguments = $verb + ' "' + $Runtime + '" "' + $manifest + '" "' + $output + '"'
         if ($case.selector) { $arguments += ' ' + $case.selector }
         $ownedProcessesCleared = $false
         $result = [StandardUserProcess]::Run($name,$password,$sid,$stagedBinary,$arguments,$stage,$environment,$case.timeout)
@@ -206,6 +226,7 @@ try {
             throw ('Standard-user ' + $case.name + ' failed; no subsequent dispatch')
         }
         $report = Get-Content -LiteralPath (Join-Path $output 'report.json') -Raw | ConvertFrom-Json
+        if ($DeleteDiagnostic -and ($report.records.Count -ne 1 -or $report.acceptedAssertions -ne 1 -or $report.records[0].fixture -cne $case.selector)) { throw 'Incomplete single-fixture deletion diagnostic' }
         if ($case.name -ceq 'positive' -and ($report.records.Count -ne 50 -or $report.acceptedAssertions -ne 50)) { throw 'Incomplete positive matrix' }
         if ($case.name -ceq 'negative' -and ($report.records.Count -ne 5 -or $report.acceptedAssertions -ne 4)) { throw 'Incomplete negative matrix' }
         $audit[($case.name + 'AcceptedAssertions')] = $report.acceptedAssertions

@@ -24,9 +24,11 @@ $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Dirty or unreadable prototype checkout' }
 $root = $PSScriptRoot
 $captureVisual = $event.head_commit.message.Contains('[mermaid-visual-evidence]')
+$deleteDiagnostic = $event.head_commit.message.Contains('[mermaid-delete-diagnostic]')
+if ($captureVisual -and $deleteDiagnostic) { throw 'Incompatible diagnostic execution markers' }
 $renderingBaseline = '82fb49e95caf99ea45654f552992eff81f72bee9'
-$nativeBaseline = '7aa222e85859d217c33eedcb244e89ca1089ebbb'
-if ($captureVisual) {
+$nativeBaseline = $(if ($deleteDiagnostic) { '0a40abfb1eb571f9c67099fca775dfabcd758c29' } else { '7aa222e85859d217c33eedcb244e89ca1089ebbb' })
+if ($captureVisual -or $deleteDiagnostic) {
     # The new native observation code is pinned separately, never broadly
     # excluded. All rendering/assets/dependency/security inputs retain 82fb.
     git merge-base --is-ancestor $nativeBaseline HEAD
@@ -36,6 +38,13 @@ if ($captureVisual) {
         'scripts/experiments/mermaid-fixed-prototype/src/launcher.rs',
         'scripts/experiments/mermaid-fixed-prototype/src/launcher/cleanup_observation.rs'
     )
+    if ($deleteDiagnostic) {
+        $approvedNativePaths += @(
+            'scripts/experiments/mermaid-fixed-prototype/src/main.rs',
+            'scripts/experiments/mermaid-fixed-prototype/src/cleanup.rs',
+            'scripts/experiments/mermaid-fixed-prototype/src/launcher/delete_diagnostic.rs'
+        )
+    }
     $nativeChanges = @(git diff --name-only $renderingBaseline $nativeBaseline -- 'scripts/experiments/mermaid-fixed-prototype/src')
     if ($LASTEXITCODE -ne 0 -or @(Compare-Object ($approvedNativePaths | Sort-Object) ($nativeChanges | Sort-Object)).Count) {
         throw 'Native diagnostic baseline contains unreviewed source paths'
@@ -111,13 +120,15 @@ $execution = [ordered]@{
     executableIsPrototypeNotInstaller = $true
     nativeNetworkGuarantee = $false
     captureVisualEvidence = $captureVisual
-    renderingInputsBaseline = $(if ($captureVisual) { $renderingBaseline } else { $null })
-    nativeSourceBaseline = $(if ($captureVisual) { $nativeBaseline } else { $null })
+    deleteDiagnostic = $deleteDiagnostic
+    diagnosticCorpus = $(if ($deleteDiagnostic) { @('flowchart-v2','gitGraph') } else { $null })
+    renderingInputsBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $renderingBaseline } else { $null })
+    nativeSourceBaseline = $(if ($captureVisual -or $deleteDiagnostic) { $nativeBaseline } else { $null })
     nativeSourceByteIdenticalToRenderingBaseline = $false
     standardUserAcceptance = 'Fresh temporary local Users account; suspended token/SID gate; profile/account/test-directory cleanup; no privilege adjustment'
 }
 $execution | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $proof 'execution.json')
 Write-Output ('MILKUP_EXECUTION_JSON ' + ($execution | ConvertTo-Json -Depth 5 -Compress))
-& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual
+& (Join-Path $root 'run-standard-user.ps1') -Binary $binary -Runtime $runtime -Evidence $proof -CaptureVisualEvidence:$captureVisual -DeleteDiagnostic:$deleteDiagnostic
 $dirty = @(git status --porcelain)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Prototype modified source checkout or status inspection failed' }
