@@ -257,6 +257,146 @@ export async function waitForPluginCard(
   )
 }
 
+export function validateCardReflow(before, after, targetId = PLUGIN, tolerance = 1) {
+  assert.deepEqual(
+    after.map((card) => card.id),
+    before.map((card) => card.id),
+    'Plugin cards retain full identity order',
+  )
+  assert.equal(new Set(before.map((card) => card.id)).size, before.length, 'Unique plugin cards')
+  const target = before.findIndex((card) => card.id === targetId)
+  assert(target >= 0, 'Target plugin card exists')
+  let precedingHeightDelta = 0
+  const rows = before.map((previous, index) => {
+    const next = after[index]
+    for (const bounds of [previous.rect, next.rect]) {
+      assert(
+        bounds &&
+          ['x', 'y', 'width', 'height'].every((key) => Number.isFinite(bounds[key])) &&
+          bounds.width > 0 &&
+          bounds.height > 0,
+        'Laid-out card geometry',
+      )
+    }
+    const expectedTop = previous.rect.y + precedingHeightDelta
+    assert(
+      Math.abs(next.rect.y - expectedTop) <= tolerance,
+      `Card ${previous.id} follows predecessor height changes: expected ${expectedTop}, got ${next.rect.y}`,
+    )
+    assert(
+      Math.abs(next.rect.x - previous.rect.x) <= tolerance &&
+        Math.abs(next.rect.width - previous.rect.width) <= tolerance,
+      'Plugin card horizontal anchor and width retained',
+    )
+    if (index === target)
+      assert(
+        Math.abs(next.rect.y - previous.rect.y) <= tolerance,
+        'Toggled card retains its top anchor',
+      )
+    const heightDelta = next.rect.height - previous.rect.height
+    precedingHeightDelta += heightDelta
+    return { id: previous.id, expectedTop, actualTop: next.rect.y, heightDelta }
+  })
+  return { targetId, targetTop: after[target].rect.y, rows }
+}
+
+export async function waitForNativeJobs(
+  ledger,
+  productPid,
+  isAlive,
+  { timeoutMs = 45000, pollIntervalMs = 100 } = {},
+) {
+  const deadline = performance.now() + timeoutMs
+  while (ledger.pending(productPid) > 0) {
+    assert(isAlive(), 'Product exited before admitted native jobs completed')
+    const remaining = deadline - performance.now()
+    assert(
+      remaining > 0,
+      'Timed out draining admitted native jobs; inner cleanup remains unverified',
+    )
+    await delay(Math.min(pollIntervalMs, remaining))
+  }
+  return ledger.verifyAll(productPid)
+}
+
+export async function waitForOwnedExit(isAlive, timeoutMs, pollIntervalMs = 100, whileWaiting) {
+  const deadline = performance.now() + timeoutMs
+  while (isAlive()) {
+    const remaining = deadline - performance.now()
+    if (remaining <= 0) return false
+    if (whileWaiting) await whileWaiting()
+    const afterObservation = deadline - performance.now()
+    if (afterObservation <= 0) return false
+    if (!isAlive()) return true
+    await delay(Math.min(pollIntervalMs, afterObservation))
+  }
+  return true
+}
+
+// Both successful and failed test paths give admitted native jobs a bounded
+// opportunity to finish. Errors are accumulated, never replaced by outer kill.
+export async function settleOwnedProduct({
+  record,
+  isAlive,
+  drainNative,
+  closeUi,
+  waitForExit,
+  forceStop,
+  drainStdio,
+  verifyExit,
+  verifyNative,
+  detach,
+}) {
+  const errors = []
+  record.phases = []
+  const attempt = async (phase, operation) => {
+    const row = { phase, startedAt: new Date().toISOString() }
+    record.phases.push(row)
+    try {
+      row.result = await operation()
+      row.ok = true
+      return row.result
+    } catch (error) {
+      row.ok = false
+      row.error = String(error)
+      errors.push(new Error(`${phase}: ${error}`, { cause: error }))
+    } finally {
+      row.finishedAt = new Date().toISOString()
+    }
+  }
+  await attempt('native-drain', drainNative)
+  if (isAlive()) {
+    record.uiCloseAttempted = true
+    const requested = await attempt('ui-close', closeUi)
+    record.realUiCloseRequested = requested?.realUiCloseRequested === true
+    const exited = await attempt('ui-exit-wait', waitForExit)
+    if (exited !== true) {
+      record.uiExitDeadlineUnmet = true
+      errors.push(
+        new Error(
+          'Owned product did not exit within the UI-close deadline; forced termination is not inner cleanup acceptance',
+        ),
+      )
+      if (isAlive()) {
+        record.outerTerminationRequired = true
+        await attempt('owned-process-fallback', forceStop)
+      }
+    }
+  }
+  await attempt('stdio-drain', drainStdio)
+  const normalExit = await attempt('normal-exit', verifyExit)
+  record.closedByUi =
+    record.realUiCloseRequested === true &&
+    normalExit === true &&
+    !record.uiExitDeadlineUnmet &&
+    !record.outerTerminationRequired
+  await attempt('native-final-verification', verifyNative)
+  await attempt('webdriver-detach', detach)
+  record.errors = errors.map((error) => error.message)
+  if (errors.length) throw new AggregateError(errors, record.errors.join('; '))
+  return record
+}
+
 export class AuditLedger {
   constructor(expectedSid) {
     this.expectedSid = expectedSid
@@ -669,7 +809,7 @@ export async function main() {
     })
   }
   const control = (value) => keys(value, '\uE009')
-  const pointer = async (selector, left = false) => {
+  const pointer = async (selector, left = false, beforeClick) => {
     for (let attempt = 0; attempt < 24; attempt++) {
       const target = await execute(
         `const e=document.querySelector(arguments[0]);if(!e)return null;const r=e.getBoundingClientRect(),x=arguments[1]?r.left+Math.min(8,r.width/2):(r.left+r.right)/2,y=(r.top+r.bottom)/2;
@@ -680,6 +820,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       )
       assert(target && !target.disabled, 'Visible enabled UI target: ' + selector)
       if (target.hit && target.rect.width > 0 && target.rect.height > 0) {
+        if (beforeClick) await beforeClick()
         report.inputs.push({
           at: new Date().toISOString(),
           kind: 'W3C-pointer-actions',
@@ -746,26 +887,28 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
   }
   const switchPlugin = async (enabled) => {
     await menu()
-    const before = await state()
-    const card = before.cards.find((item) => item.id === PLUGIN)
-    assert(card && card.checked === String(!enabled), 'Actual plugin switch starting state')
-    await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [role="switch"]`)
+    let before
+    // Capture after any real wheel reveal, immediately before the click. This
+    // excludes legitimate scrolling from the card anchoring comparison.
+    await pointer(
+      `.plugin-summary-card[data-plugin-id="${PLUGIN}"] [role="switch"]`,
+      false,
+      async () => {
+        before = await state()
+        const card = before.cards.find((item) => item.id === PLUGIN)
+        assert(card && card.checked === String(!enabled), 'Actual plugin switch starting state')
+      },
+    )
     await until(async () => {
       const next = (await state()).cards.find((item) => item.id === PLUGIN)
       return next?.checked === String(enabled) && next.busy !== 'true'
     }, 'Plugin toggle settled')
     const after = await state()
-    assert.deepEqual(
-      after.cards.map((item) => item.id),
-      before.cards.map((item) => item.id),
-      'Plugin cards retain order',
-    )
     assert.equal(after.version, before.version)
     assert.equal(after.dirty, before.dirty)
-    for (const previous of before.cards) {
-      const next = after.cards.find((item) => item.id === previous.id)
-      assert(Math.abs(next.rect.y - previous.rect.y) <= 1, 'Plugin card retained its position')
-    }
+    const layout = validateCardReflow(before.cards, after.cards)
+    const step = report.steps.at(-1)
+    if (step) (step.pluginToggleLayouts ??= []).push(layout)
     await closeMenu()
   }
   const position = async (source, offset = 0, mode = 'live') => {
@@ -999,54 +1142,169 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
   const closeProduct = async (successful) => {
     if (!product) return
     const current = product,
-      record = launch
-    if (successful) {
-      await observeProcesses()
-      record.nativeJobs = (await drain()).map((job) => ({
+      record = launch,
+      productPid = record.productPid
+    const isAlive = () => current.exitCode === null && current.signalCode === null
+    record.teardown = { afterFailure: !successful, ownedProductPid: productPid }
+    const evidenceErrors = []
+    try {
+      await persist()
+    } catch (error) {
+      evidenceErrors.push(error)
+      record.teardown.evidenceBeforeCloseError = String(error)
+    }
+    const summarizeNative = () =>
+      ledger.verifyAll(productPid).map((job) => ({
         requestId: job.requestId,
         successful: job.finished.successful,
         cleanupVerified: true,
       }))
-      assert.equal((await state()).dirty, false)
-      await pointer('[data-window-control="close"]').catch((error) => {
-        record.closePointerError = String(error)
+    let teardownFailure
+    try {
+      await settleOwnedProduct({
+        record: record.teardown,
+        isAlive,
+        drainNative: async () => {
+          await waitForNativeJobs(ledger, productPid, isAlive)
+          record.nativeJobs = summarizeNative()
+          return { admittedJobs: record.nativeJobs.length, innerCleanupVerified: true }
+        },
+        closeUi: async () => {
+          assert(session, 'A real WebDriver session is required to request UI close')
+          const beforeClose = await state().catch((error) => {
+            record.closeStateDiagnostic = String(error)
+            return null
+          })
+          if (successful)
+            assert(beforeClose && !beforeClose.dirty, 'Successful test closes a clean document')
+          if (beforeClose?.menu)
+            await pointer('[data-menu-close]').catch((error) => {
+              record.closeMenuDiagnostic = String(error)
+            })
+          let requested = false
+          await pointer('[data-window-control="close"]', false, () => {
+            requested = true
+          }).catch((error) => {
+            record.closePointerError = String(error)
+          })
+          return { realUiCloseRequested: requested }
+        },
+        waitForExit: () =>
+          waitForOwnedExit(isAlive, 15000, 100, async () => {
+            // flushEdits may expose confirmation after the close click. Keep one
+            // original exit budget instead of restarting it for each observation.
+            if (!session || record.discardedOwnedUnsavedFixture) return
+            const confirm = await execute(
+              `const e=document.querySelector('[data-close-confirm]');return !!e&&!e.hidden&&e.getClientRects().length>0`,
+            ).catch((error) => {
+              record.closeConfirmationDiagnostic = String(error)
+              return false
+            })
+            if (!confirm) return
+            if (successful) {
+              record.unexpectedUnsavedConfirmation = true
+              return
+            }
+            const owned = await state()
+            assert(
+              owned.path && samePath(owned.path, files[active].path),
+              'Only the exact self-authored fixture may be discarded during failed-test cleanup',
+            )
+            await pointer('[data-close-confirm-action="discard"]')
+            record.discardedOwnedUnsavedFixture = true
+          }),
+        forceStop: async () => {
+          // Validate only this product, even if the failed driver's process is gone.
+          const { stdout } = await promisify(execFile)(
+            pwsh,
+            [
+              '-NoLogo',
+              '-NoProfile',
+              '-File',
+              processObserver,
+              '-InspectProcesses',
+              '-ProcessIds',
+              String(productPid),
+            ],
+            { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
+          )
+          const identities = JSON.parse(stdout.replace(/^\uFEFF/, ''))
+          validateProcessIdentities(
+            identities,
+            new Map([[productPid, application]]),
+            expectedSid,
+            expectedSessionId,
+            identityBirths,
+          )
+          record.teardown.fallbackIdentity = identities[0]
+          record.outerTerminationRequired = true
+          assert(
+            current === product && current.pid === productPid && isAlive(),
+            'Exact owned product remains active',
+          )
+          assert(current.kill(), 'Signal only the identity-verified owned product')
+          assert(
+            await waitForOwnedExit(isAlive, 5000),
+            'Owned product stops after bounded fallback',
+          )
+          return { exactOwnedProcessStopped: true, innerCleanupAcceptance: false }
+        },
+        drainStdio: () =>
+          until(() => record.stdioClosedAt, 'Product stdout/stderr fully drained', 5000, false),
+        verifyExit: () => {
+          assert.equal(current.exitCode, 0, 'Product closes normally after real UI close')
+          assert.equal(current.signalCode, null, 'Product was not terminated by a signal')
+          return true
+        },
+        verifyNative: () => {
+          if (fatal) throw fatal
+          assert.equal(logOverflow, false, 'Complete native diagnostics after stdio drain')
+          record.nativeJobs = summarizeNative()
+          return { admittedJobs: record.nativeJobs.length, innerCleanupVerified: true }
+        },
+        detach: async () => {
+          if (session)
+            await request('DELETE', `/session/${session}`).catch((error) => {
+              record.detachDiagnostic = String(error)
+            })
+          session = undefined
+          return { detachedAfterProductCloseAttempt: true }
+        },
       })
-      await until(
-        () => current.exitCode !== null || current.signalCode !== null,
-        'Application exits after real close button',
-        15000,
-        false,
-      )
-      assert.equal(current.exitCode, 0, 'Product closes normally after real UI close')
-      assert.equal(current.signalCode, null, 'Product was not terminated by a signal')
-      record.closedByUi = true
+      if (successful)
+        assert.equal(
+          record.teardown.closedByUi,
+          true,
+          'Successful acceptance requires an actual requested UI close',
+        )
+    } catch (error) {
+      teardownFailure = error
+    } finally {
+      record.closedByUi = record.teardown.closedByUi === true
+      try {
+        await writeFile(
+          path.join(evidence, `${record.fixture}-product.log`),
+          record.applicationOutput,
+        )
+      } catch (error) {
+        evidenceErrors.push(error)
+        record.teardown.productLogWriteError = String(error)
+      }
+      // Only a drained stream may lose its mutable buffer. If identity proof or
+      // fallback failed, retain diagnostics for the outer owned Job supervisor.
+      if (record.stdioClosedAt) delete record.applicationOutput
+      product = undefined
+      try {
+        await persist()
+      } catch (error) {
+        evidenceErrors.push(error)
+        record.teardown.finalEvidenceWriteError = String(error)
+      }
     }
-    if (session) {
-      await request('DELETE', `/session/${session}`).catch((error) => {
-        record.detachDiagnostic = String(error)
-      })
-      session = undefined
+    if (teardownFailure || evidenceErrors.length) {
+      const errors = [...(teardownFailure ? [teardownFailure] : []), ...evidenceErrors]
+      throw new AggregateError(errors, errors.map((error) => String(error)).join('; '))
     }
-    if (current.exitCode === null && current.signalCode === null) {
-      record.outerTerminationRequired = true
-      current.kill()
-      await until(
-        () => current.exitCode !== null || current.signalCode !== null,
-        'Owned failed product stopped',
-        5000,
-        false,
-      )
-      if (successful) throw Error('Outer product termination cannot satisfy acceptance')
-    }
-    await until(() => record.stdioClosedAt, 'Product stdout/stderr fully drained', 5000, false)
-    if (successful) {
-      if (fatal) throw fatal
-      assert.equal(logOverflow, false, 'Complete product diagnostics')
-      ledger.verifyAll(record.productPid)
-    }
-    await writeFile(path.join(evidence, `${record.fixture}-product.log`), record.applicationOutput)
-    delete record.applicationOutput
-    product = undefined
   }
   try {
     await persist()

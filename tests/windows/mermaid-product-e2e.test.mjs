@@ -14,6 +14,10 @@ import {
   observe,
   decodeScript,
   waitForPluginCard,
+  validateCardReflow,
+  waitForNativeJobs,
+  waitForOwnedExit,
+  settleOwnedProduct,
 } from './mermaid-product-e2e.mjs'
 
 const sid = 'S-1-5-21-11-22-33-1001'
@@ -393,4 +397,277 @@ test('missing or unusable cards time out with public application notice diagnost
       },
     )
   }
+})
+
+const reflowCards = (collapsed = false, scroll = 0) => [
+  {
+    id: 'milkup.diagrams',
+    rect: { x: 242, y: 202.59375 - scroll, width: 754, height: collapsed ? 157 : 178 },
+  },
+  {
+    id: 'milkup.footnotes',
+    rect: { x: 242, y: (collapsed ? 369.59375 : 390.59375) - scroll, width: 754, height: 160 },
+  },
+  {
+    id: 'milkup.formatting',
+    rect: { x: 242, y: (collapsed ? 539.59375 : 560.59375) - scroll, width: 754, height: 160 },
+  },
+]
+
+test('card layout accepts pending-version height removal and exact downstream reflow', () => {
+  const result = validateCardReflow(reflowCards(), reflowCards(true))
+  assert.equal(result.targetTop, 202.59375)
+  assert.equal(result.rows[0].heightDelta, -21)
+  assert.equal(result.rows[1].actualTop, result.rows[1].expectedTop)
+  // The actual pointer takes its baseline after wheel reveal, so a pre-click
+  // scroll changes both snapshots equally and is not mistaken for a card jump.
+  assert.doesNotThrow(() => validateCardReflow(reflowCards(false, 120), reflowCards(true, 120)))
+})
+
+test('card layout still rejects reordered identities, target jumps and unexplained downstream shifts', () => {
+  const before = reflowCards(),
+    after = reflowCards(true)
+  assert.throws(() => validateCardReflow(before, [after[1], after[0], after[2]]), /identity order/)
+  const moved = structuredClone(after)
+  moved[0].rect.y += 5
+  assert.throws(() => validateCardReflow(before, moved), /predecessor|top anchor/)
+  const wrongReflow = structuredClone(after)
+  wrongReflow[2].rect.y += 4
+  assert.throws(() => validateCardReflow(before, wrongReflow), /predecessor height/)
+  const widened = structuredClone(after)
+  widened[1].rect.width += 10
+  assert.throws(() => validateCardReflow(before, widened), /width retained/)
+})
+
+function teardownFixture(overrides = {}) {
+  const calls = [],
+    record = { afterFailure: true }
+  let alive = true
+  const options = {
+    record,
+    isAlive: () => alive,
+    drainNative: async () => {
+      calls.push('native-drain')
+      return { innerCleanupVerified: true }
+    },
+    closeUi: async () => {
+      calls.push('ui-close')
+      alive = false
+      return { realUiCloseRequested: true }
+    },
+    waitForExit: async () => {
+      calls.push('ui-exit-wait')
+      return waitForOwnedExit(() => alive, 10, 1)
+    },
+    forceStop: async () => {
+      calls.push('identity-check')
+      calls.push('owned-kill')
+      alive = false
+    },
+    drainStdio: async () => {
+      calls.push('stdio-close')
+    },
+    verifyExit: () => {
+      calls.push('verify-exit')
+      assert.equal(alive, false)
+      return true
+    },
+    verifyNative: () => {
+      calls.push('verify-native')
+      return { innerCleanupVerified: true }
+    },
+    detach: async () => {
+      calls.push('detach')
+    },
+    ...overrides,
+  }
+  return {
+    calls,
+    record,
+    options,
+    setAlive: (value) => {
+      alive = value
+    },
+  }
+}
+
+test('failure teardown drains an admitted job before real UI close, then stdio and detach', async () => {
+  const ledger = new AuditLedger(sid)
+  append(ledger, 'admitted')
+  append(ledger, 'started', ownership)
+  const fixture = teardownFixture()
+  fixture.options.drainNative = async () => {
+    fixture.calls.push('native-drain')
+    return waitForNativeJobs(ledger, 111, fixture.options.isAlive, {
+      timeoutMs: 1000,
+      pollIntervalMs: 1,
+    })
+  }
+  setTimeout(() => append(ledger, 'finished', completion), 5)
+  await settleOwnedProduct(fixture.options)
+  assert.deepEqual(fixture.calls, [
+    'native-drain',
+    'ui-close',
+    'ui-exit-wait',
+    'stdio-close',
+    'verify-exit',
+    'verify-native',
+    'detach',
+  ])
+  assert.equal(fixture.record.closedByUi, true)
+  assert.deepEqual(fixture.record.errors, [])
+  assert.equal(ledger.pending(111), 0)
+})
+
+test('native drain timeout survives later successful UI close and late final audit', async () => {
+  const ledger = new AuditLedger(sid)
+  append(ledger, 'admitted')
+  append(ledger, 'started', ownership)
+  const fixture = teardownFixture()
+  fixture.options.drainNative = () =>
+    waitForNativeJobs(ledger, 111, fixture.options.isAlive, { timeoutMs: 5, pollIntervalMs: 1 })
+  fixture.options.drainStdio = async () => {
+    fixture.calls.push('stdio-close')
+    append(ledger, 'finished', completion)
+  }
+  fixture.options.verifyNative = () => {
+    fixture.calls.push('verify-native')
+    return ledger.verifyAll(111)
+  }
+  await assert.rejects(
+    settleOwnedProduct(fixture.options),
+    /Timed out draining admitted native jobs/,
+  )
+  assert(fixture.calls.includes('ui-close'))
+  assert(!fixture.calls.includes('owned-kill'))
+  assert(fixture.calls.indexOf('stdio-close') < fixture.calls.indexOf('verify-native'))
+  assert.equal(
+    ledger.verifyAll().length,
+    1,
+    'Later completion exists but cannot erase the earlier drain failure',
+  )
+  assert(fixture.record.errors.some((error) => error.includes('native-drain')))
+})
+
+test('inner cleanup rejection still requests UI close and remains failed without forced termination', async () => {
+  const fixture = teardownFixture({
+    drainNative: async () => {
+      throw Error('profile deletion unverified')
+    },
+  })
+  await assert.rejects(settleOwnedProduct(fixture.options), /profile deletion unverified/)
+  assert(fixture.calls.includes('ui-close') && fixture.calls.includes('detach'))
+  assert(!fixture.calls.includes('owned-kill'))
+  assert.equal(
+    fixture.record.closedByUi,
+    true,
+    'Actual UI close is recorded separately from failed native cleanup',
+  )
+})
+
+test('only UI exit timeout permits identity-checked force stop, which never passes inner cleanup', async () => {
+  const fixture = teardownFixture()
+  fixture.options.closeUi = async () => {
+    fixture.calls.push('ui-close')
+    throw Error('driver unavailable')
+  }
+  fixture.options.verifyNative = () => {
+    fixture.calls.push('verify-native')
+    throw Error('Missing finished native audit')
+  }
+  await assert.rejects(
+    settleOwnedProduct(fixture.options),
+    /forced termination is not inner cleanup acceptance/,
+  )
+  assert.deepEqual(fixture.calls, [
+    'native-drain',
+    'ui-close',
+    'ui-exit-wait',
+    'identity-check',
+    'owned-kill',
+    'stdio-close',
+    'verify-exit',
+    'verify-native',
+    'detach',
+  ])
+  assert.equal(fixture.record.outerTerminationRequired, true)
+  assert.equal(fixture.record.closedByUi, false)
+  assert(fixture.record.errors.some((error) => error.includes('Missing finished native audit')))
+})
+
+test('already exited or crashed product is never killed again and abnormal exit stays failed', async () => {
+  const fixture = teardownFixture({
+    verifyExit: () => {
+      throw Error('Product exit code 101')
+    },
+  })
+  fixture.setAlive(false)
+  await assert.rejects(settleOwnedProduct(fixture.options), /exit code 101/)
+  assert(!fixture.calls.includes('ui-close') && !fixture.calls.includes('owned-kill'))
+  assert(fixture.calls.includes('stdio-close') && fixture.calls.includes('detach'))
+})
+
+test('UI exit-wait exception still uses identity-checked fallback and preserves the exception', async () => {
+  const fixture = teardownFixture()
+  fixture.options.closeUi = async () => ({ realUiCloseRequested: true })
+  fixture.options.waitForExit = async () => {
+    throw Error('UI wait transport failed')
+  }
+  await assert.rejects(settleOwnedProduct(fixture.options), /UI wait transport failed/)
+  assert(fixture.calls.includes('identity-check') && fixture.calls.includes('owned-kill'))
+  assert.equal(fixture.record.closedByUi, false)
+  assert(fixture.record.errors.some((error) => error.includes('UI wait transport failed')))
+})
+
+test('delayed unsaved-close dialog is polled within one exit budget before natural exit', async () => {
+  let alive = true,
+    reads = 0,
+    discarded = 0
+  const exited = await waitForOwnedExit(
+    () => alive,
+    100,
+    1,
+    async () => {
+      reads++
+      if (reads < 3) return
+      discarded++
+      alive = false
+    },
+  )
+  assert.equal(exited, true)
+  assert.equal(reads, 3)
+  assert.equal(discarded, 1)
+})
+
+test('an unrequested self-exit is never reported as a real UI close', async () => {
+  const fixture = teardownFixture()
+  fixture.options.closeUi = async () => {
+    fixture.setAlive(false)
+    return { realUiCloseRequested: false }
+  }
+  await settleOwnedProduct(fixture.options)
+  assert.equal(fixture.record.closedByUi, false)
+})
+
+test('confirmation polling never resets or accepts an exit beyond the original close deadline', async () => {
+  let alive = true
+  const result = await waitForOwnedExit(
+    () => alive,
+    5,
+    1,
+    async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      alive = false
+    },
+  )
+  assert.equal(result, false)
+  const fixture = teardownFixture()
+  fixture.options.closeUi = async () => ({ realUiCloseRequested: true })
+  fixture.options.waitForExit = async () => {
+    fixture.setAlive(false)
+    return false
+  }
+  await assert.rejects(settleOwnedProduct(fixture.options), /UI-close deadline/)
+  assert(!fixture.calls.includes('owned-kill'), 'Already exited product is never killed')
+  assert.equal(fixture.record.closedByUi, false)
 })
