@@ -282,11 +282,39 @@ async function installedFixture(t) {
       sha256: 'f'.repeat(64),
     })),
   }
+  const nativeToken = {
+    tokenType: 1,
+    sessionId: 2,
+    elevated: false,
+    elevationType: 1,
+    integrityRid: 8192,
+    uiAccess: false,
+    ownerIsUser: true,
+    administratorsGroupPresentIncludingDenyOnly: false,
+    administratorsGroupAttributes: null,
+    privilegeCount: 1,
+    hostDisallowedPrivilegeCount: 0,
+    sandboxDisallowedPrivilegeCount: 0,
+    seDebugPrivilegePresent: false,
+  }
+  const processToken = {
+    ...nativeToken,
+    sid,
+    ownerSid: sid,
+    pureStandardUser: true,
+    filteredAdmin: false,
+    privilegesComplete: true,
+    privileges: [{ name: 'SeChangeNotifyPrivilege', attributes: 3 }],
+  }
   const context = {
     status: 'ready',
     actualSid: sid,
     expectedSid: sid,
     pureStandard: true,
+    filteredAdmin: false,
+    expectedAccountKind: 'pure-standard',
+    accountKindVerified: true,
+    desktop: { token: processToken },
     interactive: true,
     sessionId: 2,
     expectedSessionId: 2,
@@ -334,6 +362,7 @@ async function installedFixture(t) {
     status: 'passed',
     source: expected.candidateSha,
     accountSid: sid,
+    expectedAccountKind: 'pure-standard',
     standardContext: context,
     accountCreated: true,
     accountDeleted: true,
@@ -347,7 +376,7 @@ async function installedFixture(t) {
     passwordInLogsFilesArgumentsOrEnvironment: false,
     cleanupErrors: [],
     supervisor: { jobEmpty: true, cleanupErrors: [] },
-    childResult: { status: 'passed' },
+    childResult: { status: 'passed', expectedAccountKind: 'pure-standard' },
     evidenceCopy: { complete: true },
   }
   const ownership = {
@@ -355,6 +384,14 @@ async function installedFixture(t) {
     childSid: sid,
     browserSid: sid,
     hostPureStandard: true,
+    hostTokenClass: 'pure-standard',
+    hostNonElevatedVerified: true,
+    hostTokenEvidence: nativeToken,
+    childTokenEvidence: { ...nativeToken, integrityRid: 4096 },
+    browserTokenEvidence: { ...nativeToken, integrityRid: 4096 },
+    appContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
+    childAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
+    browserAppContainerSid: 'S-1-15-2-1-2-3-4-5-6-7',
     appContainer: true,
     zeroCapabilities: true,
     browserAppContainer: true,
@@ -393,6 +430,7 @@ async function installedFixture(t) {
   const product = {
     status: 'passed',
     candidateSha: expected.candidateSha,
+    expectedAccountKind: 'pure-standard',
     application: installation.installedBinary.path,
     applicationSha256: expected.installedSha256,
     context,
@@ -420,7 +458,7 @@ async function installedFixture(t) {
   installation.installer.path = 'C:/owned/trial.exe'
   const identity = {
     pid: 555,
-    token: { sid, pureStandardUser: true, sessionId: 2 },
+    token: processToken,
     sessionId: 2,
     inJob: true,
   }
@@ -478,6 +516,10 @@ for (const scenario of [
   'installed-directory-left-behind',
   'missing-native-png',
   'observed-plugin-wrong-version',
+  'missing-token-facts',
+  'filtered-account-mixed-in',
+  'native-privileged-browser',
+  'installer-disabled-debug-privilege',
 ]) {
   test(`final delivery gate rejects ${scenario}`, async (t) => {
     const f = await installedFixture(t)
@@ -505,6 +547,15 @@ for (const scenario of [
     if (scenario === 'missing-native-png') delete f.product.steps[2].image
     if (scenario === 'observed-plugin-wrong-version')
       f.product.steps[0].bundledPluginsObserved[0].version = '0.0.0'
+    if (scenario === 'missing-token-facts') delete f.product.context.desktop.token.ownerSid
+    if (scenario === 'filtered-account-mixed-in') f.product.expectedAccountKind = 'filtered-admin'
+    if (scenario === 'native-privileged-browser')
+      f.product.nativeAudit.at(-1).browserTokenEvidence.sandboxDisallowedPrivilegeCount = 1
+    if (scenario === 'installer-disabled-debug-privilege')
+      f.installation.installerRun.startedProcess.token.privileges[0] = {
+        name: 'SeDebugPrivilege',
+        attributes: 0,
+      }
     await f.save()
     await assert.rejects(verifyInstalledEvidence(f.directory, f.expected))
   })

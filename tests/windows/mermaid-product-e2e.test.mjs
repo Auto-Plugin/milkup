@@ -8,6 +8,7 @@ import {
   crc32,
   validatePng,
   validateContext,
+  validateHostProcessToken,
   AuditLedger,
   validateProcessIdentities,
   isUnknownGrammarRejection,
@@ -217,6 +218,53 @@ test('an aborted probe retains its raw result but cannot make a stale dialog dec
 })
 
 const sid = 'S-1-5-21-11-22-33-1001'
+const appContainerSid = 'S-1-15-2-1-2-3-4-5-6-7'
+const nativeToken = (kind = 'pure-standard', sandbox = false) => ({
+  tokenType: 1,
+  sessionId: 2,
+  elevated: false,
+  elevationType: kind === 'filtered-admin' ? 3 : 1,
+  integrityRid: sandbox ? 4096 : 8192,
+  uiAccess: false,
+  ownerIsUser: true,
+  administratorsGroupPresentIncludingDenyOnly: kind === 'filtered-admin',
+  administratorsGroupAttributes: kind === 'filtered-admin' ? 16 : null,
+  privilegeCount: sandbox ? 1 : 2,
+  hostDisallowedPrivilegeCount: 0,
+  sandboxDisallowedPrivilegeCount: sandbox ? 0 : 1,
+  seDebugPrivilegePresent: false,
+})
+const processToken = (kind = 'pure-standard') => ({
+  ...nativeToken(kind),
+  sid,
+  ownerSid: sid,
+  pureStandardUser: kind === 'pure-standard',
+  filteredAdmin: kind === 'filtered-admin',
+  privilegesComplete: true,
+  privileges: [
+    { name: 'SeChangeNotifyPrivilege', attributes: 3 },
+    { name: 'SeShutdownPrivilege', attributes: 0 },
+  ],
+})
+const accountContext = (kind = 'pure-standard') => ({
+  status: 'ready',
+  actualSid: sid,
+  expectedSid: sid,
+  expectedAccountKind: kind,
+  accountKindVerified: true,
+  pureStandard: kind === 'pure-standard',
+  filteredAdmin: kind === 'filtered-admin',
+  interactive: true,
+  sessionId: 2,
+  expectedSessionId: 2,
+  blockedReasons: [],
+  desktop: { token: processToken(kind) },
+  knownFolders: {
+    profile: 'C:/Users/test',
+    roamingAppData: 'C:/Users/test/AppData/Roaming',
+    localAppData: 'C:/Users/test/AppData/Local',
+  },
+})
 const chunk = (kind, data) => {
   const bytes = Buffer.alloc(data.length + 12)
   bytes.writeUInt32BE(data.length)
@@ -243,6 +291,14 @@ const ownership = {
   childSid: sid,
   browserSid: sid,
   hostPureStandard: true,
+  hostTokenClass: 'pure-standard',
+  hostNonElevatedVerified: true,
+  hostTokenEvidence: nativeToken(),
+  childTokenEvidence: nativeToken('pure-standard', true),
+  browserTokenEvidence: nativeToken('pure-standard', true),
+  appContainerSid,
+  childAppContainerSid: appContainerSid,
+  browserAppContainerSid: appContainerSid,
   appContainer: true,
   zeroCapabilities: true,
   browserAppContainer: true,
@@ -269,7 +325,7 @@ const completion = {
 const append = (ledger, phase, fields = {}, requestId = 'r1', productPid = 111) =>
   ledger.accept({ phase, requestId, productPid, ...fields }, productPid)
 const successful = (changes = {}) => {
-  const ledger = new AuditLedger(sid)
+  const ledger = new AuditLedger(sid, 2)
   append(ledger, 'admitted')
   append(ledger, 'started', ownership)
   append(ledger, 'finished', { ...completion, ...changes })
@@ -312,21 +368,7 @@ test('PNG gate validates complete framing/CRC and rejects truncation, trailing b
 })
 
 test('standard-user gate rejects missing token, desktop and exact-session evidence', () => {
-  const context = {
-    status: 'ready',
-    actualSid: sid,
-    expectedSid: sid,
-    pureStandard: true,
-    interactive: true,
-    sessionId: 2,
-    expectedSessionId: 2,
-    blockedReasons: [],
-    knownFolders: {
-      profile: 'C:/Users/test',
-      roamingAppData: 'C:/Users/test/AppData/Roaming',
-      localAppData: 'C:/Users/test/AppData/Local',
-    },
-  }
+  const context = accountContext()
   assert.equal(validateContext(context, sid, 2), context)
   for (const changes of [
     { pureStandard: false },
@@ -335,10 +377,104 @@ test('standard-user gate rejects missing token, desktop and exact-session eviden
     { sessionId: 3 },
     { blockedReasons: ['denied'] },
     { status: 'blocked' },
+    { desktop: {} },
+    { expectedAccountKind: 'filtered-admin' },
+    { accountKindVerified: false },
   ]) {
     assert.throws(() => validateContext({ ...context, ...changes }, sid, 2))
   }
   assert.throws(() => validateContext(context, sid, 0))
+})
+
+test('filtered-admin admission requires actual limited medium token without relabeling it pure-standard', () => {
+  const context = accountContext('filtered-admin')
+  assert.equal(validateContext(context, sid, 2, 'filtered-admin'), context)
+  assert.equal(context.pureStandard, false)
+  assert.throws(() => validateContext(context, sid, 2), /account|pure-standard/i)
+  assert.throws(() => validateContext(accountContext(), sid, 2, 'filtered-admin'))
+  assert.throws(() => validateContext(context, sid, 2, 'administrator'))
+  const expected = new Map([[10, '/fixtures/node.exe']])
+  const row = {
+    pid: 10,
+    image: expected.get(10),
+    stillActive: true,
+    creationFileTime: '123',
+    token: context.desktop.token,
+  }
+  validateProcessIdentities([row], expected, sid, 2, new Map(), 'filtered-admin')
+  assert.throws(() => validateProcessIdentities([row], expected, sid, 2, new Map()))
+})
+
+test('both account kinds reject missing actual facts, enabled admin bits, elevated and privileged tokens', () => {
+  for (const kind of ['pure-standard', 'filtered-admin']) {
+    for (const [field, value] of [
+      ['tokenType', 2],
+      ['elevated', true],
+      ['elevationType', 2],
+      ['integrityRid', 12288],
+      ['uiAccess', true],
+      ['ownerIsUser', false],
+      ['ownerSid', 'S-1-5-32-544'],
+      ['sessionId', 3],
+      ['privilegesComplete', false],
+      ['privilegeCount', 0],
+      ['hostDisallowedPrivilegeCount', 1],
+      ['seDebugPrivilegePresent', true],
+      ['administratorsGroupAttributes', 20],
+      ['administratorsGroupAttributes', 17],
+    ]) {
+      assert.throws(
+        () => validateHostProcessToken({ ...processToken(kind), [field]: value }, sid, 2, kind),
+        `${kind} rejects ${field}`,
+      )
+    }
+    for (const key of Object.keys(processToken(kind)).filter(
+      (key) => key !== 'sandboxDisallowedPrivilegeCount',
+    )) {
+      const token = processToken(kind)
+      delete token[key]
+      assert.throws(() => validateHostProcessToken(token, sid, 2, kind), `${kind} missing ${key}`)
+    }
+    const token = processToken(kind)
+    token.privileges[1] = { name: 'SeDebugPrivilege', attributes: 0 }
+    assert.throws(() => validateHostProcessToken(token, sid, 2, kind), /Every present privilege/)
+    token.privileges[1] = { ...token.privileges[0] }
+    assert.throws(() => validateHostProcessToken(token, sid, 2, kind), /duplicate/)
+  }
+})
+
+test('native audit checks filtered host class and exact low-privilege fresh child/browser evidence', () => {
+  const facts = {
+    ...ownership,
+    hostPureStandard: false,
+    hostTokenClass: 'filtered-admin',
+    hostTokenEvidence: nativeToken('filtered-admin'),
+    childTokenEvidence: nativeToken('filtered-admin', true),
+    browserTokenEvidence: nativeToken('filtered-admin', true),
+  }
+  const ledger = new AuditLedger(sid, 2, 'filtered-admin')
+  append(ledger, 'admitted')
+  append(ledger, 'started', facts)
+  append(ledger, 'finished', { ...completion, ...facts })
+  assert.equal(ledger.verifyAll().length, 1)
+  assert.throws(() => new AuditLedger(sid))
+  for (const changes of [
+    { hostPureStandard: true },
+    { hostTokenClass: 'pure-standard' },
+    { hostNonElevatedVerified: false },
+    { hostTokenEvidence: null },
+    { browserTokenEvidence: null },
+    { childAppContainerSid: 'S-1-15-2-8-2-3-4-5-6-7' },
+    { browserAppContainerSid: 'S-1-15-2-01-2-3-4-5-6-7' },
+    { childTokenEvidence: { ...facts.childTokenEvidence, integrityRid: 8192 } },
+    { childTokenEvidence: { ...facts.childTokenEvidence, sessionId: 3 } },
+    { browserTokenEvidence: { ...facts.browserTokenEvidence, sandboxDisallowedPrivilegeCount: 1 } },
+    { browserTokenEvidence: { ...facts.browserTokenEvidence, administratorsGroupAttributes: 20 } },
+  ]) {
+    const invalid = new AuditLedger(sid, 2, 'filtered-admin')
+    append(invalid, 'admitted')
+    assert.throws(() => append(invalid, 'started', { ...facts, ...changes }))
+  }
 })
 
 test('only an exact completed native PNG binds to a successful output lease', () => {
@@ -356,7 +492,7 @@ test('only an exact completed native PNG binds to a successful output lease', ()
 })
 
 test('missing/unsafe native cleanup never becomes acceptance after outer termination', () => {
-  const incomplete = new AuditLedger(sid)
+  const incomplete = new AuditLedger(sid, 2)
   append(incomplete, 'admitted')
   append(incomplete, 'started', ownership)
   assert.equal(incomplete.pending(111), 1)
@@ -374,7 +510,7 @@ test('missing/unsafe native cleanup never becomes acceptance after outer termina
   ]) {
     assert.throws(() => successful(changes).verifyAll())
   }
-  const foreign = new AuditLedger(sid)
+  const foreign = new AuditLedger(sid, 2)
   append(foreign, 'admitted')
   assert.throws(
     () => append(foreign, 'started', { ...ownership, browserSid: sid + '9' }),
@@ -387,7 +523,7 @@ test('missing/unsafe native cleanup never becomes acceptance after outer termina
 })
 
 test('reverse completions retain request ownership and duplicate/post-completion phases fail', () => {
-  const ledger = new AuditLedger(sid)
+  const ledger = new AuditLedger(sid, 2)
   for (const id of ['r1', 'r2']) {
     append(ledger, 'admitted', {}, id)
     append(ledger, 'started', ownership, id)
@@ -402,7 +538,7 @@ test('reverse completions retain request ownership and duplicate/post-completion
 })
 
 test('early cancellation is distinguished from an owned parser rejection', () => {
-  const early = new AuditLedger(sid)
+  const early = new AuditLedger(sid, 2)
   append(early, 'admitted')
   append(early, 'finished', {
     ...completion,
@@ -414,6 +550,10 @@ test('early cancellation is distinguished from an owned parser rejection', () =>
     childSid: null,
     browserSid: null,
     browserPid: null,
+    childTokenEvidence: null,
+    browserTokenEvidence: null,
+    childAppContainerSid: null,
+    browserAppContainerSid: null,
     ownedPidsBeforeStop: [],
     appContainer: false,
     zeroCapabilities: false,
@@ -426,7 +566,7 @@ test('early cancellation is distinguished from an owned parser rejection', () =>
   assert.equal(early.verifyAll()[0].finished.cancelled, true)
   const invalid = successful({ successful: false, pngBytes: 0, pngSha256: null })
   assert.equal(invalid.verifyAll()[0].finished.successful, false)
-  const pretend = new AuditLedger(sid)
+  const pretend = new AuditLedger(sid, 2)
   append(pretend, 'admitted')
   append(pretend, 'finished', { ...completion, successful: false, pngBytes: 0, pngSha256: null })
   assert.throws(() => pretend.verifyAll(), /ready\/ownership/)
@@ -442,7 +582,7 @@ test('process identity readback rejects duplicate, missing and reused PIDs', () 
     image: expected.get(pid),
     stillActive: true,
     creationFileTime: '133900000000000000',
-    token: { sid, sessionId: 2, pureStandardUser: true },
+    token: processToken(),
   })
   const births = new Map()
   validateProcessIdentities([make(10), make(11)], expected, sid, 2, births)
@@ -497,6 +637,10 @@ test('uncreated-job cancellation rejects contradictory identities and ownership 
     childSid: null,
     browserSid: null,
     browserPid: null,
+    childTokenEvidence: null,
+    browserTokenEvidence: null,
+    childAppContainerSid: null,
+    browserAppContainerSid: null,
     ownedPidsBeforeStop: [],
     appContainer: false,
     zeroCapabilities: false,
@@ -512,7 +656,7 @@ test('uncreated-job cancellation rejects contradictory identities and ownership 
     { browserPid: 333 },
     { browserInOwnedJob: true },
   ]) {
-    const ledger = new AuditLedger(sid)
+    const ledger = new AuditLedger(sid, 2)
     append(ledger, 'admitted')
     append(ledger, 'finished', { ...noWork, ...changes })
     assert.throws(() => ledger.verifyAll())
@@ -826,7 +970,7 @@ function teardownFixture(overrides = {}) {
 }
 
 test('failure teardown drains an admitted job before real UI close, then stdio and detach', async () => {
-  const ledger = new AuditLedger(sid)
+  const ledger = new AuditLedger(sid, 2)
   append(ledger, 'admitted')
   append(ledger, 'started', ownership)
   const fixture = teardownFixture()
@@ -854,7 +998,7 @@ test('failure teardown drains an admitted job before real UI close, then stdio a
 })
 
 test('native drain timeout survives later successful UI close and late final audit', async () => {
-  const ledger = new AuditLedger(sid)
+  const ledger = new AuditLedger(sid, 2)
   append(ledger, 'admitted')
   append(ledger, 'started', ownership)
   const fixture = teardownFixture()

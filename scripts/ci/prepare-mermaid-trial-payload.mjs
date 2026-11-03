@@ -14,6 +14,7 @@ import {
   AuditLedger,
   fixtures,
   validateContext,
+  validateHostProcessToken,
   validatePng,
 } from '../../tests/windows/mermaid-product-e2e.mjs'
 
@@ -610,9 +611,12 @@ export async function verifyInstalledEvidence(directory, expected) {
     installation.installerRun.callerIdentity,
     installation.installerRun.startedProcess,
   ]) {
-    assert.equal(identity.token.sid, installation.actualSid)
-    assert.equal(identity.token.pureStandardUser, true)
-    assert.equal(identity.token.sessionId, installation.sessionId)
+    validateHostProcessToken(
+      identity.token,
+      installation.actualSid,
+      installation.sessionId,
+      'pure-standard',
+    )
     assert.equal(identity.sessionId, installation.sessionId)
     assert.equal(identity.inJob, true)
   }
@@ -647,8 +651,16 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.equal(installation.actualSid, installation.expectedSid)
   assert.equal(installation.actualSid, audit.accountSid)
   assert.equal(installation.sessionId, installation.expectedSessionId)
-  validateContext(audit.standardContext, installation.actualSid, installation.sessionId)
-  validateContext(product.context, installation.actualSid, installation.sessionId)
+  assert.equal(audit.expectedAccountKind, 'pure-standard')
+  assert.equal(audit.childResult.expectedAccountKind, 'pure-standard')
+  assert.equal(product.expectedAccountKind, 'pure-standard')
+  validateContext(
+    audit.standardContext,
+    installation.actualSid,
+    installation.sessionId,
+    'pure-standard',
+  )
+  validateContext(product.context, installation.actualSid, installation.sessionId, 'pure-standard')
   for (const key of [
     'accountCreated',
     'accountDeleted',
@@ -701,7 +713,7 @@ export async function verifyInstalledEvidence(directory, expected) {
     'Existing installed Evergreen selected by reviewed wrapper; no runtime installation',
   )
   assert.match(product.runtime.sha256, /^[a-f0-9]{64}$/)
-  const ledger = new AuditLedger(installation.actualSid)
+  const ledger = new AuditLedger(installation.actualSid, installation.sessionId, 'pure-standard')
   assert(
     Array.isArray(product.nativeAudit) && product.nativeAudit.length > 0,
     'Real native ownership audit required',

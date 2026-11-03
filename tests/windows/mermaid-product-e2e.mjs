@@ -236,11 +236,92 @@ export function validatePng(bytes, maxBytes = MAX_NATIVE_PNG) {
   return { width, height, bytes: bytes.length, sha256: sha(bytes), structuralValidation: true }
 }
 
-export function validateContext(context, expectedSid, expectedSessionId) {
-  assert.equal(context.status, 'ready', 'Standard-context readiness')
-  assert.equal(context.actualSid, expectedSid, 'Actual standard actor SID')
+export function validateAccountKind(value) {
+  assert(['pure-standard', 'filtered-admin'].includes(value), 'Explicit supported account kind')
+  return value
+}
+
+const uint32 = (value) => Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff
+const ordinaryPrivileges = new Set([
+  'SeChangeNotifyPrivilege',
+  'SeShutdownPrivilege',
+  'SeUndockPrivilege',
+  'SeIncreaseWorkingSetPrivilege',
+  'SeTimeZonePrivilege',
+])
+
+function validateTokenAuthority(token, expectedSessionId, role, expectedAccountKind) {
+  assert(token && typeof token === 'object', 'Actual token facts required')
+  assert(
+    Number.isSafeInteger(expectedSessionId) && expectedSessionId > 0,
+    'Exact token session required',
+  )
+  assert.equal(token.tokenType, 1, 'Primary token required')
+  assert.equal(token.sessionId, expectedSessionId, 'Exact token session')
+  assert.equal(token.elevated, false, 'Elevated tokens remain unsupported')
+  assert.equal(token.uiAccess, false)
+  assert.equal(token.ownerIsUser, true)
+  assert.equal(token.seDebugPrivilegePresent, false)
+  assert(uint32(token.privilegeCount) && token.privilegeCount <= 64, 'Bounded privilege count')
+  assert.equal(token.hostDisallowedPrivilegeCount, 0, 'No nonordinary present privileges')
+  if (role === 'host') {
+    assert.equal(token.integrityRid, 8192, 'Medium-integrity host')
+    const filtered = expectedAccountKind === 'filtered-admin'
+    assert.equal(token.elevationType, filtered ? 3 : 1)
+    assert.equal(token.administratorsGroupPresentIncludingDenyOnly, filtered)
+    assert.equal(token.administratorsGroupAttributes, filtered ? 16 : null)
+  } else {
+    assert(uint32(token.integrityRid) && token.integrityRid <= 4096, 'Low-integrity sandbox')
+    assert([1, 3].includes(token.elevationType), 'Non-elevated sandbox token type')
+    assert.equal(typeof token.administratorsGroupPresentIncludingDenyOnly, 'boolean')
+    assert.equal(
+      token.administratorsGroupAttributes,
+      token.administratorsGroupPresentIncludingDenyOnly ? 16 : null,
+      'No enabled, owner or unknown Administrators flags in sandbox',
+    )
+  }
+}
+
+export function validateHostProcessToken(
+  token,
+  expectedSid,
+  expectedSessionId,
+  expectedAccountKind = 'pure-standard',
+) {
+  validateAccountKind(expectedAccountKind)
+  validateTokenAuthority(token, expectedSessionId, 'host', expectedAccountKind)
+  assert.equal(token.sid, expectedSid)
+  assert.equal(token.ownerSid, expectedSid, 'Actual token owner remains login user')
+  assert.equal(token.pureStandardUser, expectedAccountKind === 'pure-standard')
+  assert.equal(token.filteredAdmin, expectedAccountKind === 'filtered-admin')
+  assert.equal(token.privilegesComplete, true)
+  assert(Array.isArray(token.privileges) && token.privileges.length === token.privilegeCount)
+  const names = new Set()
+  for (const privilege of token.privileges) {
+    assert(
+      ordinaryPrivileges.has(privilege.name),
+      'Every present privilege must be ordinary, even disabled',
+    )
+    assert(!names.has(privilege.name), 'No duplicate privilege observations')
+    names.add(privilege.name)
+    assert(uint32(privilege.attributes), 'Actual privilege attributes required')
+  }
+}
+
+export function validateContext(
+  context,
+  expectedSid,
+  expectedSessionId,
+  expectedAccountKind = 'pure-standard',
+) {
+  validateAccountKind(expectedAccountKind)
+  assert.equal(context.status, 'ready', 'Account-context readiness')
+  assert.equal(context.actualSid, expectedSid, 'Actual account actor SID')
   assert.equal(context.expectedSid, expectedSid)
-  assert.equal(context.pureStandard, true, 'No administrator membership, including deny-only')
+  assert.equal(context.expectedAccountKind, expectedAccountKind)
+  assert.equal(context.accountKindVerified, true)
+  assert.equal(context.pureStandard, expectedAccountKind === 'pure-standard')
+  assert.equal(context.filteredAdmin, expectedAccountKind === 'filtered-admin')
   assert.equal(context.interactive, true, 'Actual interactive desktop available')
   assert(
     Number.isSafeInteger(expectedSessionId) && expectedSessionId > 0,
@@ -248,6 +329,12 @@ export function validateContext(context, expectedSid, expectedSessionId) {
   )
   assert.equal(context.sessionId, expectedSessionId)
   assert.equal(context.expectedSessionId, expectedSessionId)
+  validateHostProcessToken(
+    context.desktop?.token,
+    expectedSid,
+    expectedSessionId,
+    expectedAccountKind,
+  )
   assert.deepEqual(context.blockedReasons, [], 'No ignored preflight blockers')
   for (const key of ['profile', 'roamingAppData', 'localAppData'])
     assert(context.knownFolders?.[key], `Actual ${key}`)
@@ -260,6 +347,7 @@ export function validateProcessIdentities(
   expectedSid,
   expectedSessionId,
   births,
+  expectedAccountKind = 'pure-standard',
 ) {
   assert(
     Array.isArray(values) && values.length === expected.size,
@@ -274,9 +362,7 @@ export function validateProcessIdentities(
     seen.add(value.pid)
     assert(samePath(value.image, expected.get(value.pid)), 'Exact owned process image')
     assert.equal(value.stillActive, true)
-    assert.equal(value.token?.sid, expectedSid)
-    assert.equal(value.token?.sessionId, expectedSessionId)
-    assert.equal(value.token?.pureStandardUser, true)
+    validateHostProcessToken(value.token, expectedSid, expectedSessionId, expectedAccountKind)
     assert(
       typeof value.creationFileTime === 'string' && /^\d+$/.test(value.creationFileTime),
       'Exact process creation FILETIME string',
@@ -649,8 +735,14 @@ export async function settleOwnedProduct({
 }
 
 export class AuditLedger {
-  constructor(expectedSid) {
+  constructor(expectedSid, expectedSessionId, expectedAccountKind = 'pure-standard') {
     this.expectedSid = expectedSid
+    assert(
+      Number.isSafeInteger(expectedSessionId) && expectedSessionId > 0,
+      'Exact native actor session required',
+    )
+    this.expectedSessionId = expectedSessionId
+    this.expectedAccountKind = validateAccountKind(expectedAccountKind)
     this.jobs = new Map()
     this.events = []
   }
@@ -674,11 +766,48 @@ export class AuditLedger {
     this.events.push(value)
     return job
   }
+  verifyHost(value) {
+    assert.equal(value.hostSid, this.expectedSid)
+    assert.equal(value.hostPureStandard, this.expectedAccountKind === 'pure-standard')
+    assert.equal(value.hostTokenClass, this.expectedAccountKind)
+    assert.equal(value.hostNonElevatedVerified, true)
+    this.verifyToken(value.hostTokenEvidence, 'host')
+  }
+  verifyToken(token, role) {
+    validateTokenAuthority(token, this.expectedSessionId, role, this.expectedAccountKind)
+    assert(
+      uint32(token.sandboxDisallowedPrivilegeCount) &&
+        token.sandboxDisallowedPrivilegeCount <= token.privilegeCount,
+    )
+    if (role !== 'host')
+      assert.equal(
+        token.sandboxDisallowedPrivilegeCount,
+        0,
+        'Only change-notify privilege in sandbox',
+      )
+  }
+  verifyAppContainer(value, role) {
+    assert(
+      typeof value.appContainerSid === 'string' &&
+        /^S-1-15-2-(?:\d+-){6}\d+$/.test(value.appContainerSid) &&
+        value.appContainerSid
+          .slice(9)
+          .split('-')
+          .every((part) => uint32(Number(part)) && String(Number(part)) === part),
+      'Actual bounded fresh AppContainer SID',
+    )
+    assert.equal(
+      value[`${role}AppContainerSid`],
+      value.appContainerSid,
+      'Exact fresh AppContainer identity',
+    )
+    this.verifyToken(value[`${role}TokenEvidence`], role)
+  }
   verifyOwnership(value) {
+    this.verifyHost(value)
     for (const field of ['hostSid', 'childSid', 'browserSid'])
       assert.equal(value[field], this.expectedSid, `Same-login ${field}`)
     for (const field of [
-      'hostPureStandard',
       'appContainer',
       'zeroCapabilities',
       'browserAppContainer',
@@ -687,13 +816,14 @@ export class AuditLedger {
     ]) {
       assert.equal(value[field], true, `Native ${field}`)
     }
+    this.verifyAppContainer(value, 'child')
+    this.verifyAppContainer(value, 'browser')
     assert(Number.isSafeInteger(value.browserPid) && value.browserPid > 0, 'Observed browser PID')
   }
   verifyFinished(job) {
     const finish = job.finished
     assert(finish, 'Native completion audit required; outer process termination is insufficient')
-    assert.equal(finish.hostSid, this.expectedSid)
-    assert.equal(finish.hostPureStandard, true)
+    this.verifyHost(finish)
     for (const field of [
       'successful',
       'ownedJobCreated',
@@ -722,6 +852,13 @@ export class AuditLedger {
       for (const field of ['childSid', 'browserSid', 'browserPid'])
         assert.equal(finish[field], null, 'No identity for an uncreated helper/browser')
       for (const field of [
+        'childTokenEvidence',
+        'browserTokenEvidence',
+        'childAppContainerSid',
+        'browserAppContainerSid',
+      ])
+        assert.equal(finish[field], null, 'No token evidence for an uncreated helper/browser')
+      for (const field of [
         'appContainer',
         'zeroCapabilities',
         'browserAppContainer',
@@ -733,6 +870,11 @@ export class AuditLedger {
     if (job.started || finish.successful || (!finish.cancelled && !finish.deadlineExpired)) {
       assert(job.started, 'Rendering requires actual ready/ownership audit')
       this.verifyOwnership(finish)
+      assert.equal(
+        finish.appContainerSid,
+        job.started.appContainerSid,
+        'Native profile identity retained through cleanup',
+      )
       assert.equal(finish.browserPid, job.started.browserPid)
       assert.equal(finish.ownedJobCreated, true)
       assert.equal(finish.profileCreated, true)
@@ -740,6 +882,7 @@ export class AuditLedger {
       assert.equal(finish.childSid, this.expectedSid)
       assert.equal(finish.appContainer, true)
       assert.equal(finish.zeroCapabilities, true)
+      this.verifyAppContainer(finish, 'child')
       if (finish.browserSid !== null) this.verifyOwnership(finish)
     }
     if (finish.successful) {
@@ -858,6 +1001,9 @@ export async function main() {
     evidence = path.resolve(required('EVIDENCE'))
   const expectedSid = required('EXPECTED_SID'),
     expectedSessionId = Number(required('EXPECTED_SESSION_ID'))
+  const expectedAccountKind = validateAccountKind(
+    process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_ACCOUNT_KIND ?? 'pure-standard',
+  )
   const runId = required('RUN_ID'),
     candidateSha = required('CANDIDATE_SHA')
   const processObserver = path.resolve(required('PROCESS_OBSERVER')),
@@ -877,6 +1023,7 @@ export async function main() {
     JSON.parse(contextBytes.toString('utf8').replace(/^\uFEFF/, '')),
     expectedSid,
     expectedSessionId,
+    expectedAccountKind,
   )
   assert(samePath(context.work, work) && samePath(context.evidence, evidence))
   assert(within(context.scratchRoot, work) && within(context.scratchRoot, evidence))
@@ -921,12 +1068,13 @@ export async function main() {
     await writeFile(file, bytes, { flag: 'wx' })
     await writeFile(path.join(evidence, `fixture-${name}.md`), bytes, { flag: 'wx' })
   }
-  const ledger = new AuditLedger(expectedSid),
+  const ledger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind),
     driverPort = await freePort()
   const report = {
     status: 'running',
     startedAt: new Date().toISOString(),
     candidateSha,
+    expectedAccountKind,
     runId,
     application,
     applicationSha256: expectedBinarySha,
@@ -1044,7 +1192,14 @@ export async function main() {
       { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
     )
     const values = JSON.parse(stdout.replace(/^\uFEFF/, ''))
-    validateProcessIdentities(values, expected, expectedSid, expectedSessionId, identityBirths)
+    validateProcessIdentities(
+      values,
+      expected,
+      expectedSid,
+      expectedSessionId,
+      identityBirths,
+      expectedAccountKind,
+    )
     report.processIdentities.push({ at: new Date().toISOString(), values })
     return values
   }
@@ -1539,6 +1694,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             expectedSid,
             expectedSessionId,
             identityBirths,
+            expectedAccountKind,
           )
           record.teardown.fallbackIdentity = identities[0]
           record.outerTerminationRequired = true
