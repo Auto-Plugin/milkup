@@ -43,8 +43,15 @@ fn remove_with_retry(
 }
 
 pub fn remove_owned_tree(path: &Path, observations: &mut Vec<Value>) -> io::Result<()> {
+    remove_owned_tree_with(path, observations, || fs::remove_dir_all(path))
+}
+
+/// The diagnostic supplies one removal implementation; retry and absence checks stay here.
+pub(crate) fn remove_owned_tree_with(
+    path: &Path, observations: &mut Vec<Value>, remove: impl FnMut() -> io::Result<()>,
+) -> io::Result<()> {
     remove_with_retry(
-        || fs::remove_dir_all(path),
+        remove,
         || thread::sleep(INTERVAL),
         observations,
     )?;

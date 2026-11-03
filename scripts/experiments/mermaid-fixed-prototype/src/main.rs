@@ -195,7 +195,11 @@ fn run(args: &[String]) -> Result<()> {
     {
         return Err("Missing bounded prototype execution marker".into());
     }
-    if args.len() < 4 || args.len() > 5 || args[0] != "--run" {
+    let delete_diagnostic = args.first().map(String::as_str) == Some("--run-delete-diagnostic");
+    if delete_diagnostic && (args.len() != 5 || !matches!(args[4].as_str(), "flowchart-v2" | "gitGraph")) {
+        return Err("Deletion diagnostic requires one fixed canary or gitGraph fixture".into());
+    }
+    if args.len() < 4 || args.len() > 5 || (args[0] != "--run" && !delete_diagnostic) {
         return Err("Usage: --run <existing-runtime-directory> <fixtures-manifest.json> <new-output-directory> [fixture-id]".into());
     }
     let runtime = Path::new(&args[1]).canonicalize()?;
@@ -240,7 +244,7 @@ fn run(args: &[String]) -> Result<()> {
                 input["look"] = json!("neo");
             }
             validate_input(&input)?;
-            let result = launcher::run(&runtime, &input);
+            let result = launcher::run(&runtime, &input, delete_diagnostic);
             let record = match result {
                 Ok(result) => {
                     let validation_started = std::time::Instant::now();

@@ -1,6 +1,7 @@
 //! Native ownership and bounded IPC for the separately authorized fixed-code prototype.
 //! This is not an OS-wide no-network guarantee. No product entry point uses this module.
 mod cleanup_observation;
+mod delete_diagnostic;
 
 use crate::Result;
 use serde_json::{json, Value};
@@ -818,7 +819,7 @@ fn join_bounded<T>(
 
 /// Each call creates a new profile/process tree; failures stay failures and never
 /// retry with an ordinary token, weaker Job, alternative Runtime or broader ACL.
-pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
+pub fn run(runtime: &Path, input: &Value, diagnose_delete: bool) -> Result<RunOutput> {
     let input_bytes = serde_json::to_vec(input)?;
     if input_bytes.len() > MAX_INPUT || input_bytes.is_empty() {
         return Err("Input JSON exceeds the fixed prototype budget".into());
@@ -1100,7 +1101,28 @@ pub fn run(runtime: &Path, input: &Value) -> Result<RunOutput> {
         }
         let mut delete_attempts = Vec::new();
         report["privateTreeRemoved"] = json!(false);
-        match crate::cleanup::remove_owned_tree(&root, &mut delete_attempts) {
+        let removal = if diagnose_delete {
+            let mut first = Value::Null;
+            let mut last = Value::Null;
+            let mut count = 0usize;
+            let result = crate::cleanup::remove_owned_tree_with(&root, &mut delete_attempts, || {
+                let mut observation = Value::Null;
+                let result = delete_diagnostic::remove_dir_all(&root, &mut observation);
+                count += 1;
+                if count == 1 { first = observation; } else { last = observation; }
+                result
+            });
+            report["privateTreeDeleteDiagnostic"] = json!({
+                "implementation":"isolated-adaptation-of-rust-58cf8f9c",
+                "isStdCallInstrumentation":false,
+                "attemptCount":count,"firstAttempt":first,"lastAttempt":last,
+                "intermediateAttemptDetailsOmitted":count.saturating_sub(2)
+            });
+            result
+        } else {
+            crate::cleanup::remove_owned_tree(&root, &mut delete_attempts)
+        };
+        match removal {
             Ok(()) => report["privateTreeRemoved"] = json!(true),
             Err(error) => {
                 cleanup_errors.push(format!("Private tree deletion: {error}"));
