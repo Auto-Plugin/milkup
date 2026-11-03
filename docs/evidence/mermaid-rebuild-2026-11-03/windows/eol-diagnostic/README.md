@@ -22,3 +22,21 @@ original-attributes synthetic group was already dirty before its rewrite because
 Commit `d310cbe1` corrects that experimental setup and requires a clean control
 before any rewrite. The successful run is not presented as a completed causal
 reproduction or a passing product build.
+
+The corrected Windows experiment `41635596471` **passed**, using instrumentation
+`56ca025ff3a24081015eccd51bc8a10259b31c10` and the unchanged original ca10 checkout.
+Both synthetic groups began clean. With original attributes, an LF-only rewrite
+of the two exact schema blobs produced the same two ` M` entries and an empty
+text diff; index refresh returned 1 and left both entries dirty. With explicit
+`text eol=lf`, checkout/rewrite/refresh all remained clean and byte-identical.
+The raw log, run metadata and all byte/hash/newline/index snapshots are retained.
+
+Together with the actual original-source build replay (first mutation at desktop
+check, same two paths, empty diffs) and the locked Tauri generator code, this
+identifies the CRLF checkout versus LF generation mismatch. The correction pins
+only these two paths to LF in `.gitattributes`. The strict build gate is unchanged:
+any dirty tracked/untracked source still fails. No checkout/reset/restore or
+index-refresh operation is added to the product build. The next actual Windows
+product workflow must independently prove a clean source build before UI testing.
+The original first run did not print its changed paths, so its unrecoverable
+file list is not misrepresented as direct evidence from this later experiment.

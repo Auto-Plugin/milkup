@@ -136,9 +136,16 @@ text diffs against HEAD were empty and Git reported LF-to-CRLF conversion warnin
 Desktop tests/link passed again; the strict final gate **failed** again. The
 original logs, per-phase empty diff files and structured analysis are retained in
 `windows/original-source-replay/`. Its path enumeration missed status-only paths,
-so raw schema-byte hashes were not captured; a separate controlled EOL mechanism
-experiment is required before asserting a precise cause or changing attributes.
-No source gate has been relaxed and no build output was restored to hide drift.
+so raw schema-byte hashes were not captured in that replay. The subsequent
+controlled Windows experiment `41635596471` closed the mechanism: original
+checkout CRLF (125,620 bytes / 2,411 CRLF pairs) versus HEAD LF (123,209 bytes);
+a same-content LF rewrite reproduces the two dirty status entries with no text
+diff, and index refresh does not resolve it. Only the two schema paths with
+explicit `text eol=lf` stay clean throughout. See `windows/eol-diagnostic/` for
+raw logs, byte/index hashes, generator-source provenance and the earlier
+experimental limitations. `.gitattributes` now aligns these two checkout paths
+with Tauri's LF output. No source gate has been relaxed and no build output was
+restored to hide drift. Actual candidate build/UI verification follows separately.
 
 Neither run establishes Windows product rendering, same-login teardown,
 scale/theme, standard-user context or installer upgrade/rollback.
