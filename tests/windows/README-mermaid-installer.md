@@ -12,7 +12,10 @@ mode. Installer mode additionally requires all five arguments:
 Keep passing `-Binary`, `-ExpectedBinarySha256`, `-ExpectedCommit`,
 `-EvidenceDirectory` and `-ProductionAssetsConfirmed`. The built binary is used
 only as an immutable comparison input in installer mode. The UI harness launches
-the EXE installed under the fresh standard user's own profile.
+the EXE installed under that fresh account's own profile. Run two independent
+invocations with `-AccountKind pure-standard` and `-AccountKind filtered-admin`,
+separate evidence directories, and the same frozen installer, manifest and built
+binary. The default remains `pure-standard`.
 
 The manifest requires schema 1, exact candidate/version/built/expected-NSIS
 hashes, `installMode: currentUser`, `webviewInstallMode: skip`, exactly the
@@ -25,14 +28,28 @@ the exact installed image comparison binds their reviewed build bytes. The
 installer-only UI inventory observes actual card IDs, versions and disabled
 switches before enabling Diagrams for the normal product acceptance steps.
 
-Installation occurs only after the child coordinator proves its real pure-standard
-SID/session and existing interactive desktop. The installer process is launched
-without a shell or elevation and is checked through its held process handle.
+Installation occurs only after the child coordinator proves the selected account
+kind using its actual token, exact SID/session and existing interactive desktop.
+Both kinds require primary, medium-integrity, non-elevated tokens with the
+existing ordinary-privilege restrictions. A filtered administrator additionally
+requires a Limited token and the Administrators SID with exactly deny-only
+attributes; it is never relabeled as pure-standard. Elevated, full, enabled-admin,
+unknown or mismatched tokens are rejected. The installer process is launched
+without a shell or elevation and independently checked through its held process
+handle against the same selected account kind, SID/session, image and owned Job.
 The parent administrator session never installs the product. NSIS receives `/S`
 and a final unquoted `/D=` absolute destination, as required by the
 [NSIS command-line specification](https://nsis.sourceforge.io/Docs/Chapter3.html).
 No `/NCRC`, UAC/ACL/security-policy change, Runtime installation, existing account
 or profile reuse is allowed. Existing machine Evergreen is a prerequisite.
+
+`installation-result.json` records `expectedAccountKind`. Its `installerRun`
+records that same selection, and both `callerIdentity` and `startedProcess`
+retain the actual token facts plus `expectedAccountKind` and
+`accountKindVerified`. The latter is set only after the observed token passes
+the existing account policy. Passing metadata alone cannot establish installation;
+the actual installed image comparison and product path/hash binding remain
+required. The built comparison EXE is never the installer-mode UI input.
 
 Installer and comparison processes use held-handle waits and bounded stdout/stderr.
 A timeout/nonzero exit/unproved identity is a failure, not an assumed success.

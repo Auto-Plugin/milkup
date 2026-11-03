@@ -20,11 +20,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # This opt-in driver never runs in the compile-only workflow. Optional NSIS
-# installation runs only inside the new pure-standard coordinator's owned Job.
+# installation runs only inside the new, verified non-elevated coordinator's Job.
 # No Runtime provisioning, account reuse, token adjustment or existing ACL edit.
 function Assert-AccountMode([string]$Kind, [bool]$InstallerMode) {
     if ($Kind -cnotin @('pure-standard', 'filtered-admin')) { throw 'Unknown expected account kind' }
-    if ($InstallerMode -and $Kind -cne 'pure-standard') { throw 'Installer mode permits only the fresh pure-standard account' }
 }
 function Get-ExpectedAccountGroupSids([string]$Kind) {
     Assert-AccountMode $Kind $false
@@ -362,26 +361,34 @@ function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Versio
     }
     if ($reviewedMermaid -ne 1) { throw 'Exact reviewed Mermaid 1.3.0 package missing or ambiguous' }
 }
+function Assert-InstallationCoordinator($Spec, $Context) {
+    Assert-AccountMode $Spec.expectedAccountKind $true
+    if (-not $Context.interactive -or $Context.actualSid -cne $Spec.expectedSid -or
+        $Spec.expectedSessionId -le 0 -or $Context.sessionId -ne $Spec.expectedSessionId -or
+        $Context.expectedAccountKind -cne $Spec.expectedAccountKind -or -not $Context.accountKindVerified -or
+        -not [WindowsMermaidStandardUser]::MatchesExpectedAccountKind($Context.desktop.token, $Spec.expectedAccountKind) -or
+        $Context.desktop.token.sid -cne $Spec.expectedSid -or $Context.desktop.token.sessionId -ne $Spec.expectedSessionId -or
+        $Context.pureStandard -isnot [bool] -or $Context.filteredAdmin -isnot [bool] -or
+        $Context.pureStandard -ne ($Spec.expectedAccountKind -ceq 'pure-standard') -or
+        $Context.filteredAdmin -ne ($Spec.expectedAccountKind -ceq 'filtered-admin')) {
+        throw 'Installer requires the exact verified non-elevated account kind, SID and interactive session'
+    }
+}
 function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]$Evidence) {
     $installDirectory = Join-Path $Scratch 'install'
     Assert-Contained $installDirectory $Scratch
     $record = [ordered]@{
         schema = 1; status = 'failed'; candidateSha = $Spec.candidateSha; mode = 'nsis-current-user'
-        expectedSid = $Spec.expectedSid; actualSid = $Context.actualSid
+        expectedSid = $Spec.expectedSid; actualSid = $Context.actualSid; expectedAccountKind = $Spec.expectedAccountKind
         expectedSessionId = $Spec.expectedSessionId; sessionId = $Context.sessionId
         installer = $Spec.installer; installerRun = $null; installDirectory = $installDirectory
         installedBinary = $null; binaryComparison = $null; comparisonRun = $null; resources = @()
         bundledPlugins = @(); embeddedPluginBinding = $null; productAcceptance = 'not-started'
         expectedVersion = $Spec.expectedVersion; error = $null; cleanupErrors = @()
-        cleanupScope = 'Entire exact newly created standard-account profile after confirmed process emptiness; includes this install directory and HKCU'
+        cleanupScope = 'Entire exact newly created account profile after confirmed process emptiness; includes this install directory and HKCU'
     }
     try {
-        if (-not $Context.pureStandard -or -not $Context.interactive -or $Context.actualSid -cne $Spec.expectedSid -or
-            $Context.sessionId -ne $Spec.expectedSessionId -or $Spec.expectedAccountKind -cne 'pure-standard' -or
-            $Context.expectedAccountKind -cne 'pure-standard' -or -not $Context.accountKindVerified -or
-            -not [WindowsMermaidStandardUser]::MatchesExpectedAccountKind($Context.desktop.token, 'pure-standard')) {
-            throw 'Installer requires the verified exact pure-standard interactive coordinator'
-        }
+        Assert-InstallationCoordinator $Spec $Context
         if (Test-Path -LiteralPath $installDirectory) { throw 'Refuse to install over an existing directory' }
         foreach ($inputFile in @($Spec.installer, $Spec.packageManifest, $Spec.binaryVerifier)) { Assert-Hash $inputFile.path $inputFile.sha256 }
         $manifest = Read-SmallJson $Spec.packageManifest.path
@@ -390,9 +397,10 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         $record.installerRun = [WindowsMermaidStandardUser]::RunOwnedInstaller(
             $Spec.installer.path, $installDirectory, $Scratch,
             (Join-Path $Evidence 'installer-stdout.log'), (Join-Path $Evidence 'installer-stderr.log'),
-            $Spec.expectedSid, [uint32]$Spec.expectedSessionId, 120000)
+            $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, 120000)
         if ($record.installerRun.status -cne 'passed' -or $record.installerRun.exitCode -ne 0 -or
-            $record.installerRun.identityVerified -ne $true) { throw 'Same-standard-account installer did not complete with verified identity and exit zero' }
+            $record.installerRun.identityVerified -ne $true -or
+            $record.installerRun.expectedAccountKind -cne $Spec.expectedAccountKind) { throw 'Same-account installer did not complete with verified identity and exit zero' }
         Assert-PlainPath $installDirectory
         $installedPath = Join-Path $installDirectory 'milkup-desktop.exe'
         Assert-Contained $installedPath $Scratch

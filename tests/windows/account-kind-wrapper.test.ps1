@@ -111,12 +111,13 @@ foreach ($entry in @(
         Assert-True $rejected 'Unexpected account group membership accepted'
     }
 }
-Case 'filtered account cannot enter installer mode' {
+Case 'both explicit account kinds enter installer mode without admitting unknown kinds' {
     Assert-AccountMode 'pure-standard' $true
     Assert-AccountMode 'filtered-admin' $false
+    Assert-AccountMode 'filtered-admin' $true
     $rejected = $false
-    try { Assert-AccountMode 'filtered-admin' $true } catch { $rejected = $true }
-    Assert-True $rejected 'Filtered account admitted to installation'
+    try { Assert-AccountMode 'administrator' $true } catch { $rejected = $true }
+    Assert-True $rejected 'Unknown account admitted to installation'
 }
 $script:groupBehavior = 'clean'
 $queriedGroups = [Collections.Generic.List[string]]::new()

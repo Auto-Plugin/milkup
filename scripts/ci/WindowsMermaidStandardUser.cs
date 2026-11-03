@@ -472,18 +472,21 @@ public static class WindowsMermaidStandardUser
             throw new ArgumentException("NSIS installation directory has ambiguous outer whitespace");
         return "/S /D=" + installDirectory;
     }
-    static Dictionary<string, object> CurrentInstallerIdentity(string expectedSid, uint expectedSession) {
+    static Dictionary<string, object> CurrentInstallerIdentity(string expectedSid, uint expectedSession, string expectedAccountKind) {
         var token = Token(GetCurrentProcess());
         uint session;
         Check(ProcessIdToSessionId(GetCurrentProcessId(), out session), "Observe installer coordinator session");
         bool inJob;
         Check(IsProcessInJob(GetCurrentProcess(), IntPtr.Zero, out inJob), "Observe installer coordinator Job membership");
-        if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, "pure-standard") ||
+        if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, expectedAccountKind) ||
             Convert.ToUInt32(token["sessionId"]) != expectedSession || session != expectedSession || session == 0 || !inJob)
-            throw new InvalidOperationException("Installer coordinator is not the exact pure-standard SID/session in the existing owned Job");
-        return new Dictionary<string, object> { { "pid", GetCurrentProcessId() }, { "token", token }, { "sessionId", session }, { "inJob", inJob } };
+            throw new InvalidOperationException("Installer coordinator did not match the expected account kind/SID/session in the existing owned Job");
+        return new Dictionary<string, object> {
+            { "pid", GetCurrentProcessId() }, { "token", token }, { "sessionId", session }, { "inJob", inJob },
+            { "expectedAccountKind", expectedAccountKind }, { "accountKindVerified", true }
+        };
     }
-    static Dictionary<string, object> StartedInstallerIdentity(Process process, string expectedImage, string expectedSid, uint expectedSession) {
+    static Dictionary<string, object> StartedInstallerIdentity(Process process, string expectedImage, string expectedSid, uint expectedSession, string expectedAccountKind) {
         // Process.Handle retains the process returned by Start. Never reopen by
         // PID or infer a short-lived installer's identity from its parent.
         IntPtr held = process.Handle;
@@ -496,25 +499,28 @@ public static class WindowsMermaidStandardUser
         bool inJob;
         Check(IsProcessInJob(held, IntPtr.Zero, out inJob), "Observe exact installer inherited Job membership");
         uint observedSession = Convert.ToUInt32(token["sessionId"]);
-        if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, "pure-standard") ||
+        if (!Equals(token["sid"], expectedSid) || !MatchesExpectedAccountKind(token, expectedAccountKind) ||
             observedSession != expectedSession || expectedSession == 0 || !inJob ||
             !String.Equals(Path.GetFullPath(image.ToString()), Path.GetFullPath(expectedImage), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Started installer SID/session/token/image/Job identity was not proved");
         return new Dictionary<string, object> {
             { "pid", process.Id }, { "token", token }, { "sessionId", observedSession }, { "inJob", inJob },
+            { "expectedAccountKind", expectedAccountKind }, { "accountKindVerified", true },
             { "creationFileTime", creation.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             { "creationUtc", DateTime.FromFileTimeUtc(creation).ToString("o") },
             { "image", image.ToString().Substring(0, Math.Min(image.Length, 1024)) }, { "imageTruncated", image.Length > 1024 }
         };
     }
     public static Dictionary<string, object> RunOwnedInstaller(string application, string installDirectory,
-        string directory, string stdoutPath, string stderrPath, string expectedSid, uint expectedSession, int timeoutMs) {
+        string directory, string stdoutPath, string stderrPath, string expectedSid, uint expectedSession, string expectedAccountKind, int timeoutMs) {
+        if (expectedAccountKind != "pure-standard" && expectedAccountKind != "filtered-admin")
+            throw new ArgumentException("Unknown expected installer account kind");
         if (timeoutMs < 100 || timeoutMs > 120000) throw new ArgumentException("Installer deadline budget rejected");
         var start = CapturedStart(application, directory);
         // ArgumentList would quote the /D token when the destination has spaces.
         // This exact raw argument suffix is parsed by NSIS, never by a shell.
         start.Arguments = InstallerArguments(installDirectory);
-        return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "Installer", expectedSid, expectedSession, installDirectory);
+        return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "Installer", expectedSid, expectedSession, installDirectory, expectedAccountKind);
     }
     // Test-only diagnostic admission: callers cannot supply another test or any
     // renderer/source arguments. The trusted parent test owns its LowBox child.
@@ -543,7 +549,7 @@ public static class WindowsMermaidStandardUser
         return RunNodeScript(application, new[] { harness }, directory, stdoutPath, stderrPath, timeoutMs);
     }
     static Dictionary<string, object> RunCapturedProcess(ProcessStartInfo start, string stdoutPath, string stderrPath,
-        int timeoutMs, string label, string expectedSid, uint expectedSession, string installDirectory) {
+        int timeoutMs, string label, string expectedSid, uint expectedSession, string installDirectory, string expectedAccountKind = null) {
         var audit = new Dictionary<string, object> {
             { "status", "failed" }, { "started", false }, { "exited", false },
             { "exitCode", null }, { "timedOut", false }, { "streamsDrained", false },
@@ -551,6 +557,7 @@ public static class WindowsMermaidStandardUser
             { "deadlineMs", timeoutMs }, { "captureLimitPerStream", 2097152 },
             { "forcedNodeTermination", false }, { "forcedProcessTermination", false }, { "error", null },
             { "tool", label }, { "identityRequired", installDirectory != null }, { "identityVerified", false },
+            { "expectedAccountKind", expectedAccountKind },
             { "callerIdentity", null }, { "startedProcess", null }, { "credentialsSpecified", false }, { "breakawayRequested", false }
         };
         var cleanup = new List<string>();
@@ -563,6 +570,8 @@ public static class WindowsMermaidStandardUser
         bool started = false;
         try {
             if (installDirectory != null) {
+                if (expectedAccountKind != "pure-standard" && expectedAccountKind != "filtered-admin")
+                    throw new ArgumentException("Unknown expected installer account kind");
                 if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Owned NSIS execution requires Windows");
                 if (String.IsNullOrEmpty(expectedSid) || expectedSession == 0) throw new ArgumentException("Exact installer SID/session required");
                 if (!Path.IsPathFullyQualified(start.FileName) || !Path.IsPathFullyQualified(installDirectory) ||
@@ -570,7 +579,7 @@ public static class WindowsMermaidStandardUser
                     throw new ArgumentException("Installer paths must be absolute and canonical");
                 if (File.Exists(installDirectory) || Directory.Exists(installDirectory))
                     throw new InvalidOperationException("Refusing to reuse an installation destination");
-                audit["callerIdentity"] = CurrentInstallerIdentity(expectedSid, expectedSession);
+                audit["callerIdentity"] = CurrentInstallerIdentity(expectedSid, expectedSession, expectedAccountKind);
             }
             stdout = new FileStream(stdoutPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
             stderr = new FileStream(stderrPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
@@ -578,7 +587,7 @@ public static class WindowsMermaidStandardUser
             if (!process.Start()) throw new InvalidOperationException("Direct " + label + " launch did not return a process");
             started = true; audit["started"] = true; audit["pid"] = process.Id;
             if (installDirectory != null) {
-                audit["startedProcess"] = StartedInstallerIdentity(process, start.FileName, expectedSid, expectedSession);
+                audit["startedProcess"] = StartedInstallerIdentity(process, start.FileName, expectedSid, expectedSession, expectedAccountKind);
                 audit["identityVerified"] = true;
             }
             // No inherited console stdin is needed. Closing our pipe gives EOF.

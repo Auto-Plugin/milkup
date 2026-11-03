@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Invoke-StandardInstallation')
+$wanted = @('Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-InstallationCoordinator', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
@@ -67,58 +67,85 @@ try {
     $sid = 'S-1-5-21-11-22-33-1003'
     $spec = @{ candidateSha = $commit; expectedSid = $sid; expectedSessionId = 2; expectedVersion = $version; expectedAccountKind = 'pure-standard'
         installer = @{ path = (Join-Path $testRoot 'synthetic-never-executed-installer'); sha256 = 'f' * 64 } }
-    function New-StandardContext {
+    function New-AccountContext([string]$Kind = 'pure-standard') {
+        $filtered = $Kind -ceq 'filtered-admin'
         $token = [Collections.Generic.Dictionary[string,object]]::new()
         $privilege = [Collections.Generic.Dictionary[string,object]]::new()
         $privilege['name'] = 'SeChangeNotifyPrivilege'; $privilege['attributes'] = [uint32]3
         foreach ($entry in (@{
             sid = $sid; ownerSid = $sid; ownerIsUser = $true; sessionId = 2; tokenType = 1
-            integrityRid = 8192; uiAccess = $false; elevated = $false; elevationType = 1
-            administratorsGroupPresentIncludingDenyOnly = $false; administratorsGroupAttributes = $null
+            integrityRid = 8192; uiAccess = $false; elevated = $false; elevationType = $(if ($filtered) { 3 } else { 1 })
+            administratorsGroupPresentIncludingDenyOnly = $filtered; administratorsGroupAttributes = $(if ($filtered) { [uint32]16 } else { $null })
             seDebugPrivilegePresent = $false; privilegeCount = 1; hostDisallowedPrivilegeCount = 0; privilegesComplete = $true
             privileges = [Collections.Generic.Dictionary[string,object][]]@($privilege)
         }).GetEnumerator()) { $token[$entry.Key] = $entry.Value }
-        return @{ pureStandard = $true; interactive = $true; actualSid = $sid; sessionId = 2
-            expectedAccountKind = 'pure-standard'; accountKindVerified = $true; desktop = @{ token = $token } }
+        return @{ pureStandard = -not $filtered; filteredAdmin = $filtered; interactive = $true; actualSid = $sid; sessionId = 2
+            expectedAccountKind = $Kind; accountKindVerified = $true; desktop = @{ token = $token } }
     }
-    function Invoke-RejectedInstall($Context, [string]$Reason) {
-        $record = Invoke-StandardInstallation $spec $Context $scratch $evidence
+    function Invoke-RejectedInstall($Context, [string]$Reason, [string]$Kind = 'pure-standard') {
+        $caseSpec = $spec.Clone(); $caseSpec.expectedAccountKind = $Kind
+        $record = Invoke-StandardInstallation $caseSpec $Context $scratch $evidence
         Assert-True ($record.status -ceq 'failed' -and $null -eq $record.installerRun) 'Installer started before admission checks'
         Assert-True ($record.error.Contains($Reason)) ('Unexpected rejection: ' + $record.error)
         $saved = Read-SmallJson (Join-Path $evidence 'installation-result.json')
-        Assert-True ($saved.status -ceq 'failed' -and $null -eq $saved.installerRun) 'Rejected installation evidence was not retained'
+        Assert-True ($saved.status -ceq 'failed' -and $null -eq $saved.installerRun -and $saved.expectedAccountKind -ceq $Kind) 'Rejected installation evidence or selected account kind was not retained'
     }
-    Case 'reject administrator/non-standard coordinator before process launch' {
-        $context = New-StandardContext; $context.pureStandard = $false
-        Invoke-RejectedInstall $context 'exact pure-standard'
+    foreach ($kind in @('pure-standard', 'filtered-admin')) {
+        Case "admit exact non-elevated $kind coordinator using actual token facts" {
+            $caseSpec = $spec.Clone(); $caseSpec.expectedAccountKind = $kind
+            $context = New-AccountContext $kind
+            Assert-InstallationCoordinator $caseSpec $context
+            Assert-True ($context.pureStandard -eq ($kind -ceq 'pure-standard')) 'Filtered account was relabeled pure-standard'
+        }
+        foreach ($change in @('elevated', 'full-token', 'enabled-admin', 'high-integrity', 'wrong-token-sid', 'wrong-token-session', 'unknown-privileges')) {
+            Case "$kind installer rejects $change before process launch" {
+                $context = New-AccountContext $kind
+                switch ($change) {
+                    'elevated' { $context.desktop.token['elevated'] = $true }
+                    'full-token' { $context.desktop.token['elevationType'] = 2 }
+                    'enabled-admin' { $context.desktop.token['administratorsGroupPresentIncludingDenyOnly'] = $true; $context.desktop.token['administratorsGroupAttributes'] = [uint32]4 }
+                    'high-integrity' { $context.desktop.token['integrityRid'] = 12288 }
+                    'wrong-token-sid' { $context.desktop.token['sid'] = 'S-1-5-21-11-22-33-1004'; $context.desktop.token['ownerSid'] = $context.desktop.token['sid'] }
+                    'wrong-token-session' { $context.desktop.token['sessionId'] = 3 }
+                    'unknown-privileges' { $context.desktop.token.Remove('privilegesComplete') | Out-Null }
+                }
+                Invoke-RejectedInstall $context 'exact verified' $kind
+            }
+        }
+    }
+    Case 'reject inconsistent legacy account flag before process launch' {
+        $context = New-AccountContext; $context.pureStandard = $false
+        Invoke-RejectedInstall $context 'exact verified'
     }
     Case 'reject another SID before process launch' {
-        $context = New-StandardContext; $context.actualSid = 'S-1-5-21-11-22-33-1004'
-        Invoke-RejectedInstall $context 'exact pure-standard'
+        $context = New-AccountContext; $context.actualSid = 'S-1-5-21-11-22-33-1004'
+        Invoke-RejectedInstall $context 'exact verified'
     }
     Case 'reject another session before process launch' {
-        $context = New-StandardContext; $context.sessionId = 3
-        Invoke-RejectedInstall $context 'exact pure-standard'
+        $context = New-AccountContext; $context.sessionId = 3
+        Invoke-RejectedInstall $context 'exact verified'
     }
     Case 'reject non-interactive coordinator before process launch' {
-        Invoke-RejectedInstall @{ pureStandard = $true; interactive = $false; actualSid = $sid; sessionId = 2 } 'exact pure-standard'
+        $context = New-AccountContext; $context.interactive = $false
+        Invoke-RejectedInstall $context 'exact verified'
     }
-    Case 'reject filtered account kind before installer launch' {
-        $context = New-StandardContext; $context.expectedAccountKind = 'filtered-admin'
-        Invoke-RejectedInstall $context 'exact pure-standard'
+    Case 'reject mismatched selected account kind before installer launch' {
+        Invoke-RejectedInstall (New-AccountContext 'filtered-admin') 'exact verified' 'pure-standard'
+        Invoke-RejectedInstall (New-AccountContext 'pure-standard') 'exact verified' 'filtered-admin'
     }
     Case 'reject forged kind-verified flag with incomplete actual privileges' {
-        $context = New-StandardContext; $context.desktop.token.Remove('privilegesComplete') | Out-Null
-        Invoke-RejectedInstall $context 'exact pure-standard'
+        $context = New-AccountContext; $context.desktop.token.Remove('privilegesComplete') | Out-Null
+        Invoke-RejectedInstall $context 'exact verified'
     }
     Case 'reject elevated token despite legacy standard boolean' {
-        $context = New-StandardContext; $context.desktop.token['elevated'] = $true
-        Invoke-RejectedInstall $context 'exact pure-standard'
+        $context = New-AccountContext; $context.desktop.token['elevated'] = $true
+        Invoke-RejectedInstall $context 'exact verified'
     }
     Case 'reject existing installation without modifying sentinel' {
         $existing = Join-Path $scratch 'install'; New-Item -ItemType Directory -Path $existing | Out-Null
         $sentinel = Join-Path $existing 'foreign.txt'; [IO.File]::WriteAllText($sentinel, 'untouched')
-        Invoke-RejectedInstall (New-StandardContext) 'existing directory'
+        Invoke-RejectedInstall (New-AccountContext 'pure-standard') 'existing directory' 'pure-standard'
+        Invoke-RejectedInstall (New-AccountContext 'filtered-admin') 'existing directory' 'filtered-admin'
         Assert-True ([IO.File]::ReadAllText($sentinel) -ceq 'untouched') 'Existing installation modified'
     }
 } finally { Remove-Item -LiteralPath $testRoot -Recurse -Force }
