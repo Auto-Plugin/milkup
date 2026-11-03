@@ -385,6 +385,46 @@ checking also passes. These logs and the 981+4 frontend results are retained in
 `shutdown-regression/`. New Linux and Windows product runs are required to validate
 the combined implementation; prior binaries are not relabeled as this build.
 
+Run `41653312849` at candidate `0e3912db3f2cc4d77dd73513ce73d5440ec36f54`
+passed all build/link/source gates but failed during the second UI operation,
+waiting for an actual decoded PNG. The initial disabled-source step passed.
+Its one native request has complete admitted/started/finished records: same-SID
+standard coordinator and zero-capability AppContainer/browser proofs are present,
+but `successful=false`, `cleanupUncertain=true`, and no PNG was published. Job
+active count was zero, IPC threads completed, and profile/private tree deletion
+both succeeded; cancellation and deadline expiration were false. The exact
+cleanup error was omitted from the original closed audit and cannot be recovered
+from this run. Current code narrows possibilities to IPC join/cancellation or
+protocol/read errors, but none is claimed as the proven cause.
+
+The new close gate refused to destroy the window after uncertain native cleanup.
+The test subsequently used its identity-verified fallback after its UI-close
+budget, so normal UI close did **not** pass. Outer Job, exact profile/account/stage
+cleanup all passed separately. The collector retained all 15 child files with zero
+rejections (20 artifact-manifest files); three decoded PNGs are UI screenshots,
+not diagrams. Root saw the original source plus failure notice. Full original
+ZIP, raw logs, verification and review are in `windows/product-attempt-41653312849/`.
+C4/invalid/final-disable were not reached. The next change adds bounded closed
+cleanup-stage diagnostics while preserving the existing 50ms/250ms join behavior
+and every acceptance gate; it must not relabel this historical failure as fixed.
+
+Diagnostic commits `f842abac` and `da41762f` add only closed native evidence:
+cleanup-stage enums, per-stream join duration/cancellation/termination, stdout
+read/schema/channel/trailing-data classification, and directly observed Win32
+codes. The stop-request flag is sampled when an error is observed; it is not a
+claim about when a kernel error originally occurred. Renderer status and captured
+byte count before cleanup are separate from actual published PNG bytes. No raw
+error text, source, stderr contents or private paths enter the audit. Sanitizers
+reject unknown fields/enums and malformed numeric codes. The original 50ms I/O
+cancellation threshold, 250ms join bound and error-to-uncertainty rules are unchanged.
+
+The final portable Rust suite passes 29/29. An earlier diagnostic test incorrectly
+matched the legitimate field name `privateTreeRemoved` while searching for injected
+private text; its assertion was corrected to check the injected value. Initial
+and final outputs are retained in `windows/cleanup-diagnostics-regression/`.
+Actual Windows compilation and product execution of these new diagnostics remain
+the next check; no specific historical cleanup cause has yet been established.
+
 Historical cleanup error 5 has not been reproduced or declared fixed.
 
 The inherited Git hook calls `npx lint-staged`, but the v2 baseline has no matching
