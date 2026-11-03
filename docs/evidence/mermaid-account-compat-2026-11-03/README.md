@@ -98,3 +98,17 @@ including actual privilege names, linked-token type/impersonation level and
 actual handle access. A diagnostic success means observations and cleanup were
 complete, not that administrator rendering worked. The rendering gate remains
 unchanged while these facts are investigated.
+
+### First isolated token diagnostic: fixture setup failed
+
+[Run 41681937161](https://github.com/Auto-Plugin/milkup/actions/runs/41681937161)
+tested `93755eb640b2dc8a1b614c3bd7cf175b253c6ab8`. Its private Windows test
+executable compiled, ordinary crate tests and wrapper fixtures passed, and the
+strict source gate remained clean. Both fresh-account setups then failed before
+account creation: the fixed description prefix plus the complete 32-character
+run ID was 52 characters, exceeding `New-LocalUser`'s 48-character maximum.
+Neither native parent nor AppContainer probe ran. There are no new linked-token
+facts from this attempt. Both owned staging directories were removed, and no
+account, profile or native supervisor had been created. The correction shortens
+only the description prefix while retaining the complete unique run ID and exact
+ownership comparison; it does not change rendering admission.
