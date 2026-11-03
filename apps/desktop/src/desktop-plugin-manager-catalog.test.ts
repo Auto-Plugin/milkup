@@ -304,9 +304,12 @@ describe('private fixed Mermaid package authorization', () => {
       await s.manager.renderDocument('test.lifecycle', 'diagram', s.request).catch(() => {})
       expect(s.invoke).not.toHaveBeenCalled()
       await s.manager.enableFromUserIntent('test.lifecycle')
-      await expect(
-        s.manager.renderDocument('test.lifecycle', 'diagram', s.request),
-      ).rejects.toThrow('native-probe')
+      const failed = await s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
+      expect(failed.fragments[0]?.status).toBe('error')
+      expect(failed.fragments[0]?.content).toEqual({
+        type: 'code',
+        children: [{ type: 'text', text: s.request.source }],
+      })
       expect(
         s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
       ).toHaveLength(1)

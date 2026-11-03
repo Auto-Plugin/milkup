@@ -4,7 +4,10 @@ import {
   type DocumentPresentationRequest,
   type DocumentPresentationResult,
 } from '@milkup/core'
-import { createDocumentPngImage } from '@milkup/core/internal/document-png-image'
+import {
+  createDocumentPngImage,
+  disposeDocumentPngImages,
+} from '@milkup/core/internal/document-png-image'
 
 /** Desktop-only adapter. Neither this interface nor its native commands enter plugin RPC. */
 export type PrivateMermaidInvoke = (
@@ -26,11 +29,24 @@ const token = () => crypto.randomUUID().replaceAll('-', '')
 const opaque = (value: unknown): value is string =>
   typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)
 
+export function isNativePngBase64(value: unknown): value is string {
+  if (
+    typeof value !== 'string' ||
+    value.length > 22_369_624 ||
+    value.length % 4 !== 0 ||
+    /[^A-Za-z0-9+/=]/.test(value)
+  )
+    return false
+  const padding = value.indexOf('=')
+  return padding === -1 || (padding >= value.length - 2 && /^={1,2}$/.test(value.slice(padding)))
+}
+
 /** One exact, published catalog activation owns this adapter. */
 export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
   const ownerId = token()
   const controller = new AbortController()
   const leases = new Set<() => void>()
+  const active = new Map<Promise<void>, number>()
   const cleanup = new Set<Promise<unknown>>()
   const failedCleanup = new Map<() => Promise<unknown>, unknown>()
   let retired = false
@@ -58,7 +74,26 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     }
     for (const action of failedCleanup.keys()) track(action)
     track(() => invoke('private_mermaid_retire_owner', { ownerId }))
-    await Promise.allSettled([...cleanup])
+    // Cancellation acknowledgement is not process/output settlement. Wait for
+    // every owned render to finish and enqueue any late output release. Keep
+    // the original deadlines; uncertainty remains a retirement failure.
+    if (active.size) {
+      let timer: ReturnType<typeof setTimeout> | undefined
+      try {
+        await Promise.race([
+          Promise.all([...active.keys()]),
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(
+              () => reject(new Error('Mermaid cleanup did not settle by its original deadline')),
+              Math.max(0, Math.max(...active.values()) - performance.now()),
+            )
+          }),
+        ])
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+    while (cleanup.size) await Promise.allSettled([...cleanup])
     const errors = [...failedCleanup.values()]
     if (errors.length) throw new AggregateError(errors, 'Mermaid owner cleanup failed')
   }
@@ -87,6 +122,11 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     const body = block.contentRanges[0]!
     const source = request.source.slice(body.from - request.from, body.to - request.from)
     const requestId = token()
+    let settle!: () => void
+    const settled = new Promise<void>((resolve) => {
+      settle = resolve
+    })
+    active.set(settled, deadline)
     let cancelSent = false
     const cancel = () => {
       if (cancelSent) return
@@ -134,11 +174,7 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
         response.width > 8192 ||
         response.height > 8192 ||
         response.width * response.height > 16_777_216 ||
-        typeof response.pngBase64 !== 'string' ||
-        response.pngBase64.length > 22_369_624 ||
-        !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
-          response.pngBase64,
-        ) ||
+        !isNativePngBase64(response.pngBase64) ||
         typeof response.sha256 !== 'string' ||
         !/^[a-f0-9]{64}$/.test(response.sha256)
       )
@@ -156,6 +192,12 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
         title: 'Mermaid 图表',
         release,
       })
+      try {
+        assertActive()
+      } catch (error) {
+        disposeDocumentPngImages(content)
+        throw error
+      }
       transferred = true
       return {
         complete: true,
@@ -174,7 +216,14 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
       clearTimeout(timeout)
       options.signal?.removeEventListener('abort', cancel)
       controller.signal.removeEventListener('abort', cancel)
-      if (!transferred) release?.()
+      if (!transferred) {
+        // Even a malformed response can correspond to an allocated native
+        // output. Cancellation uses only our known request/owner identities.
+        cancel()
+        release?.()
+      }
+      active.delete(settled)
+      settle()
     }
   }
   return Object.freeze({ render, retire })

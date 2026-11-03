@@ -1693,7 +1693,36 @@ export class DesktopPluginManager {
           owned = { ...identity, owner: createPrivateMermaidOwner(config.invoke) }
           this.mermaidOwners.set(pluginId, owned)
         }
-        const result = await owned.owner.render(request, options)
+        let result: DocumentPresentationResult
+        try {
+          result = await owned.owner.render(request, options)
+        } catch (error) {
+          const after = current()
+          if (
+            !after ||
+            after.epoch !== identity.epoch ||
+            after.generation !== identity.generation ||
+            options.signal?.aborted ||
+            this.mermaidOwners.get(pluginId) !== owned
+          )
+            throw error
+          const message =
+            'Mermaid 图表未能渲染，已保留完整源码。请检查语法，或重新开启图表插件后重试。'
+          return {
+            complete: true,
+            fragments: [
+              {
+                from: request.from,
+                to: request.to,
+                layout: 'block',
+                status: 'error',
+                message,
+                accessibleText: message,
+                content: { type: 'code', children: [{ type: 'text', text: request.source }] },
+              },
+            ],
+          }
+        }
         const after = current()
         if (
           !after ||

@@ -5,7 +5,7 @@ import {
   disposeDocumentPngImages,
   documentPngResourceStats,
 } from '@milkup/core/internal/document-png-image'
-import { createPrivateMermaidOwner } from './private-mermaid-service'
+import { createPrivateMermaidOwner, isNativePngBase64 } from './private-mermaid-service'
 
 const pngBase64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg=='
@@ -68,6 +68,13 @@ function fixture(handler?: (command: string, args: Record<string, unknown>) => P
   return { invoke, owner }
 }
 describe('host-private Mermaid ownership', () => {
+  it('validates large base64 without recursive regex stack growth', () => {
+    expect(isNativePngBase64('A'.repeat(22_369_620) + 'AA==')).toBe(true)
+    expect(isNativePngBase64('A'.repeat(22_369_628))).toBe(false)
+    expect(isNativePngBase64('AA=A')).toBe(false)
+    expect(isNativePngBase64('A===')).toBe(false)
+    expect(isNativePngBase64('A A=')).toBe(false)
+  })
   it('sends only the recognized fence body and transfers a verified PNG lease', async () => {
     const { invoke, owner } = fixture()
     const deadline = performance.now() + 5000
@@ -120,10 +127,19 @@ describe('host-private Mermaid ownership', () => {
       const controller = new AbortController()
       const pending = owner.render(request, { signal: controller.signal })
       const rejected = expect(pending).rejects.toThrow()
+      let retired: Promise<void> | undefined
       if (kind === 'abort') controller.abort()
-      else await owner.retire()
+      else {
+        let finished = false
+        retired = owner.retire().then(() => {
+          finished = true
+        })
+        await Promise.resolve()
+        expect(finished).toBe(false)
+      }
       complete(image(args))
       await rejected
+      await retired
       await owner.retire()
       expect(
         invoke.mock.calls.filter(([command]) => command === 'private_mermaid_cancel'),
@@ -140,6 +156,30 @@ describe('host-private Mermaid ownership', () => {
     await expect(owner.render({ ...request, contextKnown: false }, {})).rejects.toThrow()
     await expect(owner.render({ ...request, target: 'export' }, {})).rejects.toThrow()
     expect(invoke).not.toHaveBeenCalled()
+  })
+  it('reports cleanup failure from a late completion and retries that owned release', async () => {
+    let complete!: (value: unknown) => void
+    let args!: Record<string, unknown>
+    let failRelease = true
+    const { owner } = fixture(async (command, value) => {
+      if (command === 'private_mermaid_render') {
+        args = value
+        return new Promise((resolve) => {
+          complete = resolve
+        })
+      }
+      if (command === 'private_mermaid_release' && failRelease) throw Error('release failed')
+      return null
+    })
+    const rendering = owner.render(request, {})
+    const rejected = expect(rendering).rejects.toThrow()
+    const retirement = owner.retire()
+    const failed = expect(retirement).rejects.toThrow('cleanup failed')
+    complete(image(args))
+    await rejected
+    await failed
+    failRelease = false
+    await expect(owner.retire()).resolves.toBeUndefined()
   })
   it('retires without invalidating another owner and never revives', async () => {
     const first = fixture(),
