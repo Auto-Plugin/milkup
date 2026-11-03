@@ -1,0 +1,203 @@
+{
+  "reviewedAt": "2026-11-03T16:12:27.988316+00:00",
+  "reviewType": "independent-retained-installed-product-wide-C4-visual-review",
+  "workflowRunId": "41668620695",
+  "candidateSha": "a5431693a4ea1e1a282c16b9cc9651e17b67f9ea",
+  "installedApplicationSha256": "5e84d2aefacbed31df509418223df9a3f92edbede1585b6f4333816ba0d2b1f0",
+  "overallVisualResult": "reviewed-with-minor-C4-outline-warning",
+  "files": [
+    {
+      "file": "installed/07-wide-diagram.png",
+      "sha256": "ca08f54c575d5031c1e886b4fdb4a2ec87aec580b67360d202d0449115193617",
+      "bytes": 8355,
+      "width": 3528,
+      "height": 126,
+      "nonwhiteBoundsExclusive": [
+        23,
+        23,
+        3505,
+        103
+      ],
+      "reviewedAtOriginalResolution": true,
+      "fullyDecodedLocally": true,
+      "matchesHarnessRecordedHash": true
+    },
+    {
+      "file": "installed/07-wide-window.png",
+      "sha256": "5359f97944aefcd8fa7f33f301d8f13699366eb2ce1269bdd954ee5d2c0c4d4f",
+      "bytes": 21877,
+      "width": 1028,
+      "height": 760,
+      "nonwhiteBoundsExclusive": [
+        0,
+        0,
+        1028,
+        760
+      ],
+      "reviewedAtOriginalResolution": true,
+      "fullyDecodedLocally": true,
+      "matchesHarnessRecordedHash": true
+    },
+    {
+      "file": "installed/07-c4-diagram.png",
+      "sha256": "0d1e0d18e4f37b427a04f23f42868b719987ab7d17a501e2bc9b3edfec39b846",
+      "bytes": 5376,
+      "width": 564,
+      "height": 118,
+      "nonwhiteBoundsExclusive": [
+        15,
+        15,
+        549,
+        103
+      ],
+      "reviewedAtOriginalResolution": true,
+      "fullyDecodedLocally": true,
+      "matchesHarnessRecordedHash": true
+    },
+    {
+      "file": "installed/07-c4-window.png",
+      "sha256": "11d6bf3d422513a75a7c7166c5b0202df684ecf9cc3628a0d81090f65155d205",
+      "bytes": 21813,
+      "width": 1028,
+      "height": 760,
+      "nonwhiteBoundsExclusive": [
+        0,
+        0,
+        1028,
+        760
+      ],
+      "reviewedAtOriginalResolution": true,
+      "fullyDecodedLocally": true,
+      "matchesHarnessRecordedHash": true
+    }
+  ],
+  "wide": {
+    "result": "retained-fixture-readable-and-uncropped",
+    "diagramSize": [
+      3528,
+      126
+    ],
+    "nonwhiteBoundsExclusive": [
+      23,
+      23,
+      3505,
+      103
+    ],
+    "blankMarginPx": {
+      "left": 23,
+      "top": 23,
+      "right": 23,
+      "bottom": 23
+    },
+    "findings": [
+      "All 16 Stage labels, full node rectangles and all 15 right-facing arrows are present and readable in the raw PNG. No nodes, text or arrowheads are cut off at the PNG edges.",
+      "Product screenshot is 1028x760. The first four nodes plus part of the fifth are visible at normal size; the horizontal scrollbar is visible below the diagram. The partial fifth node is the viewport boundary, not truncation of the full PNG.",
+      "Read-only DOM evidence reports rendered width=naturalWidth=3528 and rendered height=naturalHeight=126, at devicePixelRatio=1; the wide graph has not been squeezed to the editor width."
+    ],
+    "horizontalScrollingVerified": false,
+    "scrollingLimit": "Only the leftmost viewport was retained. These files do not prove pointer-driven scrolling or reachability/readability of the far-right end within the product UI."
+  },
+  "c4": {
+    "result": "readable-and-uncropped-with-minor-outline-warning",
+    "diagramSize": [
+      564,
+      118
+    ],
+    "nonwhiteBoundsExclusive": [
+      15,
+      15,
+      549,
+      103
+    ],
+    "blankMarginPx": {
+      "left": 15,
+      "top": 15,
+      "right": 15,
+      "bottom": 15
+    },
+    "findings": [
+      "Parser and View titles, Component TypeScript annotations, and Reads notes / Shows notes remain legible as dark text on light-blue nodes in both raw PNG and product screenshot.",
+      "Presents sits above the horizontal connector. The line and right-facing arrowhead are distinct from the text, and both nodes are complete at the outer image bounds.",
+      "The PNG has a compact 15-pixel exterior white margin, without the oversized empty C4 viewBox seen before the crop adjustment.",
+      "Minor cosmetic defect remains: Presents white backing partially erases approximately one pixel of the View left outline around image x=331,y=40..54. It does not obscure node text, the connector arrowhead or the node interior."
+    ],
+    "sampledNodeFillRgb": [
+      133,
+      187,
+      240
+    ],
+    "sampledBlackToFillContrast": 10.3637,
+    "contrastLimit": "WCAG relative luminance for observed solid black versus opaque fill pixels; not a per-glyph antialiasing contrast certification.",
+    "outlinePixelSamples": [
+      {
+        "x": 331,
+        "y": 30,
+        "rgb": [
+          120,
+          168,
+          216
+        ]
+      },
+      {
+        "x": 331,
+        "y": 40,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 331,
+        "y": 45,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 331,
+        "y": 50,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 331,
+        "y": 55,
+        "rgb": [
+          234,
+          242,
+          249
+        ]
+      },
+      {
+        "x": 331,
+        "y": 65,
+        "rgb": [
+          120,
+          168,
+          216
+        ]
+      }
+    ],
+    "domRenderedSize": [
+      564,
+      118
+    ]
+  },
+  "limitations": [
+    "Only these wide and C4 Component light-theme fixtures and their matching Windows product screenshots were reviewed. This does not certify other diagram variants or dark theme.",
+    "One recorded devicePixelRatio=1 configuration; no system DPI matrix or real IME acceptance is established.",
+    "Installer execution, installed binary provenance and cleanup acceptance remain the responsibility of their separate recorded checks; this review only records these four retained visual artifacts.",
+    "The original harness report, source tree and existing verification files remain unchanged. This supplemental agent visual review does not claim human approval."
+  ],
+  "actions": {
+    "sourceEdited": false,
+    "originalReportsEdited": false,
+    "remoteRunTriggered": false
+  }
+}

@@ -63,12 +63,17 @@ def verify(archive, metadata, output):
     assert manifest["status"] == "verified-for-user-trial" and manifest["deliveryReady"] is True
     assert manifest["installerExecuted"] is True and manifest["releaseCreated"] is False
     assert manifest["installMode"] == "currentUser" and manifest["signing"] == "unsigned"
+    assert manifest["webviewInstallMode"] == "skip; existing Evergreen required"
+    if "workflow_run" in api:
+        assert api["workflow_run"]["head_sha"] == manifest["candidateSha"]
+        assert str(api["workflow_run"]["id"]) == manifest["runId"]
     dependencies = manifest["dependencies"]
     assert dependencies["status"] == "passed" and dependencies["readOnly"] is True
     assert dependencies["applicationSha256"] == manifest["extractedApplication"]["sha256"]
     assert dependencies["dlls"] and dependencies["extraVcRuntimeDlls"] == []
     assert dependencies["webview2Loader"] == "static-no-loader-dll-import"
     assert dependencies["webview2Runtime"] == "external-existing-Evergreen"
+    assert dependencies["nodeOrPnpmRequiredAtRuntime"] is False
     installer = manifest["installer"]
     assert installer["deliveredName"] in files
     assert files[installer["deliveredName"]].startswith(b"MZ")
@@ -76,6 +81,7 @@ def verify(archive, metadata, output):
     assert len(files[installer["deliveredName"]]) == installer["bytes"]
     assert [name for name in files if name.endswith(".exe")] == [installer["deliveredName"]]
     plugins = json.loads(files["plugins.json"])
+    assert plugins == manifest["plugins"], "Plugin inventory differs from manifest"
     assert len(plugins) == 10 and len({plugin["id"] for plugin in plugins}) == 10
     plugin_names = set()
     for plugin in plugins:
@@ -88,16 +94,29 @@ def verify(archive, metadata, output):
         if plugin["id"] == "milkup.diagrams":
             assert plugin["version"] == "1.3.0" and package["manifest"]["host"] == "worker"
     assert set(files) == required | plugin_names | {installer["deliveredName"]}
+    acceptance = manifest["installationAcceptance"]
+    assert acceptance["status"] == "passed"
+    assert acceptance["applicationSha256"] == manifest["extractedApplication"]["sha256"]
+    retained = acceptance["records"]
+    assert len(retained) == len(reports) and {item["name"] for item in retained} == set(reports)
+    for record in retained:
+        report_bytes = files["reports/" + record["name"]]
+        assert len(report_bytes) == record["bytes"] and sha(report_bytes) == record["sha256"], record["name"]
     for name in reports:
         value = json.loads(files["reports/" + name])
         assert value["status"] == "passed", name
     product = json.loads(files["reports/mermaid-product-e2e.json"])
     assert product["candidateSha"] == manifest["candidateSha"]
+    assert product["applicationSha256"] == acceptance["applicationSha256"]
+    installation = json.loads(files["reports/installation-result.json"])
+    assert installation["candidateSha"] == manifest["candidateSha"]
+    assert installation["installer"]["sha256"] == installer["sha256"]
+    assert installation["installedBinary"]["sha256"] == acceptance["applicationSha256"]
     assert len(product["steps"]) == 10 and all(step["passed"] is True for step in product["steps"])
     assert len(product["launches"]) == 4 and all(launch["closedByUi"] is True for launch in product["launches"])
     audit = json.loads(files["reports/windows-standard-product-audit.json"])
     assert audit["source"] == manifest["candidateSha"]
-    assert all(audit[field] is True for field in ("profileDeleted", "accountDeleted", "stageRemoved", "installerExecuted"))
+    assert all(audit[field] is True for field in ("profileDeleted", "accountDeleted", "stageRemoved", "installerExecuted", "installedDirectoryRemoved"))
     assert audit["cleanupErrors"] == []
     output.mkdir(parents=True)
     for name, data in files.items():

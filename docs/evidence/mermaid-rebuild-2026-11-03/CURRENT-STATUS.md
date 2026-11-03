@@ -6,7 +6,10 @@ original offline instance was preserved. Product baseline
 `ea5ebcc69d83a6c8eecf4edc73aabd6445b8dac4` were verified separately. Missing
 original uncommitted files were not recovered: this is a new implementation
 from accessible evidence. No plugin trust expansion, main merge, official
-release, installer execution, or old Fixed Runtime run was performed.
+release or old Fixed Runtime run was performed. A subsequently authorized
+Windows test installer was actually built, installed and accepted; see the
+[beta.8 delivery record](../mermaid-windows-trial-2026-11-03/README.md). Its
+source and installed executable identities are separate from the earlier runs.
 
 ## Product behavior and actual acceptance
 
@@ -19,12 +22,13 @@ existing DOM package. Wide images preserve natural size and scroll.
 
 | Execution | Tested source | Actual result |
 | --- | --- | --- |
+| [Windows installed release application, beta.8](../mermaid-windows-trial-2026-11-03/README.md) | `a5431693a4ea1e1a282c16b9cc9651e17b67f9ea` | **10/10** operations; 4 normal UI closes; exact installed EXE; actual current-user NSIS execution, profile/account/install-directory cleanup and delivered ZIP independently verified |
 | [Windows standard-account product UI](windows/product-attempt-41656903741/README.md) | `44ef263e6cd3d66b3dc43d951c4b3fe0d18e69f0` | **10/10** operations; 17 decoded PNGs with browser pixel hashes; 7 diagram PNGs also bound to successful native completion; 4 natural UI closes |
 | [Linux product and window regression](linux-x11-popup/README.md) | `ee305c4c8e8fc2e2a8fb7356170a6ec59b6674e4` | **11/11** editor operations; actual Xfwm4 window-placement/PNG/Alt-F4 regression passed |
 | Linux direct native helper corpus, same production-assets ELF | Same `ee305c4c` source and binary | **50/50** generated, fully decoded and retained; 50 natural guardian exits and verified private-directory/process cleanups; sandbox enabled. This directly exercises the helper, not editor/Registry lease behavior. |
 | Current list-input regression | Same list implementation inherited from `6e124b79` | **57/57** tests; bare `-` stays literal, `- ` presents a bullet, incremental task input remains possible in ordinary and windowed views |
 | Desktop complete frontend tests after close fix | `b286014b` frontend implementation | **981 + 4** bootstrap tests passed; TypeScript passed |
-| Current Windows native build/tests | Windows run above | Private crate **31** passed; desktop **228** passed / **3** ignored; selected desktop contract **1** passed; production-assets link and strict clean-source gates passed |
+| Earlier Windows native build/tests | Run `41656903741` | Private crate **31** passed; desktop **228** passed / **3** ignored; selected desktop contract **1** passed; production-assets link and strict clean-source gates passed |
 
 The Linux binary SHA-256 is
 `9bfce3146a9d6f5b44a2c769a3e55b72521fdb33beed8247980aaa412742347a`
@@ -95,8 +99,10 @@ The final wording check is [final-notice-typecheck.log](logs/final-notice-typech
 - **Run 41653312849's native cleanup uncertainty remains undiagnosed.** Its
   original audit omitted the failing stage. New closed, bounded IPC/cleanup
   diagnostics preserve direct error codes and original timing/failure rules.
-  The passing run has 12 admitted/12 finished, every cleanup confirmed, no IPC
-  cancellation and no typed failures. This is non-reproduction, not proof that
+  The earlier passing run `41656903741` has 12 admitted/12 finished, every cleanup
+  confirmed, no IPC cancellation and no typed failures. Installed beta.8 run
+  `41668620695` separately has 15 admitted/15 finished with all cleanup confirmed.
+  This is non-reproduction, not proof that
   the old cause was fixed. Synchronous Windows API durations are not hard bounded.
 - **Linux support is X11-only for this native path.** A non-X11 GDK backend is
   rejected and source fallback remains; native Wayland was not accepted and
@@ -111,8 +117,9 @@ The final wording check is [final-notice-typecheck.log](logs/final-notice-typech
   earlier full native corpus review recorded 41 passes and 9 warnings, not a
   declaration that every aesthetic issue is solved. Current product acceptance
   uses four self-authored fixtures, light theme/DPR 1. It does not cover every
-  grammar, dark/high-DPI, real IME, Windows native file picker, installation,
-  rollback, macOS native output or OS-wide network-denial acceptance.
+  grammar, dark/high-DPI, real IME, Windows native file picker, upgrade/rollback,
+  macOS native output or OS-wide network-denial acceptance. Fresh current-user
+  Windows installation is now covered by the separate beta.8 delivery run.
 
 Original failures and raw evidence remain in [the chronological record](README.md).
 No admission event, empty image list, forced cleanup, skipped job or cancelled job
