@@ -82,6 +82,104 @@
     }
   }
 
+  function clearC4LabelEdges(svg, wrapper) {
+    // Parallel/curved relationship groups need a layout decision, not a nudge.
+    if (wrapper.parentElement.querySelectorAll(':scope > line, :scope > path').length !== 1) return
+    const parentMatrix = wrapper.parentElement.getScreenCTM()
+    if (!parentMatrix) return
+    const inverse = parentMatrix.inverse()
+    const boundsInParent = (element) => {
+      const box = element.getBBox()
+      const matrix = element.getScreenCTM()
+      if (!finiteBox(box) || !matrix) return null
+      const transform = inverse.multiply(matrix)
+      const points = [
+        new DOMPoint(box.x, box.y),
+        new DOMPoint(box.x + box.width, box.y),
+        new DOMPoint(box.x, box.y + box.height),
+        new DOMPoint(box.x + box.width, box.y + box.height),
+      ].map((point) => point.matrixTransform(transform))
+      return {
+        left: Math.min(...points.map((point) => point.x)),
+        right: Math.max(...points.map((point) => point.x)),
+        top: Math.min(...points.map((point) => point.y)),
+        bottom: Math.max(...points.map((point) => point.y)),
+      }
+    }
+    const box = boundsInParent(wrapper)
+    if (!box) return
+    const nodes = [...svg.querySelectorAll('.c4-shape')].flatMap((node) => {
+      const bounds = boundsInParent(node)
+      if (!bounds) return []
+      let halfStroke = 0
+      for (const shape of node.querySelectorAll('rect,circle,ellipse,path,polygon')) {
+        const matrix = shape.getScreenCTM()
+        const width = Number.parseFloat(getComputedStyle(shape).strokeWidth)
+        if (!matrix || !Number.isFinite(width)) continue
+        const transform = inverse.multiply(matrix)
+        halfStroke = Math.max(
+          halfStroke,
+          (width / 2) *
+            Math.max(Math.hypot(transform.a, transform.b), Math.hypot(transform.c, transform.d)),
+        )
+      }
+      const gap = halfStroke + 1
+      return [
+        {
+          left: bounds.left - gap,
+          right: bounds.right + gap,
+          top: bounds.top - gap,
+          bottom: bounds.bottom + gap,
+        },
+      ]
+    })
+    const overlaps = (node, dx = 0) =>
+      box.left + dx < node.right &&
+      box.right + dx > node.left &&
+      box.top < node.bottom &&
+      box.bottom > node.top
+    const touching = nodes.filter((node) => overlaps(node))
+    if (!touching.length) return
+    const protectedBounds = [
+      ...svg.querySelectorAll('[data-milkup-c4-label], line, path[marker-start], path[marker-end]'),
+    ]
+      .filter(
+        (element) =>
+          element !== wrapper &&
+          (element.hasAttribute('data-milkup-c4-label') ||
+            element.parentElement !== wrapper.parentElement),
+      )
+      .flatMap((element) => {
+        const bounds = boundsInParent(element)
+        if (!bounds) return []
+        // Conservatively protect whole connector bounds, including arrow tips.
+        // A blocked correction leaves the authored layout as rendered.
+        const gap = element.hasAttribute('data-milkup-c4-label') ? 1 : 8
+        return [
+          {
+            left: bounds.left - gap,
+            right: bounds.right + gap,
+            top: bounds.top - gap,
+            bottom: bounds.bottom + gap,
+          },
+        ]
+      })
+    // The fixed C4 renderer places relationship text just to the right of its
+    // line midpoint. Our opaque backing can then graze a nearby node's stroke.
+    // Correct only a small edge collision; do not recenter authored offsets,
+    // move line endpoints, or attempt a general relationship-layout rewrite.
+    const candidates = touching
+      .flatMap((node) => [node.left - box.right, node.right - box.left])
+      .filter((dx) => Number.isFinite(dx) && Math.abs(dx) <= 8)
+      .sort((left, right) => Math.abs(left) - Math.abs(right))
+    const dx = candidates.find((candidate) =>
+      [...nodes, ...protectedBounds].every((bounds) => !overlaps(bounds, candidate)),
+    )
+    if (dx === undefined) return
+    const transform = wrapper.transform.baseVal.consolidate().matrix
+    wrapper.setAttribute('transform', `translate(${transform.e + dx} ${transform.f})`)
+  }
+
   function liftC4Labels(svg, background, theme) {
     if (!svg.querySelector('.c4-shape')) return 0
     let count = 0
@@ -120,6 +218,10 @@
         wrapper.insertBefore(backing, label)
         count++
       }
+    }
+    // All relationship labels must exist before checking neighbouring labels.
+    for (const wrapper of svg.querySelectorAll('[data-milkup-c4-label]')) {
+      clearC4LabelEdges(svg, wrapper)
     }
     return count
   }

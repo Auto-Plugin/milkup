@@ -1,0 +1,40 @@
+{
+  "status": "local-native-verified; Windows product acceptance pending",
+  "officialEngineUnchanged": true,
+  "bootstrapBeforeSha256": "36e409f2aaaa8f89a953663fee0e274c64136051018ff5c6c2d95efebe193409",
+  "bootstrapFinalSha256": "8e1d9505dd50ee5319612aca7160978e7b9995ad8314f92d884ca834b66fc1b1",
+  "chromiumTests": {
+    "passed": 22,
+    "failed": 0,
+    "skipped": 0
+  },
+  "nativeCasesPerVersion": 3,
+  "nativeVersions": [
+    "before",
+    "final"
+  ],
+  "nativeSandboxDisabled": false,
+  "initialNamespaceFailure": {
+    "action": "native-before/run.sh corpus",
+    "reason": "bwrap: setting up uid map: Read-only file system",
+    "beforeAnyNativeChildOrPng": true,
+    "state": "resolved by tool-approved execution of the same isolated command; no sandbox change"
+  },
+  "correctionScope": {
+    "maximumHorizontalShiftSvgUnits": 8,
+    "nodeClearanceSvgUnits": 1,
+    "otherLabelBboxClearance": 1,
+    "otherConnectorBboxClearance": 8,
+    "parallelOrCurvedGroups": "skip",
+    "cannotClearAllObstacles": "retain original layout"
+  },
+  "rootCause": "Fixed Mermaid drawRels passes midpoint as text-box left x and byTspan adds half label width. The existing private 3-unit label backing then intrudes into the target stroke. Fixed asset is unchanged.",
+  "limitations": [
+    "Three native Linux direct-helper fixtures only, not editor UI or Windows acceptance.",
+    "Complex/crowded/parallel relations can retain original collisions; no general layout solver.",
+    "Light native snapshots; default/dark local Chromium regression.",
+    "No export or plugin API changes; delivered beta.8 installer untouched."
+  ],
+  "visualReview": "Agent directly viewed the original before/final native C4 PNG and ordinary/wide PNG. C4 outline restored, text and arrow readable; other diagrams pixel-identical.",
+  "sourceReference": "https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/docs/syntax/c4.md (authored UpdateRelStyle offset semantics only; actual fixed implementation read from unchanged asset)"
+}

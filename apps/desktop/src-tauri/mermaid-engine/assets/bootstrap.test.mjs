@@ -271,13 +271,25 @@ test(
             await browser.evaluate(`(()=>{const wrapper=document.querySelector('[data-milkup-c4-label]');
           const label=wrapper.querySelector('text').getBoundingClientRect();
           const line=wrapper.parentElement.querySelector('line').getBoundingClientRect();
+          const backingBox=wrapper.querySelector('rect').getBoundingClientRect();
+          const nodes=[...document.querySelectorAll('.c4-shape')].map(node=>{
+            const shape=node.querySelector('rect');const box=shape.getBoundingClientRect();
+            return {left:box.left,right:box.right,stroke:Number.parseFloat(getComputedStyle(shape).strokeWidth)};
+          }).sort((left,right)=>left.left-right.left);
           return {labelBottom:label.bottom,lineY:line.y,
+            leftGap:backingBox.left-(nodes[0].right+nodes[0].stroke/2),
+            rightGap:nodes[1].left-nodes[1].stroke/2-backingBox.right,
+            startDelta:line.left-nodes[0].right,endDelta:line.right-nodes[1].left,
             backing:getComputedStyle(wrapper.querySelector('rect')).fill,
             ink:getComputedStyle(wrapper.querySelector('text')).fill}})()`)
           assert.ok(
             geometry.labelBottom < geometry.lineY,
             'relationship text is above the connecting line',
           )
+          assert.ok(geometry.leftGap >= 0.99, 'label backing clears the source node stroke')
+          assert.ok(geometry.rightGap >= 0.99, 'label backing clears the target node stroke')
+          assert.equal(geometry.startDelta, 0, 'source line endpoint stays on the node edge')
+          assert.equal(geometry.endDelta, 0, 'target line endpoint stays on the node edge')
           assert.equal(
             geometry.backing,
             theme === 'dark' ? 'rgb(30, 30, 30)' : 'rgb(255, 255, 255)',
@@ -296,6 +308,65 @@ test(
             'C4 has only vertical crop padding',
           )
         })
+        await t.test(
+          `C4 authored offsets away from node edges remain intact in ${theme}`,
+          async () => {
+            const positions = []
+            for (const offset of [-30, -40]) {
+              const result = await browser.render(
+                `${c4}\nUpdateRelStyle(parser, view, $offsetX="${offset}")`,
+                { theme },
+              )
+              assert.equal(result.phase, 'rendered', result.message)
+              positions.push(
+                await browser.evaluate(`(()=>{
+              const label=document.querySelector('[data-milkup-c4-label] text').getBoundingClientRect();
+              const line=document.querySelector('[data-milkup-c4-label]').parentElement.querySelector('line').getBoundingClientRect();
+              return label.left-line.left;
+            })()`),
+              )
+            }
+            assert.ok(
+              Math.abs(positions[1] - positions[0] + 10) < 0.01,
+              'authored horizontal offsets remain exact',
+            )
+          },
+        )
+      }
+      for (const theme of ['default', 'dark']) {
+        await t.test(
+          `C4 edge correction does not run into a nearby relationship label in ${theme}`,
+          async () => {
+            const source =
+              c4.replace(
+                'Rel(parser',
+                'Component(third, "Third", "TypeScript", "Third node")\nRel(parser',
+              ) +
+              '\nRel(view, third, "Calls")\nUpdateRelStyle(view, third, $offsetX="-33", $offsetY="-97")'
+            const result = await browser.render(source, { theme })
+            assert.equal(result.phase, 'rendered', result.message)
+            const geometry = await browser.evaluate(`(()=>{
+            const boxes=[...document.querySelectorAll('[data-milkup-c4-label]')].map(e=>{
+              const b=e.getBoundingClientRect();return {text:e.textContent,left:b.left,right:b.right,top:b.top,bottom:b.bottom};
+            });
+            const target=document.querySelector('#fixed-diagram-view > rect').getBoundingClientRect();
+            return {boxes,targetLeft:target.left};
+          })()`)
+            const presents = geometry.boxes.find((box) => box.text === 'Presents')
+            const calls = geometry.boxes.find((box) => box.text === 'Calls')
+            assert.ok(calls.bottom > presents.top && calls.top < presents.bottom)
+            assert.ok(presents.left - calls.right >= 1, 'existing neighbouring label gap remains')
+            const requiredShift = presents.right - (geometry.targetLeft - 2)
+            assert.ok(
+              requiredShift > 0 && requiredShift <= 8,
+              'node edge alone would permit a small shift',
+            )
+            assert.ok(
+              presents.left - requiredShift < calls.right,
+              'that shift would obscure the neighbouring label',
+            )
+          },
+        )
       }
       for (const [kind, source] of [
         [
