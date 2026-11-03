@@ -1,3 +1,5 @@
+> Latest checkpoint (2026-11-03): [bounded deletion diagnostics and original-std control](DELETE-DIAGNOSTIC-2026-11-03.md). Historical OS5 is still unreproduced/unrepaired; no product integration or new installer.
+
 > **Historical preparation document.** The body below describes the initial
 > candidate, not current execution or authorization. Windows standard-user tests
 > have since run; see [the recorded result](WINDOWS-STANDARD-USER-RESULT-2026-10-23.md)
