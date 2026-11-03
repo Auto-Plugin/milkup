@@ -101,6 +101,22 @@ three-handle allowlist, original deadlines, 4 KiB Ready limit and 8 KiB audit
 limit are unchanged. Cancellation during Job sampling preserves the original
 Ready evidence without publishing a `started` proof that was never emitted.
 
+Cleanup diagnostics retain the final owned-tree OS error, actual removal-call
+count, elapsed time, terminal phase and independent absence observation. At most
+31 failed attempts leave the audit as numeric `[attempt, error]` pairs; a null
+error never means success. Fixed elapsed checkpoints distinguish skipped Job,
+pin and profile operations from completed calls. Each IPC join records its
+native operation/completion state at entry, at cancellation if requested, and
+at return. These observations do not change handle lifetimes, the 50/250 ms
+join rules, the three-second tree retry bound, or cleanup acceptance. Error 995
+remains an I/O failure, including after a captured image; it is not EOF.
+
+Run 41692476025 provided the motivating real failure: pure-standard captured
+2606 bytes but had cancelled pipe reads and an unremoved private tree, so no PNG
+was published. Its exact tree deletion error was not present in that earlier
+audit and remains unknown. Filtered-admin passed its product steps and cleanup
+in that run; the required complete two-account acceptance remains pending.
+
 Actual token diagnostics passed in both account kinds on run 41683336878. Full
 Windows product rendering and cleanup acceptance for this new conditional
 policy remains pending its dedicated product run; policy tests, cross-compiling

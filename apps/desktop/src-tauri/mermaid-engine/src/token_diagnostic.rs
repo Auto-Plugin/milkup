@@ -583,7 +583,14 @@ fn parent_observes_suspended_and_self_tokens() {
     let mut joins = Vec::new();
     let mut stdout = None;
     for (name, reader) in readers {
-        match join_bounded(reader, name, &mut join_errors, &mut join_kinds, &mut joins) {
+        match join_bounded(
+            reader,
+            name,
+            &mut join_errors,
+            &mut join_kinds,
+            &mut joins,
+            None,
+        ) {
             Some(Ok(bytes)) => {
                 report[format!("{name}Bytes")] = json!(bytes.len());
                 report[format!("{name}Sha256")] = json!(format!("{:x}", Sha256::digest(&bytes)));

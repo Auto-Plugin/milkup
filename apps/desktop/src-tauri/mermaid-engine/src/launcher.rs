@@ -1,4 +1,5 @@
 //! Same-login, creation-time Job ownership for the fixed product engine.
+use crate::ipc_observation::{Completion, Phase, Progress};
 use crate::{Control, Result};
 use serde_json::{json, Value};
 use std::{
@@ -978,8 +979,10 @@ fn output_reader(
     mut output: File,
     tx: mpsc::Sender<Event>,
     stop_requested: Arc<AtomicBool>,
+    progress: Progress,
 ) -> std::result::Result<(), OutputFailure> {
     let mut phase = "ready-frame";
+    progress.phase(Phase::ReadyFrame);
     let result = (|| -> std::result::Result<(), OutputProblem> {
         let mut total = 0;
         let ready = read_frame(&mut output, MAX_READY, &mut total)?;
@@ -987,9 +990,11 @@ fn output_reader(
             return Err("Helper did not send the expected ready frame".into());
         }
         phase = "ready-event";
+        progress.phase(Phase::ReadyEvent);
         tx.send(Event::Ready(ready))
             .map_err(|error| OutputProblem::new("channel", error.to_string()))?;
         phase = "result-frame";
+        progress.phase(Phase::ResultFrame);
         let metadata = read_frame(&mut output, MAX_METADATA, &mut total)?;
         let bytes = metadata["pngBytes"]
             .as_u64()
@@ -998,18 +1003,23 @@ fn output_reader(
             return Err("PNG byte length exceeds budget".into());
         }
         phase = "png-body";
+        progress.phase(Phase::PngBody);
         let png = read_exact_bounded(&mut output, bytes as usize, &mut total)?;
         // Let the native owner stop the Job immediately after the complete frame.
         // Browser descendants may still own a duplicate of stdout; EOF is not
         // part of successful rendering and cannot be awaited before that stop.
         phase = "result-event";
+        progress.phase(Phase::ResultEvent);
         tx.send(Event::Result(metadata, png, total))
             .map_err(|error| OutputProblem::new("channel", error.to_string()))?;
         phase = "trailing-byte";
+        progress.phase(Phase::TrailingByte);
         let mut tail = [0u8; 1];
         match output.read(&mut tail) {
-            Ok(0) => (),
-            Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => (),
+            Ok(0) => progress.finish(Completion::Eof),
+            Err(error) if error.kind() == std::io::ErrorKind::BrokenPipe => {
+                progress.finish(Completion::BrokenPipe)
+            }
             Ok(_) => {
                 return Err(OutputProblem::new(
                     "trailing-data",
@@ -1021,6 +1031,12 @@ fn output_reader(
         Ok(())
     })();
     result.map_err(|problem| {
+        progress.finish(match problem.kind {
+            "read" => Completion::ReadError,
+            "channel" => Completion::ChannelError,
+            "trailing-data" => Completion::TrailingData,
+            _ => Completion::SchemaError,
+        });
         let failure = OutputFailure {
             message: problem.message,
             kind: problem.kind,
@@ -1039,8 +1055,11 @@ fn join_bounded<T>(
     errors: &mut Vec<String>,
     kinds: &mut Vec<String>,
     observations: &mut Vec<Value>,
+    progress: Option<&Progress>,
 ) -> Option<T> {
     let started = Instant::now();
+    let progress_at_join = progress.map(Progress::snapshot);
+    let mut progress_at_cancel = None;
     let prior_errors = errors.len();
     let mut cancelled = false;
     let mut cancel_call_succeeded = None;
@@ -1050,6 +1069,7 @@ fn join_bounded<T>(
             // A failed ownership proof must not hang the supervisor just because
             // an unexpected process retained a pipe. Cancel only our own thread's
             // synchronous pipe I/O, never an unowned process or another job.
+            progress_at_cancel = progress.map(Progress::snapshot);
             let result = unsafe { CancelSynchronousIo(thread.as_raw_handle()) };
             let error = std::io::Error::last_os_error();
             cancel_call_succeeded = Some(result != 0);
@@ -1086,7 +1106,9 @@ fn join_bounded<T>(
     observations.push(json!({"stream":name,
         "elapsedMs":started.elapsed().as_millis().min(u64::MAX as u128) as u64,
         "cancelRequested":cancelled,"cancelCallSucceeded":cancel_call_succeeded,
-        "cancelWin32Error":cancel_win32_error,"finished":finished,"panicked":panicked}));
+        "cancelWin32Error":cancel_win32_error,"finished":finished,"panicked":panicked,
+        "progressAtJoin":progress_at_join,"progressAtCancel":progress_at_cancel,
+        "progressAtEnd":progress.map(Progress::snapshot)}));
     if errors.len() != prior_errors {
         kinds.push(format!("{name}-join"));
     }
@@ -1140,6 +1162,9 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     let mut metadata = json!({"status":"error","pngBytes":0});
     let mut png = Vec::new();
     let stop_requested = Arc::new(AtomicBool::new(false));
+    let stdout_progress = Progress::default();
+    let stdin_progress = Progress::default();
+    let stderr_progress = Progress::default();
     // Admission means an actually created, uniquely owned native root. All
     // subsequent failures pass through the complete ownership cleanup below.
     crate::audit::emit(&json!({"phase":"admitted",
@@ -1223,19 +1248,30 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         let (tx, rx) = mpsc::channel();
         let output_tx = tx.clone();
         let output_stop = stop_requested.clone();
+        let output_progress = stdout_progress.clone();
         readers.push(thread::spawn(move || {
-            output_reader(child_output, output_tx, output_stop)
+            output_reader(child_output, output_tx, output_stop, output_progress)
         }));
         let error_tx = tx.clone();
         let error_stop = stop_requested.clone();
+        let error_progress = stderr_progress.clone();
         stderr_reader = Some(thread::spawn(move || {
+            error_progress.phase(Phase::StderrRead);
             let mut bytes = Vec::new();
             match child_error
                 .take((MAX_STDERR + 1) as u64)
                 .read_to_end(&mut bytes)
             {
-                Ok(_) if bytes.len() <= MAX_STDERR => (bytes, false, None),
+                Ok(_) if bytes.len() <= MAX_STDERR => {
+                    error_progress.finish(Completion::Eof);
+                    (bytes, false, None)
+                }
                 result => {
+                    error_progress.finish(if result.is_err() {
+                        Completion::ReadError
+                    } else {
+                        Completion::BudgetError
+                    });
                     let failure = match &result {
                         Err(error) => json!({"kind":"read",
                             "stopRequestedWhenObserved":error_stop.load(Ordering::Acquire),
@@ -1302,16 +1338,35 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         ));
         let render_started = Instant::now();
         let input_len = input_bytes.len() as u32;
+        let input_progress = stdin_progress.clone();
         writer = Some(thread::spawn(move || {
+            input_progress.phase(Phase::StdinWrite);
             let result = child_input
                 .write_all(&input_len.to_le_bytes())
                 .and_then(|_| child_input.write_all(&input_bytes))
-                .and_then(|_| child_input.flush());
+                .and_then(|_| {
+                    input_progress.phase(Phase::StdinFlush);
+                    child_input.flush()
+                });
             let event = match result {
-                Ok(()) => Event::Written,
-                Err(error) => Event::Error(error.to_string()),
+                Ok(()) => {
+                    input_progress.phase(Phase::WrittenEvent);
+                    Event::Written
+                }
+                Err(error) => {
+                    input_progress.finish(Completion::WriteError);
+                    Event::Error(error.to_string())
+                }
             };
-            let _ = tx.send(event);
+            let written = matches!(&event, Event::Written);
+            let sent = tx.send(event);
+            if written {
+                input_progress.finish(if sent.is_ok() {
+                    Completion::Written
+                } else {
+                    Completion::ChannelError
+                });
+            }
         }));
         let mut written = false;
         let mut result = None;
@@ -1340,6 +1395,8 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         }
         Ok(())
     })();
+    let cleanup_started = Instant::now();
+    let mut cleanup_timeline = json!({});
     stop_requested.store(true, Ordering::Release);
     report["capturedPngBytes"] = json!(png.len());
     let mut cleanup_errors = Vec::new();
@@ -1357,6 +1414,8 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         } else {
             report["jobActiveAfterStop"] = json!(0);
         }
+        cleanup_timeline["jobStopFinishedMs"] =
+            json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
     }
     // Even an unexpected leaked handle cannot make these joins unbounded. Any
     // cancellation/pending thread is a failed run; the caller must end the
@@ -1369,6 +1428,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             &mut cleanup_errors,
             &mut cleanup_kinds,
             &mut ipc_cleanup,
+            Some(&stdout_progress),
         ) {
             Some(Ok(())) => (),
             Some(Err(error)) => {
@@ -1388,6 +1448,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             &mut cleanup_errors,
             &mut cleanup_kinds,
             &mut ipc_cleanup,
+            Some(&stdin_progress),
         )
         .is_none()
         {
@@ -1401,6 +1462,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             &mut cleanup_errors,
             &mut cleanup_kinds,
             &mut ipc_cleanup,
+            Some(&stderr_progress),
         ) {
             Some((bytes, exceeded, failure)) => {
                 report["stderr"] = json!(String::from_utf8_lossy(&bytes));
@@ -1414,11 +1476,18 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             None => ipc_threads_completed = false,
         }
     }
+    cleanup_timeline["ipcJoinsFinishedMs"] =
+        json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
     report["ipcThreadCleanup"] = json!(ipc_cleanup);
     report["ipcThreadsCompleted"] = json!(ipc_threads_completed);
     report["stopMatrixAfterThisCase"] = json!(!ipc_threads_completed || !empty);
     drop(job); // KILL_ON_JOB_CLOSE remains the last-resort ownership boundary.
+    let had_pins = pins.is_some();
     drop(pins);
+    if had_pins {
+        cleanup_timeline["pinsReleasedMs"] =
+            json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
+    }
     if empty {
         if let Some(profile) = &mut profile {
             match profile.delete() {
@@ -1429,10 +1498,11 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
                 }
             }
             report["profileDeleteApiSucceeded"] = json!(profile.deleted);
+            cleanup_timeline["profileDeleteFinishedMs"] =
+                json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
         }
-        let mut delete_attempts = Vec::new();
         report["privateTreeRemoved"] = json!(false);
-        let removal = crate::cleanup::remove_owned_tree(&root, &mut delete_attempts);
+        let (removal, tree_facts) = crate::cleanup::remove_owned_tree_observed(&root);
         match removal {
             Ok(()) => report["privateTreeRemoved"] = json!(true),
             Err(error) => {
@@ -1440,7 +1510,10 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
                 cleanup_errors.push(format!("Private tree deletion: {error}"));
             }
         }
-        report["privateTreeDeleteAttempts"] = json!(delete_attempts);
+        report["privateTreeDeleteAttempts"] = json!(tree_facts.observations);
+        report["privateTreeCleanup"] = json!(tree_facts);
+        cleanup_timeline["treeDeleteFinishedMs"] =
+            json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
     } else {
         cleanup_kinds.push("job-not-empty".into());
         if let Some(profile) = &mut profile {
@@ -1450,6 +1523,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             "Private files/profile retained because process emptiness was not established".into(),
         );
     }
+    report["cleanupTimeline"] = cleanup_timeline;
     report["cleanupErrors"] = json!(cleanup_errors);
     report["cleanupFailureKinds"] = json!(cleanup_kinds);
     report["stopMatrixAfterThisCase"] =

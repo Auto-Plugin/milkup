@@ -203,6 +203,8 @@ pub(crate) fn finished(
             "capturedPngBytes":report["capturedPngBytes"].as_u64().filter(|bytes| *bytes <= crate::MAX_OUTPUT as u64),
             "cleanupFailureKinds":cleanup_failure_kinds(&report["cleanupFailureKinds"]),
             "ipcThreadCleanup":ipc_thread_cleanup(&report["ipcThreadCleanup"]),
+            "privateTreeCleanup":private_tree_cleanup(&report["privateTreeCleanup"]),
+            "cleanupTimeline":cleanup_timeline(&report["cleanupTimeline"]),
             "stdoutFailure":stdout_failure(&report["stdoutFailure"]),
             "stderrFailure":stderr_failure(&report["stderrFailure"]),
             "hostSid":report["hostToken"]["userSid"],
@@ -340,10 +342,108 @@ fn ipc_thread_cleanup(value: &Value) -> Vec<Value> {
             Some(json!({
                 "stream":stream, "elapsedMs":elapsed_ms, "cancelRequested":cancel_requested,
                 "cancelCallSucceeded":cancel_succeeded, "cancelWin32Error":cancel_error,
-                "finished":finished, "panicked":panicked
+                "finished":finished, "panicked":panicked,
+                "progressAtJoin":ipc_progress(&entry["progressAtJoin"]),
+                "progressAtCancel":ipc_progress(&entry["progressAtCancel"]),
+                "progressAtEnd":ipc_progress(&entry["progressAtEnd"])
             }))
         })
         .collect()
+}
+
+fn ipc_progress(value: &Value) -> Option<Value> {
+    let phase = value["phase"].as_str()?;
+    let completion = value["completion"].as_str()?;
+    if ![
+        "created",
+        "ready-frame",
+        "ready-event",
+        "result-frame",
+        "png-body",
+        "result-event",
+        "trailing-byte",
+        "stderr-read",
+        "stdin-write",
+        "stdin-flush",
+        "written-event",
+    ]
+    .contains(&phase)
+        || ![
+            "pending",
+            "eof",
+            "broken-pipe",
+            "written",
+            "read-error",
+            "schema-error",
+            "channel-error",
+            "trailing-data",
+            "budget-error",
+            "write-error",
+        ]
+        .contains(&completion)
+    {
+        return None;
+    }
+    Some(json!({"phase":phase,"completion":completion}))
+}
+
+fn cleanup_timeline(value: &Value) -> Option<Value> {
+    value.as_object()?;
+    Some(json!({
+        "jobStopFinishedMs":value["jobStopFinishedMs"].as_u64(),
+        "ipcJoinsFinishedMs":value["ipcJoinsFinishedMs"].as_u64(),
+        "pinsReleasedMs":value["pinsReleasedMs"].as_u64(),
+        "profileDeleteFinishedMs":value["profileDeleteFinishedMs"].as_u64(),
+        "treeDeleteFinishedMs":value["treeDeleteFinishedMs"].as_u64()
+    }))
+}
+
+fn optional_os_error(value: &Value) -> Option<Option<i32>> {
+    if value.is_null() {
+        Some(None)
+    } else {
+        Some(Some(i32::try_from(value.as_i64()?).ok()?))
+    }
+}
+
+fn private_tree_cleanup(value: &Value) -> Option<Value> {
+    let attempts = value["attempts"].as_u64()?;
+    if !(1..=31).contains(&attempts) {
+        return None;
+    }
+    let elapsed_ms = value["elapsedMs"].as_u64()?;
+    let final_error = optional_os_error(value.get("finalOsError")?)?;
+    let phase = value["terminalPhase"].as_str()?;
+    if !["remove", "absence-check", "complete"].contains(&phase) {
+        return None;
+    }
+    let absence_checked = value["absenceChecked"].as_bool()?;
+    let absent = match value.get("absent")? {
+        Value::Null => None,
+        value => Some(value.as_bool()?),
+    };
+    let observations = value["observations"].as_array()?;
+    if observations.len() > 31 {
+        return None;
+    }
+    let mut previous = 0;
+    let mut failures = Vec::new();
+    for observation in observations {
+        let attempt = observation["attempt"].as_u64()?;
+        if attempt <= previous || attempt > attempts {
+            return None;
+        }
+        previous = attempt;
+        failures.push(json!([
+            attempt,
+            optional_os_error(observation.get("osError")?)?
+        ]));
+    }
+    Some(
+        json!({"attempts":attempts,"elapsedMs":elapsed_ms,"finalOsError":final_error,
+        "terminalPhase":phase,"absenceChecked":absence_checked,"absent":absent,
+        "failedAttempts":failures}),
+    )
 }
 
 fn stdout_failure(value: &Value) -> Option<Value> {
@@ -438,6 +538,16 @@ mod tests {
             "ipcThreadCleanup":(["stdout","stdin","stderr"].map(|stream|json!({"stream":stream,"elapsedMs":u64::MAX,"cancelRequested":true,"cancelCallSucceeded":false,"cancelWin32Error":u32::MAX,"finished":false,"panicked":true}))),
             "stdoutFailure":{"phase":"trailing-byte","kind":"trailing-data","stopRequestedWhenObserved":true,"win32Error":u32::MAX},
             "stderrFailure":{"kind":"budget","stopRequestedWhenObserved":true,"win32Error":u32::MAX}});
+        report["privateTreeCleanup"] = json!({"attempts":31,"elapsedMs":u64::MAX,
+            "finalOsError":i32::MIN,"terminalPhase":"absence-check","absenceChecked":true,"absent":null,
+            "observations":(1..=31).map(|attempt|json!({"attempt":attempt,"osError":i32::MIN,"retryableSharingOrLockViolation":false})).collect::<Vec<_>>()});
+        report["cleanupTimeline"] = json!({"jobStopFinishedMs":u64::MAX,"ipcJoinsFinishedMs":u64::MAX,
+            "pinsReleasedMs":u64::MAX,"profileDeleteFinishedMs":u64::MAX,"treeDeleteFinishedMs":u64::MAX});
+        for entry in report["ipcThreadCleanup"].as_array_mut().unwrap() {
+            for field in ["progressAtJoin", "progressAtCancel", "progressAtEnd"] {
+                entry[field] = json!({"phase":"trailing-byte","completion":"channel-error"});
+            }
+        }
         for mut record in [
             started(&"f".repeat(32), &report),
             finished(&"f".repeat(32), &report, &[255; 32], true, true),
@@ -478,6 +588,47 @@ mod tests {
                 "Unverified {field} cannot claim native proof"
             );
         }
+    }
+
+    #[test]
+    fn cleanup_observations_are_bounded_numeric_facts_and_do_not_override_failure() {
+        let mut value = json!({"attempts":2,"elapsedMs":37,"finalOsError":5,
+            "terminalPhase":"remove","absenceChecked":false,"absent":null,
+            "observations":[{"attempt":1,"osError":32,"path":"private-source"},
+                {"attempt":2,"osError":5,"message":"private-source"}],"path":"private-source"});
+        let closed = private_tree_cleanup(&value).unwrap();
+        assert_eq!(closed["failedAttempts"], json!([[1, 32], [2, 5]]));
+        assert_eq!(closed["finalOsError"], 5);
+        assert!(closed["absent"].is_null());
+        assert!(!closed.to_string().contains("private-source"));
+        value["finalOsError"] = Value::Null;
+        value["terminalPhase"] = json!("absence-check");
+        value["absenceChecked"] = json!(true);
+        value["absent"] = json!(false);
+        let result = finished(
+            "r",
+            &json!({"privateTreeCleanup":value,"privateTreeRemoved":false,
+            "stopMatrixAfterThisCase":true,"success":false}),
+            &[],
+            false,
+            false,
+        );
+        assert!(result["privateTreeCleanup"]["finalOsError"].is_null());
+        assert_eq!(result["cleanupUncertain"], true);
+        assert_eq!(result["successful"], false);
+        value["attempts"] = json!(32);
+        assert!(private_tree_cleanup(&value).is_none());
+        value["attempts"] = json!(2);
+        value["observations"][1]["attempt"] = json!(1);
+        assert!(private_tree_cleanup(&value).is_none());
+        assert!(ipc_progress(&json!({"phase":"private-source","completion":"eof"})).is_none());
+        assert_eq!(ipc_progress(&json!({"phase":"trailing-byte","completion":"read-error","source":"private-source"})).unwrap(),
+            json!({"phase":"trailing-byte","completion":"read-error"}));
+        assert!(cleanup_timeline(&Value::Null).is_none());
+        assert!(
+            cleanup_timeline(&json!({"jobStopFinishedMs":1})).unwrap()["treeDeleteFinishedMs"]
+                .is_null()
+        );
     }
 
     #[test]
@@ -739,8 +890,11 @@ mod tests {
     }
 
     #[test]
-    fn ipc_diagnostics_keep_only_seven_typed_fields_and_three_rows() {
+    fn ipc_diagnostics_keep_only_ten_typed_fields_and_three_rows() {
         let mut stdout = ipc_diagnostic("stdout");
+        stdout["progressAtJoin"] = json!({"phase":"trailing-byte","completion":"pending"});
+        stdout["progressAtCancel"] = json!({"phase":"trailing-byte","completion":"pending"});
+        stdout["progressAtEnd"] = json!({"phase":"trailing-byte","completion":"read-error"});
         stdout["privatePath"] = json!("C:/private-user-path");
         stdout["source"] = json!("private source");
         stdout["stderr"] = json!("secret stderr text");
@@ -755,8 +909,12 @@ mod tests {
         let output = ipc_thread_cleanup(&json!([stdout, stdin, stderr, ipc_diagnostic("stdout")]));
         assert_eq!(output.len(), 3);
         for row in &output {
-            assert_eq!(row.as_object().unwrap().len(), 7);
+            assert_eq!(row.as_object().unwrap().len(), 10);
         }
+        assert_eq!(output[0]["progressAtJoin"]["completion"], "pending");
+        assert_eq!(output[0]["progressAtCancel"]["phase"], "trailing-byte");
+        assert_eq!(output[0]["progressAtEnd"]["completion"], "read-error");
+        assert!(output[1]["progressAtJoin"].is_null());
         assert_eq!(output[1]["elapsedMs"].as_u64(), Some(u64::MAX));
         assert_eq!(
             output[1]["cancelWin32Error"].as_u64(),
