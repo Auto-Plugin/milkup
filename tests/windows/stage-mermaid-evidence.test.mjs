@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stageEvidence } from './stage-mermaid-evidence.mjs'
@@ -66,6 +67,58 @@ for (const scenario of [
             scenario === 'wrong-candidate' ? 'b'.repeat(40) : candidate,
           ),
         )
+    } finally {
+      rmSync(f.root, { recursive: true, force: true })
+    }
+  })
+
+for (const scenario of ['partial-failed', 'partial-passed', 'audit-mismatch', 'rejection-unaccounted'])
+  test(scenario, () => {
+    const f = fixture()
+    try {
+      const body = Buffer.from('Primary Node failure retained\n')
+      writeFileSync(join(f.source, 'node-stderr.log'), body)
+      writeFileSync(
+        join(f.source, 'windows-standard-product-audit.json'),
+        JSON.stringify({
+          source: candidate,
+          status: scenario === 'partial-passed' ? 'passed' : 'failed',
+          passwordInLogsFilesArgumentsOrEnvironment: false,
+          evidenceCopy: { complete: scenario === 'audit-mismatch' },
+        }),
+      )
+      writeFileSync(
+        join(f.source, 'evidence-files.json'),
+        JSON.stringify({
+          schema: 1,
+          complete: false,
+          files: [
+            {
+              retainedName: 'node-stderr.log',
+              relativePath: 'node-stderr.log',
+              bytes: body.length,
+              sha256: createHash('sha256').update(body).digest('hex'),
+            },
+          ],
+          rejected: [
+            {
+              relativePath: 'edgedriver-native.log',
+              bytes: 3 * 1024 * 1024,
+              sha256: null,
+              hashStatus: 'not-read-budget',
+              reason: 'file-size-budget',
+            },
+          ],
+          rejectedCount: scenario === 'rejection-unaccounted' ? 2 : 1,
+          rejectionsOmitted: 0,
+        }),
+      )
+      if (scenario === 'partial-failed') {
+        const manifest = stageEvidence(f.source, f.destination, candidate)
+        assert.equal(manifest.outerStatus, 'failed')
+        assert.deepEqual(readFileSync(join(f.destination, 'node-stderr.log')), body)
+        assert(!manifest.files.some((file) => file.name === 'edgedriver-native.log'))
+      } else assert.throws(() => stageEvidence(f.source, f.destination, candidate))
     } finally {
       rmSync(f.root, { recursive: true, force: true })
     }

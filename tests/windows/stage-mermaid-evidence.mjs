@@ -113,6 +113,29 @@ export function stageEvidence(source, destination, candidateSha) {
     const manifest = JSON.parse(copy.bytes)
     assert.equal(manifest.schema, 1)
     assert(Array.isArray(manifest.files) && manifest.files.length <= 94)
+    if (Object.hasOwn(manifest, 'complete')) {
+      assert.equal(typeof manifest.complete, 'boolean', 'Closed evidence completeness required')
+      assert.equal(
+        audit.evidenceCopy?.complete,
+        manifest.complete,
+        'Copy manifest and outer audit must agree on completeness',
+      )
+      assert(Array.isArray(manifest.rejected) && manifest.rejected.length <= 64)
+      assert(
+        Number.isSafeInteger(manifest.rejectedCount) &&
+          manifest.rejectedCount >= 0 &&
+          manifest.rejectedCount <= 4096,
+      )
+      assert(Number.isSafeInteger(manifest.rejectionsOmitted) && manifest.rejectionsOmitted >= 0)
+      assert.equal(
+        manifest.rejectedCount,
+        manifest.rejected.length + manifest.rejectionsOmitted,
+        'All rejected evidence must be accounted for',
+      )
+      assert.equal(manifest.complete, manifest.rejectedCount === 0)
+      if (!manifest.complete)
+        assert.equal(audit.status, 'failed', 'Incomplete evidence cannot be accepted as passing')
+    }
     const reviewed = new Set()
     for (const entry of manifest.files) {
       assert(
