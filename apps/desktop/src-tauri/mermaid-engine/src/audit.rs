@@ -593,8 +593,8 @@ mod tests {
             "observations":(1..=31).map(|attempt|json!({"attempt":attempt,"osError":i32::MIN,"retryableWindowsDeleteError":false})).collect::<Vec<_>>()});
         report["cleanupTimeline"] = json!({"jobStopFinishedMs":u64::MAX,"ipcJoinsFinishedMs":u64::MAX,
             "pinsReleasedMs":u64::MAX,"profileDeleteFinishedMs":u64::MAX,"treeDeleteFinishedMs":u64::MAX});
-        let wait = json!({"waitStatus":"signaled","waitResult":0,"win32Error":null,
-            "exitCode":null,"exitCodeWin32Error":u32::MAX});
+        let wait = json!({"waitStatus":"failed","waitResult":u32::MAX,"win32Error":u32::MAX,
+            "exitCode":null,"exitCodeWin32Error":null});
         report["helperProcessExitObservation"] = json!({"beforeTerminate":wait,
             "afterTerminateRequest":wait,"handleReleasedBeforeAccounting":true});
         for entry in report["ipcThreadCleanup"].as_array_mut().unwrap() {
