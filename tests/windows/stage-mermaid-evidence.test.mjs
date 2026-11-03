@@ -106,7 +106,7 @@ for (const scenario of ['partial-failed', 'partial-passed', 'audit-mismatch', 'r
               bytes: 3 * 1024 * 1024,
               sha256: null,
               hashStatus: 'not-read-budget',
-              reason: 'file-size-budget',
+              reason: 'file-size',
             },
           ],
           rejectedCount: scenario === 'rejection-unaccounted' ? 2 : 1,
