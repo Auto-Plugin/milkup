@@ -140,6 +140,17 @@ jobs:
           $dirty | Write-Host
           git diff --stat HEAD
           git diff --no-ext-diff --no-textconv HEAD
+          $changed = @(& git -c core.quotepath=false diff --name-only HEAD)
+          $untracked = @(& git -c core.quotepath=false ls-files --others --exclude-standard)
+          $paths = @($changed + $untracked) | Sort-Object -Unique
+          foreach ($path in $paths) {
+            if (Test-Path -LiteralPath $path -PathType Leaf) {
+              $file = Get-Item -LiteralPath $path
+              [ordered]@{ path = $path; bytes = $file.Length; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() } | ConvertTo-Json -Compress | Write-Host
+            } else {
+              [ordered]@{ path = $path; missingOrNotFile = $true } | ConvertTo-Json -Compress | Write-Host
+            }
+          }
           Write-Host '::endgroup::'
           $proof = Join-Path $env:RUNNER_TEMP 'mermaid-rebuild-source-build-tree.json'
           node tests/windows/verify-build-tree.mjs $PWD $proof
