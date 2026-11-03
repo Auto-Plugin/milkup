@@ -87,7 +87,7 @@ jobs:
           $sevenZip = (Get-Command 7z -ErrorAction Stop | Select-Object -First 1).Source
           & $sevenZip i
           if ($LASTEXITCODE -ne 0) { throw 'Existing archive inspector unavailable' }
-          node --test scripts/ci/verify-nsis-image.test.mjs tests/windows/stage-mermaid-evidence.test.mjs
+          node --test scripts/ci/verify-nsis-image.test.mjs scripts/ci/inspect-mermaid-windows-dependencies.test.mjs tests/windows/stage-mermaid-evidence.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Packaging evidence regressions failed' }
       - name: Restore locked dependencies and stage the exact reviewed plugins
         run: |
@@ -187,7 +187,7 @@ jobs:
           $source = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
           $destination = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-retained'
           New-Item -ItemType Directory -Path $destination | Out-Null
-          $names = @('mermaid-source-checkout.json', 'mermaid-source-desktop-check.json', 'mermaid-source-final.json', 'nsis-image-proof.json', 'packaging-record.json', 'installer-input.json', 'packaged-production-binary-manifest.json', 'packaged-production-binary.manifest', 'public-plugins/staged-bundles.json', 'public-plugins/verification.json', 'mermaid-trial-preparation.json', 'mermaid-trial-finalization.json')
+          $names = @('mermaid-source-checkout.json', 'mermaid-source-desktop-check.json', 'mermaid-source-final.json', 'nsis-image-proof.json', 'packaging-record.json', 'installer-input.json', 'packaged-production-binary-manifest.json', 'packaged-production-binary.manifest', 'public-plugins/staged-bundles.json', 'public-plugins/verification.json', 'mermaid-trial-preparation.json', 'mermaid-trial-finalization.json', 'windows-runtime-dependencies.json', 'windows-runtime-imports.log')
           $retained = @()
           foreach ($name in $names) {
             $path = Join-Path $source $name

@@ -79,6 +79,21 @@ $extracted = Record $imageProof.path
 if ($extracted.productVersion -cne $version -or $extracted.signature -cne 'NotSigned' -or
     $extracted.sha256 -cne $imageProof.expectedNsisSha256) { throw 'Extracted application identity mismatch' }
 & "$PSScriptRoot/verify-windows-app-manifest.ps1" -Executable $imageProof.path -EvidenceDirectory $EvidenceDirectory -EvidenceName 'packaged-production-binary'
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+$visualStudio = @(& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+if ($LASTEXITCODE -ne 0 -or $visualStudio.Count -ne 1) { throw 'Cannot locate the existing MSVC inspection tools' }
+$dumpbins = @(Get-ChildItem (Join-Path $visualStudio[0] 'VC/Tools/MSVC/*/bin/Hostx64/x64/dumpbin.exe') -File | Sort-Object FullName -Descending)
+if ($dumpbins.Count -eq 0) { throw 'Existing dumpbin unavailable' }
+$dumpbin = $dumpbins[0].FullName
+$imports = @(& $dumpbin /nologo /imports $imageProof.path 2>&1)
+if ($LASTEXITCODE -ne 0) { throw 'Read-only packaged PE dependency inspection failed' }
+$importsText = ($imports -join "`n") + "`n"
+if ([Text.Encoding]::UTF8.GetByteCount($importsText) -gt 2MB) { throw 'Unexpectedly large PE import evidence' }
+$importsPath = Join-Path $EvidenceDirectory 'windows-runtime-imports.log'
+[IO.File]::WriteAllText($importsPath, $importsText, [Text.UTF8Encoding]::new($false))
+$dependencyPath = Join-Path $EvidenceDirectory 'windows-runtime-dependencies.json'
+Checked node @('scripts/ci/inspect-mermaid-windows-dependencies.mjs', $imageProof.path, $importsPath, $dumpbin, $dependencyPath)
+$dependencies = Get-Content -LiteralPath $dependencyPath -Raw | ConvertFrom-Json
 $icon = Get-Item -LiteralPath (Join-Path $root 'apps/desktop/src-tauri/icons/file.ico')
 $resources = @([ordered]@{ relativePath = 'file.ico'; bytes = $icon.Length; sha256 = (Get-FileHash -LiteralPath $icon.FullName -Algorithm SHA256).Hash.ToLowerInvariant() })
 $icons = @($imageProof.files | Where-Object { [IO.Path]::GetFileName($_.path) -ceq 'file.ico' })
@@ -94,6 +109,7 @@ Write-NewJson (Join-Path $EvidenceDirectory 'packaging-record.json') ([ordered]@
     runUrl = "https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     acceptedImplementationBase = '03e62ba936aafc33a3828f734c0cbba58465ab7b'
     installer = $installer; compiledApplication = $compiled; extractedApplication = $extracted
+    dependencies = $dependencies; buildHostOsVersion = [Environment]::OSVersion.VersionString
     nsisInstallMode = 'currentUser'; webviewInstallMode = 'skip'; existingEvergreenRequired = $true
     artifactRetentionDays = 7; signing = 'unsigned'; officialRelease = $false
     installerExecuted = $false; installedProductAccepted = $false
