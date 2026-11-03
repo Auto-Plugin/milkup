@@ -6,6 +6,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 import { expectedNsisImage } from './verify-nsis-image.mjs'
+import { parseImports } from './windows-loader-imports.mjs'
 import { publicBuildFile, readPublicPluginBuildInputs } from './public-plugin-build-contract.mjs'
 import { REVIEWED_MERMAID_PACKAGE } from '../../apps/desktop/src/reviewed-mermaid-package.ts'
 import { assertReviewedMermaidPackage } from '../../plugins/diagrams-worker/scripts/package-seals.mjs'
@@ -205,6 +206,57 @@ export function inspectEmbeddedEngine(compiled, extracted, engine, bootstrap) {
   }
 }
 
+/** Re-read the actual dumpbin output; a claimed empty dependency list alone is
+ * not evidence that the extracted application has no extra runtime DLLs. */
+export function verifyRuntimeDependencies(report, importsBytes, applicationSha256) {
+  assert.equal(report.schema, 1)
+  assert.equal(report.status, 'passed')
+  assert.equal(report.readOnly, true)
+  assert.equal(report.architecture, 'x86_64')
+  assert.match(applicationSha256, /^[a-f0-9]{64}$/)
+  assert.equal(
+    report.applicationSha256,
+    applicationSha256,
+    'Dependencies refer to a different extracted application',
+  )
+  assert(
+    Buffer.isBuffer(importsBytes) &&
+      importsBytes.length > 0 &&
+      importsBytes.length <= 2 * 1024 * 1024,
+    'Bounded raw imports evidence required',
+  )
+  assert.equal(report.source.importsSha256, hash(importsBytes), 'Raw imports evidence changed')
+  assert.match(
+    report.source.dumpbinSha256,
+    /^[a-f0-9]{64}$/,
+    'Actual inspection tool hash required',
+  )
+  const dlls = [
+    ...new Set(parseImports(importsBytes.toString('utf8')).map((item) => item.dll.toUpperCase())),
+  ].sort()
+  assert(dlls.length > 0 && dlls.length <= 128, 'Actual non-empty import table required')
+  assert(
+    dlls.every((name) => /^[A-Z0-9_.+-]+\.DLL$/.test(name)),
+    'Only DLL names may appear in the dependency list',
+  )
+  assert.deepEqual(report.dlls, dlls, 'Dependency list differs from raw imports')
+  assert.deepEqual(
+    report.apiSets,
+    dlls.filter((name) => /^(?:API|EXT)-MS-/.test(name)),
+    'API-set list differs from raw imports',
+  )
+  const externalVc = dlls.filter((name) =>
+    /^(?:VCRUNTIME\d|MSVCP\d|CONCRT\d|VCOMP\d|UCRTBASED\.)/.test(name),
+  )
+  assert.deepEqual(externalVc, [], 'Unexpected external VC runtime dependency')
+  assert.deepEqual(report.extraVcRuntimeDlls, [], 'External VC runtime dependencies must be absent')
+  assert(!dlls.includes('WEBVIEW2LOADER.DLL'), 'Unexpected external WebView2Loader dependency')
+  assert.equal(report.webview2Loader, 'static-no-loader-dll-import')
+  assert.equal(report.webview2Runtime, 'external-existing-Evergreen')
+  assert.equal(report.nodeOrPnpmRequiredAtRuntime, false)
+  return report
+}
+
 async function verifyInputs(evidence) {
   const packaging = await json(path.join(evidence, 'packaging-record.json'))
   assert.equal(packaging.schema, 1)
@@ -251,6 +303,17 @@ async function verifyInputs(evidence) {
   assert.equal(nsis.expectedNsisSha256, hash(extracted))
   assert.equal(nsis.changedBytes, 3)
   assert.equal(path.resolve(nsis.path), path.resolve(packaging.extractedApplication.path))
+  const dependencies = await json(path.join(evidence, 'windows-runtime-dependencies.json'))
+  assert.deepEqual(
+    packaging.dependencies,
+    dependencies,
+    'Packaging and runtime dependency reports differ',
+  )
+  verifyRuntimeDependencies(
+    dependencies,
+    await plainBytes(path.join(evidence, 'windows-runtime-imports.log'), 2 * 1024 * 1024),
+    hash(extracted),
+  )
   const engine = await plainBytes(path.join(checkout, enginePath))
   const bootstrap = await plainBytes(path.join(checkout, bootstrapPath))
   const engineSource = (
@@ -383,12 +446,13 @@ async function verifyInputs(evidence) {
     plugins,
     dist,
     embedded,
+    dependencies,
     nsis,
     stagingSha256: hash(
       await plainBytes(path.join(evidence, 'public-plugins/staged-bundles.json')),
     ),
   }
-  return { packaging, installer, archives, plugins, installerInput, verification }
+  return { packaging, installer, archives, plugins, installerInput, verification, dependencies }
 }
 
 function readme(manifest) {
@@ -454,6 +518,7 @@ export async function preparePayload(evidence, output) {
     installer: { ...verified.packaging.installer, deliveredName: name },
     compiledApplication: verified.packaging.compiledApplication,
     extractedApplication: verified.packaging.extractedApplication,
+    dependencies: verified.dependencies,
     installerExecuted: false,
     installationAcceptance: 'pending',
     realImeAccepted: false,

@@ -12,12 +12,92 @@ import {
   inspectDistArchives,
   inspectEmbeddedEngine,
   verifyInstalledEvidence,
+  verifyRuntimeDependencies,
 } from './prepare-mermaid-trial-payload.mjs'
 import { crc32, validatePng } from '../../tests/windows/mermaid-product-e2e.mjs'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const writeJson = (file, value) => writeFile(file, JSON.stringify(value))
+
+function dependencyFixture() {
+  const imports = Buffer.from(
+    'Dump of file extracted.exe\n  Image has the following imports:\n    KERNEL32.dll\n    api-ms-win-crt-runtime-l1-1-0.dll\n  Image has the following delay load imports:\n    ucrtbase.dll\n',
+  )
+  const applicationSha256 = 'a'.repeat(64)
+  const report = {
+    schema: 1,
+    status: 'passed',
+    readOnly: true,
+    applicationSha256,
+    architecture: 'x86_64',
+    dlls: ['API-MS-WIN-CRT-RUNTIME-L1-1-0.DLL', 'KERNEL32.DLL', 'UCRTBASE.DLL'],
+    apiSets: ['API-MS-WIN-CRT-RUNTIME-L1-1-0.DLL'],
+    extraVcRuntimeDlls: [],
+    webview2Loader: 'static-no-loader-dll-import',
+    webview2Runtime: 'external-existing-Evergreen',
+    nodeOrPnpmRequiredAtRuntime: false,
+    source: { dumpbinSha256: 'b'.repeat(64), importsSha256: hash(imports) },
+  }
+  return { imports, applicationSha256, report }
+}
+test('payload dependency gate binds extracted image and raw normal/delay-load imports', () => {
+  const { report, imports, applicationSha256 } = dependencyFixture()
+  assert.equal(verifyRuntimeDependencies(report, imports, applicationSha256), report)
+})
+for (const scenario of [
+  'wrong-image',
+  'raw-drift',
+  'empty-imports',
+  'omitted-dll',
+  'duplicate-dll',
+  'wrong-api-set',
+  'missing-extra-array',
+  'wrong-architecture',
+  'not-read-only',
+  'bad-tool-hash',
+  'runtime-installer',
+  'node-runtime',
+]) {
+  test(`payload dependency gate rejects ${scenario}`, () => {
+    let { report, imports, applicationSha256 } = dependencyFixture()
+    if (scenario === 'wrong-image') report.applicationSha256 = 'c'.repeat(64)
+    if (scenario === 'raw-drift') imports = Buffer.concat([imports, Buffer.from('\n')])
+    if (scenario === 'empty-imports') {
+      imports = Buffer.from('dumpbin could not open the application')
+      report.source.importsSha256 = hash(imports)
+      report.dlls = []
+      report.apiSets = []
+    }
+    if (scenario === 'omitted-dll') report.dlls.pop()
+    if (scenario === 'duplicate-dll') report.dlls.push(report.dlls[0])
+    if (scenario === 'wrong-api-set') report.apiSets = []
+    if (scenario === 'missing-extra-array') delete report.extraVcRuntimeDlls
+    if (scenario === 'wrong-architecture') report.architecture = 'x86'
+    if (scenario === 'not-read-only') report.readOnly = false
+    if (scenario === 'bad-tool-hash') report.source.dumpbinSha256 = 'not-a-hash'
+    if (scenario === 'runtime-installer') report.webview2Runtime = 'downloaded-runtime'
+    if (scenario === 'node-runtime') report.nodeOrPnpmRequiredAtRuntime = true
+    assert.throws(() => verifyRuntimeDependencies(report, imports, applicationSha256))
+  })
+}
+for (const dll of [
+  'vcruntime140_1.dll',
+  'msvcp140.dll',
+  'concrt140.dll',
+  'vcomp140.dll',
+  'ucrtbased.dll',
+  'WebView2Loader.dll',
+]) {
+  test(`payload dependency gate detects ${dll} even when an empty extra-runtime list is claimed`, () => {
+    const { report, imports, applicationSha256 } = dependencyFixture()
+    const actual = Buffer.concat([imports, Buffer.from('    ' + dll + '\n')])
+    report.source.importsSha256 = hash(actual)
+    report.dlls.push(dll.toUpperCase())
+    report.dlls.sort()
+    assert.throws(() => verifyRuntimeDependencies(report, actual, applicationSha256))
+  })
+}
 async function temporary(t, prefix) {
   const directory = await mkdtemp(path.join(os.tmpdir(), prefix))
   t.after(() => rm(directory, { recursive: true, force: true }))
