@@ -21,7 +21,200 @@ import {
   waitForNativeJobs,
   waitForOwnedExit,
   settleOwnedProduct,
+  unwrapWebDriverValue,
+  decodeWebDriverResponse,
+  probeCloseConfirmation,
+  assertCleanCloseConfirmation,
 } from './mermaid-product-e2e.mjs'
+
+test('W3C null result is preserved instead of turning its envelope into a dialog truthy value', () => {
+  const response = JSON.parse('{"value":null}')
+  // A pure causal model of the old expression, not a diagnosis of a past run.
+  assert.equal(Boolean(response.value ?? response), true)
+  assert.equal(unwrapWebDriverValue(response), null)
+})
+
+test('W3C boolean results and legacy unwrapped responses keep their actual values', () => {
+  assert.equal(unwrapWebDriverValue({ value: true }), true)
+  assert.equal(unwrapWebDriverValue({ value: false }), false)
+  const legacy = { sessionId: 'session-1' }
+  assert.equal(unwrapWebDriverValue(legacy), legacy)
+})
+
+const confirmationReply =
+  (raw, status = 200) =>
+  (row) =>
+    decodeWebDriverResponse(raw, status, row)
+
+test('only literal boolean true proves a close dialog; null retains exact response and decision', async () => {
+  for (const [value, decision] of [
+    [true, 'visible-unsaved-dialog'],
+    [false, 'no-visible-unsaved-dialog'],
+    [null, 'null-result-awaiting-owned-exit'],
+  ]) {
+    const record = {},
+      raw = JSON.stringify({ value })
+    assert.equal(await probeCloseConfirmation(record, confirmationReply(raw), true), value)
+    assert.equal(record.unexpectedUnsavedConfirmation === true, value === true)
+    const row = record.closeConfirmationProbes.observations[0]
+    assert.equal(row.response.text, raw)
+    assert.equal(row.response.bytes, Buffer.byteLength(raw))
+    assert.equal(row.response.truncated, false)
+    assert.match(row.response.sha256, /^[a-f0-9]{64}$/)
+    assert.equal(row.httpStatus, 200)
+    assert.equal(row.decision, decision)
+    assert.equal(row.value, value)
+  }
+})
+
+test('truthy non-boolean replies fail without becoming unsaved confirmation or discard permission', async () => {
+  for (const value of [{}, { value: true }, 'true', 1, ['true']]) {
+    const record = {}
+    await assert.rejects(
+      probeCloseConfirmation(record, confirmationReply(JSON.stringify({ value })), false),
+      /actual boolean or null/,
+    )
+    assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+    assert.equal(record.discardedOwnedUnsavedFixture, undefined)
+    assert.equal(
+      record.closeConfirmationProbes.observations[0].decision,
+      'invalid-non-boolean-result',
+    )
+  }
+})
+
+test('closed frame/window/session protocol errors are recorded as inconclusive, not dialogs or exits', async () => {
+  for (const code of ['no such frame', 'no such window', 'invalid session id']) {
+    const record = {},
+      raw = JSON.stringify({ value: { error: code, message: 'Context is gone' } })
+    assert.equal(await probeCloseConfirmation(record, confirmationReply(raw, 404), true), null)
+    const row = record.closeConfirmationProbes.observations[0]
+    assert.equal(row.decision, 'closed-context-awaiting-owned-exit')
+    assert.equal(row.webDriverErrorCode, code)
+    assert.equal(row.response.text, raw)
+    assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+  }
+})
+
+test('unrelated WebDriver, malformed JSON and transport errors remain failures with bounded evidence', async () => {
+  for (const read of [
+    confirmationReply('{"value":{"error":"javascript error","message":"script failed"}}', 500),
+    confirmationReply('{"value":'),
+    () => {
+      throw new Error('Transport failed')
+    },
+  ]) {
+    const record = {}
+    await assert.rejects(probeCloseConfirmation(record, read, true))
+    const row = record.closeConfirmationProbes.observations[0]
+    assert.equal(row.decision, 'probe-error')
+    assert(row.error.text.length > 0)
+    assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+  }
+})
+
+test('null response can precede timely owned exit but never prove completion while product is alive', async () => {
+  for (const close of [true, false]) {
+    const record = {}
+    let alive = true,
+      reads = 0
+    const exited = await waitForOwnedExit(
+      () => alive,
+      15,
+      1,
+      async () => {
+        assert.equal(
+          await probeCloseConfirmation(record, confirmationReply('{"value":null}'), true),
+          null,
+        )
+        reads++
+        if (close) alive = false
+      },
+    )
+    assert(reads > 0)
+    assert.equal(exited, close)
+    assertCleanCloseConfirmation(record)
+  }
+})
+
+test('closed frame without actual process exit still exhausts the original close deadline', async () => {
+  const record = {}
+  const exited = await waitForOwnedExit(
+    () => true,
+    10,
+    1,
+    () =>
+      probeCloseConfirmation(
+        record,
+        confirmationReply('{"value":{"error":"no such frame"}}', 404),
+        true,
+      ),
+  )
+  assert.equal(exited, false)
+  assert(record.closeConfirmationProbes.total > 0)
+  assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+})
+
+test('a true unsaved dialog stays a failed success gate even after a later false reply and normal exit', async () => {
+  const record = {}
+  await probeCloseConfirmation(record, confirmationReply('{"value":true}'), true)
+  await probeCloseConfirmation(record, confirmationReply('{"value":false}'), true)
+  const fixture = teardownFixture()
+  fixture.options.verifyExit = () => {
+    assert.equal(fixture.options.isAlive(), false)
+    assertCleanCloseConfirmation(record)
+    return true
+  }
+  await assert.rejects(settleOwnedProduct(fixture.options), /actual unsaved close confirmation/)
+  assert.equal(fixture.record.closedByUi, false)
+  assert(!fixture.calls.includes('owned-kill'))
+})
+
+test('probe history keeps bounded first and final observations with explicit omission and truncation', async () => {
+  const record = {}
+  for (let i = 0; i < 40; i++)
+    await probeCloseConfirmation(record, confirmationReply('{"value":false}'), true)
+  const raw = JSON.stringify({ value: { error: 'no such frame', message: '中'.repeat(3000) } })
+  await probeCloseConfirmation(record, confirmationReply(raw, 404), true)
+  const history = record.closeConfirmationProbes
+  assert.equal(history.total, 41)
+  assert.equal(history.observations.length, 32)
+  assert.equal(history.omitted, 8)
+  assert.equal(history.lastObservation.sequence, 41)
+  assert.equal(history.lastObservation.response.bytes, Buffer.byteLength(raw))
+  assert.equal(history.lastObservation.response.truncated, true)
+  assert(Buffer.byteLength(history.lastObservation.response.text) <= 2048)
+  assert(!history.lastObservation.response.text.includes('\uFFFD'))
+  assert(Buffer.byteLength(JSON.stringify(history)) < 32 * 1024)
+  await probeCloseConfirmation(record, confirmationReply('{"value":true}'), true)
+  await probeCloseConfirmation(record, confirmationReply('{"value":false}'), true)
+  assert.equal(history.firstVisibleDialog.sequence, 42)
+  assert.equal(history.firstVisibleDialog.response.text, '{"value":true}')
+  assert.equal(history.lastObservation.sequence, 43)
+  assert.throws(() => assertCleanCloseConfirmation(record), /actual unsaved/)
+})
+
+test('an aborted probe retains its raw result but cannot make a stale dialog decision or permit discard', async () => {
+  const record = {},
+    controller = new AbortController()
+  await assert.rejects(
+    probeCloseConfirmation(
+      record,
+      (row) => {
+        controller.abort()
+        return decodeWebDriverResponse('{"value":true}', 200, row)
+      },
+      true,
+      controller.signal,
+    ),
+    { name: 'AbortError' },
+  )
+  const row = record.closeConfirmationProbes.observations[0]
+  assert.equal(row.value, true)
+  assert.equal(row.response.text, '{"value":true}')
+  assert.equal(row.decision, 'interrupted')
+  assert.equal(record.unexpectedUnsavedConfirmation, undefined)
+})
 
 const sid = 'S-1-5-21-11-22-33-1001'
 const chunk = (kind, data) => {

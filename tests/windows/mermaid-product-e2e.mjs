@@ -62,6 +62,100 @@ export const fixtures = Object.freeze({
   ].join('\n'),
 })
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
+
+export const unwrapWebDriverValue = (response) =>
+  response !== null && typeof response === 'object' && Object.hasOwn(response, 'value')
+    ? response.value
+    : response
+
+const boundedResponse = (raw) => {
+  const bytes = Buffer.from(raw)
+  return {
+    text: new StringDecoder('utf8').write(bytes.subarray(0, 2048)),
+    bytes: bytes.length,
+    sha256: sha(bytes),
+    truncated: bytes.length > 2048,
+  }
+}
+
+export function decodeWebDriverResponse(raw, httpStatus, observation) {
+  const response = boundedResponse(raw)
+  if (observation) Object.assign(observation, { httpStatus, response })
+  const value = unwrapWebDriverValue(JSON.parse(raw))
+  const code = typeof value?.error === 'string' ? value.error : undefined
+  if (httpStatus < 200 || httpStatus >= 300 || code) {
+    const error = new Error(`WebDriver HTTP ${httpStatus}: ${response.text}`)
+    error.webDriverErrorCode = code
+    throw error
+  }
+  return value
+}
+
+// Only boolean true proves a visible unsaved dialog. Null and a protocol-level
+// missing context are inconclusive observations during close, never exit proof.
+export async function probeCloseConfirmation(record, read, successful, signal) {
+  const evidence = (record.closeConfirmationProbes ??= {
+    retainedLimit: 32,
+    total: 0,
+    omitted: 0,
+    observations: [],
+  })
+  const row = {
+    sequence: ++evidence.total,
+    startedAt: new Date().toISOString(),
+    decision: 'pending',
+  }
+  if (evidence.observations.length < evidence.retainedLimit) evidence.observations.push(row)
+  else {
+    if (evidence.lastObservation) evidence.omitted++
+    evidence.lastObservation = row
+  }
+  try {
+    const value = await read(row)
+    row.valueType = value === null ? 'null' : typeof value
+    if (typeof value === 'boolean' || value === null) row.value = value
+    signal?.throwIfAborted()
+    if (value === true) {
+      row.decision = 'visible-unsaved-dialog'
+      // Preserve the first decisive response even if routine later polls exceed
+      // the sequential history budget. Omitted counts only that history.
+      evidence.firstVisibleDialog ??= row
+      if (successful) record.unexpectedUnsavedConfirmation = true
+      return true
+    }
+    if (value === false) {
+      row.decision = 'no-visible-unsaved-dialog'
+      return false
+    }
+    if (value === null) {
+      row.decision = 'null-result-awaiting-owned-exit'
+      return null
+    }
+    row.decision = 'invalid-non-boolean-result'
+    throw new Error('Close confirmation requires an actual boolean or null script result')
+  } catch (error) {
+    row.error = boundedResponse(String(error))
+    if (signal?.aborted && error === signal.reason) row.decision = 'interrupted'
+    else if (
+      ['no such window', 'no such frame', 'invalid session id'].includes(error?.webDriverErrorCode)
+    ) {
+      row.decision = 'closed-context-awaiting-owned-exit'
+      row.webDriverErrorCode = error.webDriverErrorCode
+      return null
+    } else if (row.decision === 'pending') row.decision = 'probe-error'
+    throw error
+  } finally {
+    row.finishedAt = new Date().toISOString()
+  }
+}
+
+export function assertCleanCloseConfirmation(record) {
+  assert.notEqual(
+    record.unexpectedUnsavedConfirmation,
+    true,
+    'Successful test must not expose an actual unsaved close confirmation',
+  )
+}
 const normalized = (value) => value.replaceAll('\\', '/').toLowerCase()
 const samePath = (left, right) => normalized(path.resolve(left)) === normalized(path.resolve(right))
 const within = (root, child) => {
@@ -910,7 +1004,7 @@ export async function main() {
     }
     throw Error('Timed out: ' + label)
   }
-  const request = async (method, route, body, signal) => {
+  const request = async (method, route, body, signal, observation) => {
     report.lastRequest = { method, route, at: new Date().toISOString() }
     const response = await fetch(`http://127.0.0.1:${driverPort}${route}`, {
       method,
@@ -921,9 +1015,7 @@ export async function main() {
         ...(signal ? [signal] : []),
       ]),
     })
-    const value = await response.json()
-    assert(response.ok && !value.value?.error, `${method} ${route}: ${JSON.stringify(value)}`)
-    return value.value ?? value
+    return decodeWebDriverResponse(await response.text(), response.status, observation)
   }
   const executeWithSignal = (signal, script, ...args) =>
     request('POST', `/session/${session}/execute/sync`, { script, args }, signal)
@@ -1388,19 +1480,24 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               // original exit budget instead of restarting it for each observation.
               if (!session || record.discardedOwnedUnsavedFixture) return
               checkpoint()
-              const confirm = await executeWithSignal(
+              const confirm = await probeCloseConfirmation(
+                record,
+                (observation) =>
+                  request(
+                    'POST',
+                    `/session/${session}/execute/sync`,
+                    {
+                      script: `const e=document.querySelector('[data-close-confirm]');return !!e&&!e.hidden&&e.getClientRects().length>0`,
+                      args: [],
+                    },
+                    signal,
+                    observation,
+                  ),
+                successful,
                 signal,
-                `const e=document.querySelector('[data-close-confirm]');return !!e&&!e.hidden&&e.getClientRects().length>0`,
-              ).catch((error) => {
-                record.closeConfirmationDiagnostic = String(error)
-                return false
-              })
+              )
               checkpoint()
-              if (!confirm) return
-              if (successful) {
-                record.unexpectedUnsavedConfirmation = true
-                return
-              }
+              if (confirm !== true || successful) return
               const owned = await state(signal)
               assert(
                 owned.path && samePath(owned.path, files[active].path),
@@ -1461,6 +1558,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         verifyExit: () => {
           assert.equal(current.exitCode, 0, 'Product closes normally after real UI close')
           assert.equal(current.signalCode, null, 'Product was not terminated by a signal')
+          if (successful) assertCleanCloseConfirmation(record)
           return true
         },
         verifyNative: () => {
