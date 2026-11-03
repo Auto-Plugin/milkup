@@ -61,11 +61,14 @@ large reflow or overridden author offsets, and retain before/after images.
 
 ## Acceptance status
 
-Local policy, account-fixture, close-probe and rendering regressions have passed;
-their exact outputs are retained separately. Separate real Windows
-pure-standard and filtered-admin product runs, plus actual elevated-host rejection,
-are required before claiming compatibility. Local policy tests or a matching
-account name are not native execution evidence.
+The latest candidate `b139a9891a086685d7e0e9e85472a29a629f7a45` passed complete
+same-run Windows pure-standard and non-elevated filtered-admin product acceptance
+in run `41703213523`, including eight natural closes and verified native cleanup.
+Its standard account actually exercised the new error-5 retry before successful
+removal and PNG publication. This is source-built product acceptance, not a new
+installer: the delivered beta.8 remains unchanged. Historical IPC 995 remains
+unexplained and was not reproduced in the passing run. Details and the original
+failed attempts follow; no historical failure is rewritten as a pass.
 
 ### First real Windows attempt: failed
 
@@ -259,3 +262,47 @@ removal and independent absence; persistent access denial remains a failure.
 It introduces no ACL/attribute modification or alternative deletion API. This
 is bounded recovery for an observed failure mode, not proof of a transient lock
 or permission-root-cause diagnosis, and requires new full product acceptance.
+
+### Complete same-candidate acceptance and actual error-5 recovery
+
+[Run 41703213523](https://github.com/Auto-Plugin/milkup/actions/runs/41703213523)
+tested `b139a9891a086685d7e0e9e85472a29a629f7a45` and **passed**. Both accounts
+completed all ten product steps and seven verified diagram PNGs. All eight
+product windows closed through the actual UI with exit code zero, no signal
+and no fallback. The complete 70-event native ledger covers 24 finished requests,
+including each account's nine successful renders, one cancellation and two
+bounded unknown-grammar failures. All created native resources were confirmed
+cleaned, with no cleanup uncertainty. One filtered-admin cancellation occurred
+before a profile or Job was created; it is not falsely reported as a deleted
+profile. Both outer account/profile/group/staging cleanups also passed.
+
+The pure-standard request `d59ba476e8974396a80a6304f47de81b` directly exercised
+the fix: the first removal returned error 5, the second succeeded after 142 ms,
+and independent absence verification confirmed the tree was gone. All three
+streams completed normally without I/O cancellation, prior cleanup errors were
+empty, and the product published the actual 2,606-byte PNG. This is observed
+recovery from error 5, not merely a passing run without the motivating condition.
+The final denied object's identity and the reason for the first denial remain
+unknown. No error-5 retry occurred under filtered-admin in this run.
+
+Windows private tests passed 67 with three ignored; the separate actual
+elevated-host rejection and desktop tests (228 passed, three ignored) passed.
+Source snapshots and the strict clean-checkout gate passed. Both accounts used
+the same source-built executable, SHA-256
+`70ea7b77f3f775fb50cb2a223d96d24e5a6300bbe65d2a5a46b3efb8ccca5605`,
+and existing Evergreen `156.0.4314.50`. The artifact is 540,024 bytes, SHA-256
+`9bee0476dfe9eb49907a51ca51ae77cde6c74df75789df76d62da4d5b3fe5048`;
+the root independently checked API/source identity and all 85 archive files
+against extracted bytes. The frozen original acceptance harness, full native
+proof/PNG binding verifier and separate closed cleanup-observation verifier
+all passed. [Original successful evidence](attempt-41703213523/README.md)
+retains all reports and the actual recovery record.
+
+Both accounts' seven diagram images match pixel-for-pixel. Against delivered
+beta.8, only the expected C4 border correction differs; ordinary and wide output
+remain unchanged. Neither account had a stdout/stderr failure in this run.
+This does not explain or claim to fix the older 41692476025 I/O cancellations.
+The delivered beta.8 ZIP was independently rehashed and remains
+`0ffb9793b1ab3c025b6d9d97497260ac3ad8526735bc4f1384343830702da089`.
+No new installer, production Release, main merge, elevated GUI acceptance or
+additional IME/system-DPI/upgrade matrix is claimed.
