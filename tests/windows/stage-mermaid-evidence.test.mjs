@@ -28,11 +28,19 @@ for (const scenario of [
   'missing-manifest',
   'wrong-candidate',
   'bad-copy-hash',
+  'installer-executable',
+  'user-profile-directory',
+  'installer-evidence-directory',
 ])
   test(scenario, () => {
     const f = fixture()
     try {
       if (scenario === 'unknown-log') writeFileSync(join(f.source, 'cookies.log'), 'not allowed')
+      if (scenario === 'installer-executable')
+        writeFileSync(join(f.source, 'installer.exe'), 'not allowed')
+      if (scenario === 'user-profile-directory') mkdirSync(join(f.source, 'userprofile'))
+      if (scenario === 'installer-evidence-directory')
+        mkdirSync(join(f.source, 'installation-result.json'))
       if (scenario === 'linked-file')
         symlinkSync(
           join(f.source, 'windows-standard-product-audit.json'),
@@ -72,7 +80,47 @@ for (const scenario of [
     }
   })
 
-for (const scenario of ['partial-failed', 'partial-passed', 'audit-mismatch', 'rejection-unaccounted'])
+for (const name of [
+  'installation-result.json',
+  'installed-binary-comparison.json',
+  'installed-binary-comparison-stderr.log',
+  'installer-stdout.log',
+  'installer-stderr.log',
+])
+  test(`retains declared installer evidence: ${name}`, () => {
+    const f = fixture()
+    try {
+      const body = Buffer.from(name.endsWith('.json') ? '{"status":"blocked"}\n' : 'fixture log\n')
+      const sha256 = createHash('sha256').update(body).digest('hex')
+      writeFileSync(join(f.source, name), body)
+      writeFileSync(
+        join(f.source, 'evidence-files.json'),
+        JSON.stringify({
+          schema: 1,
+          files: [{ retainedName: name, relativePath: name, bytes: body.length, sha256 }],
+        }),
+      )
+      const manifest = stageEvidence(f.source, f.destination, candidate)
+      assert.deepEqual(readFileSync(join(f.destination, name)), body)
+      assert.deepEqual(
+        manifest.files.find((file) => file.name === name),
+        {
+          name,
+          bytes: body.length,
+          sha256,
+        },
+      )
+    } finally {
+      rmSync(f.root, { recursive: true, force: true })
+    }
+  })
+
+for (const scenario of [
+  'partial-failed',
+  'partial-passed',
+  'audit-mismatch',
+  'rejection-unaccounted',
+])
   test(scenario, () => {
     const f = fixture()
     try {
