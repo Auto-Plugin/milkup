@@ -292,6 +292,9 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             // events by their OS event time, not the later callback phase.
             bool positiveInterval = positiveActive || (nativeEventTime.HasValue && positiveEnded && unchecked(nativeEventTime.Value - positiveStartedTick) <= unchecked(positiveEndedTick - positiveStartedTick));
             previous.TryGetValue(hwnd.ToInt64(), out old);
+            // A new CREATE starts a new HWND lifetime. If it cannot be read,
+            // never carry a prior child classification across handle reuse.
+            if (kind == "create" && fact == null && old != null && old.KnownChild) { previous.Remove(hwnd.ToInt64()); old = null; }
             // OBJID_WINDOW also includes child controls. Their prior CREATE
             // observation and exact owning thread distinguish them from a
             // genuinely unknown destroyed top-level window; never guess from
