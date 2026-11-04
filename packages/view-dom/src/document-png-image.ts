@@ -106,25 +106,59 @@ export function createOwnedDocumentPngImage(
     if (state !== 'decoded' || controls.hidden) return
     setNatural(!natural)
   }
+  // Some WebView2/WebDriver pointer sequences deliver pointerup/mouseup but
+  // omit the compatibility click for a button nested in a contentEditable=false
+  // preview. Treat the primary pointer release as activation and suppress the
+  // duplicate click when the browser does provide one. Keyboard activation
+  // still goes through the native click event.
+  let pointerActivation = false
+  let pointerActivationTimer: ReturnType<typeof setTimeout> | undefined
+  const togglePointer = (event: Event) => {
+    const button = 'button' in event ? Number((event as { button?: number }).button) : 0
+    if (button !== 0 || pointerActivation) return
+    pointerActivation = true
+    clearTimeout(pointerActivationTimer)
+    pointerActivationTimer = setTimeout(() => {
+      pointerActivation = false
+      pointerActivationTimer = undefined
+    }, 1000)
+    toggle(event)
+  }
+  const toggleClick = (event: Event) => {
+    if (pointerActivation) {
+      pointerActivation = false
+      clearTimeout(pointerActivationTimer)
+      pointerActivationTimer = undefined
+      event.stopPropagation()
+      return
+    }
+    toggle(event)
+  }
   // Preserve native focus, keyboard activation and scrollbar operation. These
   // controls must not select the Markdown source through the preview wrapper.
   const keepViewportEvent = (event: Event) => {
     if (event.target === viewport) event.stopPropagation()
   }
-  for (const name of ['mousedown', 'pointerdown', 'keydown', 'keyup'])
+  for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
     button.addEventListener(name, stopControlEvent)
-  button.addEventListener('click', toggle)
+  button.addEventListener('pointerup', togglePointer)
+  button.addEventListener('mouseup', togglePointer)
+  button.addEventListener('click', toggleClick)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
   const cleanup = () => {
     if (released) return
     released = true
     clearTimeout(timer)
+    clearTimeout(pointerActivationTimer)
+    pointerActivation = false
     resize?.disconnect()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
-    for (const name of ['mousedown', 'pointerdown', 'keydown', 'keyup'])
+    for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
       button.removeEventListener(name, stopControlEvent)
-    button.removeEventListener('click', toggle)
+    button.removeEventListener('pointerup', togglePointer)
+    button.removeEventListener('mouseup', togglePointer)
+    button.removeEventListener('click', toggleClick)
     for (const name of ['mousedown', 'pointerdown', 'click'])
       viewport.removeEventListener(name, keepViewportEvent)
     image.removeEventListener('error', failed)

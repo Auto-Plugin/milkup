@@ -358,6 +358,32 @@ for (const windowed of [false, true]) {
     await unchanged(view)
   })
 
+  it(`pointer release toggles a wide PNG when WebView omits compatibility click (${windowed})`, async () => {
+    const observed = resizeProbe()
+    const view = await make(windowed, provider(2100, 126))
+    decodes[0]!.resolve()
+    await settle()
+    const outer = view.contentDOM.querySelector<HTMLElement>('[data-document-png-view]')!
+    const button = outer.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
+    vi.spyOn(outer, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 800, 100))
+    observed.get(outer)!()
+    await settle()
+
+    button.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
+    await settle()
+    expect(outer.dataset.documentPngView).toBe('natural')
+    expect(button.textContent).toBe('适应宽度')
+
+    // A normal browser emits click after pointerup; it must not toggle twice.
+    button.click()
+    await settle()
+    expect(outer.dataset.documentPngView).toBe('natural')
+
+    button.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
+    await settle()
+    expect(outer.dataset.documentPngView).toBe('fit')
+  })
+
   it(`decode failure keeps source and releases URL plus native lease (${windowed})`, async () => {
     const view = await make(windowed)
     const release = releases.at(-1)!
