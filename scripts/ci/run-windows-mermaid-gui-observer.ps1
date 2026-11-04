@@ -125,6 +125,11 @@ try {
                     $null = Assert-IdentityContext
                     $result = $observer.MeasureProduct()
                 }
+                'awaitProductWindow' {
+                    Assert-RequestFields $request @('id', 'command')
+                    $null = Assert-IdentityContext
+                    $result = $observer.AwaitProductWindow()
+                }
                 'resizeProduct' {
                     Assert-RequestFields $request @('id', 'command', 'mode', 'width', 'height')
                     if (-not $request.Contains('mode') -or $request.mode -isnot [string] -or $request.mode -notin @('normal', 'maximize', 'restore')) { throw 'Closed native window mode required' }

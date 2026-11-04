@@ -1,7 +1,10 @@
 # Cross-platform compilation/contract checks. These do not claim WinEvent,
 # actual desktop visibility, SendInput, or positive-control execution passed.
 [CmdletBinding()]
-param([string]$RepositoryRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
+param(
+    [string]$RepositoryRoot = (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)),
+    [string]$SyntheticLifetimeOutput = ''
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 function Assert([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
@@ -32,7 +35,7 @@ foreach ($path in @('relative.md', (Join-Path $root '../escaped.md'), (Join-Path
     Rejects { $null = [WindowsMermaidGuiObserver]::ValidateFixturePath($root, $path) } 'Out-of-root or malformed fixture path accepted'
 }
 # These interop layouts are the Windows ABI: the union must contain the full
-# MOUSEINPUT alignment even though this helper sends keyboard INPUT only.
+# MOUSEINPUT alignment for both filename keystrokes and native button clicks.
 $private = [Reflection.BindingFlags]::NonPublic
 $expectedInput = if ([IntPtr]::Size -eq 8) { 40 } else { 28 }
 $inputType = [WindowsMermaidGuiObserver].GetNestedType('Input', $private)
@@ -48,6 +51,7 @@ try {
     Rejects { $null = $observer.PositiveControl() } 'Positive control ran before observer start'
     Rejects { $null = $observer.ChooseFile($inside) } 'Native input ran before observer start'
     Rejects { $null = $observer.MeasureProduct() } 'Native measurement ran before product registration'
+    Rejects { $null = $observer.AwaitProductWindow() } 'Native readiness ran before observer startup'
     Rejects { $null = $observer.ResizeProduct('normal', 800, 560) } 'Native window mutation ran before product registration'
     Rejects { $null = $observer.Stop() } 'Unstarted observer produced success report'
     if (-not $IsWindows) { Rejects { $null = $observer.Start('/tmp/node.exe', '/tmp', '/tmp') } 'Non-Windows host reached native operations' }
@@ -88,6 +92,33 @@ try {
     Assert (-not [bool]$resizeRequest.Invoke($null, @('normal', 1280, 560, 1024, 768))) 'Out-of-desktop native dimensions accepted'
     Assert (-not [bool]$resizeRequest.Invoke($null, @('maximize', 800, 560, 1024, 768))) 'State-only operation accepted hidden dimensions'
     Assert (-not [bool]$resizeRequest.Invoke($null, @('unknown', 0, 0, 1024, 768))) 'Open-ended native window operation accepted'
+    $rectType = [WindowsMermaidGuiObserver].GetNestedType('Rect', $private)
+    $desktopRect = [Activator]::CreateInstance($rectType, $true)
+    $desktopRect.left = -100; $desktopRect.top = -50; $desktopRect.right = 901; $desktopRect.bottom = 451
+    $mouseMethod = [WindowsMermaidGuiObserver].GetMethod('Mouse', $staticFlags)
+    $mouse = $mouseMethod.Invoke($null, @(900, 450, $desktopRect, [uint32]0xc001))
+    Assert ($mouse.data.mouse.x -eq 65535 -and $mouse.data.mouse.y -eq 65535) 'Native mouse coordinates must include negative virtual-desktop origin'
+    Rejects { $null = $mouseMethod.Invoke($null, @(901, 450, $desktopRect, [uint32]0xc001)) } 'Native click outside the measured desktop was accepted'
+    $stableWindow = [WindowsMermaidGuiObserver].GetMethod('SameMeasuredWindowState', $staticFlags)
+    function New-WindowMeasurement {
+        $result = [Collections.Generic.Dictionary[string, object]]::new()
+        $result['pid'] = [uint32]42; $result['creationFileTime'] = '123'; $result['hwnd'] = '0x10'
+        $result['dpi'] = [uint32]96; $result['maximized'] = $false; $result['minimized'] = $false
+        foreach ($field in @('windowRect', 'clientRect')) {
+            $rect = [Collections.Generic.Dictionary[string, object]]::new()
+            $rect['left'] = 0; $rect['top'] = 0; $rect['right'] = 800; $rect['bottom'] = 560; $rect['width'] = 800; $rect['height'] = 560
+            $result[$field] = $rect
+        }
+        return ,$result
+    }
+    $firstMeasurement = New-WindowMeasurement; $nextMeasurement = New-WindowMeasurement
+    Assert ([bool]$stableWindow.Invoke($null, @($firstMeasurement, $nextMeasurement))) 'Stable registered native window was rejected'
+    $nextMeasurement['clientRect']['height'] = 550
+    Assert (-not [bool]$stableWindow.Invoke($null, @($firstMeasurement, $nextMeasurement))) 'Changing native client size was declared ready'
+    $nextMeasurement = New-WindowMeasurement; $nextMeasurement['creationFileTime'] = '124'
+    Assert (-not [bool]$stableWindow.Invoke($null, @($firstMeasurement, $nextMeasurement))) 'Reused product PID was declared stable'
+    $nextMeasurement = New-WindowMeasurement; $nextMeasurement['dpi'] = [uint32]144
+    Assert (-not [bool]$stableWindow.Invoke($null, @($firstMeasurement, $nextMeasurement))) 'Changing observed DPI was declared stable'
     $first = [Activator]::CreateInstance($processType, $true)
     $first.Pid = 42; $first.Parent = 1; $first.Creation = 100; $first.Image = 'first.exe'
     $second = [Activator]::CreateInstance($processType, $true)
@@ -119,4 +150,109 @@ try {
     Assert ($cache.Count -eq 256) 'Live window cache exceeded its fixed budget'
     Assert ([bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($observer)) 'Live-cache exhaustion did not invalidate acceptance'
 } finally { $observer.Dispose() }
+function New-NativeDictionary([hashtable]$Values) {
+    $dictionary = [Collections.Generic.Dictionary[string, object]]::new()
+    foreach ($key in $Values.Keys) { $dictionary[$key] = $Values[$key] }
+    return ,$dictionary
+}
+# Exercise the actual C# journal/reconciler and export its own raw records for
+# independent JavaScript replay. No native API or real desktop is simulated.
+$lifetimeObserver = [WindowsMermaidGuiObserver]::new()
+try {
+    $recordLife = [WindowsMermaidGuiObserver].GetMethod('RecordLifeEvent', $instanceFlags)
+    $lifeList = [WindowsMermaidGuiObserver].GetField('windowLives', $instanceFlags).GetValue($lifetimeObserver)
+    $shows = [WindowsMermaidGuiObserver].GetField('childShowEvidence', $instanceFlags).GetValue($lifetimeObserver)
+    $matchLife = [WindowsMermaidGuiObserver].GetMethod('MatchesLifeProof', $instanceFlags)
+    $reconcile = [WindowsMermaidGuiObserver].GetMethod('ReconcileChildShows', $instanceFlags)
+    $expandTick = [WindowsMermaidGuiObserver].GetMethod('ExpandEventTick', $staticFlags)
+    Assert ($expandTick.Invoke($null, @([uint32]4294967280, [long]4294967328)) -eq [long]4294967280) 'Native uptime wrap was not expanded from the callback anchor'
+    Assert ($null -eq $expandTick.Invoke($null, @([uint32]101, [long]100))) 'Future native event time was accepted'
+    Assert ($null -eq $expandTick.Invoke($null, @([uint32]100, [long]2101))) 'Event beyond the fixed 2000 ms proof window was accepted'
+    $null = $recordLife.Invoke($lifetimeObserver, @([IntPtr]16, 'create', [uint32]100, [uint32]11, [long]101, [long]1))
+    $rootLife = $lifeList[0]
+    $rootLife.Confirmation = New-NativeDictionary @{ sequence = [long]2; callbackTick = [long]102; className = 'Tauri Window'; rootHwnd = '0x10'; rootLifeId = $null; pid = [uint32]100; processCreationFileTime = '1000'; threadId = [uint32]11; threadCreationFileTime = '1010'; doubleReadMatched = $true }
+    $null = $recordLife.Invoke($lifetimeObserver, @([IntPtr]17, 'create', [uint32]110, [uint32]12, [long]111, [long]3))
+    $childLife = $lifeList[1]
+    $childLife.Confirmation = New-NativeDictionary @{ sequence = [long]4; callbackTick = [long]112; className = 'Button'; rootHwnd = '0x10'; rootLifeId = [long]1; pid = [uint32]101; processCreationFileTime = '1100'; threadId = [uint32]12; threadCreationFileTime = '1110'; doubleReadMatched = $true }
+    $null = $recordLife.Invoke($lifetimeObserver, @([IntPtr]16, 'destroy', [uint32]200, [uint32]11, [long]230, [long]6))
+    Assert ($rootLife.Retirement['reason'] -eq 'destroy' -and $childLife.Retirement['reason'] -eq 'parent-destroy' -and $childLife.Retirement['parentLifeId'] -eq 1) 'Parent destruction did not retain exact child retirement evidence'
+    $rootLife.Released = [long]2230; $childLife.Released = [long]2230
+    $proof = New-NativeDictionary @{
+        capturedAtTick = [long]220; threadId = [uint32]12; threadCreationFileTime = '1110'; pid = [uint32]101; processCreationFileTime = '1100'; heldThreadVerified = $true; heldProcessVerified = $true
+        heldThreadWait = (New-NativeDictionary @{ result = [uint32]0; exitFileTime = '1200' })
+        heldProcessWait = (New-NativeDictionary @{ result = [uint32]258; exitFileTime = $null })
+        currentThread = (New-NativeDictionary @{ status = 'same-identity'; threadCreationFileTime = '1110'; pid = [uint32]101; processCreationFileTime = '1100' })
+    }
+    $show = New-NativeDictionary @{ id = [long]1; hwnd = '0x11'; sequence = [long]5; nativeEventUptimeMs32 = [uint32]150; nativeTick = [long]150; callbackTick = [long]220; eventThreadId = [uint32]12; status = 'unresolved'; scope = 'child'; lifeId = $null; proof = $proof; reason = 'synthetic retained native identity' }
+    $shows.Add($show)
+    function Test-ExactLife {
+        $arguments = @($childLife, $show)
+        if ($matchLife.GetParameters().Length -eq 3) { $arguments += $false }
+        return [bool]$matchLife.Invoke($lifetimeObserver, $arguments)
+    }
+    Assert (Test-ExactLife) 'A uniquely measured child lifetime rejected its in-interval late SHOW'
+    $show['nativeTick'] = [long]110
+    Assert (Test-ExactLife) 'Same-tick CREATE/SHOW with exact FIFO entry order and an actual in-generation snapshot was rejected'
+    $show['nativeTick'] = [long]109
+    Assert (-not (Test-ExactLife)) 'A SHOW predating the native CREATE borrowed a later HWND generation'
+    $show['nativeTick'] = [long]150; $childLife.Confirmation['callbackTick'] = [long]200
+    Assert (-not (Test-ExactLife)) 'A snapshot at the native retirement boundary classified the old window'
+    $childLife.Confirmation['callbackTick'] = [long]112
+    $show['nativeTick'] = [long]200
+    Assert (-not (Test-ExactLife)) 'A SHOW at the retirement boundary borrowed the old child lifetime'
+    $show['nativeTick'] = [long]150; $show['sequence'] = [long]7
+    Assert (-not (Test-ExactLife)) 'A SHOW entering after retirement was assigned to the earlier generation'
+    $show['sequence'] = [long]5
+    $show['nativeTick'] = [long]150; $proof['threadCreationFileTime'] = '1111'
+    Assert (-not (Test-ExactLife)) 'Reused TID birth was accepted as the historical thread'
+    $proof['threadCreationFileTime'] = '1110'; $childLife.Create['nativeTick'] = $null
+    Assert (-not (Test-ExactLife)) 'Unresolved child CREATE time was accepted'
+    $childLife.Create['nativeTick'] = [long]110; $rootLife.Create['nativeTick'] = $null
+    Assert (-not (Test-ExactLife)) 'Unresolved root CREATE time was accepted'
+    $rootLife.Create['nativeTick'] = [long]100
+    $null = $reconcile.Invoke($lifetimeObserver, @())
+    Assert ($show['status'] -eq 'resolved-child' -and $show['lifeId'] -eq 2) 'Final C# reconciliation did not preserve the exact life reference'
+    $raw = New-NativeDictionary @{
+        childLifeVersion = 1; windowLifetimes = @($rootLife.Record(), $childLife.Record()); childShowEvidence = @($show)
+        observationStoppedAtTick = 2500; workingGenerationPeak = 2; sharedRecordCount = 3
+        events = @(); unresolvedEvents = @(); resolvedChildEvents = @()
+        knownChildShowEvents = [WindowsMermaidGuiObserver].GetField('knownChildShowEvents', $instanceFlags).GetValue($lifetimeObserver)
+        knownWindowShowEvents = [WindowsMermaidGuiObserver].GetField('knownWindowShowEvents', $instanceFlags).GetValue($lifetimeObserver)
+        processes = @(@{ pid = 100; parentPid = 1; creationFileTime = '1000'; image = 'product.exe' }, @{ pid = 101; parentPid = 100; creationFileTime = '1100'; image = 'webview.exe' })
+    }
+    if ($SyntheticLifetimeOutput) {
+        [IO.File]::WriteAllText([IO.Path]::GetFullPath($SyntheticLifetimeOutput), ($raw | ConvertTo-Json -Depth 30))
+        $show['nativeTick'] = [long]110; $show['nativeEventUptimeMs32'] = [uint32]110
+        $null = $reconcile.Invoke($lifetimeObserver, @())
+        Assert ($show['status'] -eq 'resolved-child') 'C# final reconciliation rejected CREATE/SHOW same tick despite proven FIFO generation'
+        [IO.File]::WriteAllText([IO.Path]::ChangeExtension([IO.Path]::GetFullPath($SyntheticLifetimeOutput), '.same-tick.json'), ($raw | ConvertTo-Json -Depth 30))
+        $show['nativeTick'] = [long]150; $show['nativeEventUptimeMs32'] = [uint32]150
+    }
+    $null = $recordLife.Invoke($lifetimeObserver, @([IntPtr]17, 'create', [uint32]300, [uint32]12, [long]310, [long]8))
+    Assert ($lifeList.Count -eq 3 -and $lifeList[2].Generation -eq 2) 'Same-HWND CREATE did not retain a new generation barrier'
+    $lifeList[2].Create['nativeTick'] = $null
+    Assert (-not (Test-ExactLife)) 'An unknown later CREATE barrier was ignored'
+    $retainedEvents = [WindowsMermaidGuiObserver].GetField('events', $instanceFlags).GetValue($lifetimeObserver)
+    foreach ($number in 1..2044) { $retainedEvents.Add((New-NativeDictionary @{})) }
+    $sharedCount = [WindowsMermaidGuiObserver].GetMethod('SharedRecordCount', $instanceFlags)
+    Assert ($sharedCount.Invoke($lifetimeObserver, @()) -eq 2048) 'Shared records were counted inconsistently'
+    $null = $recordLife.Invoke($lifetimeObserver, @([IntPtr]18, 'create', [uint32]400, [uint32]12, [long]410, [long]9))
+    Assert ($lifeList.Count -eq 3 -and [bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($lifetimeObserver)) 'Shared journal exhaustion did not fail without exceeding its bound'
+} finally { $lifetimeObserver.Dispose() }
+$generationBudget = [WindowsMermaidGuiObserver]::new()
+try {
+    foreach ($number in 1..257) { $null = $recordLife.Invoke($generationBudget, @([IntPtr]$number, 'create', [uint32]($number * 3), [uint32]12, [long]($number * 3 + 1), [long]$number)) }
+    $boundedLives = [WindowsMermaidGuiObserver].GetField('windowLives', $instanceFlags).GetValue($generationBudget)
+    Assert ($boundedLives.Count -eq 256 -and [bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($generationBudget)) 'Working native generation bound was exceeded or silently dropped without failure'
+} finally { $generationBudget.Dispose() }
+$retiredBudget = [WindowsMermaidGuiObserver]::new()
+try {
+    foreach ($number in 1..300) {
+        $null = $recordLife.Invoke($retiredBudget, @([IntPtr]$number, 'create', [uint32]($number * 3), [uint32]12, [long]($number * 3), [long]($number * 2)))
+        $null = $recordLife.Invoke($retiredBudget, @([IntPtr]$number, 'destroy', [uint32]($number * 3 + 1), [uint32]12, [long]($number * 3 + 1), [long]($number * 2 + 1)))
+    }
+    $retiredLives = [WindowsMermaidGuiObserver].GetField('windowLives', $instanceFlags).GetValue($retiredBudget)
+    Assert ($retiredLives.Count -eq 300 -and -not [bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($retiredBudget)) 'Unconfirmed dead windows consumed held-proof slots after retirement'
+    Assert ($retiredLives[0].Released -eq 4 -and $retiredLives[0].Create['sequence'] -eq 2) 'Unconfirmed release discarded or rewrote its original CREATE barrier'
+} finally { $retiredBudget.Dispose() }
 [pscustomobject]@{ passed = $true; csharpCompiled = $true; powershellParsed = $true; pointerBytes = [IntPtr]::Size; inputBytes = $expectedInput; startupInfoExBytes = $expectedStartup; nativeWindowsExecution = $false } | ConvertTo-Json -Compress
