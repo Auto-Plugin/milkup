@@ -36,6 +36,7 @@ import {
   validateCurrentNativeResourceProof,
   validateNativeWindowEvidence,
   validateNativeDpiObservation,
+  validateNativeGuiResize,
   verifyGuiEvidence,
 } from './mermaid-gui-contract.mjs'
 
@@ -73,6 +74,23 @@ export async function captureGuiWindowMetrics({
   } finally {
     await persist()
   }
+}
+
+export function guiNativeResizeOperations(native) {
+  const { width, height } = native.desktopRect ?? {}
+  assert(Number.isInteger(width) && Number.isInteger(height), 'Actual native desktop dimensions')
+  assert(width >= 900 && height >= 640, 'Existing desktop must fit distinct product window sizes')
+  const narrow = { mode: 'normal', width: 800, height: 560 }
+  const wide = {
+    mode: 'normal',
+    width: Math.min(1180, width - 64),
+    height: Math.min(820, height - 88),
+  }
+  // The screen is never reconfigured. These are outer window sizes; actual
+  // minimum-size enforcement and CSS/client bounds are measured afterward.
+  if (wide.height <= narrow.height) wide.height = Math.min(height - 24, 600)
+  assert(wide.width > narrow.width && wide.height > narrow.height)
+  return [narrow, wide, { mode: 'maximize' }, { mode: 'restore' }, { ...narrow }, { ...wide }]
 }
 
 export function inspectPersistedGuiPluginInventory(cards, inventory) {
@@ -1152,36 +1170,20 @@ export async function main() {
       })
     await step('resize-wide', async (row) => {
       row.operations = []
-      const initial = await request('GET', `/session/${session}/window/rect`)
-      for (const operation of [
-        { type: 'rect', width: 740, height: 650 },
-        { type: 'rect', width: 1180, height: 820 },
-        { type: 'maximize' },
-        { type: 'rect', width: 820, height: 700 },
-        { type: 'maximize' },
-        { type: 'rect', ...initial },
-      ]) {
-        const before = await request('GET', `/session/${session}/window/rect`)
-        const after =
-          operation.type === 'maximize'
-            ? await request('POST', `/session/${session}/window/maximize`, {})
-            : await request('POST', `/session/${session}/window/rect`, {
-                x: initial.x,
-                y: initial.y,
-                width: operation.width,
-                height: operation.height,
-              })
-        const item = {
-          operation,
-          before,
-          after,
-          nativeWindowChanged: before.width !== after.width || before.height !== after.height,
-          settled: false,
-        }
+      row.initialNativeWindow = await observer.call('measureProduct')
+      for (const operation of guiNativeResizeOperations(row.initialNativeWindow)) {
+        const item = { operation, settled: false }
         row.operations.push(item)
+        item.nativeControl = await observer.call('resizeProduct', operation, 10000)
+        item.before = item.nativeControl.before.windowRect
+        item.after = item.nativeControl.after.windowRect
+        item.nativeWindowChanged =
+          item.before.width !== item.after.width || item.before.height !== item.after.height
+        await persist()
         assert(item.nativeWindowChanged, 'Native window dimensions must actually change')
         item.layout = (await settle()).layout
         await measureWindow(item)
+        validateNativeGuiResize(item, product.pid, launch.identity.creationFileTime)
         await stability(item, 10000)
         item.settled = true
       }

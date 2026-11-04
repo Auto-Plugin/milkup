@@ -227,6 +227,73 @@ export function validateNativeDpiObservation(measurement, expectedPid, expectedC
   }
 }
 
+export function validateNativeGuiResize(operation, expectedPid, expectedCreation) {
+  const control = operation.nativeControl
+  assert(control, 'Actual native product-window operation evidence is required')
+  assert.equal(control.ok, true)
+  assert(Number.isInteger(control.operationSequence) && control.operationSequence > 0)
+  assert.equal(control.nativeWindowOperation, true)
+  assert.equal(control.displaySettingsChanged, false)
+  assert.deepEqual(control.requested, operation.operation)
+  assert(['normal', 'maximize', 'restore'].includes(control.requested.mode))
+  for (const native of [control.before, control.after]) {
+    assert.equal(native.observed, true)
+    assert.equal(native.pid, expectedPid)
+    assert.equal(native.creationFileTime, expectedCreation)
+    assert.equal(native.className, 'Tauri Window')
+    assert.equal(native.displaySettingsChanged, false)
+    assert.equal(typeof native.maximized, 'boolean')
+    assert.equal(native.minimized, false)
+    assert(Number.isInteger(native.dpi) && native.dpi > 0)
+    for (const rect of [native.windowRect, native.clientRect, native.desktopRect]) {
+      assert(
+        rect &&
+          ['left', 'top', 'right', 'bottom', 'width', 'height'].every((key) =>
+            Number.isFinite(rect[key]),
+          ),
+      )
+      assert(rect.width > 0 && rect.height > 0)
+      assert.equal(rect.width, rect.right - rect.left)
+      assert.equal(rect.height, rect.bottom - rect.top)
+    }
+  }
+  assert.equal(control.before.hwnd, control.after.hwnd, 'The same owned native window must resize')
+  assert.deepEqual(
+    control.before.desktopRect,
+    control.after.desktopRect,
+    'No display reconfiguration',
+  )
+  assert.equal(control.after.maximized, control.requested.mode === 'maximize')
+  if (control.requested.mode === 'normal') {
+    assert(
+      Number.isInteger(control.requested.width) &&
+        control.requested.width >= 480 &&
+        control.requested.width <= control.before.desktopRect.width,
+    )
+    assert(
+      Number.isInteger(control.requested.height) &&
+        control.requested.height >= 360 &&
+        control.requested.height <= control.before.desktopRect.height,
+    )
+  }
+  assert.deepEqual(operation.before, control.before.windowRect)
+  assert.deepEqual(operation.after, control.after.windowRect)
+  assert(
+    control.before.windowRect.width !== control.after.windowRect.width ||
+      control.before.windowRect.height !== control.after.windowRect.height,
+    'Native Tauri window dimensions must actually change',
+  )
+  assert.equal(operation.nativeWindowChanged, true)
+  assert.deepEqual(
+    operation.windowMetrics.native.windowRect,
+    control.after.windowRect,
+    'Measured window must retain the actual native resize result',
+  )
+  assert.equal(operation.windowMetrics.native.hwnd, control.after.hwnd)
+  validateNativeDpiObservation(operation.windowMetrics, expectedPid, expectedCreation)
+  return true
+}
+
 export function validateNativeWindowEvidence(
   raw,
   summary,
@@ -440,7 +507,12 @@ export function validateGuiReport(report) {
   assert.equal(resize.operations.length, 6)
   assert(resize.operations.every((operation) => operation.nativeWindowChanged && operation.settled))
   const firstLaunch = report.launches[0]
-  for (const operation of resize.operations)
+  for (const operation of resize.operations) {
+    validateNativeGuiResize(
+      operation,
+      firstLaunch.productPid,
+      firstLaunch.identity.creationFileTime,
+    )
     assert.deepEqual(
       operation.windowMetrics.relationship,
       validateNativeDpiObservation(
@@ -449,6 +521,7 @@ export function validateGuiReport(report) {
         firstLaunch.identity.creationFileTime,
       ),
     )
+  }
   const repeated = report.steps.find((item) => item.name === 'repeat-document-open')
   assert.equal(repeated.opens.length, 3)
   assert(
@@ -517,9 +590,44 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
       }
     }
   }
-  validateNativeWindowEvidence(JSON.parse(windowBytes), report.observerSummary, {
+  const windows = JSON.parse(windowBytes)
+  validateNativeWindowEvidence(windows, report.observerSummary, {
     allowLegacyDesktopBounds: validateGuiIdentity(report) === 'delivered-beta9-baseline',
   })
+  const resize = report.steps.find((step) => step.name === 'resize-wide')
+  assert(
+    Array.isArray(windows.productWindowOperations) && windows.productWindowOperations.length === 6,
+  )
+  for (const [index, operation] of resize.operations.entries()) {
+    assert.equal(operation.nativeControl.operationSequence, index + 1)
+    assert.deepEqual(
+      operation.nativeControl,
+      windows.productWindowOperations[index],
+      'GUI native resize must match the retained helper operation',
+    )
+  }
+  assert(
+    Array.isArray(windows.productMeasurements) &&
+      windows.productMeasurements.length > 0 &&
+      windows.productMeasurements.length <= 64,
+  )
+  const measured = new Map()
+  for (const [index, native] of windows.productMeasurements.entries()) {
+    assert.equal(native.measurementSequence, index + 1)
+    measured.set(native.measurementSequence, native)
+  }
+  for (const native of [
+    ...report.launches.map((launch) => launch.windowMetrics.native),
+    resize.initialNativeWindow,
+    ...resize.operations.map((operation) => operation.windowMetrics.native),
+  ]) {
+    assert(native, 'Raw native window measurement required')
+    assert.deepEqual(
+      native,
+      measured.get(native.measurementSequence),
+      'GUI window metrics must match the retained native measurement',
+    )
+  }
   return {
     status: 'passed',
     applicationCandidateSha: report.applicationCandidateSha,

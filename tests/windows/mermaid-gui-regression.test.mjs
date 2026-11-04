@@ -16,6 +16,7 @@ import {
   validateNativeWindowEvidence,
   validateCurrentNativeResourceProof,
   validateNativeDpiObservation,
+  validateNativeGuiResize,
 } from './mermaid-gui-contract.mjs'
 import {
   guiFixtures,
@@ -23,6 +24,7 @@ import {
   inspectPersistedGuiPluginInventory,
   prepareGuiPluginState,
   captureGuiWindowMetrics,
+  guiNativeResizeOperations,
 } from './mermaid-gui-regression.mjs'
 import { stageEvidence } from './stage-mermaid-evidence.mjs'
 
@@ -55,6 +57,9 @@ const windowMetrics = (
       dpiAwareness: 2,
       dpiAwarenessContext: '0xfffffffffffffffc',
       observerThreadDpiAwareness: 0,
+      minimized: false,
+      maximized: false,
+      desktopRect: { left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 },
       windowRect: { ...rect },
       clientRect: { ...rect },
       clientScreenRect: { ...rect },
@@ -70,6 +75,79 @@ const windowMetrics = (
   value.relationship = validateNativeDpiObservation(value, pid, creationFileTime)
   return value
 }
+
+const nativeResize = () => {
+  const metrics = windowMetrics()
+  const before = structuredClone(metrics.native)
+  before.windowRect = { left: 0, top: 0, right: 900, bottom: 650, width: 900, height: 650 }
+  const operation = { mode: 'normal', width: 1000, height: 700 }
+  return {
+    operation,
+    before: structuredClone(before.windowRect),
+    after: structuredClone(metrics.native.windowRect),
+    nativeControl: {
+      ok: true,
+      operationSequence: 1,
+      requested: { ...operation },
+      nativeWindowOperation: true,
+      displaySettingsChanged: false,
+      before,
+      after: structuredClone(metrics.native),
+    },
+    nativeWindowChanged: true,
+    settled: true,
+    windowMetrics: metrics,
+  }
+}
+
+test('resize requires an actual owned native window change, not only WebDriver viewport change', () => {
+  assert(validateNativeGuiResize(nativeResize(), 41, '123'))
+  for (const change of [
+    (value) => {
+      delete value.nativeControl
+    },
+    (value) => {
+      value.nativeControl.before = structuredClone(value.nativeControl.after)
+      value.before = structuredClone(value.after)
+    },
+    (value) => {
+      value.nativeControl.after.hwnd = '0x999'
+    },
+    (value) => {
+      value.nativeControl.after.creationFileTime = '999'
+    },
+    (value) => {
+      value.nativeControl.after.pid = 99
+    },
+    (value) => {
+      value.nativeControl.after.maximized = true
+    },
+    (value) => {
+      value.windowMetrics.native.windowRect.width += 10
+      value.windowMetrics.native.windowRect.right += 10
+    },
+  ]) {
+    const bad = nativeResize()
+    change(bad)
+    assert.throws(() => validateNativeGuiResize(bad, 41, '123'))
+  }
+})
+
+test('native resize matrix uses measured desktop bounds and rejects insufficient desktops', () => {
+  for (const [width, height] of [
+    [1024, 768],
+    [1920, 1080],
+    [900, 640],
+  ]) {
+    const operations = guiNativeResizeOperations({ desktopRect: { width, height } })
+    assert.equal(operations.length, 6)
+    assert.deepEqual(operations.slice(2, 4), [{ mode: 'maximize' }, { mode: 'restore' }])
+    for (const op of operations.filter((op) => op.mode === 'normal')) {
+      assert(op.width <= width && op.height <= height)
+    }
+  }
+  assert.throws(() => guiNativeResizeOperations({ desktopRect: { width: 800, height: 600 } }))
+})
 
 test('failed native/CSS consistency retains both original measurements before rejection', async () => {
   const raw = windowMetrics(),
@@ -406,12 +484,7 @@ const passing = () => ({
         png: { fullyDecoded: true },
         exactBytesUnchanged: true,
       })
-    if (name === 'resize-wide')
-      step.operations = Array.from({ length: 6 }, () => ({
-        nativeWindowChanged: true,
-        settled: true,
-        windowMetrics: windowMetrics(),
-      }))
+    if (name === 'resize-wide') step.operations = Array.from({ length: 6 }, nativeResize)
     if (name === 'repeat-document-open')
       step.opens = Array.from({ length: 3 }, () => ({
         nativePickerAccepted: true,
