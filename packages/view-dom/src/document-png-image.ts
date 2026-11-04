@@ -75,7 +75,13 @@ export function createOwnedDocumentPngImage(
       if (state === 'decoded' && element.isConnected) layoutChanged()
     })
   }
+  const debugEvent = (name: string) => {
+    const current = button.dataset.documentPngDebug ? button.dataset.documentPngDebug.split(',') : []
+    current.push(name)
+    button.dataset.documentPngDebug = current.slice(-12).join(',')
+  }
   const setNatural = (next: boolean) => {
+    debugEvent(`set:${next ? 'natural' : 'fit'}`)
     natural = next
     if (next) ignoreNaturalMeasure = true
     element.dataset.documentPngView = natural ? 'natural' : 'fit'
@@ -94,6 +100,7 @@ export function createOwnedDocumentPngImage(
     notifyLayout()
   }
   const measure = () => {
+    debugEvent('measure')
     if (state !== 'decoded' || !element.isConnected) return
     const width = element.getBoundingClientRect().width
     if (!Number.isFinite(width) || width <= 0) return
@@ -109,6 +116,7 @@ export function createOwnedDocumentPngImage(
   }
   const stopControlEvent = (event: Event) => event.stopPropagation()
   const toggle = (event: Event) => {
+    debugEvent('toggle')
     event.stopPropagation()
     if (state !== 'decoded' || controls.hidden) return
     setNatural(!natural)
@@ -132,6 +140,7 @@ export function createOwnedDocumentPngImage(
     toggle(event)
   }
   const handlePointer = (event: Event) => {
+    debugEvent(`pointer:${event.type}`)
     event.stopPropagation()
     togglePointer(event)
   }
@@ -140,6 +149,7 @@ export function createOwnedDocumentPngImage(
     if (isButtonEvent(event)) handlePointer(event)
   }
   const captureClick = (event: Event) => {
+    debugEvent(`capture-click:${event.type}`)
     if (isButtonEvent(event)) {
       toggleClick(event)
       event.stopPropagation()
