@@ -140,7 +140,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     static string Bounded(string text, int limit) { return text == null ? "" : text.Length <= limit ? text : text.Substring(0, limit); }
     static string HandleText(IntPtr value) { return "0x" + value.ToInt64().ToString("x"); }
     static string ClassName(IntPtr hwnd) { var text = new StringBuilder(65); GetClassNameW(hwnd, text, text.Capacity); return text.ToString(); }
-    static bool IntersectsDesktop(Rect rect) { int x = GetSystemMetrics(76), y = GetSystemMetrics(77), width = GetSystemMetrics(78), height = GetSystemMetrics(79); return width > 0 && height > 0 && rect.right > x && rect.bottom > y && rect.left < (long)x + width && rect.top < (long)y + height; }
+    static Rect DesktopRect() { int x = GetSystemMetrics(76), y = GetSystemMetrics(77); return new Rect { left = x, top = y, right = x + GetSystemMetrics(78), bottom = y + GetSystemMetrics(79) }; }
+    static bool IntersectsDesktop(Rect rect, Rect desktop) { return desktop.right > desktop.left && desktop.bottom > desktop.top && rect.right > desktop.left && rect.bottom > desktop.top && rect.left < desktop.right && rect.top < desktop.bottom; }
     public static bool IsConsoleClass(string name) { return name == "ConsoleWindowClass" || name == "CASCADIA_HOSTING_WINDOW_CLASS" || name == "PseudoConsoleWindow"; }
     public static bool IsPhaseName(string name) { return name != null && Regex.IsMatch(name, "^[a-z][a-z0-9-]{0,47}$", RegexOptions.CultureInvariant); }
     public static string ValidateFixturePath(string root, string path) {
@@ -333,7 +334,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             bool changed = old == null || old.Identity != fact.Identity || old.Visible != fact.Visible || old.Title != fact.Title;
             CacheWindow(fact, kind == "destroy");
             if (!console && !product) return;
-            bool currentVisible = live && fact.Visible && fact.Cloaked == 0 && fact.Rect.right > fact.Rect.left && fact.Rect.bottom > fact.Rect.top && IntersectsDesktop(fact.Rect);
+            Rect desktop = DesktopRect(); bool intersectsDesktop = IntersectsDesktop(fact.Rect, desktop);
+            bool currentVisible = live && fact.Visible && fact.Cloaked == 0 && fact.Rect.right > fact.Rect.left && fact.Rect.bottom > fact.Rect.top && intersectsDesktop;
             bool observedShow = console && showEvent && !fact.Baseline;
             // Hidden WebView IME/message/power windows are cached for identity,
             // but do not consume the console/visible-product evidence budget.
@@ -351,7 +353,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
                 { "sequence", ++sequence }, { "elapsedMs", clock.ElapsedMilliseconds }, { "nativeEventUptimeMs32", nativeEventTime }, { "eventThreadId", eventThread }, { "callbackDelayMs", nativeEventTime.HasValue ? (object)unchecked((uint)Environment.TickCount - nativeEventTime.Value) : null }, { "phase", phase }, { "kind", kind }, { "hwnd", HandleText(hwnd) },
                 { "pid", fact.Pid }, { "processCreationFileTime", fact.Creation > 0 ? fact.Creation.ToString() : null }, { "className", fact.Class }, { "title", fact.Title },
                 { "parentPid", fact.Process == null ? 0 : fact.Process.Parent }, { "processLineage", lineageKeys.ToArray() }, { "lineageVerifiedToProduct", product },
-                { "visibleNow", live && fact.Visible }, { "cloaked", fact.Cloaked }, { "showEvent", showEvent }, { "consoleCandidate", console }, { "positiveControlInterval", positiveInterval }, { "productObservationInterval", productPhase }, { "observedVisible", currentVisible || observedShow },
+                { "visibleNow", live && fact.Visible }, { "cloaked", fact.Cloaked }, { "showEvent", showEvent }, { "consoleCandidate", console }, { "positiveControlInterval", positiveInterval }, { "productObservationInterval", productPhase }, { "observedVisible", currentVisible || observedShow }, { "intersectsDesktop", intersectsDesktop }, { "desktopRect", new int[] { desktop.left, desktop.top, desktop.right, desktop.bottom } },
                 { "baselineVisible", fact.Baseline }, { "attribution", attribution }, { "rect", new int[] { fact.Rect.left, fact.Rect.top, fact.Rect.right, fact.Rect.bottom } }
             });
         }
