@@ -2697,6 +2697,32 @@ textarea {
   font-family: 'Latin Modern Math', 'STIX Two Math', 'Cambria Math', 'DejaVu Math TeX Gyre', math;
   font-size: 1.08em;
 }
+.milkup-document-png-controls {
+  display: flex;
+  margin-bottom: 6px;
+}
+.milkup-document-png-controls[hidden] {
+  display: none;
+}
+.milkup-document-png-scale {
+  padding: 3px 8px;
+  border: 1px solid var(--milkup-presentation-border);
+  border-radius: 5px;
+  color: var(--milkup-presentation-accent);
+  background: var(--milkup-presentation-background);
+  font:
+    12px/1.4 system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+.milkup-document-png-scale:hover {
+  background: var(--neutral-hover);
+}
+.milkup-document-png-scale:focus-visible,
+.milkup-document-png-viewport:focus-visible {
+  outline: 2px solid var(--milkup-presentation-accent);
+  outline-offset: 2px;
+}
 .milkup-document-reference {
   color: var(--milkup-presentation-accent);
   background: transparent;

@@ -1689,11 +1689,25 @@ export class DocumentPresentation {
         this.schedule()
       }
     }
+    const layoutChanged = () => {
+      // A host-owned PNG scale control changes only existing display geometry.
+      // Update virtual row heights and selection without re-preparing/rendering
+      // the document or replacing the live image and its focus/scroll state.
+      if (
+        !this.stopped &&
+        this.fragmentImages.get(owner.fragment) === owner &&
+        this.cache?.response === owner.response &&
+        owner.generation === this.imageGeneration &&
+        this.root.isConnected &&
+        this.samePaintContext(owner.context, this.paintContext())
+      )
+        this.layout()
+    }
     try {
       for (const node of nodes)
         owner.images.push(
           node.type === 'host-png-image'
-            ? createOwnedDocumentPngImage(this.content.ownerDocument, node, changed)
+            ? createOwnedDocumentPngImage(this.content.ownerDocument, node, changed, layoutChanged)
             : createOwnedDocumentSvgImage(this.content.ownerDocument, node, changed),
         )
     } catch {

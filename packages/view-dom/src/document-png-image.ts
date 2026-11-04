@@ -9,6 +9,7 @@ export function createOwnedDocumentPngImage(
   document: Document,
   value: DocumentPngImage,
   changed: () => void,
+  layoutChanged: () => void = () => {},
 ): OwnedDocumentSvgImage {
   const lease = acquireDocumentPngImage(value)
   const element = document.createElement('span')
@@ -18,6 +19,29 @@ export function createOwnedDocumentPngImage(
   element.style.maxWidth = '100%'
   element.style.verticalAlign = 'middle'
   element.contentEditable = 'false'
+  element.dataset.documentPngView = 'fit'
+  const controls = document.createElement('span')
+  controls.className = 'milkup-document-png-controls'
+  controls.hidden = true
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.dataset.documentPngScale = ''
+  button.className = 'milkup-document-png-scale'
+  button.title = '按原始尺寸查看，可横向滚动'
+  const buttonLabel = document.createTextNode('原始尺寸')
+  button.append(buttonLabel)
+  controls.append(button)
+  const viewport = document.createElement('span')
+  viewport.dataset.documentPngViewport = ''
+  viewport.className = 'milkup-document-png-viewport'
+  viewport.style.display = 'block'
+  viewport.style.width = '100%'
+  viewport.style.maxWidth = '100%'
+  viewport.style.overflowX = 'auto'
+  viewport.style.overflowY = 'hidden'
+  viewport.tabIndex = -1
+  viewport.setAttribute('role', 'group')
+  viewport.setAttribute('aria-label', value.title ?? '图表')
   const image = document.createElement('img')
   image.alt = value.title
   image.draggable = false
@@ -30,15 +54,79 @@ export function createOwnedDocumentPngImage(
   image.style.height = 'auto'
   image.style.maxWidth = '100%'
   image.style.maxHeight = 'none'
-  element.append(image)
+  viewport.append(image)
+  element.append(controls, viewport)
   let state: OwnedDocumentSvgImage['state'] = 'pending'
   let url: string | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let released = false
+  let natural = false
+  let resize: ResizeObserver | undefined
+  let layoutFrame: number | undefined
+  const ownerWindow = document.defaultView
+  const notifyLayout = () => {
+    if (state !== 'decoded' || layoutFrame !== undefined || !ownerWindow) return
+    layoutFrame = ownerWindow.requestAnimationFrame(() => {
+      layoutFrame = undefined
+      if (state === 'decoded' && element.isConnected) layoutChanged()
+    })
+  }
+  const setNatural = (next: boolean) => {
+    natural = next
+    element.dataset.documentPngView = natural ? 'natural' : 'fit'
+    image.style.width = natural ? `${value.width}px` : '100%'
+    image.style.maxWidth = natural ? 'none' : '100%'
+    viewport.tabIndex = natural ? 0 : -1
+    viewport.setAttribute(
+      'aria-label',
+      natural ? `${value.title ?? '图表'}，原始尺寸，可横向滚动` : (value.title ?? '图表'),
+    )
+    button.title = natural ? '缩小图表以适应编辑区宽度' : '按原始尺寸查看，可横向滚动'
+    // Update the existing text node: preview observers watch child replacement,
+    // while this control changes only the current owned image's display.
+    buttonLabel.data = natural ? '适应宽度' : '原始尺寸'
+    if (!natural) viewport.scrollLeft = 0
+    notifyLayout()
+  }
+  const measure = () => {
+    if (state !== 'decoded' || !element.isConnected) return
+    const width = element.getBoundingClientRect().width
+    if (!Number.isFinite(width) || width <= 0) return
+    const narrow = width + 0.5 < value.width
+    if (!narrow && natural) setNatural(false)
+    if (controls.hidden === narrow) {
+      if (!narrow && document.activeElement === button) viewport.focus({ preventScroll: true })
+      controls.hidden = !narrow
+    }
+    notifyLayout()
+  }
+  const stopControlEvent = (event: Event) => event.stopPropagation()
+  const toggle = (event: Event) => {
+    event.stopPropagation()
+    if (state !== 'decoded' || controls.hidden) return
+    setNatural(!natural)
+  }
+  // Preserve native focus, keyboard activation and scrollbar operation. These
+  // controls must not select the Markdown source through the preview wrapper.
+  const keepViewportEvent = (event: Event) => {
+    if (event.target === viewport) event.stopPropagation()
+  }
+  for (const name of ['mousedown', 'pointerdown', 'keydown', 'keyup'])
+    button.addEventListener(name, stopControlEvent)
+  button.addEventListener('click', toggle)
+  for (const name of ['mousedown', 'pointerdown', 'click'])
+    viewport.addEventListener(name, keepViewportEvent)
   const cleanup = () => {
     if (released) return
     released = true
     clearTimeout(timer)
+    resize?.disconnect()
+    if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
+    for (const name of ['mousedown', 'pointerdown', 'keydown', 'keyup'])
+      button.removeEventListener(name, stopControlEvent)
+    button.removeEventListener('click', toggle)
+    for (const name of ['mousedown', 'pointerdown', 'click'])
+      viewport.removeEventListener(name, keepViewportEvent)
     image.removeEventListener('error', failed)
     image.removeAttribute('src')
     if (url !== undefined) URL.revokeObjectURL(url)
@@ -70,6 +158,12 @@ export function createOwnedDocumentPngImage(
       }
       state = 'decoded'
       clearTimeout(timer)
+      const Observer = ownerWindow?.ResizeObserver
+      if (Observer) {
+        resize = new Observer(measure)
+        resize.observe(element)
+      }
+      measure()
       notify()
     }, failed)
   } catch {

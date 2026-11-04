@@ -117,8 +117,32 @@ afterEach(() => {
   expect(revoked).toHaveLength(created.length)
   for (const release of releases) expect(release).toHaveBeenCalledTimes(1)
   expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
+function resizeProbe() {
+  const observed = new Map<Element, () => void>()
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      private readonly targets = new Set<Element>()
+      constructor(private readonly callback: ResizeObserverCallback) {}
+      observe(element: Element) {
+        this.targets.add(element)
+        observed.set(element, () => this.callback([], this as unknown as ResizeObserver))
+      }
+      disconnect() {
+        for (const target of this.targets) observed.delete(target)
+        this.targets.clear()
+      }
+      unobserve(element: Element) {
+        observed.delete(element)
+        this.targets.delete(element)
+      }
+    },
+  )
+  return observed
+}
 async function settle() {
   for (let index = 0; index < 8; index++) {
     if (vi.isFakeTimers()) await vi.advanceTimersByTimeAsync(0)
@@ -235,8 +259,9 @@ for (const windowed of [false, true]) {
     expect(image?.style.width).toBe('100%')
     expect(image?.style.height).toBe('auto')
     expect(image?.style.maxWidth).toBe('100%')
-    expect(image?.parentElement?.style.width).toBe('2100px')
+    expect(image?.parentElement?.style.width).toBe('100%')
     expect(image?.parentElement?.style.maxWidth).toBe('100%')
+    expect(image?.closest<HTMLElement>('[data-document-png-view]')?.style.width).toBe('2100px')
     expect(image?.closest<HTMLElement>('[data-document-presentation]')?.style.overflow).toBe('auto')
     expect(blobs[0]?.type).toBe('image/png')
     expect(view.contentDOM.querySelector('script, svg, foreignObject')).toBeNull()
@@ -246,6 +271,91 @@ for (const windowed of [false, true]) {
     visibleSource(view)
     expect(release).toHaveBeenCalledTimes(1)
     expect(revoked).toEqual(created)
+  })
+
+  it(`wide PNG controls preserve the image, document, focus and provider while changing display geometry (${windowed})`, async () => {
+    const observed = resizeProbe()
+    const config = provider(2100, 126)
+    const provide = vi.fn(config.provide)
+    const view = await make(windowed, { provide })
+    decodes[0]!.resolve()
+    await settle()
+    const outer = view.contentDOM.querySelector<HTMLElement>('[data-document-png-view]')!
+    const viewport = outer.querySelector<HTMLElement>('[data-document-png-viewport]')!
+    const button = outer.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
+    const controls = button.parentElement!
+    const image = outer.querySelector('img')!
+    const src = image.src
+    const callCount = provide.mock.calls.length
+    let width = 800
+    vi.spyOn(outer, 'getBoundingClientRect').mockImplementation(() => new DOMRect(0, 0, width, 100))
+    expect(observed.has(outer)).toBe(true)
+    observed.get(outer)!()
+    await settle()
+    expect(controls.hidden).toBe(false)
+    expect(button.textContent).toBe('原始尺寸')
+    expect(outer.dataset.documentPngView).toBe('fit')
+    const pointer = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    expect(button.dispatchEvent(pointer)).toBe(true)
+    button.focus()
+    const key = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+    expect(button.dispatchEvent(key)).toBe(true)
+    button.click()
+    await settle()
+    expect(outer.dataset.documentPngView).toBe('natural')
+    expect(button.textContent).toBe('适应宽度')
+    expect(image.style.width).toBe('2100px')
+    expect(image.style.height).toBe('auto')
+    expect(image.style.maxWidth).toBe('none')
+    expect(viewport.style.overflowX).toBe('auto')
+    expect(viewport.tabIndex).toBe(0)
+    expect(document.activeElement).toBe(button)
+    // Scrollbar targeting and keyboard navigation remain native, not an edit.
+    viewport.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }))
+    viewport.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    viewport.scrollLeft = 640
+    button.click()
+    await settle()
+    expect(viewport.scrollLeft).toBe(0)
+    expect(viewport.tabIndex).toBe(-1)
+    expect(outer.dataset.documentPngView).toBe('fit')
+    expect(image.style.width).toBe('100%')
+    expect(image.src).toBe(src)
+    expect(view.contentDOM.querySelector('img')).toBe(image)
+    expect(provide).toHaveBeenCalledTimes(callCount)
+    expect(decodes).toHaveLength(1)
+    expect(created).toHaveLength(1)
+    await unchanged(view)
+    // A wider editor no longer needs a scale control; current focus stays in
+    // the owned preview rather than being redirected into source editing.
+    button.click()
+    width = 2100
+    observed.get(outer)!()
+    await settle()
+    expect(controls.hidden).toBe(true)
+    expect(outer.dataset.documentPngView).toBe('fit')
+    expect(document.activeElement).toBe(viewport)
+    expect(provide).toHaveBeenCalledTimes(callCount)
+    destroy(view)
+    expect(observed.has(outer)).toBe(false)
+    button.click()
+    expect(outer.dataset.documentPngView).toBe('fit')
+  })
+
+  it(`a PNG already at natural width does not expose a scale control (${windowed})`, async () => {
+    const observed = resizeProbe()
+    const view = await make(windowed, provider(160, 96))
+    decodes[0]!.resolve()
+    await settle()
+    const outer = view.contentDOM.querySelector<HTMLElement>('[data-document-png-view]')!
+    vi.spyOn(outer, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 160, 96))
+    observed.get(outer)!()
+    const button = outer.querySelector<HTMLButtonElement>('button')!
+    expect(button.parentElement?.hidden).toBe(true)
+    button.click()
+    expect(outer.dataset.documentPngView).toBe('fit')
+    expect(outer.querySelector('img')?.style.width).toBe('100%')
+    await unchanged(view)
   })
 
   it(`decode failure keeps source and releases URL plus native lease (${windowed})`, async () => {
