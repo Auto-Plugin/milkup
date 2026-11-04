@@ -40,12 +40,15 @@ Assert ([Runtime.InteropServices.Marshal]::SizeOf([Activator]::CreateInstance($i
 $startupType = [WindowsMermaidGuiObserver].GetNestedType('StartupInfoEx', $private)
 $expectedStartup = if ([IntPtr]::Size -eq 8) { 112 } else { 72 }
 Assert ([Runtime.InteropServices.Marshal]::SizeOf([Activator]::CreateInstance($startupType)) -eq $expectedStartup) 'STARTUPINFOEX ABI size mismatch'
+$placementType = [WindowsMermaidGuiObserver].GetNestedType('WindowPlacement', $private)
+Assert ([Runtime.InteropServices.Marshal]::SizeOf([Activator]::CreateInstance($placementType)) -eq 44) 'Windows WINDOWPLACEMENT must exclude the SDK _MAC-only rcDevice field'
 $observer = [WindowsMermaidGuiObserver]::new()
 try {
     Rejects { $null = $observer.Phase('before-start') } 'Phase command ran before observer start'
     Rejects { $null = $observer.PositiveControl() } 'Positive control ran before observer start'
     Rejects { $null = $observer.ChooseFile($inside) } 'Native input ran before observer start'
     Rejects { $null = $observer.MeasureProduct() } 'Native measurement ran before product registration'
+    Rejects { $null = $observer.ResizeProduct('normal', 800, 560) } 'Native window mutation ran before product registration'
     Rejects { $null = $observer.Stop() } 'Unstarted observer produced success report'
     if (-not $IsWindows) { Rejects { $null = $observer.Start('/tmp/node.exe', '/tmp', '/tmp') } 'Non-Windows host reached native operations' }
     $instanceFlags = [Reflection.BindingFlags]'Instance,NonPublic'
@@ -65,6 +68,26 @@ try {
         $null = $cacheMethod.Invoke($observer, @($window, $true))
         Assert ($cache.Count -eq 0) 'A destroyed window retained its live cache slot'
     }
+    $parent = [Activator]::CreateInstance($windowType, $true); $parent.Handle = [IntPtr]700
+    $childOfParent = [Activator]::CreateInstance($windowType, $true); $childOfParent.Handle = [IntPtr]701; $childOfParent.KnownChild = $true; $childOfParent.ObservedRoot = [IntPtr]700
+    $unrelatedChild = [Activator]::CreateInstance($windowType, $true); $unrelatedChild.Handle = [IntPtr]702; $unrelatedChild.KnownChild = $true; $unrelatedChild.ObservedRoot = [IntPtr]900
+    foreach ($item in @($parent, $childOfParent, $unrelatedChild)) { $null = $cacheMethod.Invoke($observer, @($item, $false)) }
+    $null = $cacheMethod.Invoke($observer, @($parent, $true))
+    Assert ($cache.Count -eq 1 -and $cache.ContainsKey([long]702)) 'Parent DESTROY must retire only its proven descendants without requiring individual child DESTROY events'
+    $null = $cacheMethod.Invoke($observer, @($unrelatedChild, $true))
+    $changedMethod = [WindowsMermaidGuiObserver].GetMethod('WindowStateChanged', $staticFlags)
+    $oldWindow = [Activator]::CreateInstance($windowType, $true); $oldWindow.Identity = 'same'; $oldWindow.Attribution = 'product'; $oldWindow.Visible = $true; $oldWindow.CurrentVisible = $true
+    $newWindow = [Activator]::CreateInstance($windowType, $true); $newWindow.Identity = 'same'; $newWindow.Attribution = 'unattributed'; $newWindow.Visible = $true; $newWindow.CurrentVisible = $true
+    Assert ([bool]$changedMethod.Invoke($null, @($oldWindow, $newWindow))) 'Attribution-only poll changed counts without a corresponding raw event'
+    $newWindow.Attribution = 'product'
+    Assert (-not [bool]$changedMethod.Invoke($null, @($oldWindow, $newWindow))) 'Identical poll state should not consume evidence budget'
+    $newWindow.CurrentVisible = $false
+    Assert ([bool]$changedMethod.Invoke($null, @($oldWindow, $newWindow))) 'Desktop/cloaking visibility transition was omitted from raw evidence'
+    $resizeRequest = [WindowsMermaidGuiObserver].GetMethod('ValidResizeRequest', $staticFlags)
+    Assert ([bool]$resizeRequest.Invoke($null, @('normal', 800, 560, 1024, 768))) 'Native dimensions fitting the observed desktop were rejected'
+    Assert (-not [bool]$resizeRequest.Invoke($null, @('normal', 1280, 560, 1024, 768))) 'Out-of-desktop native dimensions accepted'
+    Assert (-not [bool]$resizeRequest.Invoke($null, @('maximize', 800, 560, 1024, 768))) 'State-only operation accepted hidden dimensions'
+    Assert (-not [bool]$resizeRequest.Invoke($null, @('unknown', 0, 0, 1024, 768))) 'Open-ended native window operation accepted'
     $first = [Activator]::CreateInstance($processType, $true)
     $first.Pid = 42; $first.Parent = 1; $first.Creation = 100; $first.Image = 'first.exe'
     $second = [Activator]::CreateInstance($processType, $true)

@@ -27,6 +27,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     readonly List<Dictionary<string, object>> unresolvedEvents = new List<Dictionary<string, object>>();
     readonly List<Dictionary<string, object>> resolvedChildEvents = new List<Dictionary<string, object>>();
     readonly HashSet<string> overflowReasons = new HashSet<string>(StringComparer.Ordinal);
+    readonly List<Dictionary<string, object>> productMeasurements = new List<Dictionary<string, object>>();
+    readonly List<Dictionary<string, object>> productWindowOperations = new List<Dictionary<string, object>>();
     readonly List<Product> products = new List<Product>();
     readonly HashSet<string> visibleProductConsoles = new HashSet<string>(StringComparer.Ordinal);
     readonly HashSet<string> visibleUnknownConsoles = new HashSet<string>(StringComparer.Ordinal);
@@ -43,6 +45,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     uint positiveStartedTick, positiveEndedTick;
     bool positiveEnded;
     long knownChildShowEvents;
+    long retiredChildHints;
 
     [StructLayout(LayoutKind.Sequential)] struct Rect { public int left, top, right, bottom; }
     [StructLayout(LayoutKind.Sequential)] struct Point { public int x, y; }
@@ -56,6 +59,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [StructLayout(LayoutKind.Sequential)] struct Accounting { public long user, kernel, periodUser, periodKernel; public uint faults, total, active, terminated; }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] struct ProcessEntry { public uint size, usage, pid; public UIntPtr defaultHeap; public uint module, threads, parent; public int priority; public uint flags; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string executable; }
     [StructLayout(LayoutKind.Sequential)] struct GuiThreadInfo { public uint size, flags; public IntPtr active, focus, capture, menuOwner, moveSize, caret; public Rect caretRect; }
+    // WinSDK WinUser.h includes rcDevice only under _MAC, not Windows.
+    [StructLayout(LayoutKind.Sequential)] struct WindowPlacement { public uint length, flags, show; public Point min, max; public Rect normal; }
     [StructLayout(LayoutKind.Sequential)] struct KeyboardInput { public ushort key, scan; public uint flags, time; public UIntPtr extra; }
     [StructLayout(LayoutKind.Sequential)] struct MouseInput { public int x, y; public uint data, flags, time; public UIntPtr extra; }
     [StructLayout(LayoutKind.Explicit)] struct InputUnion { [FieldOffset(0)] public KeyboardInput keyboard; [FieldOffset(0)] public MouseInput mouse; }
@@ -85,6 +90,11 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [DllImport("user32.dll")] static extern IntPtr GetWindowDpiAwarenessContext(IntPtr hwnd);
     [DllImport("user32.dll")] static extern IntPtr GetThreadDpiAwarenessContext();
     [DllImport("user32.dll")] static extern int GetAwarenessFromDpiAwarenessContext(IntPtr context);
+    [DllImport("user32.dll")] static extern bool IsZoomed(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr hwnd);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool GetWindowPlacement(IntPtr hwnd, ref WindowPlacement placement);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool ShowWindowAsync(IntPtr hwnd, int command);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hwnd, uint command);
     [DllImport("user32.dll")] static extern IntPtr GetParent(IntPtr hwnd);
     [DllImport("user32.dll")] static extern int GetDlgCtrlID(IntPtr hwnd);
@@ -133,7 +143,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [DllImport("kernel32.dll", SetLastError = true)] static extern bool TerminateJobObject(IntPtr job, uint code);
     [DllImport("kernel32.dll", SetLastError = true)] static extern uint ResumeThread(IntPtr thread);
 
-    sealed class WindowFact { public IntPtr Handle, ObservedRoot; public uint Pid, ThreadId; public string Class, Title, Identity; public bool Visible, Baseline, KnownChild; public uint? Cloaked; public Rect Rect; public long Creation; public ProcessFact Process; }
+    sealed class WindowFact { public IntPtr Handle, ObservedRoot; public uint Pid, ThreadId; public string Class, Title, Identity, Attribution; public bool Visible, Baseline, KnownChild, CurrentVisible; public uint? Cloaked; public Rect Rect; public long Creation; public ProcessFact Process; }
     sealed class ProcessFact { public uint Pid, Parent; public long Creation; public string Image; }
     sealed class Product { public IntPtr Handle; public uint Pid; public long Creation; public string Image; }
     static void Check(bool result, string operation) { if (!result) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
@@ -219,11 +229,21 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     }
     void CacheWindow(WindowFact fact, bool destroyed) {
         long key = fact.Handle.ToInt64();
-        if (destroyed) { previous.Remove(key); return; }
+        if (destroyed) { DestroyCachedWindow(fact.Handle); return; }
         if (previous.Count < MaxWindows || previous.ContainsKey(key)) previous[key] = fact;
         else MarkOverflow("live-window-cache-budget");
     }
+    void DestroyCachedWindow(IntPtr hwnd) {
+        previous.Remove(hwnd.ToInt64());
+        // EVENT_OBJECT_DESTROY for a parent also retires its descendants. A
+        // child is not required to emit a separate DESTROY. Only negative
+        // live-cache hints are released; recorded evidence is never erased.
+        var children = new List<long>();
+        foreach (var pair in previous) if (pair.Value.KnownChild && pair.Value.ObservedRoot == hwnd) children.Add(pair.Key);
+        foreach (long child in children) { previous.Remove(child); retiredChildHints++; }
+    }
     static bool OrderedIdentity(long expected, long actual, long childCreation) { return expected > 0 && actual == expected && actual <= childCreation; }
+    static bool WindowStateChanged(WindowFact old, WindowFact current) { return old == null || old.Identity != current.Identity || old.Visible != current.Visible || old.Title != current.Title || old.Attribution != current.Attribution || old.CurrentVisible != current.CurrentVisible; }
     static bool ExistedBeforeSnapshot(long creation, long snapshotStarted) { return creation > 0 && creation <= snapshotStarted; }
     static bool SameThreadOwner(WindowFact prior, uint eventThread, ProcessFact actual) { return prior != null && prior.KnownChild && prior.ThreadId != 0 && prior.ThreadId == eventThread && actual != null && actual.Pid == prior.Pid && prior.Process != null && OrderedIdentity(prior.Process.Creation, actual.Creation, actual.Creation); }
     static ProcessFact ThreadOwner(uint threadId) {
@@ -301,7 +321,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             // genuinely unknown destroyed top-level window; never guess from
             // a missing HWND alone. DESTROY releases only the live cache.
             if (fact == null && old != null && old.KnownChild) {
-                if (kind == "destroy") { previous.Remove(hwnd.ToInt64()); return; }
+                if (kind == "destroy") { DestroyCachedWindow(hwnd); return; }
                 ProcessFact owner = ThreadOwner(eventThread);
                 if (SameThreadOwner(old, eventThread, owner)) {
                     if (showEvent) {
@@ -315,6 +335,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             }
             if (fact == null) fact = old;
             if (fact == null) {
+                if (kind == "destroy") { DestroyCachedWindow(hwnd); return; }
                 if (showEvent && productPhase && !positiveInterval) {
                     AddError("One or more show events lost window identity; unresolved events cannot establish absence of consoles");
                     if (unresolvedEvents.Count >= 128) MarkOverflow("unresolved-event-budget");
@@ -331,11 +352,15 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             List<ProcessFact> lineage;
             string attribution = Attribution(fact.Process, out lineage);
             bool product = attribution != "unattributed";
-            bool changed = old == null || old.Identity != fact.Identity || old.Visible != fact.Visible || old.Title != fact.Title;
-            CacheWindow(fact, kind == "destroy");
-            if (!console && !product) return;
             Rect desktop = DesktopRect(); bool intersectsDesktop = IntersectsDesktop(fact.Rect, desktop);
             bool currentVisible = live && fact.Visible && fact.Cloaked == 0 && fact.Rect.right > fact.Rect.left && fact.Rect.bottom > fact.Rect.top && intersectsDesktop;
+            // Preserve the old state even when a destroyed HWND can only be
+            // resolved from its cached identity.
+            bool changed = old == null || old.Attribution != attribution || old.CurrentVisible != currentVisible;
+            fact.Attribution = attribution; fact.CurrentVisible = currentVisible;
+            changed = changed || WindowStateChanged(old, fact);
+            CacheWindow(fact, kind == "destroy");
+            if (!console && !product) return;
             bool observedShow = console && showEvent && !fact.Baseline;
             // Hidden WebView IME/message/power windows are cached for identity,
             // but do not consume the console/visible-product evidence budget.
@@ -525,6 +550,13 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     }
     static Dictionary<string, object> RectReport(Rect value) { return new Dictionary<string, object> { { "left", value.left }, { "top", value.top }, { "right", value.right }, { "bottom", value.bottom }, { "width", value.right - value.left }, { "height", value.bottom - value.top } }; }
     public Dictionary<string, object> MeasureProduct() {
+        RequireStarted();
+        lock (gate) if (productMeasurements.Count >= 64) { MarkOverflow("product-measurement-budget"); throw new InvalidOperationException("Product measurement budget exceeded"); }
+        Dictionary<string, object> result = MeasureProductSnapshot();
+        lock (gate) { result["measurementSequence"] = productMeasurements.Count + 1; result["measurementElapsedMs"] = clock.ElapsedMilliseconds; productMeasurements.Add(result); }
+        return result;
+    }
+    Dictionary<string, object> MeasureProductSnapshot() {
         RequireStarted(); CurrentDesktop();
         Product product; lock (gate) { if (products.Count == 0) throw new InvalidOperationException("No tracked product"); product = products[products.Count - 1]; }
         if (WaitForSingleObject(product.Handle, 0) != 258) throw new InvalidOperationException("Tracked product already exited");
@@ -541,7 +573,49 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         var first = new Point { x = client.left, y = client.top }; var last = new Point { x = client.right, y = client.bottom };
         Check(ClientToScreen(window, ref first) && ClientToScreen(window, ref last), "Read client bounds in observer screen coordinates");
         if (rect.right <= rect.left || rect.bottom <= rect.top || client.right <= client.left || client.bottom <= client.top) throw new InvalidOperationException("Product window dimensions unavailable");
-        return new Dictionary<string, object> { { "observed", true }, { "pid", product.Pid }, { "creationFileTime", product.Creation.ToString() }, { "hwnd", HandleText(window) }, { "className", "Tauri Window" }, { "dpi", dpi }, { "dpiAwareness", awareness }, { "dpiAwarenessContext", HandleText(awarenessContext) }, { "observerThreadDpiAwareness", observerAwareness }, { "windowRect", RectReport(rect) }, { "clientRect", RectReport(client) }, { "clientScreenRect", RectReport(new Rect { left = first.x, top = first.y, right = last.x, bottom = last.y }) }, { "coordinateSpace", "Win32 coordinates under the reported observer thread DPI awareness" }, { "displaySettingsChanged", false } };
+        var placement = new WindowPlacement { length = (uint)Marshal.SizeOf<WindowPlacement>() }; Check(GetWindowPlacement(window, ref placement), "Read product window placement");
+        return new Dictionary<string, object> { { "observed", true }, { "pid", product.Pid }, { "creationFileTime", product.Creation.ToString() }, { "hwnd", HandleText(window) }, { "className", "Tauri Window" }, { "dpi", dpi }, { "dpiAwareness", awareness }, { "dpiAwarenessContext", HandleText(awarenessContext) }, { "observerThreadDpiAwareness", observerAwareness }, { "windowRect", RectReport(rect) }, { "clientRect", RectReport(client) }, { "clientScreenRect", RectReport(new Rect { left = first.x, top = first.y, right = last.x, bottom = last.y }) }, { "desktopRect", RectReport(DesktopRect()) }, { "maximized", IsZoomed(window) }, { "minimized", IsIconic(window) }, { "placementShowCommand", placement.show }, { "normalPlacementRect", RectReport(placement.normal) }, { "normalPlacementCoordinateSpace", "Win32 workspace coordinates; never passed to SetWindowPos" }, { "coordinateSpace", "Win32 coordinates under the reported observer thread DPI awareness" }, { "displaySettingsChanged", false } };
+    }
+    static bool SameMeasuredProduct(Dictionary<string, object> before, Dictionary<string, object> after) { return Equals(before["pid"], after["pid"]) && Equals(before["creationFileTime"], after["creationFileTime"]) && Equals(before["hwnd"], after["hwnd"]); }
+    static bool ValidResizeRequest(string mode, int width, int height, int desktopWidth, int desktopHeight) { return mode == "normal" ? width >= 480 && height >= 360 && width <= desktopWidth && height <= desktopHeight && width <= 4096 && height <= 4096 : (mode == "maximize" || mode == "restore") && width == 0 && height == 0; }
+    Dictionary<string, object> WaitForProductWindow(Dictionary<string, object> before, string mode, int width, int height, Dictionary<string, object> record) {
+        long deadline = clock.ElapsedMilliseconds + 5000; string last = null; int stable = 0;
+        do {
+            Dictionary<string, object> sample = MeasureProductSnapshot(); record["lastAfter"] = sample;
+            if (!SameMeasuredProduct(before, sample)) throw new InvalidOperationException("Registered product window identity changed during native operation");
+            var rect = (Dictionary<string, object>)sample["windowRect"];
+            bool state = !(bool)sample["minimized"] && (mode == "maximize" ? (bool)sample["maximized"] && (uint)sample["placementShowCommand"] == 3 : !(bool)sample["maximized"] && (uint)sample["placementShowCommand"] == 1);
+            bool size = mode != "normal" || ((int)rect["width"] == width && (int)rect["height"] == height);
+            string current = rect["left"] + ":" + rect["top"] + ":" + rect["width"] + ":" + rect["height"];
+            stable = state && size ? current == last ? stable + 1 : 1 : 0;
+            if (stable >= 3) return sample;
+            last = current; Thread.Sleep(25);
+        } while (clock.ElapsedMilliseconds < deadline);
+        throw new InvalidOperationException("Registered product native window did not reach requested stable state and bounds");
+    }
+    public Dictionary<string, object> ResizeProduct(string mode, int width, int height) {
+        RequireStarted();
+        var requested = new Dictionary<string, object> { { "mode", mode } }; if (mode == "normal") { requested["width"] = width; requested["height"] = height; }
+        var record = new Dictionary<string, object> { { "requested", requested }, { "nativeWindowOperation", true }, { "displaySettingsChanged", false }, { "dpiContextChanged", false }, { "ok", false }, { "startedElapsedMs", clock.ElapsedMilliseconds } };
+        lock (gate) { if (productWindowOperations.Count >= 16) { MarkOverflow("product-window-operation-budget"); throw new InvalidOperationException("Product window operation budget exceeded"); } record["operationSequence"] = productWindowOperations.Count + 1; productWindowOperations.Add(record); }
+        try {
+            Dictionary<string, object> before = MeasureProductSnapshot(); record["before"] = before;
+            var desktop = (Dictionary<string, object>)before["desktopRect"];
+            if (!ValidResizeRequest(mode, width, height, (int)desktop["width"], (int)desktop["height"])) throw new ArgumentException("Closed native window mode and dimensions within the observed desktop are required");
+            IntPtr window = new IntPtr(Convert.ToInt64(((string)before["hwnd"]).Substring(2), 16));
+            // Both calls post work to the registered UI thread. API return
+            // values establish only dispatch; measured state establishes success.
+            Check(ShowWindowAsync(window, mode == "maximize" ? 3 : 9), "Post registered product show-state operation");
+            if (mode == "normal") {
+                WaitForProductWindow(before, "restore", 0, 0, record);
+                Dictionary<string, object> verified = MeasureProductSnapshot();
+                if (!SameMeasuredProduct(before, verified)) throw new InvalidOperationException("Registered HWND changed before SetWindowPos");
+                Check(SetWindowPos(window, IntPtr.Zero, 0, 0, width, height, 0x4000 | 0x10 | 4 | 2), "Post registered product native resize");
+            }
+            record["after"] = WaitForProductWindow(before, mode, width, height, record);
+            record["ok"] = true; return record;
+        } catch (Exception error) { record["error"] = Bounded(error.Message, 512); throw; }
+        finally { record["finishedElapsedMs"] = clock.ElapsedMilliseconds; }
     }
     static Input Key(ushort key, ushort scan, uint flags) { return new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = key, scan = scan, flags = flags } } }; }
     static byte[] U32(uint value) { return new byte[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }; }
@@ -580,7 +654,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         lock (gate) {
             var tracked = new List<Dictionary<string, object>>(); foreach (Product product in products) tracked.Add(new Dictionary<string, object> { { "pid", product.Pid }, { "image", product.Image }, { "creationFileTime", product.Creation.ToString() }, { "heldProcessSignaledAtStop", WaitForSingleObject(product.Handle, 0) == 0 } });
             var processRows = new List<Dictionary<string, object>>(); foreach (ProcessFact process in processEvidence.Values) processRows.Add(new Dictionary<string, object> { { "pid", process.Pid }, { "parentPid", process.Parent }, { "creationFileTime", process.Creation.ToString() }, { "image", process.Image } });
-            return new Dictionary<string, object> { { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false } };
+            return new Dictionary<string, object> { { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "retiredChildHints", retiredChildHints }, { "productMeasurements", productMeasurements.ToArray() }, { "productWindowOperations", productWindowOperations.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false } };
         }
     }
     public void Dispose() { if (started && !stopping) { try { Stop(); } catch { } } foreach (Product product in products) if (product.Handle != IntPtr.Zero) { CloseHandle(product.Handle); product.Handle = IntPtr.Zero; } ready.Dispose(); }

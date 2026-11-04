@@ -125,6 +125,17 @@ try {
                     $null = Assert-IdentityContext
                     $result = $observer.MeasureProduct()
                 }
+                'resizeProduct' {
+                    Assert-RequestFields $request @('id', 'command', 'mode', 'width', 'height')
+                    if (-not $request.Contains('mode') -or $request.mode -isnot [string] -or $request.mode -notin @('normal', 'maximize', 'restore')) { throw 'Closed native window mode required' }
+                    $width = 0; $height = 0
+                    if ($request.mode -eq 'normal') {
+                        if (-not $request.Contains('width') -or -not $request.Contains('height') -or ($request.width -isnot [int] -and $request.width -isnot [long]) -or ($request.height -isnot [int] -and $request.height -isnot [long])) { throw 'Integer native window dimensions required' }
+                        $width = [int]$request.width; $height = [int]$request.height
+                    } elseif ($request.Contains('width') -or $request.Contains('height')) { throw 'State-only native window operation cannot include dimensions' }
+                    $null = Assert-IdentityContext
+                    $result = $observer.ResizeProduct($request.mode, $width, $height)
+                }
                 'stop' {
                     Assert-RequestFields $request @('id', 'command')
                     $report = $observer.Stop()
