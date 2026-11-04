@@ -61,6 +61,10 @@ export function createOwnedDocumentPngImage(
   let timer: ReturnType<typeof setTimeout> | undefined
   let released = false
   let natural = false
+  // A natural-size toggle changes the observed geometry. Ignore the first
+  // ResizeObserver pass caused by that style change; only later external
+  // resizes may collapse natural mode back to fit.
+  let ignoreNaturalMeasure = false
   let resize: ResizeObserver | undefined
   let layoutFrame: number | undefined
   const ownerWindow = document.defaultView
@@ -73,6 +77,7 @@ export function createOwnedDocumentPngImage(
   }
   const setNatural = (next: boolean) => {
     natural = next
+    if (next) ignoreNaturalMeasure = true
     element.dataset.documentPngView = natural ? 'natural' : 'fit'
     image.style.width = natural ? `${value.width}px` : '100%'
     image.style.maxWidth = natural ? 'none' : '100%'
@@ -93,7 +98,9 @@ export function createOwnedDocumentPngImage(
     const width = element.getBoundingClientRect().width
     if (!Number.isFinite(width) || width <= 0) return
     const narrow = width + 0.5 < value.width
-    if (!narrow && natural) setNatural(false)
+    const ignoreNaturalReset = ignoreNaturalMeasure
+    ignoreNaturalMeasure = false
+    if (!narrow && natural && !ignoreNaturalReset) setNatural(false)
     if (controls.hidden === narrow) {
       if (!narrow && document.activeElement === button) viewport.focus({ preventScroll: true })
       controls.hidden = !narrow
@@ -128,8 +135,15 @@ export function createOwnedDocumentPngImage(
     event.stopPropagation()
     togglePointer(event)
   }
+  const isButtonEvent = (event: Event) => event.composedPath().includes(button)
   const capturePointer = (event: Event) => {
-    if (event.target instanceof Node && button.contains(event.target)) handlePointer(event)
+    if (isButtonEvent(event)) handlePointer(event)
+  }
+  const captureClick = (event: Event) => {
+    if (isButtonEvent(event)) {
+      toggleClick(event)
+      event.stopPropagation()
+    }
   }
   const toggleClick = (event: Event) => {
     if (pointerActivation) {
@@ -152,6 +166,7 @@ export function createOwnedDocumentPngImage(
     document.addEventListener(name, capturePointer, true)
   }
   button.addEventListener('click', toggleClick)
+  document.addEventListener('click', captureClick, true)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
   const cleanup = () => {
@@ -168,6 +183,7 @@ export function createOwnedDocumentPngImage(
       document.removeEventListener(name, capturePointer, true)
     }
     button.removeEventListener('click', toggleClick)
+    document.removeEventListener('click', captureClick, true)
     for (const name of ['mousedown', 'pointerdown', 'click'])
       viewport.removeEventListener(name, keepViewportEvent)
     image.removeEventListener('error', failed)
