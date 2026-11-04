@@ -79,6 +79,9 @@ try {
     Assert ([bool]$ordered.Invoke($null, @([long]100, [long]100, [long]200))) 'Ordered exact ancestry rejected'
     Assert (-not [bool]$ordered.Invoke($null, @([long]100, [long]200, [long]300))) 'A reused ancestor PID was accepted'
     Assert (-not [bool]$ordered.Invoke($null, @([long]200, [long]200, [long]100))) 'Parent created after child was accepted'
+    $snapshotIdentity = [WindowsMermaidGuiObserver].GetMethod('ExistedBeforeSnapshot', $staticFlags)
+    Assert ([bool]$snapshotIdentity.Invoke($null, @([long]100, [long]200))) 'Process predating snapshot was rejected'
+    Assert (-not [bool]$snapshotIdentity.Invoke($null, @([long]300, [long]200))) 'PID reused after snapshot borrowed an old parent PID'
     $sameThread = [WindowsMermaidGuiObserver].GetMethod('SameThreadOwner', $staticFlags)
     $child = [Activator]::CreateInstance($windowType, $true)
     $child.KnownChild = $true; $child.Pid = 42; $child.ThreadId = 9; $child.Process = $history['42:100']

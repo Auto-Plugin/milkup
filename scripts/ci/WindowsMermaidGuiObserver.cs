@@ -179,6 +179,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         } finally { CloseHandle(process); }
     }
     void ScanProcesses() {
+        long snapshotStarted = DateTime.UtcNow.ToFileTimeUtc();
         IntPtr snapshot = CreateToolhelp32Snapshot(2, 0);
         if (snapshot == new IntPtr(-1)) { AddError("Process snapshot unavailable"); return; }
         try {
@@ -191,7 +192,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
                     // Refresh creation times even when the PID and parent PID
                     // match: Windows may reuse both between observations.
                     ProcessFact fact = ProcessIdentity(item.pid, item.parent);
-                    if (fact != null) { if (active.Count < MaxProcesses) active[item.pid] = fact; else MarkOverflow("active-process-cache-budget"); }
+                    if (fact != null && ExistedBeforeSnapshot(fact.Creation, snapshotStarted)) { if (active.Count < MaxProcesses) active[item.pid] = fact; else MarkOverflow("active-process-cache-budget"); }
                 }
                 more = Process32NextW(snapshot, ref item);
             }
@@ -222,6 +223,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         else MarkOverflow("live-window-cache-budget");
     }
     static bool OrderedIdentity(long expected, long actual, long childCreation) { return expected > 0 && actual == expected && actual <= childCreation; }
+    static bool ExistedBeforeSnapshot(long creation, long snapshotStarted) { return creation > 0 && creation <= snapshotStarted; }
     static bool SameThreadOwner(WindowFact prior, uint eventThread, ProcessFact actual) { return prior != null && prior.KnownChild && prior.ThreadId != 0 && prior.ThreadId == eventThread && actual != null && actual.Pid == prior.Pid && prior.Process != null && OrderedIdentity(prior.Process.Creation, actual.Creation, actual.Creation); }
     static ProcessFact ThreadOwner(uint threadId) {
         IntPtr thread = threadId == 0 ? IntPtr.Zero : OpenThread(0x800, false, threadId);
@@ -260,11 +262,12 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             ProcessFact exact = ProcessIdentity(pid, 0);
             if (exact != null && process != null && exact.Creation == process.Creation) exact.Parent = process.Parent;
             else if (exact != null) {
+                long snapshotStarted = DateTime.UtcNow.ToFileTimeUtc();
                 IntPtr snapshot = CreateToolhelp32Snapshot(2, 0);
                 if (snapshot != new IntPtr(-1)) try {
                     var item = new ProcessEntry { size = (uint)Marshal.SizeOf<ProcessEntry>() };
                     bool more = Process32FirstW(snapshot, ref item);
-                    while (more) { if (item.pid == pid) { ProcessFact verified = ProcessIdentity(pid, item.parent); if (verified != null && verified.Creation == exact.Creation) exact = verified; break; } more = Process32NextW(snapshot, ref item); }
+                    while (more) { if (item.pid == pid) { ProcessFact verified = ProcessIdentity(pid, item.parent); if (verified != null && verified.Creation == exact.Creation && ExistedBeforeSnapshot(verified.Creation, snapshotStarted)) exact = verified; break; } more = Process32NextW(snapshot, ref item); }
                 } finally { CloseHandle(snapshot); }
             }
             process = exact;
