@@ -16,7 +16,12 @@ import {
   validateNativeWindowEvidence,
   validateCurrentNativeResourceProof,
 } from './mermaid-gui-contract.mjs'
-import { guiFixtures, validateDiagramLayout } from './mermaid-gui-regression.mjs'
+import {
+  guiFixtures,
+  validateDiagramLayout,
+  inspectPersistedGuiPluginInventory,
+  prepareGuiPluginState,
+} from './mermaid-gui-regression.mjs'
 import { stageEvidence } from './stage-mermaid-evidence.mjs'
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
@@ -25,6 +30,128 @@ const identity = () => ({
   applicationCandidateSha: 'a'.repeat(40),
   harnessCandidateSha: 'a'.repeat(40),
   applicationSha256: 'b'.repeat(64),
+})
+
+const pluginInventory = [
+  { id: 'milkup.diagrams', version: '1.3.0' },
+  { id: 'milkup.footnotes', version: '1.0.1' },
+]
+const pluginCards = (enabled) =>
+  pluginInventory.map(({ id, version }) => ({
+    id,
+    availableVersionText:
+      enabled && id === 'milkup.diagrams' ? null : `${version} · 下次开启时应用`,
+    checked: String(enabled && id === 'milkup.diagrams'),
+    busy: null,
+    ariaDisabled: null,
+    switchDisabled: false,
+    rect: { width: 600, height: 120 },
+    switchRect: { width: 40, height: 24 },
+  }))
+
+test('first GUI launch enables once; restarted GUI verifies persisted state and installed version without toggling', async () => {
+  let cards = pluginCards(false),
+    inDetails = false,
+    toggles = 0,
+    closes = 0,
+    detailsReads = 0
+  const options = {
+    inventory: pluginInventory,
+    pollIntervalMs: 1,
+    timeoutMs: 1000,
+    readState: async () => ({ cards: inDetails ? [] : cards }),
+    pointer: async (selector) => {
+      if (selector.includes('[role="switch"]')) {
+        toggles++
+        assert.equal(cards[0].checked, 'false')
+        cards = pluginCards(true)
+      } else if (selector.includes('[data-plugin-action="details"]')) inDetails = true
+      else if (selector === '[data-plugin-action="back"]') {
+        assert(inDetails)
+        inDetails = false
+      } else assert.fail('Unexpected action: ' + selector)
+    },
+    readInstalledIdentity: async () => {
+      assert(inDetails)
+      return ++detailsReads === 1 ? null : 'milkup.diagrams · v1.3.0'
+    },
+    closeMenu: async () => {
+      assert(!inDetails)
+      closes++
+    },
+  }
+  const first = await prepareGuiPluginState({ ...options, phase: 'fresh' })
+  assert.equal(toggles, 1)
+  assert.equal(first.togglePerformed, true)
+  assert(first.initialInventory.every((entry) => entry.checked === 'false'))
+  const restarted = await prepareGuiPluginState({ ...options, phase: 'persisted' })
+  assert.equal(toggles, 1, 'Restart must not reset or toggle the correctly persisted plugin')
+  assert.equal(restarted.togglePerformed, false)
+  assert.equal(
+    restarted.initialInventory.find((entry) => entry.id === 'milkup.diagrams').checked,
+    'true',
+  )
+  assert.equal(restarted.installedIdentity.version, '1.3.0')
+  assert.equal(restarted.installedIdentity.source, 'public-details-ui')
+  assert.equal(closes, 2)
+})
+
+test('persisted inventory still rejects reset state, other enabled plugins, identity and version changes', async () => {
+  assert(inspectPersistedGuiPluginInventory(pluginCards(true), pluginInventory))
+  for (const modify of [
+    (cards) => {
+      cards[0].checked = 'false'
+    },
+    (cards) => {
+      cards[1].checked = 'true'
+    },
+    (cards) => {
+      cards[1].availableVersionText = '1.0.2 · 下次开启时应用'
+    },
+    (cards) => {
+      cards[0].availableVersionText = '1.4.0 · 下次开启时应用'
+    },
+    (cards) => {
+      cards.push({ ...cards[1], id: 'milkup.unknown' })
+    },
+    (cards) => {
+      cards.push({ ...cards[0] })
+    },
+  ]) {
+    const cards = pluginCards(true)
+    modify(cards)
+    assert.throws(() => inspectPersistedGuiPluginInventory(cards, pluginInventory))
+  }
+  let clicks = []
+  await assert.rejects(
+    () =>
+      prepareGuiPluginState({
+        phase: 'persisted',
+        inventory: pluginInventory,
+        readState: async () => ({ cards: pluginCards(true) }),
+        readInstalledIdentity: async () => 'milkup.diagrams · v1.2.0',
+        pointer: async (selector) => {
+          clicks.push(selector)
+        },
+        closeMenu: async () => {},
+        timeoutMs: 20,
+        pollIntervalMs: 1,
+      }),
+    /Actual enabled plugin identity/,
+  )
+  assert(!clicks.some((selector) => selector.includes('[role="switch"]')))
+  await assert.rejects(
+    () =>
+      prepareGuiPluginState({
+        phase: 'fresh',
+        inventory: pluginInventory,
+        readState: async () => ({ cards: pluginCards(true) }),
+        readInstalledIdentity: async () => '',
+        pointer: async () => assert.fail('Fresh enabled state must be rejected before any toggle'),
+        closeMenu: async () => {},
+      }),
+    /Fresh bundled plugin must be disabled/,
+  )
 })
 const samples = (duration = 75000, count = 1) =>
   Array.from({ length: duration / 1000 + 1 }, (_, i) => ({
@@ -110,6 +237,29 @@ const passing = () => ({
   observerSummary: summary(),
   steps: GUI_STEPS.map((name) => {
     const step = { name, status: 'passed' }
+    if (name === 'blank-start-enable' || name === 'busy-close') {
+      const fresh = name === 'blank-start-enable'
+      step.pluginState = {
+        phase: fresh ? 'fresh' : 'persisted',
+        togglePerformed: fresh,
+        installedIdentity: {
+          id: 'milkup.diagrams',
+          version: '1.3.0',
+          text: 'milkup.diagrams · v1.3.0',
+          source: 'public-details-ui',
+        },
+        initialInventory: pluginInventory.map((item) => ({
+          ...item,
+          checked: String(!fresh && item.id === 'milkup.diagrams'),
+          busy: null,
+        })),
+        finalInventory: pluginInventory.map((item) => ({
+          ...item,
+          checked: String(item.id === 'milkup.diagrams'),
+          busy: null,
+        })),
+      }
+    }
     if (['open-ordinary-stable', 'open-wide-stable'].includes(name))
       Object.assign(step, {
         samples: samples(),
@@ -242,6 +392,12 @@ test('complete GUI acceptance requires every scenario and a two-diagram decode',
   const multi = passing()
   multi.steps[5].decodedImages.pop()
   assert.throws(() => validateGuiReport(multi))
+  const toggledAgain = passing()
+  toggledAgain.steps[7].pluginState.togglePerformed = true
+  assert.throws(() => validateGuiReport(toggledAgain), /Only the first launch/)
+  const reset = passing()
+  reset.steps[7].pluginState.initialInventory[0].checked = 'false'
+  assert.throws(() => validateGuiReport(reset))
 })
 
 test('optional frontend diagnostics cannot affect a baseline or bypass their own cleanup', () => {

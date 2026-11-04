@@ -37,6 +37,66 @@ function Reject-Manifest([scriptblock]$Change) {
     try { Assert-InstallationManifest $value $commit $version $built } catch { $rejected = $true }
     Assert-True $rejected 'Unsafe package manifest was accepted'
 }
+# Exercise the actual closed parent identity guards, without evaluating the
+# surrounding hosted-runner, account creation or process-launch statements.
+$identityGuardPrefixes = @(
+    'if ($HarnessMode -ceq ''product'' -and $ApplicationCandidateSha)',
+    'if (-not $ApplicationCandidateSha)',
+    'if ($FrontendBoundaryProbe -and ($HarnessMode -cne ''gui-regression''',
+    'if ($ApplicationCandidateSha -cne $ExpectedCommit)'
+)
+$identityGuardScripts = foreach ($prefix in $identityGuardPrefixes) {
+    $matches = @($ast.EndBlock.Statements | Where-Object { $_ -is [Management.Automation.Language.IfStatementAst] -and $_.Extent.Text.StartsWith($prefix, [StringComparison]::Ordinal) })
+    Assert-True ($matches.Count -eq 1) ('Missing or ambiguous actual identity guard: ' + $prefix)
+    [scriptblock]::Create($matches[0].Extent.Text)
+}
+function Invoke-IdentityAdmission([hashtable]$Changes = @{}) {
+    $HarnessMode = 'product'; $ApplicationCandidateSha = ''; $ExpectedCommit = $commit
+    $FrontendBoundaryProbe = $false; $installerMode = $true
+    $ExpectedInstallerSha256 = 'f' * 64; $ExpectedBinarySha256 = $built; $ExpectedVersion = $version
+    foreach ($entry in $Changes.GetEnumerator()) {
+        Assert-True ($entry.Key -cin @('HarnessMode', 'ApplicationCandidateSha', 'ExpectedCommit', 'FrontendBoundaryProbe', 'installerMode', 'ExpectedInstallerSha256', 'ExpectedBinarySha256', 'ExpectedVersion')) 'Unknown synthetic identity input'
+        Set-Variable -Name $entry.Key -Value $entry.Value -Scope Local
+    }
+    foreach ($guard in $identityGuardScripts) { . $guard }
+    return $ApplicationCandidateSha
+}
+$baselineSource = 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4'
+$baselineInstaller = 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+$baselineBuilt = '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb'
+$baselineImage = '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+function New-BaselineAdmission {
+    return @{ HarnessMode = 'gui-regression'; ApplicationCandidateSha = $baselineSource
+        ExpectedInstallerSha256 = $baselineInstaller; ExpectedBinarySha256 = $baselineImage; ExpectedVersion = '2.0.0-beta.9' }
+}
+Case 'ordinary product identity defaults to current candidate without an application override' {
+    Assert-True ((Invoke-IdentityAdmission) -ceq $commit) 'Default product identity stopped binding the current source'
+}
+Case 'ordinary product mode rejects even an equal explicit application override' {
+    $rejected = $false
+    try { Invoke-IdentityAdmission @{ ApplicationCandidateSha = $commit } | Out-Null } catch { $rejected = $_.Exception.Message.Contains('explicit GUI regression mode') }
+    Assert-True $rejected 'Ordinary product admission accepted a separate application identity'
+}
+Case 'explicit GUI baseline admits only the exact delivered installer and extracted image' {
+    Assert-True ((Invoke-IdentityAdmission (New-BaselineAdmission)) -ceq $baselineSource) 'Pinned delivered baseline was not admitted'
+}
+foreach ($change in @('source', 'installer', 'image', 'version', 'linked-binary', 'product-mode', 'frontend-probe')) {
+    Case "explicit GUI baseline rejects $change mismatch before process launch" {
+        $value = New-BaselineAdmission
+        switch ($change) {
+            'source' { $value.ApplicationCandidateSha = 'f' * 40 }
+            'installer' { $value.ExpectedInstallerSha256 = 'f' * 64 }
+            'image' { $value.ExpectedBinarySha256 = $baselineBuilt }
+            'version' { $value.ExpectedVersion = '2.0.0-beta.10' }
+            'linked-binary' { $value.installerMode = $false }
+            'product-mode' { $value.HarnessMode = 'product' }
+            'frontend-probe' { $value.FrontendBoundaryProbe = $true }
+        }
+        $rejected = $false
+        try { Invoke-IdentityAdmission $value | Out-Null } catch { $rejected = $true }
+        Assert-True $rejected ('Baseline accepted invalid ' + $change)
+    }
+}
 Case 'accept exact candidate identity and bounded sealed package inventory' { Assert-InstallationManifest (New-Manifest) $commit $version $built }
 Case 'version follows workflow input rather than beta constant' {
     $value = New-Manifest; $value.version = '3.1.4-rc.2'; Assert-InstallationManifest $value $commit '3.1.4-rc.2' $built
@@ -65,8 +125,55 @@ try {
     $scratch = Join-Path $testRoot 'scratch'; $evidence = Join-Path $testRoot 'evidence'
     New-Item -ItemType Directory -Path $scratch, $evidence | Out-Null
     $sid = 'S-1-5-21-11-22-33-1003'
-    $spec = @{ candidateSha = $commit; expectedSid = $sid; expectedSessionId = 2; expectedVersion = $version; expectedAccountKind = 'pure-standard'
+    $spec = @{ candidateSha = $commit; applicationCandidateSha = $commit; harnessMode = 'product'; frontendBoundaryProbe = $false
+        additionalHarnessFiles = @(); binaryRole = 'compiledCandidate'
+        expectedSid = $sid; expectedSessionId = 2; expectedVersion = $version; expectedAccountKind = 'pure-standard'
         installer = @{ path = (Join-Path $testRoot 'synthetic-never-executed-installer'); sha256 = 'f' * 64 } }
+    # Execute only the actual baseline comparison branch with synthetic hashes.
+    # This writes a bounded JSON record; it does not create or run an EXE.
+    $baselineBranches = @($ast.FindAll({ param($n)
+        $n -is [Management.Automation.Language.IfStatementAst] -and
+        $n.Extent.Text.StartsWith('if ($baseline) {', [StringComparison]::Ordinal) -and
+        $n.Extent.Text.Contains('compiledInThisRun')
+    }, $true))
+    Assert-True ($baselineBranches.Count -eq 1) 'Missing or ambiguous actual baseline comparison branch'
+    $baselineComparison = [scriptblock]::Create(($baselineBranches[0].Clauses[0].Item2.Statements.Extent.Text -join "`n"))
+    function Invoke-BaselineComparison([scriptblock]$Mutation = {}) {
+        $Spec = @{ binaryRole = 'extractedExpectedImage'; installer = @{ sha256 = $baselineInstaller }
+            binary = @{ path = 'synthetic-extracted-image-not-an-executable'; sha256 = $baselineImage; bytes = 1234 } }
+        $proof = @{ sha256 = $baselineImage; bytes = 1234 }
+        $record = @{ binaryComparison = $null; comparisonRun = $null }
+        & $Mutation $Spec $proof
+        . $baselineComparison
+        return $record
+    }
+    Case 'baseline comparison records a reinstalled extracted image and never a new compilation' {
+        $record = Invoke-BaselineComparison
+        Assert-True ($record.binaryComparison.compiledInThisRun -eq $false) 'Baseline falsely claimed a current compilation'
+        Assert-True ($record.binaryComparison.comparisonKind -ceq 'reinstalled-to-pinned-extracted-image') 'Baseline comparison kind was not explicit'
+        Assert-True ($record.binaryComparison.historicalSourceRunId -ceq '41713129442' -and $record.binaryComparison.historicalSourceCandidate -ceq $baselineSource) 'Historical source binding was lost'
+        Assert-True ($null -eq $record.comparisonRun -and $record.extractedExpectedImage.sha256 -ceq $baselineImage) 'Baseline was relabeled or used a compiled-image comparison'
+        $saved = Read-SmallJson (Join-Path $evidence 'installed-binary-comparison.json')
+        Assert-True ($saved.installedSha256 -ceq $baselineImage -and $saved.compiledInThisRun -eq $false) 'Retained baseline comparison differs from the actual check'
+    }
+    foreach ($change in @('compiled-role', 'installer', 'expected-image', 'actual-image', 'actual-bytes')) {
+        Case "baseline exact image comparison rejects $change mismatch" {
+            $rejected = $false
+            try {
+                Invoke-BaselineComparison {
+                    param($caseSpec, $actual)
+                    switch ($change) {
+                        'compiled-role' { $caseSpec.binaryRole = 'compiledCandidate' }
+                        'installer' { $caseSpec.installer.sha256 = 'f' * 64 }
+                        'expected-image' { $caseSpec.binary.sha256 = $baselineBuilt }
+                        'actual-image' { $actual.sha256 = 'f' * 64 }
+                        'actual-bytes' { $actual.bytes++ }
+                    }
+                } | Out-Null
+            } catch { $rejected = $_.Exception.Message.Contains('Exact delivered baseline image comparison failed') }
+            Assert-True $rejected ('Invalid baseline comparison accepted: ' + $change)
+        }
+    }
     function New-AccountContext([string]$Kind = 'pure-standard') {
         $filtered = $Kind -ceq 'filtered-admin'
         $token = [Collections.Generic.Dictionary[string,object]]::new()

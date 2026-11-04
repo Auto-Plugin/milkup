@@ -22,6 +22,7 @@ import {
   validatePng,
   validateResponsiveDiagram,
   parseExpectedPluginInventory,
+  inspectBundledPluginInventory,
   waitForBundledPluginInventory,
   waitForNativeJobs,
   stopOwnedProductAfterFailure,
@@ -41,6 +42,134 @@ const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase()
 const AUDIT_PREFIX = 'MILKUP_MERMAID_NATIVE_AUDIT '
 const PLUGIN = 'milkup.diagrams'
+
+export function inspectPersistedGuiPluginInventory(cards, inventory) {
+  assert(Array.isArray(cards), 'Actual persisted plugin cards required')
+  assert(Array.isArray(inventory) && inventory.some((item) => item.id === PLUGIN))
+  assert.equal(
+    new Set(cards.map((item) => item.id)).size,
+    cards.length,
+    'Unique persisted plugin IDs',
+  )
+  const expected = new Set(inventory.map((item) => item.id))
+  for (const card of cards) assert(expected.has(card.id), 'Unexpected persisted plugin: ' + card.id)
+  const others = inventory.filter((item) => item.id !== PLUGIN)
+  const observedOthers = others.length
+    ? inspectBundledPluginInventory(
+        cards.filter((item) => item.id !== PLUGIN),
+        others,
+      )
+    : []
+  const card = cards.find((item) => item.id === PLUGIN)
+  if (!card || !observedOthers || cards.length !== inventory.length) return null
+  assert.equal(card.checked, 'true', 'Diagrams must remain enabled after the owned restart')
+  assert([null, 'false', 'true'].includes(card.busy), 'Actual persisted plugin busy state required')
+  // An enabled card no longer has the pending-version label. Its installed
+  // version is read through the real Details UI below, never inferred here.
+  if (card.availableVersionText?.trim()) {
+    assert.equal(
+      card.availableVersionText.match(/^(\S+) · /)?.[1],
+      inventory.find((item) => item.id === PLUGIN).version,
+      'No unexpected pending version on the persisted Diagrams card',
+    )
+    return null
+  }
+  if (
+    card.busy === 'true' ||
+    card.switchDisabled !== false ||
+    card.ariaDisabled === 'true' ||
+    !(
+      card.rect?.width > 0 &&
+      card.rect?.height > 0 &&
+      card.switchRect?.width > 0 &&
+      card.switchRect?.height > 0
+    )
+  )
+    return null
+  return [
+    { id: PLUGIN, checked: 'true', busy: card.busy, versionSource: 'details-required' },
+    ...observedOthers,
+  ]
+}
+
+export async function prepareGuiPluginState({
+  phase,
+  inventory,
+  readState,
+  readInstalledIdentity,
+  pointer,
+  closeMenu,
+  guard = () => {},
+  timeoutMs = 30000,
+  pollIntervalMs = 100,
+}) {
+  assert(['fresh', 'persisted'].includes(phase), 'Explicit plugin startup phase required')
+  const expected = parseExpectedPluginInventory(JSON.stringify(inventory))
+  assert(
+    expected?.some((item) => item.id === PLUGIN),
+    'Exact expected Diagrams inventory required',
+  )
+  const waitPersisted = async () => {
+    const deadline = performance.now() + timeoutMs
+    do {
+      guard()
+      const current = await readState()
+      const result = inspectPersistedGuiPluginInventory(current.cards, expected)
+      if (result) return result
+      await delay(pollIntervalMs)
+    } while (performance.now() < deadline)
+    throw Error('Timed out waiting for exact persisted plugin inventory')
+  }
+  const initialInventory =
+    phase === 'fresh'
+      ? (
+          await waitForBundledPluginInventory(readState, expected, {
+            guard,
+            timeoutMs,
+            pollIntervalMs,
+          })
+        ).observed
+      : await waitPersisted()
+  const record = { phase, initialInventory, togglePerformed: false }
+  if (phase === 'fresh') {
+    await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [role="switch"]`)
+    record.togglePerformed = true
+    // During the first enable, checked/busy and the pending offer may update
+    // separately. Wait for the actual switch before enforcing persisted state.
+    const deadline = performance.now() + timeoutMs
+    do {
+      guard()
+      const card = (await readState()).cards.find((item) => item.id === PLUGIN)
+      if (card?.checked === 'true') break
+      assert(card?.checked === 'false', 'Observed first-enable switch state')
+      assert(performance.now() < deadline, 'First-enable switch must settle')
+      await delay(pollIntervalMs)
+    } while (true)
+  }
+  await waitPersisted()
+  await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [data-plugin-action="details"]`)
+  const version = expected.find((item) => item.id === PLUGIN).version
+  let text
+  const detailsDeadline = performance.now() + timeoutMs
+  do {
+    guard()
+    text = await readInstalledIdentity()
+    if (text?.trim()) break
+    assert(performance.now() < detailsDeadline, 'Actual plugin Details UI must appear')
+    await delay(pollIntervalMs)
+  } while (true)
+  assert.equal(
+    text?.trim(),
+    `${PLUGIN} · v${version}`,
+    'Actual enabled plugin identity/version from Details UI',
+  )
+  record.installedIdentity = { id: PLUGIN, version, text: text.trim(), source: 'public-details-ui' }
+  await pointer('[data-plugin-action="back"]')
+  record.finalInventory = await waitPersisted()
+  await closeMenu()
+  return record
+}
+
 export const guiFixtures = Object.freeze({
   ordinary: fixtures.ordinary,
   wide: fixtures.wide,
@@ -478,29 +607,22 @@ export async function main() {
   const closeMenu = async () => {
     if ((await state()).menu) await pointer('[data-menu-close]')
   }
-  const enablePlugin = async () => {
+  const preparePlugin = async (phase) => {
     if (!(await state()).menu) await pointer('[data-menu-toggle]')
     await pointer('[data-menu-section="plugins"]')
     const inventory = parseExpectedPluginInventory(
       process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY,
     )
-    if (inventory) await waitForBundledPluginInventory(state, inventory, { guard })
-    const card = await until(
-      async () => (await state()).cards.find((item) => item.id === PLUGIN),
-      'Bundled Diagrams card',
-    )
-    if (card.checked !== 'true') {
-      assert.equal(card.checked, 'false')
-      await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [role="switch"]`)
-    }
-    await until(
-      async () =>
-        (await state()).cards.some(
-          (item) => item.id === PLUGIN && item.checked === 'true' && item.busy !== 'true',
-        ),
-      'Diagrams enabled',
-    )
-    await closeMenu()
+    return prepareGuiPluginState({
+      phase,
+      inventory,
+      readState: state,
+      readInstalledIdentity: () =>
+        execute("return document.querySelector('.plugin-detail-heading p')?.textContent??null"),
+      pointer,
+      closeMenu,
+      guard,
+    })
   }
   const startProduct = async (name) => {
     assert(!product, 'Previous held product must be retired')
@@ -738,7 +860,7 @@ export async function main() {
     const bytes = Buffer.from(await request('GET', `/session/${session}/screenshot`), 'base64')
     validatePng(bytes, 32 * 1024 * 1024)
     const file = `gui-${name}-window.png`
-    await writeFile(path.join(evidence, file), bytes)
+    await writeFile(path.join(evidence, file), bytes, { flag: 'wx' })
     report.screenshotProofs.push({ file, bytes: bytes.length, sha256: hash(bytes) })
   }
   const closeProduct = async (kind, row) => {
@@ -773,8 +895,9 @@ export async function main() {
         false,
         'No discard prompt for unchanged authored fixtures',
       )
-      await screenshot(kind + '-close')
-      row.screenshot = `gui-${kind}-close-window.png`
+      const capture = row.name === 'failure-cleanup' ? 'failure-cleanup' : kind + '-close'
+      await screenshot(capture)
+      row.screenshot = `gui-${capture}-window.png`
       try {
         await pointer('[data-window-control="close"]', () => {
           close.pendingRequestIds = [...ledger.jobs.values()]
@@ -966,7 +1089,7 @@ export async function main() {
           throw error
         }
       }
-      await enablePlugin()
+      row.pluginState = await preparePlugin('fresh')
       row.arguments = []
       row.modeAndZoomUnchanged = true
     })
@@ -1041,7 +1164,7 @@ export async function main() {
     await step('idle-close', (row) => closeProduct('idle', row))
     await step('busy-close', async (row) => {
       await startProduct('gui-busy')
-      await enablePlugin()
+      row.pluginState = await preparePlugin('persisted')
       row.picker = await openFile('busy')
       await until(
         () => ledger.pending(product.pid) > 0,

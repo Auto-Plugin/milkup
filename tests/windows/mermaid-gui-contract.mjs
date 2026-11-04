@@ -29,6 +29,7 @@ export const GUI_EVIDENCE_NAMES = Object.freeze([
   'gui-busy-product.log',
   'gui-console-positive.png',
   'gui-native-failure.png',
+  'gui-failure-cleanup-window.png',
   ...GUI_STEPS.map((name) => `gui-${name}-window.png`),
   'gui-ordinary-diagram.png',
   'gui-wide-diagram.png',
@@ -127,6 +128,38 @@ export function validateGuiObserver(summary) {
   assert.equal(summary.unattributedVisibleConsoleCount, 0)
   assert.equal(summary.overflow, false, 'Truncated observations cannot prove absence')
   assert.deepEqual(summary.observerErrors, [])
+  return true
+}
+
+export function validateGuiPluginState(record, phase) {
+  assert.equal(record?.phase, phase, 'Plugin startup state must be explicit')
+  assert.equal(
+    record.togglePerformed,
+    phase === 'fresh',
+    'Only the first launch may enable Diagrams',
+  )
+  assert(Array.isArray(record.initialInventory) && record.initialInventory.length > 0)
+  assert(Array.isArray(record.finalInventory))
+  const initialIds = record.initialInventory.map((item) => item.id)
+  assert.equal(new Set(initialIds).size, initialIds.length)
+  assert.deepEqual(record.finalInventory.map((item) => item.id).sort(), [...initialIds].sort())
+  assert(initialIds.includes('milkup.diagrams'))
+  const installed = record.installedIdentity
+  assert.equal(installed?.id, 'milkup.diagrams')
+  assert.equal(installed.version, '1.3.0')
+  assert.equal(installed.text, 'milkup.diagrams · v1.3.0')
+  assert.equal(installed.source, 'public-details-ui')
+  for (const before of record.initialInventory) {
+    const after = record.finalInventory.find((item) => item.id === before.id)
+    const diagrams = before.id === 'milkup.diagrams'
+    assert.equal(before.checked, diagrams && phase === 'persisted' ? 'true' : 'false')
+    assert.equal(after.checked, diagrams ? 'true' : 'false')
+    assert.notEqual(before.busy, 'true')
+    assert.notEqual(after.busy, 'true')
+    if (!diagrams)
+      assert.equal(after.version, before.version, 'Other bundled versions must persist unchanged')
+    else if (phase === 'fresh') assert.equal(before.version, installed.version)
+  }
   return true
 }
 
@@ -257,6 +290,14 @@ export function validateGuiReport(report) {
   assert(
     report.steps.every((step) => step.status === 'passed'),
     'Every real GUI phase must pass',
+  )
+  validateGuiPluginState(
+    report.steps.find((item) => item.name === 'blank-start-enable').pluginState,
+    'fresh',
+  )
+  validateGuiPluginState(
+    report.steps.find((item) => item.name === 'busy-close').pluginState,
+    'persisted',
   )
   for (const name of ['open-ordinary-stable', 'open-wide-stable']) {
     const step = report.steps.find((item) => item.name === name)

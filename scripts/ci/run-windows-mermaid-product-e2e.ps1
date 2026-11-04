@@ -134,6 +134,7 @@ function Get-ChildEvidenceNames {
     foreach ($step in @('blank-start-enable', 'open-ordinary-stable', 'open-wide-stable', 'resize-wide', 'repeat-document-open', 'multi-diagram', 'idle-close', 'busy-close')) {
         $name = 'gui-' + $step + '-window.png'; $names.Add($name, $name)
     }
+    $names.Add('gui-failure-cleanup-window.png', 'gui-failure-cleanup-window.png')
     foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }
