@@ -44,6 +44,37 @@ const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toL
 const AUDIT_PREFIX = 'MILKUP_MERMAID_NATIVE_AUDIT '
 const PLUGIN = 'milkup.diagrams'
 
+export async function captureGuiWindowMetrics({
+  target,
+  readNative,
+  readDom,
+  persist,
+  expectedPid,
+  expectedCreation,
+}) {
+  const measured = {
+    capturedAt: new Date().toISOString(),
+    native: null,
+    dom: null,
+    validation: { status: 'pending' },
+  }
+  // Attach before reading or validating: mismatched viewport and native bounds
+  // are diagnostic evidence and must survive the assertion that rejects them.
+  target.windowMetrics = measured
+  try {
+    measured.native = await readNative()
+    measured.dom = await readDom()
+    measured.relationship = validateNativeDpiObservation(measured, expectedPid, expectedCreation)
+    measured.validation = { status: 'passed' }
+    return measured
+  } catch (error) {
+    measured.validation = { status: 'failed', error: String(error) }
+    throw error
+  } finally {
+    await persist()
+  }
+}
+
 export function inspectPersistedGuiPluginInventory(cards, inventory) {
   assert(Array.isArray(cards), 'Actual persisted plugin cards required')
   assert(Array.isArray(inventory) && inventory.some((item) => item.id === PLUGIN))
@@ -504,19 +535,18 @@ export async function main() {
   const execute = (script, ...args) =>
     request('POST', `/session/${session}/execute/sync`, { script, args })
   const state = () => execute(observe)
-  const measureWindow = async () => {
-    const native = await observer.call('measureProduct')
-    const dom = await execute(
-      'return {innerWidth,innerHeight,devicePixelRatio,screenAvailWidth:screen.availWidth,screenAvailHeight:screen.availHeight}',
-    )
-    const measured = { capturedAt: new Date().toISOString(), native, dom }
-    measured.relationship = validateNativeDpiObservation(
-      measured,
-      product.pid,
-      launch.identity.creationFileTime,
-    )
-    return measured
-  }
+  const measureWindow = (target) =>
+    captureGuiWindowMetrics({
+      target,
+      readNative: () => observer.call('measureProduct'),
+      readDom: () =>
+        execute(
+          'return {innerWidth,innerHeight,devicePixelRatio,screenAvailWidth:screen.availWidth,screenAvailHeight:screen.availHeight}',
+        ),
+      persist,
+      expectedPid: product.pid,
+      expectedCreation: launch.identity.creationFileTime,
+    })
   const compact = async (started = performance.now()) => {
     const value = await execute(compactObserve)
     const jobs = [...ledger.jobs.values()].filter((job) => job.productPid === product.pid)
@@ -766,7 +796,7 @@ export async function main() {
       path: initial.path,
       devicePixelRatio: initial.devicePixelRatio,
     }
-    current.windowMetrics = await measureWindow()
+    await measureWindow(current)
     await persist()
   }
   const openFile = async (name) => {
@@ -1151,7 +1181,7 @@ export async function main() {
         row.operations.push(item)
         assert(item.nativeWindowChanged, 'Native window dimensions must actually change')
         item.layout = (await settle()).layout
-        item.windowMetrics = await measureWindow()
+        await measureWindow(item)
         await stability(item, 10000)
         item.settled = true
       }

@@ -22,6 +22,7 @@ import {
   validateDiagramLayout,
   inspectPersistedGuiPluginInventory,
   prepareGuiPluginState,
+  captureGuiWindowMetrics,
 } from './mermaid-gui-regression.mjs'
 import { stageEvidence } from './stage-mermaid-evidence.mjs'
 
@@ -69,6 +70,53 @@ const windowMetrics = (
   value.relationship = validateNativeDpiObservation(value, pid, creationFileTime)
   return value
 }
+
+test('failed native/CSS consistency retains both original measurements before rejection', async () => {
+  const raw = windowMetrics(),
+    target = {},
+    writes = []
+  raw.dom.innerWidth = 740
+  await assert.rejects(
+    () =>
+      captureGuiWindowMetrics({
+        target,
+        readNative: async () => raw.native,
+        readDom: async () => raw.dom,
+        persist: async () => writes.push(structuredClone(target)),
+        expectedPid: 41,
+        expectedCreation: '123',
+      }),
+    /consistent measured relationship/,
+  )
+  assert.equal(writes.length, 1)
+  assert.deepEqual(writes[0].windowMetrics.native, raw.native)
+  assert.deepEqual(writes[0].windowMetrics.dom, raw.dom)
+  assert.equal(writes[0].windowMetrics.validation.status, 'failed')
+  assert.equal(writes[0].windowMetrics.relationship, undefined)
+})
+
+test('DOM measurement failure still preserves successful native observation', async () => {
+  const raw = windowMetrics(),
+    target = {},
+    writes = []
+  await assert.rejects(
+    () =>
+      captureGuiWindowMetrics({
+        target,
+        readNative: async () => raw.native,
+        readDom: async () => {
+          throw Error('synthetic DOM disconnect')
+        },
+        persist: async () => writes.push(structuredClone(target)),
+        expectedPid: 41,
+        expectedCreation: '123',
+      }),
+    /synthetic DOM disconnect/,
+  )
+  assert.deepEqual(writes[0].windowMetrics.native, raw.native)
+  assert.equal(writes[0].windowMetrics.dom, null)
+  assert.equal(writes[0].windowMetrics.validation.status, 'failed')
+})
 
 test('window DPI is observed independently from browser DPR and preserves coordinate awareness', () => {
   assert.equal(windowMetrics().relationship.windowDpi, 96)
