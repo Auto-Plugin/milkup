@@ -23,11 +23,15 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     readonly Dictionary<long, WindowFact> previous = new Dictionary<long, WindowFact>();
     readonly HashSet<string> baselineVisible = new HashSet<string>(StringComparer.Ordinal);
     readonly Dictionary<uint, ProcessFact> processes = new Dictionary<uint, ProcessFact>();
+    readonly Dictionary<string, ProcessFact> processEvidence = new Dictionary<string, ProcessFact>(StringComparer.Ordinal);
+    readonly List<Dictionary<string, object>> unresolvedEvents = new List<Dictionary<string, object>>();
+    readonly List<Dictionary<string, object>> resolvedChildEvents = new List<Dictionary<string, object>>();
+    readonly HashSet<string> overflowReasons = new HashSet<string>(StringComparer.Ordinal);
     readonly List<Product> products = new List<Product>();
     readonly HashSet<string> visibleProductConsoles = new HashSet<string>(StringComparer.Ordinal);
     readonly HashSet<string> visibleUnknownConsoles = new HashSet<string>(StringComparer.Ordinal);
     readonly ManualResetEventSlim ready = new ManualResetEventSlim(false);
-    Thread pump;
+    Thread pump, processSampler;
     WinEvent callback;
     IntPtr hook;
     volatile bool stopping;
@@ -38,6 +42,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     uint session;
     uint positiveStartedTick, positiveEndedTick;
     bool positiveEnded;
+    long knownChildShowEvents;
 
     [StructLayout(LayoutKind.Sequential)] struct Rect { public int left, top, right, bottom; }
     [StructLayout(LayoutKind.Sequential)] struct Point { public int x, y; }
@@ -74,6 +79,12 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassNameW(IntPtr hwnd, StringBuilder text, int count);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowTextW(IntPtr hwnd, StringBuilder text, int count);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
+    [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd, out Rect rect);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr hwnd, ref Point point);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr GetWindowDpiAwarenessContext(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr GetThreadDpiAwarenessContext();
+    [DllImport("user32.dll")] static extern int GetAwarenessFromDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hwnd, uint command);
     [DllImport("user32.dll")] static extern IntPtr GetParent(IntPtr hwnd);
     [DllImport("user32.dll")] static extern int GetDlgCtrlID(IntPtr hwnd);
@@ -100,6 +111,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [DllImport("gdi32.dll")] static extern int GetDIBits(IntPtr dc, IntPtr bitmap, uint start, uint count, byte[] data, ref BitmapInfo info, uint usage);
     [DllImport("kernel32.dll")] static extern uint GetCurrentThreadId();
     [DllImport("kernel32.dll")] static extern uint GetCurrentProcessId();
+    [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenThread(uint access, bool inherit, uint tid);
+    [DllImport("kernel32.dll")] static extern uint GetProcessIdOfThread(IntPtr thread);
     [DllImport("kernel32.dll", SetLastError = true)] static extern bool ProcessIdToSessionId(uint pid, out uint session);
     [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
     [DllImport("kernel32.dll", SetLastError = true)] static extern bool CloseHandle(IntPtr handle);
@@ -120,7 +133,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [DllImport("kernel32.dll", SetLastError = true)] static extern bool TerminateJobObject(IntPtr job, uint code);
     [DllImport("kernel32.dll", SetLastError = true)] static extern uint ResumeThread(IntPtr thread);
 
-    sealed class WindowFact { public IntPtr Handle; public uint Pid; public string Class, Title, Identity; public bool Visible, Baseline; public uint? Cloaked; public Rect Rect; public long Creation; }
+    sealed class WindowFact { public IntPtr Handle, ObservedRoot; public uint Pid, ThreadId; public string Class, Title, Identity; public bool Visible, Baseline, KnownChild; public uint? Cloaked; public Rect Rect; public long Creation; public ProcessFact Process; }
     sealed class ProcessFact { public uint Pid, Parent; public long Creation; public string Image; }
     sealed class Product { public IntPtr Handle; public uint Pid; public long Creation; public string Image; }
     static void Check(bool result, string operation) { if (!result) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
@@ -169,6 +182,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         IntPtr snapshot = CreateToolhelp32Snapshot(2, 0);
         if (snapshot == new IntPtr(-1)) { AddError("Process snapshot unavailable"); return; }
         try {
+            var active = new Dictionary<uint, ProcessFact>();
             var item = new ProcessEntry { size = (uint)Marshal.SizeOf<ProcessEntry>() };
             bool more = Process32FirstW(snapshot, ref item);
             while (more) {
@@ -177,75 +191,160 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
                     // Refresh creation times even when the PID and parent PID
                     // match: Windows may reuse both between observations.
                     ProcessFact fact = ProcessIdentity(item.pid, item.parent);
-                    if (fact != null) lock (gate) {
-                        if (processes.Count < MaxProcesses || processes.ContainsKey(item.pid)) processes[item.pid] = fact;
-                        else overflow = true;
-                    }
+                    if (fact != null) { if (active.Count < MaxProcesses) active[item.pid] = fact; else MarkOverflow("active-process-cache-budget"); }
                 }
                 more = Process32NextW(snapshot, ref item);
             }
+            // This is a live cache, not a historical PID bucket. Immutable
+            // console/process identity evidence is retained separately below.
+            lock (gate) { processes.Clear(); foreach (var pair in active) processes.Add(pair.Key, pair.Value); }
         } finally { CloseHandle(snapshot); }
     }
-    void AddError(string error) { lock (gate) { if (errors.Count < 16) errors.Add(Bounded(error, 320)); else overflow = true; } }
-    string Attribution(uint pid, long creation) {
-        uint current = pid; long childTime = creation;
+    void SampleProcesses() { try { while (!stopping) { ScanProcesses(); Thread.Sleep(100); } } catch (Exception error) { AddError("Process sampler: " + error.Message); } }
+    void MarkOverflow(string reason) { lock (gate) { overflow = true; overflowReasons.Add(reason); } }
+    void AddError(string error) { lock (gate) { string value = Bounded(error, 320); if (errors.Contains(value)) return; if (errors.Count < 16) errors.Add(value); else MarkOverflow("observer-error-budget"); } }
+    void RememberProcess(ProcessFact fact) {
+        if (fact == null || fact.Creation <= 0) return;
+        string key = fact.Pid + ":" + fact.Creation;
+        ProcessFact existing;
+        if (processEvidence.TryGetValue(key, out existing)) {
+            if (existing.Image != fact.Image || (existing.Parent != 0 && fact.Parent != 0 && existing.Parent != fact.Parent)) AddError("Conflicting exact process identity evidence");
+            else if (existing.Parent == 0 && fact.Parent != 0) processEvidence[key] = new ProcessFact { Pid = fact.Pid, Parent = fact.Parent, Creation = fact.Creation, Image = fact.Image };
+            return;
+        }
+        if (processEvidence.Count >= MaxProcesses) { MarkOverflow("historical-process-evidence-budget"); return; }
+        processEvidence.Add(key, new ProcessFact { Pid = fact.Pid, Parent = fact.Parent, Creation = fact.Creation, Image = fact.Image });
+    }
+    void CacheWindow(WindowFact fact, bool destroyed) {
+        long key = fact.Handle.ToInt64();
+        if (destroyed) { previous.Remove(key); return; }
+        if (previous.Count < MaxWindows || previous.ContainsKey(key)) previous[key] = fact;
+        else MarkOverflow("live-window-cache-budget");
+    }
+    static bool OrderedIdentity(long expected, long actual, long childCreation) { return expected > 0 && actual == expected && actual <= childCreation; }
+    static bool SameThreadOwner(WindowFact prior, uint eventThread, ProcessFact actual) { return prior != null && prior.KnownChild && prior.ThreadId != 0 && prior.ThreadId == eventThread && actual != null && actual.Pid == prior.Pid && prior.Process != null && OrderedIdentity(prior.Process.Creation, actual.Creation, actual.Creation); }
+    static ProcessFact ThreadOwner(uint threadId) {
+        IntPtr thread = threadId == 0 ? IntPtr.Zero : OpenThread(0x800, false, threadId);
+        if (thread == IntPtr.Zero) return null;
+        try { return ProcessIdentity(GetProcessIdOfThread(thread), 0); } finally { CloseHandle(thread); }
+    }
+    string Attribution(ProcessFact leaf, out List<ProcessFact> lineage) {
+        lineage = new List<ProcessFact>();
+        if (leaf == null) return "unattributed";
+        uint current = leaf.Pid; long childTime = leaf.Creation;
         var visited = new HashSet<uint>();
         for (int depth = 0; depth < 32 && visited.Add(current); depth++) {
             ProcessFact fact;
-            if (!processes.TryGetValue(current, out fact) || fact.Creation <= 0 || fact.Creation > childTime || (current == pid && fact.Creation != creation)) break;
-            foreach (Product product in products) if (product.Pid == current && product.Creation == fact.Creation && WaitForSingleObject(product.Handle, 0) == 258) return current == pid ? "product" : "product-descendant";
+            if (current == leaf.Pid) fact = leaf;
+            else if (!processes.TryGetValue(current, out fact)) break;
+            if (!OrderedIdentity(fact.Creation, fact.Creation, childTime)) break;
+            lineage.Add(fact);
+            foreach (Product product in products) if (product.Pid == current && OrderedIdentity(product.Creation, fact.Creation, childTime) && WaitForSingleObject(product.Handle, 0) == 258) return current == leaf.Pid ? "product" : "product-descendant";
             if (fact.Parent == 0) break;
             childTime = fact.Creation; current = fact.Parent;
         }
         return "unattributed";
     }
     WindowFact ReadWindow(IntPtr hwnd) {
-        uint pid; GetWindowThreadProcessId(hwnd, out pid);
+        uint pid; uint windowThread = GetWindowThreadProcessId(hwnd, out pid);
         string klass = ClassName(hwnd);
         if (pid == 0 || klass.Length == 0) return null;
         var title = new StringBuilder(97); GetWindowTextW(hwnd, title, title.Capacity);
         Rect rect; GetWindowRect(hwnd, out rect);
         uint cloaked; int hr = DwmGetWindowAttribute(hwnd, 14, out cloaked, 4);
-        // A window handle and PID can both be reused. Never borrow a cached
-        // creation time to establish the identity of a currently live window.
-        ProcessFact process = ProcessIdentity(pid, 0);
+        ProcessFact process;
+        lock (gate) processes.TryGetValue(pid, out process);
+        if (IsConsoleClass(klass)) {
+            // Console evidence always has a freshly queried identity. A short
+            // icacls process may begin and end between the background scans.
+            ProcessFact exact = ProcessIdentity(pid, 0);
+            if (exact != null && process != null && exact.Creation == process.Creation) exact.Parent = process.Parent;
+            else if (exact != null) {
+                IntPtr snapshot = CreateToolhelp32Snapshot(2, 0);
+                if (snapshot != new IntPtr(-1)) try {
+                    var item = new ProcessEntry { size = (uint)Marshal.SizeOf<ProcessEntry>() };
+                    bool more = Process32FirstW(snapshot, ref item);
+                    while (more) { if (item.pid == pid) { ProcessFact verified = ProcessIdentity(pid, item.parent); if (verified != null && verified.Creation == exact.Creation) exact = verified; break; } more = Process32NextW(snapshot, ref item); }
+                } finally { CloseHandle(snapshot); }
+            }
+            process = exact;
+        }
         long creation = process == null ? 0 : process.Creation;
         string identity = HandleText(hwnd) + ":" + pid + ":" + creation;
-        return new WindowFact { Handle = hwnd, Pid = pid, Class = klass, Title = title.ToString(), Visible = IsWindowVisible(hwnd), Cloaked = hr >= 0 ? (uint?)cloaked : null, Rect = rect, Creation = creation, Identity = identity, Baseline = baselineVisible.Contains(identity) };
+        return new WindowFact { Handle = hwnd, Pid = pid, ThreadId = windowThread, Class = klass, Title = title.ToString(), Visible = IsWindowVisible(hwnd), Cloaked = hr >= 0 ? (uint?)cloaked : null, Rect = rect, Creation = creation, Identity = identity, Process = process, Baseline = baselineVisible.Contains(identity) };
     }
-    void Observe(IntPtr hwnd, string kind, bool showEvent, bool baseline, uint? nativeEventTime = null) {
+    void Observe(IntPtr hwnd, string kind, bool showEvent, bool baseline, uint? nativeEventTime = null, uint eventThread = 0) {
         if (hwnd == IntPtr.Zero) return;
         bool live = IsWindow(hwnd);
-        if (live && GetAncestor(hwnd, 2) != hwnd) return;
+        IntPtr observedRoot = live ? GetAncestor(hwnd, 2) : IntPtr.Zero;
+        string observedClass = live && observedRoot != IntPtr.Zero && observedRoot != hwnd ? ClassName(hwnd) : "";
+        if (observedRoot != IntPtr.Zero && observedRoot != hwnd && observedClass.Length != 0 && !IsConsoleClass(observedClass)) {
+            uint childPid; uint childThread = GetWindowThreadProcessId(hwnd, out childPid);
+            lock (gate) { ProcessFact childProcess; processes.TryGetValue(childPid, out childProcess); CacheWindow(new WindowFact { Handle = hwnd, Pid = childPid, ThreadId = childThread, KnownChild = true, ObservedRoot = observedRoot, Class = observedClass, Process = childProcess }, kind == "destroy"); }
+            return;
+        }
         WindowFact fact = ReadWindow(hwnd), old = null;
         lock (gate) {
             // WinEvent delivery is asynchronous. Attribute queued control
             // events by their OS event time, not the later callback phase.
             bool positiveInterval = positiveActive || (nativeEventTime.HasValue && positiveEnded && unchecked(nativeEventTime.Value - positiveStartedTick) <= unchecked(positiveEndedTick - positiveStartedTick));
             previous.TryGetValue(hwnd.ToInt64(), out old);
+            // OBJID_WINDOW also includes child controls. Their prior CREATE
+            // observation and exact owning thread distinguish them from a
+            // genuinely unknown destroyed top-level window; never guess from
+            // a missing HWND alone. DESTROY releases only the live cache.
+            if (fact == null && old != null && old.KnownChild) {
+                if (kind == "destroy") { previous.Remove(hwnd.ToInt64()); return; }
+                ProcessFact owner = ThreadOwner(eventThread);
+                if (SameThreadOwner(old, eventThread, owner)) {
+                    if (showEvent) {
+                        knownChildShowEvents++; RememberProcess(old.Process);
+                        if (resolvedChildEvents.Count >= 128) MarkOverflow("resolved-child-proof-budget");
+                        else resolvedChildEvents.Add(new Dictionary<string, object> { { "hwnd", HandleText(hwnd) }, { "observedRootHwnd", HandleText(old.ObservedRoot) }, { "className", old.Class }, { "pid", owner.Pid }, { "creationFileTime", owner.Creation.ToString() }, { "eventThreadId", eventThread }, { "elapsedMs", clock.ElapsedMilliseconds }, { "nativeEventUptimeMs32", nativeEventTime }, { "previouslyObservedAsChild", true }, { "exactThreadOwnerStillAlive", true } });
+                    }
+                    return;
+                }
+                old = null;
+            }
             if (fact == null) fact = old;
             if (fact == null) {
-                if (showEvent && productPhase && !positiveInterval) AddError("A top-level show event lost its window identity before observation: " + HandleText(hwnd));
+                if (showEvent && productPhase && !positiveInterval) {
+                    AddError("One or more show events lost window identity; unresolved events cannot establish absence of consoles");
+                    if (unresolvedEvents.Count >= 128) MarkOverflow("unresolved-event-budget");
+                    else {
+                        ProcessFact source = ThreadOwner(eventThread); uint sourcePid = source == null ? 0 : source.Pid;
+                        RememberProcess(source);
+                        unresolvedEvents.Add(new Dictionary<string, object> { { "hwnd", HandleText(hwnd) }, { "phase", phase }, { "elapsedMs", clock.ElapsedMilliseconds }, { "nativeEventUptimeMs32", nativeEventTime }, { "eventThreadId", eventThread }, { "eventThreadProcessId", sourcePid }, { "eventThreadProcessCreationFileTime", source == null ? null : source.Creation.ToString() }, { "callbackDelayMs", nativeEventTime.HasValue ? (object)unchecked((uint)Environment.TickCount - nativeEventTime.Value) : null }, { "topLevelKnown", false } });
+                    }
+                }
                 return;
             }
             if (baseline && fact.Visible && fact.Cloaked == 0) { baselineVisible.Add(fact.Identity); fact.Baseline = true; }
             bool console = IsConsoleClass(fact.Class);
-            string attribution = Attribution(fact.Pid, fact.Creation);
+            List<ProcessFact> lineage;
+            string attribution = Attribution(fact.Process, out lineage);
             bool product = attribution != "unattributed";
             bool changed = old == null || old.Identity != fact.Identity || old.Visible != fact.Visible || old.Title != fact.Title;
-            if (previous.Count < MaxWindows || previous.ContainsKey(hwnd.ToInt64())) previous[hwnd.ToInt64()] = fact; else overflow = true;
+            CacheWindow(fact, kind == "destroy");
             if (!console && !product) return;
             bool currentVisible = live && fact.Visible && fact.Cloaked == 0 && fact.Rect.right > fact.Rect.left && fact.Rect.bottom > fact.Rect.top && IntersectsDesktop(fact.Rect);
             bool observedShow = console && showEvent && !fact.Baseline;
+            // Hidden WebView IME/message/power windows are cached for identity,
+            // but do not consume the console/visible-product evidence budget.
+            if (!console && !currentVisible && !showEvent && !((kind == "hide" || kind == "destroy") && old != null && old.Visible)) return;
             if (console && positiveActive && fact.Title == positiveTitle && currentVisible) positiveDetected = true;
             if (console && productPhase && !positiveInterval && !fact.Baseline && (currentVisible || observedShow)) {
-                if (product) visibleProductConsoles.Add(fact.Identity); else visibleUnknownConsoles.Add(fact.Identity);
+                HashSet<string> identities = product ? visibleProductConsoles : visibleUnknownConsoles;
+                if (identities.Count < MaxEvents || identities.Contains(fact.Identity)) identities.Add(fact.Identity); else MarkOverflow("console-identity-budget");
             }
             if (kind == "poll" && !changed) return;
-            if (events.Count >= MaxEvents) { overflow = true; return; }
+            if (events.Count >= MaxEvents) { MarkOverflow("event-budget"); return; }
+            var lineageKeys = new List<string>();
+            foreach (ProcessFact ancestor in lineage) { if (lineageKeys.Count < 8) { RememberProcess(ancestor); lineageKeys.Add(ancestor.Pid + ":" + ancestor.Creation); } else if (product) MarkOverflow("event-lineage-budget"); }
             events.Add(new Dictionary<string, object> {
-                { "sequence", ++sequence }, { "elapsedMs", clock.ElapsedMilliseconds }, { "nativeEventUptimeMs32", nativeEventTime }, { "phase", phase }, { "kind", kind }, { "hwnd", HandleText(hwnd) },
+                { "sequence", ++sequence }, { "elapsedMs", clock.ElapsedMilliseconds }, { "nativeEventUptimeMs32", nativeEventTime }, { "eventThreadId", eventThread }, { "callbackDelayMs", nativeEventTime.HasValue ? (object)unchecked((uint)Environment.TickCount - nativeEventTime.Value) : null }, { "phase", phase }, { "kind", kind }, { "hwnd", HandleText(hwnd) },
                 { "pid", fact.Pid }, { "processCreationFileTime", fact.Creation > 0 ? fact.Creation.ToString() : null }, { "className", fact.Class }, { "title", fact.Title },
+                { "parentPid", fact.Process == null ? 0 : fact.Process.Parent }, { "processLineage", lineageKeys.ToArray() }, { "lineageVerifiedToProduct", product },
                 { "visibleNow", live && fact.Visible }, { "cloaked", fact.Cloaked }, { "showEvent", showEvent }, { "consoleCandidate", console }, { "positiveControlInterval", positiveInterval }, { "productObservationInterval", productPhase }, { "observedVisible", currentVisible || observedShow },
                 { "baselineVisible", fact.Baseline }, { "attribution", attribution }, { "rect", new int[] { fact.Rect.left, fact.Rect.top, fact.Rect.right, fact.Rect.bottom } }
             });
@@ -257,18 +356,17 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             desktopContext = CurrentDesktop(); session = (uint)desktopContext["sessionId"];
             callback = (h, kind, hwnd, objectId, childId, thread, time) => {
                 if (objectId != 0 || childId != 0) return;
-                try { Observe(hwnd, kind == CreateEvent ? "create" : kind == DestroyEvent ? "destroy" : kind == ShowEvent ? "show" : "hide", kind == ShowEvent, false, time); }
+                try { Observe(hwnd, kind == CreateEvent ? "create" : kind == DestroyEvent ? "destroy" : kind == ShowEvent ? "show" : "hide", kind == ShowEvent, false, time, thread); }
                 catch (Exception error) { AddError(error.Message); }
             };
             hook = SetWinEventHook(CreateEvent, HideEvent, IntPtr.Zero, callback, 0, 0, 0);
             Check(hook != IntPtr.Zero, "Install out-of-context window event hook");
-            ScanProcesses(); Enumerate(true); ready.Set();
-            long processScan = 0;
+            ScanProcesses(); Enumerate(true);
+            processSampler = new Thread(SampleProcesses) { IsBackground = true, Name = "Milkup GUI process identity sampler" }; processSampler.Start(); ready.Set();
             while (!stopping) {
                 Message message;
                 int drained = 0;
                 while (drained++ < 512 && PeekMessageW(out message, IntPtr.Zero, 0, 0, 1)) { TranslateMessage(ref message); DispatchMessageW(ref message); }
-                if (clock.ElapsedMilliseconds >= processScan) { ScanProcesses(); processScan = clock.ElapsedMilliseconds + 100; }
                 Enumerate(false);
                 if (positiveDetected && positiveActive && !positiveCaptureAttempted) {
                     positiveCaptureAttempted = true; try { CaptureDesktop("gui-console-positive.png"); lock (gate) positiveCaptureComplete = true; } catch (Exception error) { AddError("Positive screenshot: " + error.Message); }
@@ -417,6 +515,26 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         if (IsWindow(dialog) && IsWindowVisible(dialog)) throw new InvalidOperationException("Native file picker did not accept the selected fixture");
         return new Dictionary<string, object> { { "accepted", true }, { "path", file }, { "productPid", product.Pid }, { "dialogHwnd", HandleText(dialog) }, { "filenameControlId", 1148 }, { "usedNativeSendInput", true }, { "dialogClosed", true }, { "privateInvokeUsed", false } };
     }
+    static Dictionary<string, object> RectReport(Rect value) { return new Dictionary<string, object> { { "left", value.left }, { "top", value.top }, { "right", value.right }, { "bottom", value.bottom }, { "width", value.right - value.left }, { "height", value.bottom - value.top } }; }
+    public Dictionary<string, object> MeasureProduct() {
+        RequireStarted(); CurrentDesktop();
+        Product product; lock (gate) { if (products.Count == 0) throw new InvalidOperationException("No tracked product"); product = products[products.Count - 1]; }
+        if (WaitForSingleObject(product.Handle, 0) != 258) throw new InvalidOperationException("Tracked product already exited");
+        var matches = new List<IntPtr>();
+        Check(EnumWindows((hwnd, ignored) => { uint pid; GetWindowThreadProcessId(hwnd, out pid); if (pid == product.Pid && IsWindowVisible(hwnd) && GetWindow(hwnd, 4) == IntPtr.Zero && ClassName(hwnd) == "Tauri Window") matches.Add(hwnd); return true; }, IntPtr.Zero), "Find registered product main window");
+        if (matches.Count != 1) throw new InvalidOperationException("Registered visible product main window is not unique");
+        IntPtr window = matches[0];
+        ProcessFact actual = ProcessIdentity(product.Pid, 0);
+        if (actual == null || actual.Creation != product.Creation || !String.Equals(actual.Image, product.Image, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Product window process identity changed");
+        uint dpi = GetDpiForWindow(window); IntPtr awarenessContext = GetWindowDpiAwarenessContext(window);
+        int awareness = GetAwarenessFromDpiAwarenessContext(awarenessContext), observerAwareness = GetAwarenessFromDpiAwarenessContext(GetThreadDpiAwarenessContext());
+        if (dpi == 0 || awarenessContext == IntPtr.Zero || awareness < 0 || observerAwareness < 0) throw new InvalidOperationException("Product window DPI or awareness could not be observed");
+        Rect rect, client; Check(GetWindowRect(window, out rect), "Read product window bounds"); Check(GetClientRect(window, out client), "Read product client bounds");
+        var first = new Point { x = client.left, y = client.top }; var last = new Point { x = client.right, y = client.bottom };
+        Check(ClientToScreen(window, ref first) && ClientToScreen(window, ref last), "Read client bounds in observer screen coordinates");
+        if (rect.right <= rect.left || rect.bottom <= rect.top || client.right <= client.left || client.bottom <= client.top) throw new InvalidOperationException("Product window dimensions unavailable");
+        return new Dictionary<string, object> { { "observed", true }, { "pid", product.Pid }, { "creationFileTime", product.Creation.ToString() }, { "hwnd", HandleText(window) }, { "className", "Tauri Window" }, { "dpi", dpi }, { "dpiAwareness", awareness }, { "dpiAwarenessContext", HandleText(awarenessContext) }, { "observerThreadDpiAwareness", observerAwareness }, { "windowRect", RectReport(rect) }, { "clientRect", RectReport(client) }, { "clientScreenRect", RectReport(new Rect { left = first.x, top = first.y, right = last.x, bottom = last.y }) }, { "coordinateSpace", "Win32 coordinates under the reported observer thread DPI awareness" }, { "displaySettingsChanged", false } };
+    }
     static Input Key(ushort key, ushort scan, uint flags) { return new Input { type = 1, data = new InputUnion { keyboard = new KeyboardInput { key = key, scan = scan, flags = flags } } }; }
     static byte[] U32(uint value) { return new byte[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value }; }
     static void Chunk(Stream output, string name, byte[] bytes) {
@@ -450,10 +568,11 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     public Dictionary<string, object> Stop() {
         if (!started) throw new InvalidOperationException("Observer was not started");
         stopping = true; bool joined = pump.Join(5000); if (!joined) AddError("Native hook thread did not terminate");
+        bool samplerJoined = processSampler == null || processSampler.Join(5000); if (!samplerJoined) AddError("Process sampler did not terminate");
         lock (gate) {
             var tracked = new List<Dictionary<string, object>>(); foreach (Product product in products) tracked.Add(new Dictionary<string, object> { { "pid", product.Pid }, { "image", product.Image }, { "creationFileTime", product.Creation.ToString() }, { "heldProcessSignaledAtStop", WaitForSingleObject(product.Handle, 0) == 0 } });
-            var processRows = new List<Dictionary<string, object>>(); foreach (ProcessFact process in processes.Values) processRows.Add(new Dictionary<string, object> { { "pid", process.Pid }, { "parentPid", process.Parent }, { "creationFileTime", process.Creation.ToString() }, { "image", process.Image } });
-            return new Dictionary<string, object> { { "schema", 1 }, { "complete", joined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "observerErrors", errors.ToArray() }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false } };
+            var processRows = new List<Dictionary<string, object>>(); foreach (ProcessFact process in processEvidence.Values) processRows.Add(new Dictionary<string, object> { { "pid", process.Pid }, { "parentPid", process.Parent }, { "creationFileTime", process.Creation.ToString() }, { "image", process.Image } });
+            return new Dictionary<string, object> { { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false } };
         }
     }
     public void Dispose() { if (started && !stopping) { try { Stop(); } catch { } } foreach (Product product in products) if (product.Handle != IntPtr.Zero) { CloseHandle(product.Handle); product.Handle = IntPtr.Zero; } ready.Dispose(); }

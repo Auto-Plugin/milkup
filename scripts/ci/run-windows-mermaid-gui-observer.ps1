@@ -120,6 +120,11 @@ try {
                     $null = Assert-IdentityContext
                     $result = $observer.ChooseFile($request.path)
                 }
+                'measureProduct' {
+                    Assert-RequestFields $request @('id', 'command')
+                    $null = Assert-IdentityContext
+                    $result = $observer.MeasureProduct()
+                }
                 'stop' {
                     Assert-RequestFields $request @('id', 'command')
                     $report = $observer.Stop()
