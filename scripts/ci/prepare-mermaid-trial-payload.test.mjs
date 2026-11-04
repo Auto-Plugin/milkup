@@ -1167,10 +1167,14 @@ async function guiInstalledFixture(t, options = {}) {
       creationFileTime: String(133000000000 + launch.productPid),
       token: product.context.desktop.token,
     }
+  let measurementSequence = 0
+  windows.productMeasurements = []
   const syntheticWindowMetrics = (launch, width = 1100, height = 760) => {
     const rect = { left: 0, top: 0, right: width, bottom: height, width, height }
     const value = {
       native: {
+        measurementSequence: ++measurementSequence,
+        measurementElapsedMs: measurementSequence * 1000,
         observed: true,
         displaySettingsChanged: false,
         pid: launch.productPid,
@@ -1201,13 +1205,20 @@ async function guiInstalledFixture(t, options = {}) {
       launch.productPid,
       launch.identity.creationFileTime,
     )
+    windows.productMeasurements.push(structuredClone(value.native))
     return value
   }
-  for (const launch of report.launches) launch.windowMetrics = syntheticWindowMetrics(launch)
-  let previousNativeWindow = structuredClone(report.launches[0].windowMetrics.native)
-  for (const [index, operation] of report.steps
-    .find((row) => row.name === 'resize-wide')
-    .operations.entries()) {
+  const nativeSnapshot = (measurement) => {
+    const copy = structuredClone(measurement)
+    delete copy.measurementSequence
+    delete copy.measurementElapsedMs
+    return copy
+  }
+  report.launches[0].windowMetrics = syntheticWindowMetrics(report.launches[0])
+  const resizeStep = report.steps.find((row) => row.name === 'resize-wide')
+  resizeStep.initialNativeWindow = syntheticWindowMetrics(report.launches[0]).native
+  let previousNativeWindow = nativeSnapshot(resizeStep.initialNativeWindow)
+  for (const [index, operation] of resizeStep.operations.entries()) {
     const requested = {
       mode: 'normal',
       width: index % 2 === 0 ? 740 : 1180,
@@ -1219,16 +1230,24 @@ async function guiInstalledFixture(t, options = {}) {
       before: structuredClone(previousNativeWindow.windowRect),
       after: structuredClone(metrics.native.windowRect),
       nativeControl: {
+        ok: true,
+        operationSequence: index + 1,
         requested: structuredClone(requested),
         nativeWindowOperation: true,
         displaySettingsChanged: false,
         before: structuredClone(previousNativeWindow),
-        after: structuredClone(metrics.native),
+        after: nativeSnapshot(metrics.native),
       },
       windowMetrics: metrics,
     })
-    previousNativeWindow = structuredClone(metrics.native)
+    previousNativeWindow = nativeSnapshot(metrics.native)
   }
+  report.launches[1].windowMetrics = syntheticWindowMetrics(report.launches[1])
+  // Keep raw helper records independent. save() only serializes these arrays;
+  // it must not rebuild them from the report and erase deliberate drift tests.
+  windows.productWindowOperations = resizeStep.operations.map((operation) =>
+    structuredClone(operation.nativeControl),
+  )
   windows.identityContext = {
     token: product.context.desktop.token,
     sessionId: installation.sessionId,
@@ -1385,6 +1404,14 @@ for (const scenario of [
   'native-resize-changed-display',
   'different-resize-hwnd',
   'forged-resize-request',
+  'missing-raw-resize-operation',
+  'raw-resize-control-drift',
+  'raw-resize-sequence-drift',
+  'missing-raw-window-measurement',
+  'raw-window-measurement-drift',
+  'missing-initial-native-measurement',
+  'unretained-initial-native-measurement',
+  'duplicate-measurement-sequence',
 ])
   test(`installed GUI delivery gate rejects ${scenario}`, async (t) => {
     const f = await guiInstalledFixture(t)
@@ -1425,6 +1452,24 @@ for (const scenario of [
     }
     if (scenario === 'different-resize-hwnd') resize.nativeControl.after.hwnd = '0x999'
     if (scenario === 'forged-resize-request') resize.nativeControl.requested.width++
+    if (scenario === 'missing-raw-resize-operation') f.windows.productWindowOperations.pop()
+    if (scenario === 'raw-resize-control-drift')
+      f.windows.productWindowOperations[0].requested.width++
+    if (scenario === 'raw-resize-sequence-drift')
+      f.windows.productWindowOperations[0].operationSequence++
+    if (scenario === 'missing-raw-window-measurement') f.windows.productMeasurements.pop()
+    if (scenario === 'raw-window-measurement-drift') {
+      f.windows.productMeasurements[2].windowRect.width++
+      f.windows.productMeasurements[2].windowRect.right++
+    }
+    if (scenario === 'missing-initial-native-measurement')
+      delete f.report.steps.find((row) => row.name === 'resize-wide').initialNativeWindow
+    if (scenario === 'unretained-initial-native-measurement')
+      f.report.steps.find(
+        (row) => row.name === 'resize-wide',
+      ).initialNativeWindow.measurementSequence = 99
+    if (scenario === 'duplicate-measurement-sequence')
+      f.windows.productMeasurements[1].measurementSequence = 1
     if (scenario === 'wrong-contract') f.report.contractSha256 = 'c'.repeat(64)
     if (scenario === 'wrong-observer')
       f.report.observerInputs = { ...f.report.observerInputs, scriptSha256: 'c'.repeat(64) }
