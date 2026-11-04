@@ -22,15 +22,18 @@ export function createOwnedDocumentPngImage(
   element.dataset.documentPngView = 'fit'
   const controls = document.createElement('span')
   controls.className = 'milkup-document-png-controls'
-  controls.style.display = 'block'
-  controls.style.pointerEvents = 'auto'
+  // WebView2 treats descendants of a contenteditable=false island as a
+  // non-interactive editing surface. Make the control strip its own editing
+  // host so real pointer input reaches the button while the preview remains
+  // inert.
+  controls.contentEditable = 'true'
+  controls.spellcheck = false
+  controls.setAttribute('role', 'toolbar')
   controls.hidden = true
   const button = document.createElement('button')
   button.type = 'button'
   button.dataset.documentPngScale = ''
   button.className = 'milkup-document-png-scale'
-  button.style.display = 'inline-block'
-  button.style.pointerEvents = 'auto'
   button.title = '按原始尺寸查看，可横向滚动'
   const buttonLabel = document.createTextNode('原始尺寸')
   button.append(buttonLabel)
@@ -65,10 +68,6 @@ export function createOwnedDocumentPngImage(
   let timer: ReturnType<typeof setTimeout> | undefined
   let released = false
   let natural = false
-  // A natural-size toggle changes the observed geometry. Ignore the first
-  // ResizeObserver pass caused by that style change; only later external
-  // resizes may collapse natural mode back to fit.
-  let ignoreNaturalMeasure = false
   let resize: ResizeObserver | undefined
   let layoutFrame: number | undefined
   const ownerWindow = document.defaultView
@@ -79,15 +78,8 @@ export function createOwnedDocumentPngImage(
       if (state === 'decoded' && element.isConnected) layoutChanged()
     })
   }
-  const debugEvent = (name: string) => {
-    const current = button.dataset.documentPngDebug ? button.dataset.documentPngDebug.split(',') : []
-    current.push(name)
-    button.dataset.documentPngDebug = current.slice(-12).join(',')
-  }
   const setNatural = (next: boolean) => {
-    debugEvent(`set:${next ? 'natural' : 'fit'}`)
     natural = next
-    if (next) ignoreNaturalMeasure = true
     element.dataset.documentPngView = natural ? 'natural' : 'fit'
     image.style.width = natural ? `${value.width}px` : '100%'
     image.style.maxWidth = natural ? 'none' : '100%'
@@ -104,14 +96,11 @@ export function createOwnedDocumentPngImage(
     notifyLayout()
   }
   const measure = () => {
-    debugEvent('measure')
     if (state !== 'decoded' || !element.isConnected) return
     const width = element.getBoundingClientRect().width
     if (!Number.isFinite(width) || width <= 0) return
     const narrow = width + 0.5 < value.width
-    const ignoreNaturalReset = ignoreNaturalMeasure
-    ignoreNaturalMeasure = false
-    if (!narrow && natural && !ignoreNaturalReset) setNatural(false)
+    if (!narrow && natural) setNatural(false)
     if (controls.hidden === narrow) {
       if (!narrow && document.activeElement === button) viewport.focus({ preventScroll: true })
       controls.hidden = !narrow
@@ -120,16 +109,15 @@ export function createOwnedDocumentPngImage(
   }
   const stopControlEvent = (event: Event) => event.stopPropagation()
   const toggle = (event: Event) => {
-    debugEvent('toggle')
     event.stopPropagation()
     if (state !== 'decoded' || controls.hidden) return
     setNatural(!natural)
   }
-  // Some WebView2/WebDriver pointer sequences deliver pointer/mouse down or
-  // release events but omit the compatibility click for a button nested in a
-  // contentEditable=false preview. Treat the first primary mouse event as
-  // activation and suppress the duplicate release/click when the browser does
-  // provide them. Keyboard activation still goes through the native click event.
+  // Some WebView2/WebDriver pointer sequences deliver pointerup/mouseup but
+  // omit the compatibility click for a button nested in a contentEditable=false
+  // preview. Treat the primary pointer release as activation and suppress the
+  // duplicate click when the browser does provide one. Keyboard activation
+  // still goes through the native click event.
   let pointerActivation = false
   let pointerActivationTimer: ReturnType<typeof setTimeout> | undefined
   const togglePointer = (event: Event) => {
@@ -142,24 +130,6 @@ export function createOwnedDocumentPngImage(
       pointerActivationTimer = undefined
     }, 1000)
     toggle(event)
-  }
-  const handlePointer = (event: Event) => {
-    debugEvent(`pointer:${event.type}`)
-    event.stopPropagation()
-    togglePointer(event)
-  }
-  const isButtonEvent = (event: Event) => event.composedPath().includes(button)
-  const capturePointer = (event: Event) => {
-    const target = event.target as Element | null
-    debugEvent(`capture:${event.type}:${target?.nodeName ?? 'none'}`)
-    if (isButtonEvent(event)) handlePointer(event)
-  }
-  const captureClick = (event: Event) => {
-    debugEvent(`capture-click:${event.type}`)
-    if (isButtonEvent(event)) {
-      toggleClick(event)
-      event.stopPropagation()
-    }
   }
   const toggleClick = (event: Event) => {
     if (pointerActivation) {
@@ -176,13 +146,11 @@ export function createOwnedDocumentPngImage(
   const keepViewportEvent = (event: Event) => {
     if (event.target === viewport) event.stopPropagation()
   }
-  for (const name of ['keydown', 'keyup']) button.addEventListener(name, stopControlEvent)
-  for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
-    button.addEventListener(name, handlePointer)
-    document.addEventListener(name, capturePointer, true)
-  }
+  for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
+    button.addEventListener(name, stopControlEvent)
+  button.addEventListener('pointerup', togglePointer)
+  button.addEventListener('mouseup', togglePointer)
   button.addEventListener('click', toggleClick)
-  document.addEventListener('click', captureClick, true)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
   const cleanup = () => {
@@ -193,13 +161,11 @@ export function createOwnedDocumentPngImage(
     pointerActivation = false
     resize?.disconnect()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
-    for (const name of ['keydown', 'keyup']) button.removeEventListener(name, stopControlEvent)
-    for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
-      button.removeEventListener(name, handlePointer)
-      document.removeEventListener(name, capturePointer, true)
-    }
+    for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
+      button.removeEventListener(name, stopControlEvent)
+    button.removeEventListener('pointerup', togglePointer)
+    button.removeEventListener('mouseup', togglePointer)
     button.removeEventListener('click', toggleClick)
-    document.removeEventListener('click', captureClick, true)
     for (const name of ['mousedown', 'pointerdown', 'click'])
       viewport.removeEventListener(name, keepViewportEvent)
     image.removeEventListener('error', failed)
