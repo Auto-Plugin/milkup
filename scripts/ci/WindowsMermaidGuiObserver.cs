@@ -36,6 +36,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     Dictionary<string, object> positive, desktopContext;
     long sequence;
     uint session;
+    uint positiveStartedTick, positiveEndedTick;
+    bool positiveEnded;
 
     [StructLayout(LayoutKind.Sequential)] struct Rect { public int left, top, right, bottom; }
     [StructLayout(LayoutKind.Sequential)] struct Point { public int x, y; }
@@ -211,16 +213,19 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         string identity = HandleText(hwnd) + ":" + pid + ":" + creation;
         return new WindowFact { Handle = hwnd, Pid = pid, Class = klass, Title = title.ToString(), Visible = IsWindowVisible(hwnd), Cloaked = hr >= 0 ? (uint?)cloaked : null, Rect = rect, Creation = creation, Identity = identity, Baseline = baselineVisible.Contains(identity) };
     }
-    void Observe(IntPtr hwnd, string kind, bool showEvent, bool baseline) {
+    void Observe(IntPtr hwnd, string kind, bool showEvent, bool baseline, uint? nativeEventTime = null) {
         if (hwnd == IntPtr.Zero) return;
         bool live = IsWindow(hwnd);
         if (live && GetAncestor(hwnd, 2) != hwnd) return;
         WindowFact fact = ReadWindow(hwnd), old = null;
         lock (gate) {
+            // WinEvent delivery is asynchronous. Attribute queued control
+            // events by their OS event time, not the later callback phase.
+            bool positiveInterval = positiveActive || (nativeEventTime.HasValue && positiveEnded && unchecked(nativeEventTime.Value - positiveStartedTick) <= unchecked(positiveEndedTick - positiveStartedTick));
             previous.TryGetValue(hwnd.ToInt64(), out old);
             if (fact == null) fact = old;
             if (fact == null) {
-                if (showEvent && productPhase) AddError("A top-level show event lost its window identity before observation: " + HandleText(hwnd));
+                if (showEvent && productPhase && !positiveInterval) AddError("A top-level show event lost its window identity before observation: " + HandleText(hwnd));
                 return;
             }
             if (baseline && fact.Visible && fact.Cloaked == 0) { baselineVisible.Add(fact.Identity); fact.Baseline = true; }
@@ -233,15 +238,15 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             bool currentVisible = live && fact.Visible && fact.Cloaked == 0 && fact.Rect.right > fact.Rect.left && fact.Rect.bottom > fact.Rect.top && IntersectsDesktop(fact.Rect);
             bool observedShow = console && showEvent && !fact.Baseline;
             if (console && positiveActive && fact.Title == positiveTitle && currentVisible) positiveDetected = true;
-            if (console && productPhase && !positiveActive && !fact.Baseline && (currentVisible || observedShow)) {
+            if (console && productPhase && !positiveInterval && !fact.Baseline && (currentVisible || observedShow)) {
                 if (product) visibleProductConsoles.Add(fact.Identity); else visibleUnknownConsoles.Add(fact.Identity);
             }
             if (kind == "poll" && !changed) return;
             if (events.Count >= MaxEvents) { overflow = true; return; }
             events.Add(new Dictionary<string, object> {
-                { "sequence", ++sequence }, { "elapsedMs", clock.ElapsedMilliseconds }, { "phase", phase }, { "kind", kind }, { "hwnd", HandleText(hwnd) },
+                { "sequence", ++sequence }, { "elapsedMs", clock.ElapsedMilliseconds }, { "nativeEventUptimeMs32", nativeEventTime }, { "phase", phase }, { "kind", kind }, { "hwnd", HandleText(hwnd) },
                 { "pid", fact.Pid }, { "processCreationFileTime", fact.Creation > 0 ? fact.Creation.ToString() : null }, { "className", fact.Class }, { "title", fact.Title },
-                { "visibleNow", live && fact.Visible }, { "cloaked", fact.Cloaked }, { "showEvent", showEvent }, { "consoleCandidate", console }, { "positiveControlInterval", positiveActive }, { "productObservationInterval", productPhase }, { "observedVisible", currentVisible || observedShow },
+                { "visibleNow", live && fact.Visible }, { "cloaked", fact.Cloaked }, { "showEvent", showEvent }, { "consoleCandidate", console }, { "positiveControlInterval", positiveInterval }, { "productObservationInterval", productPhase }, { "observedVisible", currentVisible || observedShow },
                 { "baselineVisible", fact.Baseline }, { "attribution", attribution }, { "rect", new int[] { fact.Rect.left, fact.Rect.top, fact.Rect.right, fact.Rect.bottom } }
             });
         }
@@ -252,7 +257,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             desktopContext = CurrentDesktop(); session = (uint)desktopContext["sessionId"];
             callback = (h, kind, hwnd, objectId, childId, thread, time) => {
                 if (objectId != 0 || childId != 0) return;
-                try { Observe(hwnd, kind == CreateEvent ? "create" : kind == DestroyEvent ? "destroy" : kind == ShowEvent ? "show" : "hide", kind == ShowEvent, false); }
+                try { Observe(hwnd, kind == CreateEvent ? "create" : kind == DestroyEvent ? "destroy" : kind == ShowEvent ? "show" : "hide", kind == ShowEvent, false, time); }
                 catch (Exception error) { AddError(error.Message); }
             };
             hook = SetWinEventHook(CreateEvent, HideEvent, IntPtr.Zero, callback, 0, 0, 0);
@@ -297,11 +302,22 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     void RequireStarted() { if (!started || stopping || hook == IntPtr.Zero) throw new InvalidOperationException("Observer is unavailable"); }
     public Dictionary<string, object> Phase(string name) { RequireStarted(); if (!IsPhaseName(name)) throw new ArgumentException("Closed short phase identifier required"); lock (gate) phase = name; return new Dictionary<string, object> { { "phase", name }, { "elapsedMs", clock.ElapsedMilliseconds } }; }
     static uint Active(IntPtr job) { Accounting value; Check(QueryInformationJobObject(job, 1, out value, (uint)Marshal.SizeOf<Accounting>(), IntPtr.Zero), "Read owned control Job"); return value.active; }
+    int VisibleControlWindows() {
+        int count = 0;
+        Check(EnumWindows((hwnd, ignored) => {
+            if (IsWindowVisible(hwnd) && IsConsoleClass(ClassName(hwnd))) {
+                var title = new StringBuilder(97); GetWindowTextW(hwnd, title, title.Capacity);
+                if (title.ToString() == positiveTitle) count++;
+            }
+            return true;
+        }, IntPtr.Zero), "Confirm owned control window disappeared");
+        return count;
+    }
     public Dictionary<string, object> PositiveControl() {
         RequireStarted(); if (positive != null || products.Count != 0) throw new InvalidOperationException("One positive control before product launch is required");
         positive = new Dictionary<string, object> { { "detectedVisible", false }, { "heldProcessSignaled", false }, { "naturalExit", false }, { "exitCode", null }, { "jobActiveAfterStop", null }, { "cleanupComplete", false }, { "sameInputDesktop", true }, { "screenshot", "gui-console-positive.png" } };
         IntPtr job = IntPtr.Zero, attributes = IntPtr.Zero, jobValue = IntPtr.Zero; ProcessInfo info = new ProcessInfo(); bool initialized = false, resumed = false, clean = false;
-        lock (gate) { positiveActive = true; phase = "positive-control"; positiveTitle = "MilkupGuiControl-" + Guid.NewGuid().ToString("N"); }
+        lock (gate) { positiveStartedTick = unchecked((uint)Environment.TickCount); positiveActive = true; phase = "positive-control"; positiveTitle = "MilkupGuiControl-" + Guid.NewGuid().ToString("N"); }
         try {
             CurrentDesktop(); job = CreateJobObjectW(IntPtr.Zero, IntPtr.Zero); Check(job != IntPtr.Zero, "Create owned console control Job");
             var limits = new ExtendedLimits(); limits.basic.flags = 0x2000 | 8; limits.basic.activeLimit = 4;
@@ -323,9 +339,13 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             long cleanup = clock.ElapsedMilliseconds + 3000;
             while (Active(job) != 0 && clock.ElapsedMilliseconds < cleanup) Thread.Sleep(20);
             uint active = Active(job); positive["jobActiveAfterStop"] = active;
+            long windowDeadline = clock.ElapsedMilliseconds + 3000;
+            int controlWindows;
+            while ((controlWindows = VisibleControlWindows()) != 0 && clock.ElapsedMilliseconds < windowDeadline) Thread.Sleep(20);
+            positive["visibleControlWindowsAfterStop"] = controlWindows;
             lock (gate) positive["detectedVisible"] = positiveDetected;
             lock (gate) positive["screenshotCaptured"] = positiveCaptureComplete;
-            clean = signaled && active == 0; positive["cleanupComplete"] = clean;
+            clean = signaled && active == 0 && controlWindows == 0; positive["cleanupComplete"] = clean;
             if (!clean || !(bool)positive["naturalExit"] || !positiveDetected || !(bool)positive["screenshotCaptured"]) throw new InvalidOperationException("Visible-console positive control was not fully observed and cleaned");
             lock (gate) if (errors.Count != 0 || overflow) throw new InvalidOperationException("Positive-control observation is incomplete");
             CurrentDesktop(); positive["passed"] = true;
@@ -343,7 +363,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             }
             if (info.thread != IntPtr.Zero) CloseHandle(info.thread); if (info.process != IntPtr.Zero) CloseHandle(info.process);
             if (initialized) DeleteProcThreadAttributeList(attributes); if (attributes != IntPtr.Zero) Marshal.FreeHGlobal(attributes); if (jobValue != IntPtr.Zero) Marshal.FreeHGlobal(jobValue); if (job != IntPtr.Zero) CloseHandle(job);
-            lock (gate) { positiveActive = false; productPhase = clean && positiveDetected && positive.ContainsKey("passed") && (bool)positive["passed"]; phase = productPhase ? "product-awaiting-identity" : "positive-control-failed"; }
+            lock (gate) { positiveEndedTick = unchecked((uint)Environment.TickCount); positiveEnded = true; positiveActive = false; productPhase = clean && positiveDetected && positive.ContainsKey("passed") && (bool)positive["passed"]; phase = productPhase ? "product-awaiting-identity" : "positive-control-failed"; }
             GC.KeepAlive(resumed);
         }
     }
