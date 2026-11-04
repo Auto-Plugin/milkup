@@ -9,7 +9,7 @@ $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or
     $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
     $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-    $env:GITHUB_REF -cne 'refs/heads/dot/mermaid-rebuild-20261103') {
+    $env:GITHUB_REF -cne 'refs/heads/dot/mermaid-stability-20261104') {
     throw 'Only the independent Windows test-delivery candidate is permitted'
 }
 function Checked([string]$Program, [string[]]$Arguments) {
@@ -41,12 +41,12 @@ $head = @(git rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong packaging candidate' }
 $sha = $head[0].Trim()
 Checked git @('merge-base', '--is-ancestor', 'b139a9891a086685d7e0e9e85472a29a629f7a45', $sha)
-Checked git @('diff', '--exit-code', 'd1149a6a4d29c8414e36fc1af200fbc95e4b1601', $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'plugins/diagrams-worker')
+Checked git @('diff', '--exit-code', '4055d7f44c95b1714b3f9fb5551a6ee10d3bd62c', $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'packages/core/src', 'packages/view-dom/src', 'plugins/diagrams-worker')
 $dirty = @(git status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Packaging requires a strictly clean checkout' }
 Checked node @('scripts/check-versions.mjs')
 $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-if ($version -cne '2.0.0-beta.9') { throw 'Wrong Mermaid test version' }
+if ($version -cne '2.0.0-beta.10') { throw 'Wrong Mermaid test version' }
 $config = Get-Content apps/desktop/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
 $overlay = Join-Path $root 'scripts/ci/tauri-mermaid-trial.json'
 $overlayValue = Get-Content $overlay -Raw | ConvertFrom-Json
@@ -109,7 +109,8 @@ Write-NewJson (Join-Path $EvidenceDirectory 'packaging-record.json') ([ordered]@
     runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT
     runUrl = "https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     acceptedImplementationBase = 'b139a9891a086685d7e0e9e85472a29a629f7a45'
-    reviewedImplementationBase = 'd1149a6a4d29c8414e36fc1af200fbc95e4b1601'
+    reviewedImplementationBase = '4055d7f44c95b1714b3f9fb5551a6ee10d3bd62c'
+    sourceAcceptanceRunId = 41755515328
     installer = $installer; compiledApplication = $compiled; extractedApplication = $extracted
     dependencies = $dependencies; buildHostOsVersion = [Environment]::OSVersion.VersionString
     nsisInstallMode = 'currentUser'; webviewInstallMode = 'skip'; existingEvergreenRequired = $true
