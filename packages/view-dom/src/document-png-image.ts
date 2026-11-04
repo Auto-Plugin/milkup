@@ -22,11 +22,13 @@ export function createOwnedDocumentPngImage(
   element.dataset.documentPngView = 'fit'
   const controls = document.createElement('span')
   controls.className = 'milkup-document-png-controls'
+  controls.style.pointerEvents = 'auto'
   controls.hidden = true
   const button = document.createElement('button')
   button.type = 'button'
   button.dataset.documentPngScale = ''
   button.className = 'milkup-document-png-scale'
+  button.style.pointerEvents = 'auto'
   button.title = '按原始尺寸查看，可横向滚动'
   const buttonLabel = document.createTextNode('原始尺寸')
   button.append(buttonLabel)
@@ -146,6 +148,8 @@ export function createOwnedDocumentPngImage(
   }
   const isButtonEvent = (event: Event) => event.composedPath().includes(button)
   const capturePointer = (event: Event) => {
+    const target = event.target as Element | null
+    debugEvent(`capture:${event.type}:${target?.nodeName ?? 'none'}`)
     if (isButtonEvent(event)) handlePointer(event)
   }
   const captureClick = (event: Event) => {
