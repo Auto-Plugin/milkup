@@ -33,8 +33,10 @@ The additional gate verifies:
   The four installations across the two matrices must use four different SIDs.
 - The complete GUI sequence, including two 75-second idle intervals, actual window
   resizing, repeated native file opening, two diagrams, and idle/busy close.
-- The outer copy manifest and actual PNG bytes: eight window captures, four
+- The outer copy manifest and actual PNG bytes: nine window captures, four
   diagram images including both diagrams, and the visible-console positive control.
+- The wide diagram's original-size/fit-width control, actual horizontal scrolling,
+  unchanged Markdown and PNG identity, and no new native render during the switch.
 - Inner product cleanup separately from outer account, profile, directory and
   group cleanup. Missing or uncertain observations fail the gate.
 
@@ -42,12 +44,13 @@ Only after both matrices pass does the finalizer mark `deliveryReady`, add
 `guiAcceptance`, copy original GUI records and pixels to `reports/gui-<kind>`, and
 write the delivery checksum inventory. The prepared README explicitly describes
 pending acceptance; it cannot claim the new GUI scenarios passed beforehand.
-The original 32-file budget remains in place, with only the exact 42 additional
+The original 32-file budget remains in place, with only the exact 44 additional
 GUI report/pixel paths allowed. The aggregate limit remains 128 MiB. Final
 metadata and checksum sizes are checked before writing a delivery-ready marker.
 
 The updated candidate uses Windows ACL APIs instead of launching `icacls`, fits
-the image to the editor viewport, reserves scrollbar space, and retains completed
+the image to the editor viewport with an original-size scrolling control, reserves
+scrollbar space, and retains completed
 trusted Mermaid images within existing authority and memory limits. The old
 Win32 995 pipe ownership root cause remains unresolved. Failed protocol output
 remains rejected; allowing close requires complete owned-resource release proof.

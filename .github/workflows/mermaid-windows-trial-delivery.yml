@@ -121,10 +121,11 @@ jobs:
           $objects | ConvertTo-Json -Depth 32 | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/public-plugins/staged-bundles.json') -Encoding utf8
           pnpm --filter @milkup/desktop typecheck
           if ($LASTEXITCODE -ne 0) { throw 'Desktop type check failed' }
-          node --test scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/mermaid-product-e2e.test.mjs tests/windows/verify-installed-binary.test.mjs
+          node --test scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/mermaid-product-e2e.test.mjs tests/windows/verify-installed-binary.test.mjs tests/windows/mermaid-gui-regression.test.mjs tests/windows/mermaid-gui-startup.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Delivery verification regressions failed' }
           ./tests/windows/account-kind-wrapper.test.ps1
           ./tests/windows/installer-wrapper.test.ps1
+          ./tests/windows/mermaid-gui-observer.test.ps1
           $ownedProcess = @(& pwsh -NoProfile -File scripts/ci/test-windows-mermaid-owned-process.ps1 2>&1)
           $ownedProcessExit = $LASTEXITCODE
           $ownedProcess | Write-Host
