@@ -319,6 +319,11 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
       0,
       'Historical unproved child suppression cannot pass',
     )
+    assert.equal(
+      raw.knownWindowShowEvents ?? 0,
+      0,
+      'Historical unproved window suppression cannot pass',
+    )
     return true
   }
   assert.deepEqual(raw.unresolvedEvents, [], 'Every unknown SHOW needs complete lifetime evidence')
@@ -552,7 +557,32 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
   )
   const showIds = new Set(),
     showSequences = new Set()
-  for (const show of raw.childShowEvidence) {
+  const directShows = raw.events.filter(
+    (event) => Object.hasOwn(event, 'windowLifeShow') && event.windowLifeShow !== null,
+  )
+  for (const event of raw.events) {
+    if (
+      event.showEvent &&
+      event.productObservationInterval &&
+      !event.positiveControlInterval &&
+      !event.consoleCandidate
+    )
+      assert(
+        event.windowLifeShow && typeof event.windowLifeShow === 'object',
+        'Every negative SHOW classification retains its exact original window generation proof',
+      )
+  }
+  const shows = [
+    ...raw.childShowEvidence.map((show) => ({ show, event: null })),
+    ...directShows.map((event) => ({ show: event.windowLifeShow, event })),
+  ]
+  let childCount = 0
+  for (const { show, event } of shows) {
+    assert(show && typeof show === 'object', 'Original window SHOW evidence required')
+    assert(['child', 'root'].includes(show.scope), 'Explicit child or root SHOW scope required')
+    if (!event)
+      assert.equal(show.scope, 'child', 'Unreadable SHOW cannot guess a top-level classification')
+    if (show.scope === 'child') childCount++
     integer(show.id, 'Unique unresolved SHOW ID required', 1)
     assert(!showIds.has(show.id), 'SHOW IDs must be unique')
     showIds.add(show.id)
@@ -570,6 +600,39 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
     identity(proof)
     assert.equal(proof.heldThreadVerified, true)
     assert.equal(proof.heldProcessVerified, true)
+    for (const [key, creation] of [
+      ['heldThreadWait', proof.threadCreationFileTime],
+      ['heldProcessWait', proof.processCreationFileTime],
+    ]) {
+      const wait = proof[key]
+      assert(
+        wait && [0, 258].includes(wait.result),
+        'Native object wait state must be explicit and successful',
+      )
+      if (wait.result === 0)
+        assert(
+          birth(wait.exitFileTime) >= birth(creation),
+          'A signaled original object has a valid exit FILETIME after its own creation',
+        )
+      else
+        assert.equal(
+          wait.exitFileTime,
+          null,
+          'An unsignaled object has no defined exit time; never treat undefined native bytes as evidence',
+        )
+    }
+    assert.equal(
+      proof.currentThread?.status,
+      'same-identity',
+      'The original retained thread object must remain precisely identifiable, even after exit',
+    )
+    assert.equal(proof.currentThread.win32Error ?? null, null)
+    for (const field of ['pid', 'threadCreationFileTime', 'processCreationFileTime'])
+      assert.equal(
+        proof.currentThread[field],
+        proof[field],
+        'Fresh current thread lookup matches the retained object',
+      )
     integer(
       proof.capturedAtTick,
       'Actual SHOW identity read tick required',
@@ -582,12 +645,21 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
         retirement = life.retirement
       if (
         !confirmation ||
-        confirmation.rootLifeId === null ||
+        (show.scope === 'child'
+          ? confirmation.rootLifeId === null
+          : confirmation.rootLifeId !== null) ||
+        ['ConsoleWindowClass', 'CASCADIA_HOSTING_WINDOW_CLASS', 'PseudoConsoleWindow'].includes(
+          confirmation.className,
+        ) ||
         life.create.nativeTick === null ||
         !retirement ||
         retirement.nativeTick === null ||
-        !(confirmation.callbackTick < show.nativeTick && show.nativeTick < retirement.nativeTick) ||
-        !(confirmation.sequence < show.sequence) ||
+        !(life.create.nativeTick <= show.nativeTick && show.nativeTick < retirement.nativeTick) ||
+        !(life.create.sequence < show.sequence && show.sequence < retirement.sequence) ||
+        !(
+          life.create.nativeTick <= confirmation.callbackTick &&
+          confirmation.callbackTick < retirement.nativeTick
+        ) ||
         (life.proofReleasedAtTick !== null && proof.capturedAtTick > life.proofReleasedAtTick)
       )
         return false
@@ -597,7 +669,7 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
         )
       )
         return false
-      const root = lives.get(confirmation.rootLifeId)
+      const root = show.scope === 'root' ? life : lives.get(confirmation.rootLifeId)
       if (
         root.create.nativeTick === null ||
         (root.retirement &&
@@ -623,15 +695,38 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
     assert.equal(
       candidates.length,
       1,
-      'A SHOW must identify exactly one proven child generation without an intervening CREATE',
+      'A SHOW must identify exactly one proven window generation without an intervening CREATE',
     )
     assert.equal(show.lifeId, candidates[0].id)
-    assert.equal(show.status, 'resolved-child')
+    assert.equal(show.status, 'resolved-' + show.scope)
+    if (event) {
+      const confirmation = candidates[0].confirmation
+      assert.equal(event.kind, 'show')
+      assert.equal(event.showEvent, true)
+      assert.equal(event.productObservationInterval, true)
+      assert.equal(event.positiveControlInterval, false)
+      assert.equal(
+        event.consoleCandidate,
+        false,
+        'Actual console events cannot be hidden inside a negative window proof',
+      )
+      assert.equal(hwnd(event.hwnd), hwnd(show.hwnd))
+      for (const field of ['nativeEventUptimeMs32', 'eventThreadId'])
+        assert.equal(event[field], show[field])
+      assert.equal(event.className, confirmation.className)
+      assert.equal(event.pid, proof.pid)
+      assert.equal(event.processCreationFileTime, proof.processCreationFileTime)
+    }
   }
   assert.equal(
     raw.knownChildShowEvents,
-    raw.childShowEvidence.length,
+    childCount,
     'Suppressed child SHOW count must be independently accounted for',
+  )
+  assert.equal(
+    raw.knownWindowShowEvents,
+    shows.length,
+    'Every negative SHOW classification must be independently accounted for',
   )
   return true
 }

@@ -409,6 +409,7 @@ const rawWindows = () => ({
   unresolvedEvents: [],
   resolvedChildEvents: [],
   knownChildShowEvents: 0,
+  knownWindowShowEvents: 0,
   observationStoppedAtTick: 2300,
   workingGenerationPeak: 0,
   sharedRecordCount: 1,
@@ -670,8 +671,9 @@ const childLifetimeEvidence = () => {
     {
       id: 1,
       hwnd: '0x11',
-      ...event(5, 150, 220, 12),
+      ...event(3, 150, 190, 12),
       status: 'resolved-child',
+      scope: 'child',
       lifeId: 2,
       proof: {
         capturedAtTick: 220,
@@ -681,11 +683,20 @@ const childLifetimeEvidence = () => {
         processCreationFileTime: '1100',
         heldThreadVerified: true,
         heldProcessVerified: true,
+        heldThreadWait: { result: 258, exitFileTime: null },
+        heldProcessWait: { result: 258, exitFileTime: null },
+        currentThread: {
+          status: 'same-identity',
+          pid: 101,
+          threadCreationFileTime: '1110',
+          processCreationFileTime: '1100',
+        },
       },
       reason: 'held identity and original event interval',
     },
   ]
   raw.knownChildShowEvents = 1
+  raw.knownWindowShowEvents = 1
   raw.workingGenerationPeak = 2
   raw.sharedRecordCount = 4
   return raw
@@ -693,6 +704,29 @@ const childLifetimeEvidence = () => {
 
 test('late child SHOW is independently resolved by exact identities and its original lifetime interval', () => {
   assert(validateNativeWindowEvidence(childLifetimeEvidence(), summary()))
+  const queued = childLifetimeEvidence()
+  queued.windowLifetimes[1].confirmation.callbackTick = 170
+  assert(
+    validateNativeChildLifetimes(queued),
+    'A later snapshot still belongs to the actual generation when it precedes that generation retirement',
+  )
+  queued.childShowEvidence[0].nativeTick = 110
+  queued.childShowEvidence[0].nativeEventUptimeMs32 = 110
+  assert(
+    validateNativeChildLifetimes(queued),
+    'Same-tick CREATE and SHOW retain their distinct FIFO callback entrance order',
+  )
+  const wrongEntrance = structuredClone(queued)
+  wrongEntrance.childShowEvidence[0].sequence = wrongEntrance.windowLifetimes[1].create.sequence
+  assert.throws(() => validateNativeChildLifetimes(wrongEntrance), /exactly one proven window/)
+  const completedLate = structuredClone(queued)
+  completedLate.childShowEvidence[0].sequence =
+    completedLate.windowLifetimes[1].retirement.sequence + 1
+  assert.throws(
+    () => validateNativeChildLifetimes(completedLate),
+    /exactly one proven window/,
+    'Callback completion order cannot substitute for the original event entrance order',
+  )
   const wrapped = childLifetimeEvidence()
   const offset = 0x100000000 - 120
   for (const life of wrapped.windowLifetimes) {
@@ -830,10 +864,9 @@ test('child classification rejects missing identities, stale generations, clock 
       },
     ],
     [
-      'SHOW at confirmation boundary',
+      'snapshot at retirement boundary',
       (raw) => {
-        raw.childShowEvidence[0].nativeTick = 111
-        raw.childShowEvidence[0].nativeEventUptimeMs32 = 111
+        raw.windowLifetimes[1].confirmation.callbackTick = 200
       },
     ],
     [
@@ -932,7 +965,7 @@ test('child classification rejects missing identities, stale generations, clock 
   reused.workingGenerationPeak = 3
   assert.throws(
     () => validateNativeChildLifetimes(reused),
-    /exactly one proven child/,
+    /exactly one proven window/,
     'An unreadable CREATE for the same HWND is a barrier even with the same PID/thread',
   )
 
@@ -956,7 +989,7 @@ test('child classification rejects missing identities, stale generations, clock 
   ambiguous.sharedRecordCount++
   assert.throws(
     () => validateNativeChildLifetimes(ambiguous),
-    /exactly one proven child/,
+    /exactly one proven window/,
     'An ambiguous later CREATE time cannot be assigned away from the old SHOW',
   )
 })
@@ -1009,6 +1042,208 @@ test('child lifetime evidence cannot silently downgrade or exceed the original s
   windows.sharedRecordCount = 258
   windows.workingGenerationPeak = 256
   assert.throws(() => validateNativeChildLifetimes(windows), /peak|256-window/)
+})
+
+const directWindowShowEvidence = (scope) => {
+  const raw = childLifetimeEvidence()
+  const show = raw.childShowEvidence.pop()
+  show.scope = scope
+  show.status = 'resolved-' + scope
+  if (scope === 'root') {
+    show.hwnd = '0x10'
+    show.lifeId = 1
+    show.eventThreadId = 11
+    Object.assign(show.proof, {
+      pid: 100,
+      processCreationFileTime: '1000',
+      threadId: 11,
+      threadCreationFileTime: '1010',
+    })
+    Object.assign(show.proof.currentThread, {
+      pid: 100,
+      processCreationFileTime: '1000',
+      threadCreationFileTime: '1010',
+    })
+    raw.knownChildShowEvents = 0
+  }
+  const confirmation = raw.windowLifetimes.find((life) => life.id === show.lifeId).confirmation
+  raw.events.push({
+    ...raw.events[0],
+    sequence: 2,
+    elapsedMs: 40,
+    kind: 'show',
+    productObservationInterval: true,
+    positiveControlInterval: false,
+    consoleCandidate: false,
+    hwnd: show.hwnd,
+    pid: show.proof.pid,
+    processCreationFileTime: show.proof.processCreationFileTime,
+    className: confirmation.className,
+    title: '',
+    nativeEventUptimeMs32: show.nativeEventUptimeMs32,
+    eventThreadId: show.eventThreadId,
+    windowLifeShow: show,
+  })
+  return raw
+}
+
+test('readable child and root SHOW events retain the original generation proof instead of trusting the current class', () => {
+  for (const scope of ['child', 'root']) {
+    const raw = directWindowShowEvidence(scope)
+    assert(validateNativeWindowEvidence(raw, summary()))
+    for (const [label, mutate] of [
+      [
+        'wrong current HWND',
+        (value) => {
+          value.events[1].hwnd = '0x99'
+        },
+      ],
+      [
+        'a console hidden in negative proof',
+        (value) => {
+          value.events[1].consoleCandidate = true
+        },
+      ],
+      [
+        'changed current class',
+        (value) => {
+          value.events[1].className = 'DifferentWindowClass'
+        },
+      ],
+      [
+        'source TID disagrees',
+        (value) => {
+          value.events[1].eventThreadId++
+        },
+      ],
+      [
+        'source native time disagrees',
+        (value) => {
+          value.events[1].nativeEventUptimeMs32++
+        },
+      ],
+      [
+        'current PID differs',
+        (value) => {
+          value.events[1].pid++
+        },
+      ],
+      [
+        'old console HWND observed only after reuse as a current nonconsole window',
+        (value) => {
+          const life = value.windowLifetimes.find(
+            (item) => item.id === value.events[1].windowLifeShow.lifeId,
+          )
+          life.confirmation.callbackTick = life.retirement.nativeTick + 1
+        },
+      ],
+      [
+        'new HWND generation with old SHOW time',
+        (value) => {
+          const life = value.windowLifetimes.find(
+            (item) => item.id === value.events[1].windowLifeShow.lifeId,
+          )
+          life.create.nativeTick = 151
+          life.create.nativeEventUptimeMs32 = 151
+          life.create.callbackTick = 152
+          life.confirmation.callbackTick = 153
+        },
+      ],
+      [
+        'proof removed with counts zeroed',
+        (value) => {
+          value.events[1].windowLifeShow = null
+          value.knownChildShowEvents = 0
+          value.knownWindowShowEvents = 0
+        },
+      ],
+    ]) {
+      const invalid = structuredClone(raw)
+      mutate(invalid)
+      assert.throws(
+        () => validateNativeWindowEvidence(invalid, summary()),
+        undefined,
+        label + ': ' + scope,
+      )
+    }
+  }
+  const guessedRoot = directWindowShowEvidence('root')
+  guessedRoot.childShowEvidence.push(guessedRoot.events.pop().windowLifeShow)
+  assert.throws(() => validateNativeChildLifetimes(guessedRoot), /Unreadable SHOW/)
+  const omitted = rawWindows()
+  omitted.events[0].windowLifeShow = null
+  assert(
+    validateNativeWindowEvidence(omitted, summary()),
+    'Explicit null on an ordinary console event is not a child claim',
+  )
+})
+
+test('an exited retained object is verified by native wait facts and exact lookup, never undefined exit bytes or not-found guesses', () => {
+  const exited = childLifetimeEvidence()
+  exited.childShowEvidence[0].proof.heldThreadWait = { result: 0, exitFileTime: '1200' }
+  assert(validateNativeChildLifetimes(exited))
+  exited.childShowEvidence[0].proof.heldProcessWait = { result: 0, exitFileTime: '1300' }
+  assert(validateNativeChildLifetimes(exited))
+  for (const [label, mutate] of [
+    [
+      'missing wait evidence',
+      (raw) => {
+        delete raw.childShowEvidence[0].proof.heldThreadWait
+      },
+    ],
+    [
+      'failed wait',
+      (raw) => {
+        raw.childShowEvidence[0].proof.heldThreadWait.result = 0xffffffff
+      },
+    ],
+    [
+      'exit before birth',
+      (raw) => {
+        raw.childShowEvidence[0].proof.heldThreadWait.exitFileTime = '1000'
+      },
+    ],
+    [
+      'undefined live exit time presented as evidence',
+      (raw) => {
+        raw.childShowEvidence[0].proof.heldThreadWait.result = 258
+      },
+    ],
+    [
+      'signaled process missing exit time',
+      (raw) => {
+        raw.childShowEvidence[0].proof.heldProcessWait.exitFileTime = null
+      },
+    ],
+    [
+      'invalid-parameter lookup mistaken for proof',
+      (raw) => {
+        raw.childShowEvidence[0].proof.currentThread = { status: 'not-found', win32Error: 87 }
+      },
+    ],
+    [
+      'access denied lookup mistaken for proof',
+      (raw) => {
+        raw.childShowEvidence[0].proof.currentThread = { status: 'not-found', win32Error: 5 }
+      },
+    ],
+    [
+      'fresh lookup reused thread birth',
+      (raw) => {
+        raw.childShowEvidence[0].proof.currentThread.threadCreationFileTime = '1200'
+      },
+    ],
+    [
+      'fresh lookup different PID',
+      (raw) => {
+        raw.childShowEvidence[0].proof.currentThread.pid = 102
+      },
+    ],
+  ]) {
+    const raw = structuredClone(exited)
+    mutate(raw)
+    assert.throws(() => validateNativeChildLifetimes(raw), undefined, label)
+  }
 })
 
 test('native visibility replays negative-coordinate desktops and strict screen intersections', () => {

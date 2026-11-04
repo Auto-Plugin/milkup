@@ -1031,6 +1031,7 @@ async function guiInstalledFixture(t, options = {}) {
     workingGenerationPeak: 0,
     sharedRecordCount: 1,
     knownChildShowEvents: 0,
+    knownWindowShowEvents: 0,
     unresolvedEvents: [],
     resolvedChildEvents: [],
     processes: [],
