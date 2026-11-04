@@ -1174,7 +1174,9 @@ export async function main() {
       for (const operation of guiNativeResizeOperations(row.initialNativeWindow)) {
         const item = { operation, settled: false }
         row.operations.push(item)
-        item.nativeControl = await observer.call('resizeProduct', operation, 10000)
+        // The helper bounds restore and resize separately to five seconds each;
+        // leave transport headroom so its measured failure record is returned.
+        item.nativeControl = await observer.call('resizeProduct', operation, 15000)
         item.before = item.nativeControl.before.windowRect
         item.after = item.nativeControl.after.windowRect
         item.nativeWindowChanged =
