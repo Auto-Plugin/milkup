@@ -704,6 +704,42 @@ export async function main() {
         continue
       }
       beforeDispatch?.()
+      if (selector === '[data-document-png-scale]') {
+        const found = await request('POST', `/session/${session}/element`, {
+          using: 'css selector',
+          value: selector,
+        })
+        const elementRef =
+          found?.value?.['element-6066-11e4-a52e-4f735466cecf'] ?? found?.value?.ELEMENT
+        assert(elementRef, 'Portal scale control must expose a WebDriver element reference')
+        report.inputs.push({
+          at: new Date().toISOString(),
+          selector,
+          kind: 'W3C-element-origin-pointer',
+          x: target.x,
+          y: target.y,
+        })
+        return request('POST', `/session/${session}/actions`, {
+          actions: [
+            {
+              type: 'pointer',
+              id: 'mouse',
+              parameters: { pointerType: 'mouse' },
+              actions: [
+                {
+                  type: 'pointerMove',
+                  origin: { 'element-6066-11e4-a52e-4f735466cecf': elementRef },
+                  x: 0,
+                  y: 0,
+                  duration: 20,
+                },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerUp', button: 0 },
+              ],
+            },
+          ],
+        })
+      }
       report.inputs.push({
         at: new Date().toISOString(),
         selector,
