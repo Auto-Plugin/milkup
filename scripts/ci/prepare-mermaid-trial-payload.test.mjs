@@ -1037,6 +1037,8 @@ async function guiInstalledFixture(t, options = {}) {
         visibleNow: true,
         cloaked: 0,
         rect: [0, 0, 100, 100],
+        desktopRect: [0, 0, 1920, 1080],
+        intersectsDesktop: true,
         title: 'synthetic-control',
         showEvent: true,
         baselineVisible: false,

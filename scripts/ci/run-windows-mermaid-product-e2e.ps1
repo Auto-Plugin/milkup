@@ -135,6 +135,7 @@ function Get-ChildEvidenceNames {
         $name = 'gui-' + $step + '-window.png'; $names.Add($name, $name)
     }
     $names.Add('gui-failure-cleanup-window.png', 'gui-failure-cleanup-window.png')
+    $names.Add('gui-source-inventory.json', 'gui-source-inventory.json')
     foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }
@@ -372,6 +373,39 @@ function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Versio
     }
     if ($reviewedMermaid -ne 1) { throw 'Exact reviewed Mermaid 1.3.0 package missing or ambiguous' }
 }
+function Assert-SourcePluginInventory($Inventory, $Spec) {
+    if ($Spec.harnessMode -cne 'gui-regression' -or $Spec.mode -cne 'linked-binary' -or
+        $Spec.candidateSha -cnotmatch '^[a-f0-9]{40}$' -or $Spec.applicationCandidateSha -cne $Spec.candidateSha -or
+        $Spec.binary.sha256 -cnotmatch '^[a-f0-9]{64}$') { throw 'Source inventory is only valid for current-candidate linked GUI mode' }
+    $keys = @('schema', 'kind', 'candidateSha', 'binarySha256', 'platform', 'canonicalSource', 'stagedSource', 'canonicalSourceSha256', 'producerSha256', 'plugins')
+    if ($Inventory -isnot [Collections.IDictionary] -or $Inventory.Count -ne $keys.Count -or
+        @($Inventory.Keys | Where-Object { $_ -cnotin $keys }).Count -ne 0 -or
+        $Inventory.schema -ne 1 -or $Inventory.kind -cne 'linked-gui-source-inventory' -or
+        $Inventory.candidateSha -cne $Spec.candidateSha -or $Inventory.binarySha256 -cne $Spec.binary.sha256 -or
+        $Inventory.platform -cne 'win32' -or $Inventory.canonicalSource -cne 'release/bundled-plugins.json' -or
+        $Inventory.stagedSource -cne 'apps/desktop/src/bundled-plugins' -or
+        $Inventory.canonicalSourceSha256 -cnotmatch '^[a-f0-9]{64}$' -or $Inventory.producerSha256 -cnotmatch '^[a-f0-9]{64}$' -or
+        $Inventory.plugins -isnot [array] -or $Inventory.plugins.Count -lt 1 -or $Inventory.plugins.Count -gt 32) {
+        throw 'Invalid frozen source plugin inventory identity or schema'
+    }
+    $ids = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $reviewedMermaid = 0
+    $pluginKeys = @('id', 'version', 'archiveFile', 'bytes', 'sha256', 'sourceManifestSha256')
+    foreach ($plugin in $Inventory.plugins) {
+        if ($plugin -isnot [Collections.IDictionary] -or $plugin.Count -ne $pluginKeys.Count -or
+            @($plugin.Keys | Where-Object { $_ -cnotin $pluginKeys }).Count -ne 0 -or
+            $plugin.id -cnotmatch '^[a-z][a-z0-9]*(?:[.-][a-z][a-z0-9]*)*$' -or $plugin.id.Length -gt 128 -or
+            $plugin.version -cnotmatch '^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*)?$' -or
+            $plugin.archiveFile -cne ($plugin.id + '-' + $plugin.version + '.milkup-plugin') -or
+            $plugin.bytes -isnot [ValueType] -or $plugin.bytes -is [bool] -or
+            $plugin.bytes -le 0 -or $plugin.bytes -gt 32MB -or $plugin.bytes -ne [Math]::Truncate([double]$plugin.bytes) -or
+            $plugin.sha256 -cnotmatch '^[a-f0-9]{64}$' -or $plugin.sourceManifestSha256 -cnotmatch '^[a-f0-9]{64}$' -or
+            -not $ids.Add($plugin.id) -or -not $names.Add($plugin.archiveFile)) { throw 'Invalid or duplicate source plugin inventory entry' }
+        if ($plugin.id -ceq 'milkup.diagrams' -and $plugin.version -ceq '1.3.0') { $reviewedMermaid++ }
+    }
+    if ($reviewedMermaid -ne 1) { throw 'Exact reviewed Mermaid source identity missing or ambiguous' }
+}
 function Assert-InstallationCoordinator($Spec, $Context) {
     Assert-AccountMode $Spec.expectedAccountKind $true
     if (-not $Context.interactive -or $Context.actualSid -cne $Spec.expectedSid -or
@@ -560,6 +594,16 @@ function Invoke-StandardChild {
             $variables['MILKUP_WINDOWS_MERMAID_INSTALLER_SHA256'] = $spec.installer.sha256
             $inventory = @($installation.bundledPlugins | ForEach-Object { @{ id = $_.id; version = $_.version } })
             $variables['MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY'] = ConvertTo-Json -InputObject $inventory -Depth 4 -Compress
+        } elseif ($spec.harnessMode -ceq 'gui-regression') {
+            Assert-Hash $spec.sourcePluginInventory.path $spec.sourcePluginInventory.sha256
+            $sourceInventory = Read-SmallJson $spec.sourcePluginInventory.path
+            Assert-SourcePluginInventory $sourceInventory $spec
+            $retainedInventory = Join-Path $evidence 'gui-source-inventory.json'
+            Copy-Item -LiteralPath $spec.sourcePluginInventory.path -Destination $retainedInventory -ErrorAction Stop
+            Assert-Hash $retainedInventory $spec.sourcePluginInventory.sha256
+            $result['sourcePluginInventory'] = File-Proof $retainedInventory
+            $inventory = @($sourceInventory.plugins | ForEach-Object { @{ id = $_.id; version = $_.version } })
+            $variables['MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY'] = ConvertTo-Json -InputObject $inventory -Depth 4 -Compress
         }
         foreach ($entry in $variables.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process') }
         $result.startedNode = $true
@@ -732,6 +776,7 @@ try {
         if ((File-Proof $pair[0]).sha256 -cne (File-Proof (Join-Path $code $pair[1])).sha256) { throw 'Frozen staging copy mismatch' }
     }
     $additionalHarnessFiles = @()
+    $sourceInventoryProof = $null
     if ($HarnessMode -ceq 'gui-regression') {
         $guiSources = @('tests/windows/mermaid-product-e2e.mjs', 'tests/windows/mermaid-gui-contract.mjs', 'scripts/ci/run-windows-mermaid-gui-observer.ps1', 'scripts/ci/WindowsMermaidGuiObserver.cs')
         if ($FrontendBoundaryProbe) { $guiSources += 'tests/windows/mermaid-frontend-boundary-probe.mjs' }
@@ -742,6 +787,24 @@ try {
             Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
             if ((File-Proof $source).sha256 -cne (File-Proof $destination).sha256) { throw 'GUI helper frozen staging copy mismatch' }
             $additionalHarnessFiles += File-Proof $destination
+        }
+        if (-not $installerMode) {
+            $inventoryHelper = Join-Path $repository 'scripts/ci/read-linked-gui-plugin-inventory.mjs'
+            $nodeForInventory = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+            Assert-PlainPath $inventoryHelper
+            Assert-PlainPath $nodeForInventory
+            $inventoryLines = @(& $nodeForInventory $inventoryHelper $ExpectedCommit $binaryProof.sha256)
+            if ($LASTEXITCODE -ne 0 -or $inventoryLines.Count -ne 1 -or
+                [Text.Encoding]::UTF8.GetByteCount($inventoryLines[0]) -gt 64KB) { throw 'Canonical generated source inventory could not be verified' }
+            $sourceInventory = $inventoryLines[0] | ConvertFrom-Json -AsHashtable
+            $inventoryIdentity = @{ harnessMode = $HarnessMode; mode = $audit.mode; candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; binary = $binaryProof }
+            Assert-SourcePluginInventory $sourceInventory $inventoryIdentity
+            if ($sourceInventory.producerSha256 -cne (File-Proof $inventoryHelper).sha256) { throw 'Source inventory producer identity changed' }
+            $inventoryPath = Join-Path $code 'gui-source-inventory.json'
+            Write-Json $inventoryPath $sourceInventory
+            $sourceInventoryProof = File-Proof $inventoryPath
+            $audit['sourcePluginInventory'] = $sourceInventoryProof
+            $audit['sourcePluginInventoryInputs'] = $sourceInventory
         }
     }
     if ($installerMode) {
@@ -805,6 +868,7 @@ try {
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; harnessMode = $HarnessMode
         frontendBoundaryProbe = [bool]$FrontendBoundaryProbe
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
+        sourcePluginInventory = $sourceInventoryProof
         binaryRole = $audit.binaryRole; binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
         driver = (File-Proof $driver); harness = (File-Proof (Join-Path $code $harnessLeaf))
         observer = (File-Proof (Join-Path $code 'WindowsMermaidStandardUser.cs'))
