@@ -124,6 +124,10 @@ export function createOwnedDocumentPngImage(
     }, 1000)
     toggle(event)
   }
+  const handlePointer = (event: Event) => {
+    event.stopPropagation()
+    togglePointer(event)
+  }
   const toggleClick = (event: Event) => {
     if (pointerActivation) {
       pointerActivation = false
@@ -139,12 +143,9 @@ export function createOwnedDocumentPngImage(
   const keepViewportEvent = (event: Event) => {
     if (event.target === viewport) event.stopPropagation()
   }
-  for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
-    button.addEventListener(name, stopControlEvent)
-  button.addEventListener('pointerdown', togglePointer)
-  button.addEventListener('mousedown', togglePointer)
-  button.addEventListener('pointerup', togglePointer)
-  button.addEventListener('mouseup', togglePointer)
+  for (const name of ['keydown', 'keyup']) button.addEventListener(name, stopControlEvent)
+  for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup'])
+    button.addEventListener(name, handlePointer)
   button.addEventListener('click', toggleClick)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
@@ -156,12 +157,9 @@ export function createOwnedDocumentPngImage(
     pointerActivation = false
     resize?.disconnect()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
-    for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
-      button.removeEventListener(name, stopControlEvent)
-    button.removeEventListener('pointerdown', togglePointer)
-    button.removeEventListener('mousedown', togglePointer)
-    button.removeEventListener('pointerup', togglePointer)
-    button.removeEventListener('mouseup', togglePointer)
+    for (const name of ['keydown', 'keyup']) button.removeEventListener(name, stopControlEvent)
+    for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup'])
+      button.removeEventListener(name, handlePointer)
     button.removeEventListener('click', toggleClick)
     for (const name of ['mousedown', 'pointerdown', 'click'])
       viewport.removeEventListener(name, keepViewportEvent)
