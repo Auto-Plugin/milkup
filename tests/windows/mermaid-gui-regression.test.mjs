@@ -301,6 +301,8 @@ const rawWindows = () => ({
       visibleNow: true,
       cloaked: 0,
       rect: [0, 0, 400, 200],
+      desktopRect: [0, 0, 1920, 1080],
+      intersectsDesktop: true,
       observedVisible: true,
       title: 'owned-console-control',
       hwnd: '0x01',
@@ -466,6 +468,122 @@ test('headless or incomplete observation never establishes absence of visible co
     observedVisible: true,
   })
   assert.throws(() => validateNativeWindowEvidence(flashed, summary()), /strictly equal/)
+})
+
+test('native visibility replays negative-coordinate desktops and strict screen intersections', () => {
+  const negativeMonitor = rawWindows()
+  negativeMonitor.events[0].desktopRect = [-1920, -1080, 1920, 1080]
+  negativeMonitor.events[0].rect = [-1800, -200, -1400, 100]
+  assert(validateNativeWindowEvidence(negativeMonitor, summary()))
+  negativeMonitor.events[0].rect = [-2100, -100, -1800, 100]
+  assert(
+    validateNativeWindowEvidence(negativeMonitor, summary()),
+    'Partially intersecting negative monitor remains visible',
+  )
+
+  for (const rect of [
+    [1920, 30, 2200, 150],
+    [-2200, 0, -1920, 200],
+    [0, -1300, 100, -1080],
+    [0, 1080, 100, 1200],
+    [2400, 1600, 2600, 1800],
+  ]) {
+    const offscreen = rawWindows()
+    offscreen.events.push({
+      ...offscreen.events[0],
+      sequence: 2,
+      elapsedMs: 40,
+      kind: 'poll',
+      productObservationInterval: true,
+      positiveControlInterval: false,
+      hwnd: '0x02',
+      title: '',
+      rect,
+      desktopRect: [-1920, -1080, 1920, 1080],
+      showEvent: false,
+      intersectsDesktop: false,
+      observedVisible: false,
+    })
+    assert(
+      validateNativeWindowEvidence(offscreen, summary()),
+      'Outside or tangent rectangles do not intersect',
+    )
+    const forged = structuredClone(offscreen)
+    forged.events[1].intersectsDesktop = true
+    assert.throws(
+      () => validateNativeWindowEvidence(forged, summary()),
+      /Recorded desktop intersection/,
+    )
+    const conservativeShow = structuredClone(offscreen)
+    conservativeShow.events[1].showEvent = true
+    conservativeShow.events[1].observedVisible = true
+    assert.throws(
+      () => validateNativeWindowEvidence(conservativeShow, summary()),
+      /strictly equal/,
+      'A console SHOW still invalidates a claimed zero-console result even if its later rectangle is offscreen',
+    )
+  }
+  const forgedInside = rawWindows()
+  forgedInside.events[0].intersectsDesktop = false
+  assert.throws(
+    () => validateNativeWindowEvidence(forgedInside, summary()),
+    /Recorded desktop intersection/,
+  )
+  const offscreenControl = rawWindows()
+  offscreenControl.events[0].rect = [1920, 0, 2200, 100]
+  offscreenControl.events[0].intersectsDesktop = false
+  assert.throws(
+    () => validateNativeWindowEvidence(offscreenControl, summary()),
+    /Raw window events/,
+    'A SHOW event alone cannot prove the positive control was actually on screen',
+  )
+})
+
+test('desktop observations require legal paired fields and cannot silently downgrade new evidence', () => {
+  const historical = rawWindows()
+  delete historical.events[0].desktopRect
+  delete historical.events[0].intersectsDesktop
+  const unchanged = JSON.stringify(historical)
+  assert.throws(
+    () => validateNativeWindowEvidence(historical, summary()),
+    /Actual desktop bounds are required/,
+  )
+  assert(validateNativeWindowEvidence(historical, summary(), { allowLegacyDesktopBounds: true }))
+  assert.equal(
+    JSON.stringify(historical),
+    unchanged,
+    'Historical replay must not invent screen bounds',
+  )
+  for (const field of ['desktopRect', 'intersectsDesktop']) {
+    const partial = rawWindows()
+    delete partial.events[0][field]
+    assert.throws(
+      () => validateNativeWindowEvidence(partial, summary(), { allowLegacyDesktopBounds: true }),
+      /present together/,
+    )
+  }
+  const mixed = rawWindows()
+  mixed.events.push({ ...historical.events[0], sequence: 2, elapsedMs: 40 })
+  assert.throws(
+    () => validateNativeWindowEvidence(mixed, summary(), { allowLegacyDesktopBounds: true }),
+    /Do not mix/,
+  )
+  for (const invalid of [
+    null,
+    [0, 0, 100],
+    [0, 0, 0, 100],
+    [1, 0, 0, 100],
+    [0, 0, 100.5, 100],
+    [0, 0, 2147483648, 100],
+    ['0', 0, 100, 100],
+  ]) {
+    const malformed = rawWindows()
+    malformed.events[0].desktopRect = invalid
+    assert.throws(() => validateNativeWindowEvidence(malformed, summary()), /rectangle/)
+  }
+  const wrongType = rawWindows()
+  wrongType.events[0].intersectsDesktop = 'true'
+  assert.throws(() => validateNativeWindowEvidence(wrongType, summary()))
 })
 
 test('complete GUI acceptance requires every scenario and a two-diagram decode', () => {

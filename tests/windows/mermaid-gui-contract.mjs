@@ -23,6 +23,7 @@ export const GUI_STEPS = Object.freeze([
 export const GUI_EVIDENCE_NAMES = Object.freeze([
   'gui-regression.json',
   'gui-native-audit.json',
+  'gui-source-inventory.json',
   'native-window-events.json',
   'gui-observer-stderr.log',
   'gui-idle-product.log',
@@ -226,7 +227,11 @@ export function validateNativeDpiObservation(measurement, expectedPid, expectedC
   }
 }
 
-export function validateNativeWindowEvidence(raw, summary) {
+export function validateNativeWindowEvidence(
+  raw,
+  summary,
+  { allowLegacyDesktopBounds = false } = {},
+) {
   validateGuiObserver(summary)
   for (const key of [
     'complete',
@@ -257,6 +262,29 @@ export function validateNativeWindowEvidence(raw, summary) {
   assert.equal(raw.positiveControl.exitCode, 0)
   assert.equal(raw.positiveControl.jobActiveAfterStop, 0)
   assert(Array.isArray(raw.events) && raw.events.length > 0 && raw.events.length <= 2048)
+  assert.equal(typeof allowLegacyDesktopBounds, 'boolean')
+  const legacyDesktopBounds = raw.events.every(
+    (event) => !Object.hasOwn(event, 'desktopRect') && !Object.hasOwn(event, 'intersectsDesktop'),
+  )
+  assert(
+    !legacyDesktopBounds || allowLegacyDesktopBounds,
+    'Actual desktop bounds are required; only an explicitly identified historical baseline may omit them',
+  )
+  const validateRect = (rect, positive, label) => {
+    assert(
+      Array.isArray(rect) &&
+        rect.length === 4 &&
+        rect.every(
+          (coordinate) =>
+            Number.isInteger(coordinate) && coordinate >= -2147483648 && coordinate <= 2147483647,
+        ),
+      'Actual signed Win32 rectangle required: ' + label,
+    )
+    assert(
+      positive ? rect[2] > rect[0] && rect[3] > rect[1] : rect[2] >= rect[0] && rect[3] >= rect[1],
+      'Ordered nonempty desktop or nonnegative window rectangle required: ' + label,
+    )
+  }
   const product = new Set(),
     unknown = new Set()
   let previousSequence = 0,
@@ -267,18 +295,47 @@ export function validateNativeWindowEvidence(raw, summary) {
     assert(Number.isFinite(event.elapsedMs) && event.elapsedMs >= previousTime)
     previousTime = event.elapsedMs
     assert.equal(typeof event.productObservationInterval, 'boolean')
+    validateRect(event.rect, false, 'window')
+    const hasDesktop = Object.hasOwn(event, 'desktopRect')
+    assert.equal(
+      hasDesktop,
+      Object.hasOwn(event, 'intersectsDesktop'),
+      'Desktop bounds and intersection evidence must be present together',
+    )
+    let intersectsDesktop = true
+    if (hasDesktop) {
+      validateRect(event.desktopRect, true, 'desktop')
+      assert.equal(typeof event.intersectsDesktop, 'boolean')
+      const [left, top, right, bottom] = event.desktopRect
+      intersectsDesktop =
+        event.rect[2] > left &&
+        event.rect[3] > top &&
+        event.rect[0] < right &&
+        event.rect[1] < bottom
+      assert.equal(
+        event.intersectsDesktop,
+        intersectsDesktop,
+        'Recorded desktop intersection agrees with the actual rectangles',
+      )
+    } else {
+      assert(
+        legacyDesktopBounds,
+        'Do not mix historical missing bounds with current measured events',
+      )
+    }
+    const actuallyVisible =
+      event.visibleNow &&
+      event.cloaked === 0 &&
+      event.rect[2] > event.rect[0] &&
+      event.rect[3] > event.rect[1] &&
+      intersectsDesktop
     const visible =
-      (event.visibleNow &&
-        event.cloaked === 0 &&
-        event.rect[2] > event.rect[0] &&
-        event.rect[3] > event.rect[1]) ||
-      (event.consoleCandidate && event.showEvent && !event.baselineVisible)
+      actuallyVisible || (event.consoleCandidate && event.showEvent && !event.baselineVisible)
     assert.equal(event.observedVisible, visible)
     if (
       event.positiveControlInterval &&
       event.consoleCandidate &&
-      event.visibleNow &&
-      event.cloaked === 0 &&
+      actuallyVisible &&
       event.title === raw.positiveControl.title
     )
       positiveObserved = true
@@ -460,7 +517,9 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
       }
     }
   }
-  validateNativeWindowEvidence(JSON.parse(windowBytes), report.observerSummary)
+  validateNativeWindowEvidence(JSON.parse(windowBytes), report.observerSummary, {
+    allowLegacyDesktopBounds: validateGuiIdentity(report) === 'delivered-beta9-baseline',
+  })
   return {
     status: 'passed',
     applicationCandidateSha: report.applicationCandidateSha,
