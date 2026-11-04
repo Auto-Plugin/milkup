@@ -106,10 +106,11 @@ jobs:
       - name: Validate account fixtures and strict close evidence
         run: |
           $ErrorActionPreference = 'Stop'
-          node --test tests/windows/mermaid-product-e2e.test.mjs scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/stage-mermaid-evidence.test.mjs
+          node --test tests/windows/mermaid-product-e2e.test.mjs scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/stage-mermaid-evidence.test.mjs tests/windows/mermaid-gui-regression.test.mjs scripts/ci/read-linked-gui-plugin-inventory.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Account/close/payload evidence regression failed' }
           ./tests/windows/account-kind-wrapper.test.ps1
           ./tests/windows/installer-wrapper.test.ps1
+          ./tests/windows/mermaid-gui-observer.test.ps1
       - name: Check and test private fixed-engine Rust contracts
         run: |
           $ErrorActionPreference = 'Stop'
@@ -233,7 +234,7 @@ jobs:
           $failures = @()
           foreach ($kind in @('pure-standard', 'filtered-admin')) {
             try {
-              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -HarnessMode gui-regression -Binary $binary -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-gui-$kind") -ExpectedCommit $env:GITHUB_SHA -ExpectedBinarySha256 $hash -ProductionAssetsConfirmed -AccountKind $kind
+              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -HarnessMode gui-regression -FrontendBoundaryProbe -Binary $binary -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-gui-$kind") -ExpectedCommit $env:GITHUB_SHA -ExpectedBinarySha256 $hash -ProductionAssetsConfirmed -AccountKind $kind
             } catch {
               $failures += "$kind : $($_.Exception.Message)"
               Write-Host "::error::$kind GUI regression failed; original reports are retained"
