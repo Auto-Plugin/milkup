@@ -22,13 +22,10 @@ export function createOwnedDocumentPngImage(
   element.dataset.documentPngView = 'fit'
   const controls = document.createElement('span')
   controls.className = 'milkup-document-png-controls'
-  // WebView2 treats descendants of a contenteditable=false island as a
-  // non-interactive editing surface. Make the control strip its own editing
-  // host so real pointer input reaches the button while the preview remains
-  // inert.
-  controls.contentEditable = 'true'
-  controls.spellcheck = false
-  controls.setAttribute('role', 'toolbar')
+  // Keep the live control in a document-level host. WebView2 can suppress
+  // native pointer targeting for controls nested in the non-editable preview.
+  controls.style.position = 'fixed'
+  controls.style.zIndex = '1000'
   controls.hidden = true
   const button = document.createElement('button')
   button.type = 'button'
@@ -38,6 +35,7 @@ export function createOwnedDocumentPngImage(
   const buttonLabel = document.createTextNode('原始尺寸')
   button.append(buttonLabel)
   controls.append(button)
+  ;(document.body ?? document.documentElement).append(controls)
   const viewport = document.createElement('span')
   viewport.dataset.documentPngViewport = ''
   viewport.className = 'milkup-document-png-viewport'
@@ -62,7 +60,7 @@ export function createOwnedDocumentPngImage(
   image.style.maxWidth = '100%'
   image.style.maxHeight = 'none'
   viewport.append(image)
-  element.append(controls, viewport)
+  element.append(viewport)
   let state: OwnedDocumentSvgImage['state'] = 'pending'
   let url: string | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -71,6 +69,15 @@ export function createOwnedDocumentPngImage(
   let resize: ResizeObserver | undefined
   let layoutFrame: number | undefined
   const ownerWindow = document.defaultView
+  const controlHeight = 28
+  const syncControls = () => {
+    if (!element.isConnected) return
+    const rect = element.getBoundingClientRect()
+    controls.style.left = `${rect.left}px`
+    controls.style.top = `${rect.top}px`
+  }
+  const syncOnScroll = () => syncControls()
+  ownerWindow?.addEventListener('scroll', syncOnScroll, true)
   const notifyLayout = () => {
     if (state !== 'decoded' || layoutFrame !== undefined || !ownerWindow) return
     layoutFrame = ownerWindow.requestAnimationFrame(() => {
@@ -101,10 +108,12 @@ export function createOwnedDocumentPngImage(
     if (!Number.isFinite(width) || width <= 0) return
     const narrow = width + 0.5 < value.width
     if (!narrow && natural) setNatural(false)
+    element.style.paddingTop = narrow ? `${controlHeight}px` : '0'
     if (controls.hidden === narrow) {
       if (!narrow && document.activeElement === button) viewport.focus({ preventScroll: true })
       controls.hidden = !narrow
     }
+    syncControls()
     notifyLayout()
   }
   const stopControlEvent = (event: Event) => event.stopPropagation()
@@ -160,6 +169,8 @@ export function createOwnedDocumentPngImage(
     clearTimeout(pointerActivationTimer)
     pointerActivation = false
     resize?.disconnect()
+    ownerWindow?.removeEventListener('scroll', syncOnScroll, true)
+    controls.remove()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
     for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
       button.removeEventListener(name, stopControlEvent)

@@ -282,7 +282,7 @@ for (const windowed of [false, true]) {
     await settle()
     const outer = view.contentDOM.querySelector<HTMLElement>('[data-document-png-view]')!
     const viewport = outer.querySelector<HTMLElement>('[data-document-png-viewport]')!
-    const button = outer.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
+    const button = document.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
     const controls = button.parentElement!
     const image = outer.querySelector('img')!
     const src = image.src
@@ -350,7 +350,7 @@ for (const windowed of [false, true]) {
     const outer = view.contentDOM.querySelector<HTMLElement>('[data-document-png-view]')!
     vi.spyOn(outer, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 160, 96))
     observed.get(outer)!()
-    const button = outer.querySelector<HTMLButtonElement>('button')!
+    const button = document.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
     expect(button.parentElement?.hidden).toBe(true)
     button.click()
     expect(outer.dataset.documentPngView).toBe('fit')
@@ -364,7 +364,7 @@ for (const windowed of [false, true]) {
     decodes[0]!.resolve()
     await settle()
     const outer = view.contentDOM.querySelector<HTMLElement>('[data-document-png-view]')!
-    const button = outer.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
+    const button = document.querySelector<HTMLButtonElement>('[data-document-png-scale]')!
     vi.spyOn(outer, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 800, 100))
     observed.get(outer)!()
     await settle()
