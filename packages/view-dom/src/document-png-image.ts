@@ -106,11 +106,11 @@ export function createOwnedDocumentPngImage(
     if (state !== 'decoded' || controls.hidden) return
     setNatural(!natural)
   }
-  // Some WebView2/WebDriver pointer sequences deliver pointerup/mouseup but
-  // omit the compatibility click for a button nested in a contentEditable=false
-  // preview. Treat the primary pointer release as activation and suppress the
-  // duplicate click when the browser does provide one. Keyboard activation
-  // still goes through the native click event.
+  // Some WebView2/WebDriver pointer sequences deliver pointer/mouse down or
+  // release events but omit the compatibility click for a button nested in a
+  // contentEditable=false preview. Treat the first primary mouse event as
+  // activation and suppress the duplicate release/click when the browser does
+  // provide them. Keyboard activation still goes through the native click event.
   let pointerActivation = false
   let pointerActivationTimer: ReturnType<typeof setTimeout> | undefined
   const togglePointer = (event: Event) => {
@@ -141,6 +141,8 @@ export function createOwnedDocumentPngImage(
   }
   for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
     button.addEventListener(name, stopControlEvent)
+  button.addEventListener('pointerdown', togglePointer)
+  button.addEventListener('mousedown', togglePointer)
   button.addEventListener('pointerup', togglePointer)
   button.addEventListener('mouseup', togglePointer)
   button.addEventListener('click', toggleClick)
@@ -156,6 +158,8 @@ export function createOwnedDocumentPngImage(
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
     for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
       button.removeEventListener(name, stopControlEvent)
+    button.removeEventListener('pointerdown', togglePointer)
+    button.removeEventListener('mousedown', togglePointer)
     button.removeEventListener('pointerup', togglePointer)
     button.removeEventListener('mouseup', togglePointer)
     button.removeEventListener('click', toggleClick)
