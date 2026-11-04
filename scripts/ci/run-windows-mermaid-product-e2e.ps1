@@ -5,6 +5,8 @@ param(
     [Parameter(Mandatory, ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$ExpectedCommit,
     [Parameter(Mandatory, ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedBinarySha256,
     [Parameter(ParameterSetName = 'Parent')][switch]$ProductionAssetsConfirmed,
+    [Parameter(ParameterSetName = 'Parent')][ValidateSet('product', 'gui-regression', IgnoreCase = $false)][string]$HarnessMode = 'product',
+    [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$ApplicationCandidateSha,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedInstallerSha256,
@@ -55,7 +57,7 @@ function Assert-HostedCandidate {
     if (-not $IsWindows -or $PSVersionTable.PSVersion.Major -lt 7 -or
         $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
         $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-        $env:GITHUB_REF -cne 'refs/heads/dot/mermaid-rebuild-20261103') {
+        $env:GITHUB_REF -cnotin @('refs/heads/dot/mermaid-rebuild-20261103', 'refs/heads/dot/mermaid-stability-20261104')) {
         throw 'Only the independent candidate on a fresh GitHub-hosted Windows runner is permitted'
     }
 }
@@ -127,6 +129,13 @@ function Get-ChildEvidenceNames {
     foreach ($step in $steps) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
     foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }
+    foreach ($name in @('gui-regression.json', 'gui-native-audit.json', 'native-window-events.json', 'gui-observer-stderr.log', 'gui-idle-product.log', 'gui-busy-product.log', 'gui-console-positive.png', 'gui-native-failure.png', 'gui-ordinary-diagram.png', 'gui-wide-diagram.png', 'gui-multi-diagram.png', 'gui-multi-2-diagram.png')) { $names.Add($name, $name) }
+    foreach ($step in @('blank-start-enable', 'open-ordinary-stable', 'open-wide-stable', 'resize-wide', 'repeat-document-open', 'multi-diagram', 'idle-close', 'busy-close')) {
+        $name = 'gui-' + $step + '-window.png'; $names.Add($name, $name)
+    }
+    foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
+        $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
+    }
     return ,$names
 }
 function Read-BoundedEvidenceProof([string]$Path, [long]$Limit, [string]$CopyTo = '', $Created = $null) {
@@ -378,7 +387,7 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
     $installDirectory = Join-Path $Scratch 'install'
     Assert-Contained $installDirectory $Scratch
     $record = [ordered]@{
-        schema = 1; status = 'failed'; candidateSha = $Spec.candidateSha; mode = 'nsis-current-user'
+        schema = 1; status = 'failed'; candidateSha = $Spec.applicationCandidateSha; mode = 'nsis-current-user'
         expectedSid = $Spec.expectedSid; actualSid = $Context.actualSid; expectedAccountKind = $Spec.expectedAccountKind
         expectedSessionId = $Spec.expectedSessionId; sessionId = $Context.sessionId
         installer = $Spec.installer; installerRun = $null; installDirectory = $installDirectory
@@ -392,7 +401,9 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         if (Test-Path -LiteralPath $installDirectory) { throw 'Refuse to install over an existing directory' }
         foreach ($inputFile in @($Spec.installer, $Spec.packageManifest, $Spec.binaryVerifier)) { Assert-Hash $inputFile.path $inputFile.sha256 }
         $manifest = Read-SmallJson $Spec.packageManifest.path
-        Assert-InstallationManifest $manifest $Spec.candidateSha $Spec.expectedVersion $Spec.binary.sha256
+        $baseline = $Spec.harnessMode -ceq 'gui-regression' -and $Spec.applicationCandidateSha -cne $Spec.candidateSha
+        $manifestBuiltHash = $(if ($baseline) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $Spec.binary.sha256 })
+        Assert-InstallationManifest $manifest $Spec.applicationCandidateSha $Spec.expectedVersion $manifestBuiltHash
         $record.bundledPlugins = @($manifest.bundledPlugins)
         $record.installerRun = [WindowsMermaidStandardUser]::RunOwnedInstaller(
             $Spec.installer.path, $installDirectory, $Scratch,
@@ -416,6 +427,22 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         } finally { $reader.Dispose() }
         $record.installedBinary = [ordered]@{ path = $proof.path; bytes = $proof.bytes; sha256 = $proof.sha256
             fileVersion = $versionInfo.FileVersion; productVersion = $versionInfo.ProductVersion; peMachine = '0x8664' }
+        if ($baseline) {
+            # This is an independently reinstalled delivered image, not a new compilation.
+            if ($Spec.binaryRole -cne 'extractedExpectedImage' -or
+                $Spec.installer.sha256 -cne 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf' -or
+                $Spec.binary.sha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84' -or
+                $proof.sha256 -cne $Spec.binary.sha256 -or $proof.bytes -ne $Spec.binary.bytes) { throw 'Exact delivered baseline image comparison failed' }
+            $record['extractedExpectedImage'] = $Spec.binary
+            $record.binaryComparison = [ordered]@{
+                schema = 1; status = 'passed'; comparisonKind = 'reinstalled-to-pinned-extracted-image'
+                expectedImageSha256 = $Spec.binary.sha256; installedSha256 = $proof.sha256; bytes = $proof.bytes
+                compiledInThisRun = $false; historicalSourceRunId = '41713129442'
+                historicalSourceCandidate = 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4'
+                historicalComparison = 'https://github.com/Auto-Plugin/milkup/actions/runs/41713129442'
+            }
+            Write-Json (Join-Path $Evidence 'installed-binary-comparison.json') $record.binaryComparison
+        } else {
         $record.comparisonRun = [WindowsMermaidStandardUser]::RunNodeScript(
             $Spec.node.path, [string[]]@($Spec.binaryVerifier.path, $Spec.binary.path, $installedPath), $Scratch,
             (Join-Path $Evidence 'installed-binary-comparison.json'),
@@ -426,6 +453,7 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
             $comparison.expectedInstalledSha256 -cne $manifest.expectedInstalledBinarySha256 -or
             $comparison.installedSha256 -cne $proof.sha256 -or $comparison.bytes -ne $proof.bytes) { throw 'Installed-binary comparison does not bind the frozen candidate' }
         $record.binaryComparison = $comparison
+        }
         foreach ($resource in $manifest.resources) {
             $path = Join-Path $installDirectory $resource.relativePath
             Assert-Contained $path $installDirectory
@@ -449,6 +477,8 @@ function Invoke-StandardChild {
     if ($spec.schema -ne 1 -or $spec.runId -cnotmatch '^[a-f0-9]{32}$' -or
         $spec.expectedSid -cnotmatch '^S-1-5-21-\d+-\d+-\d+-\d+$' -or
         $spec.candidateSha -cne $env:GITHUB_SHA -or $spec.expectedSessionId -le 0) { throw 'Invalid immutable child specification' }
+    if ($spec.harnessMode -cnotin @('product', 'gui-regression') -or $spec.applicationCandidateSha -cnotmatch '^[a-f0-9]{40}$' -or
+        ($spec.harnessMode -ceq 'product' -and $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Invalid separated harness/application identity' }
     Assert-AccountMode $spec.expectedAccountKind ($spec.mode -ceq 'nsis-current-user')
     $profile = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
     $roaming = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
@@ -480,6 +510,7 @@ function Invoke-StandardChild {
     }
     try {
         foreach ($inputFile in @($spec.binary, $spec.node, $spec.driver, $spec.harness, $spec.observer, $spec.wrapper)) { Assert-Hash $inputFile.path $inputFile.sha256 }
+        foreach ($inputFile in @($spec.additionalHarnessFiles)) { Assert-Hash $inputFile.path $inputFile.sha256 }
         Import-Observer $spec.observer.path
         $desktop = [WindowsMermaidStandardUser]::ObserveCurrentContext()
         $context.desktop = $desktop
@@ -513,12 +544,16 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_EXPECTED_SESSION_ID = [string]$spec.expectedSessionId
             MILKUP_WINDOWS_MERMAID_RUN_ID = $spec.runId
             MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $spec.candidateSha
+            MILKUP_WINDOWS_MERMAID_HARNESS_MODE = $spec.harnessMode
+            MILKUP_WINDOWS_MERMAID_HARNESS_CANDIDATE_SHA = $spec.candidateSha
+            MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA = $spec.applicationCandidateSha
             MILKUP_WINDOWS_MERMAID_RUNTIME_VERSION = $spec.runtime.version
             MILKUP_WINDOWS_MERMAID_RUNTIME_EXE = $spec.runtime.path
             MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $spec.wrapper.path
             MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
         }
         if ($null -ne $installation) {
+            $variables['MILKUP_WINDOWS_MERMAID_INSTALLER_SHA256'] = $spec.installer.sha256
             $inventory = @($installation.bundledPlugins | ForEach-Object { @{ id = $_.id; version = $_.version } })
             $variables['MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY'] = ConvertTo-Json -InputObject $inventory -Depth 4 -Compress
         }
@@ -531,12 +566,16 @@ function Invoke-StandardChild {
         $result.startedNode = $result.nodeRun.started
         $result.nodeExitCode = $result.nodeRun.exitCode
         if ($result.nodeRun.status -cne 'passed') { throw "Windows product Node harness failed: $($result.nodeRun.error)" }
-        $report = Read-SmallJson (Join-Path $evidence 'mermaid-product-e2e.json')
+        $reportName = $(if ($spec.harnessMode -ceq 'gui-regression') { 'gui-regression.json' } else { 'mermaid-product-e2e.json' })
+        $report = Read-SmallJson (Join-Path $evidence $reportName)
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
+        if ($spec.harnessMode -ceq 'gui-regression' -and ($report.applicationCandidateSha -cne $spec.applicationCandidateSha -or
+            $report.harnessCandidateSha -cne $spec.candidateSha -or $report.harnessMode -cne 'gui-regression')) { throw 'GUI report did not bind the separate application and harness identities' }
         if ($null -ne $installation) {
             if ($report.applicationSha256 -cne $installation.installedBinary.sha256 -or
                 $report.application -cne $installation.installedBinary.path) { throw 'Product report did not use the installed executable' }
-            $installation.productAcceptance = 'passed'
+            if ($spec.harnessMode -ceq 'gui-regression') { $installation['guiAcceptance'] = 'passed'; $installation.productAcceptance = 'not-run-gui-only' }
+            else { $installation.productAcceptance = 'passed' }
         }
         $result.status = 'passed'
     } catch {
@@ -544,7 +583,10 @@ function Invoke-StandardChild {
         if (-not $result.startedNode) { $context.blockedReasons += $result.error }
     } finally {
         if ($null -ne $installation) {
-            if ($result.status -cne 'passed' -and $result.startedNode) { $installation.productAcceptance = 'failed' }
+            if ($result.status -cne 'passed' -and $result.startedNode) {
+                if ($spec.harnessMode -ceq 'gui-regression') { $installation['guiAcceptance'] = 'failed'; $installation.productAcceptance = 'not-run-gui-only' }
+                else { $installation.productAcceptance = 'failed' }
+            }
             Write-Json (Join-Path $evidence 'installation-result.json') $installation
         }
         Write-Json (Join-Path $evidence 'standard-context.json') $context
@@ -581,6 +623,17 @@ if ($installerMode) {
 } elseif ($ExpectedInstallerSha256 -or $ExpectedVersion -or $PackageManifest -or $ExpectedPackageManifestSha256) {
     throw 'Installer-only arguments cannot be silently ignored in linked-binary mode'
 }
+if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
+if (-not $ApplicationCandidateSha) { $ApplicationCandidateSha = $ExpectedCommit }
+if ($ApplicationCandidateSha -cne $ExpectedCommit) {
+    # The sole mixed-source case is the independently hashed, already delivered beta.9 baseline.
+    # It never enters the ordinary installed-product acceptance or package finalizer.
+    if ($HarnessMode -cne 'gui-regression' -or -not $installerMode -or
+        $ApplicationCandidateSha -cne 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4' -or
+        $ExpectedInstallerSha256 -cne 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf' -or
+        $ExpectedBinarySha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84' -or
+        $ExpectedVersion -cne '2.0.0-beta.9') { throw 'Only the exact delivered beta.9 installer/binary may be a mixed-source GUI baseline' }
+}
 if ($ExpectedCommit -cne $env:GITHUB_SHA) { throw 'Expected candidate SHA differs from the workflow source' }
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $head = @(git -C $repository rev-parse HEAD)
@@ -596,10 +649,11 @@ New-Item -ItemType Directory -Force -Path $stageParent | Out-Null
 Assert-PlainPath $stageParent
 $stage = Join-Path $stageParent ('windows-mermaid-product-' + $runId)
 $observer = Join-Path $PSScriptRoot 'WindowsMermaidStandardUser.cs'
-$harness = Join-Path $repository 'tests/windows/mermaid-product-e2e.mjs'
+$harnessLeaf = $(if ($HarnessMode -ceq 'gui-regression') { 'mermaid-gui-regression.mjs' } else { 'mermaid-product-e2e.mjs' })
+$harness = Join-Path $repository ('tests/windows/' + $harnessLeaf)
 $audit = [ordered]@{
     schema = 1; status = 'failed'; source = $ExpectedCommit; runId = $env:GITHUB_RUN_ID; localRunId = $runId
-    expectedAccountKind = $AccountKind
+    expectedAccountKind = $AccountKind; harnessMode = $HarnessMode; applicationCandidateSha = $ApplicationCandidateSha
     mode = $(if ($installerMode) { 'nsis-current-user' } else { 'linked-binary' }); installation = $null
     installedDirectoryRemoved = $null
     attempt = $env:GITHUB_RUN_ATTEMPT; runtime = $null; binary = $null; driver = $null; runnerContext = $null
@@ -633,6 +687,7 @@ try {
         if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) { throw 'Product binary is not PE x64' }
     } finally { $reader.Dispose() }
     $audit.binary = $binaryProof
+    $audit['binaryRole'] = $(if ($ApplicationCandidateSha -cne $ExpectedCommit) { 'extractedExpectedImage' } else { 'compiledCandidate' })
     $installerProof = $null; $manifestProof = $null
     if ($installerMode) {
         $installerProof = File-Proof $Installer
@@ -640,7 +695,9 @@ try {
         if ($installerProof.sha256 -cne $ExpectedInstallerSha256 -or $installerProof.bytes -gt 256MB -or
             $manifestProof.sha256 -cne $ExpectedPackageManifestSha256) { throw 'Installer or manifest frozen identity mismatch' }
         $manifest = Read-SmallJson $manifestProof.path
-        Assert-InstallationManifest $manifest $ExpectedCommit $ExpectedVersion $binaryProof.sha256
+        $manifestBuiltHash = $(if ($ApplicationCandidateSha -cne $ExpectedCommit) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $binaryProof.sha256 })
+        Assert-InstallationManifest $manifest $ApplicationCandidateSha $ExpectedVersion $manifestBuiltHash
+        if ($ApplicationCandidateSha -cne $ExpectedCommit -and $manifest.expectedInstalledBinarySha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84') { throw 'Delivered beta.9 installed image identity mismatch' }
     }
     $machineRoots = @(${env:ProgramFiles(x86)}, $env:ProgramFiles) | Where-Object { $_ } | Select-Object -Unique
     $candidates = @()
@@ -664,10 +721,21 @@ try {
     $stageCreated = $true
     $code = Join-Path $stage 'code'
     New-OwnedDirectory $code
-    foreach ($pair in @(@($binaryProof.path, 'milkup-desktop.exe'), @($observer, 'WindowsMermaidStandardUser.cs'), @($PSCommandPath, 'run-windows-mermaid-product-e2e.ps1'), @($harness, 'mermaid-product-e2e.mjs'))) {
+    foreach ($pair in @(@($binaryProof.path, 'milkup-desktop.exe'), @($observer, 'WindowsMermaidStandardUser.cs'), @($PSCommandPath, 'run-windows-mermaid-product-e2e.ps1'), @($harness, $harnessLeaf))) {
         Assert-PlainPath $pair[0]
         Copy-Item -LiteralPath $pair[0] -Destination (Join-Path $code $pair[1]) -ErrorAction Stop
         if ((File-Proof $pair[0]).sha256 -cne (File-Proof (Join-Path $code $pair[1])).sha256) { throw 'Frozen staging copy mismatch' }
+    }
+    $additionalHarnessFiles = @()
+    if ($HarnessMode -ceq 'gui-regression') {
+        foreach ($relative in @('tests/windows/mermaid-product-e2e.mjs', 'tests/windows/mermaid-gui-contract.mjs', 'scripts/ci/run-windows-mermaid-gui-observer.ps1', 'scripts/ci/WindowsMermaidGuiObserver.cs')) {
+            $source = Join-Path $repository $relative
+            $destination = Join-Path $code ([IO.Path]::GetFileName($relative))
+            Assert-PlainPath $source
+            Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
+            if ((File-Proof $source).sha256 -cne (File-Proof $destination).sha256) { throw 'GUI helper frozen staging copy mismatch' }
+            $additionalHarnessFiles += File-Proof $destination
+        }
     }
     if ($installerMode) {
         foreach ($pair in @(@($installerProof.path, 'candidate-installer.exe'), @($manifestProof.path, 'installer-input.json'), @((Join-Path $repository 'tests/windows/verify-installed-binary.mjs'), 'verify-installed-binary.mjs'))) {
@@ -727,9 +795,10 @@ try {
     $spec = [ordered]@{
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
-        candidateSha = $ExpectedCommit; runtime = $runtime; mode = $audit.mode
-        binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
-        driver = (File-Proof $driver); harness = (File-Proof (Join-Path $code 'mermaid-product-e2e.mjs'))
+        candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; harnessMode = $HarnessMode
+        additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
+        binaryRole = $audit.binaryRole; binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
+        driver = (File-Proof $driver); harness = (File-Proof (Join-Path $code $harnessLeaf))
         observer = (File-Proof (Join-Path $code 'WindowsMermaidStandardUser.cs'))
         wrapper = (File-Proof (Join-Path $code 'run-windows-mermaid-product-e2e.ps1'))
     }
@@ -747,7 +816,7 @@ try {
         "SystemRoot=$env:SystemRoot", "WINDIR=$env:SystemRoot", "SystemDrive=$env:SystemDrive",
         "PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",
         'GITHUB_ACTIONS=true', 'RUNNER_ENVIRONMENT=github-hosted', 'GITHUB_REPOSITORY=Auto-Plugin/milkup',
-        'GITHUB_REF=refs/heads/dot/mermaid-rebuild-20261103', "GITHUB_SHA=$ExpectedCommit"
+        "GITHUB_REF=$env:GITHUB_REF", "GITHUB_SHA=$ExpectedCommit"
     )
     if ($env:ProgramFiles) { $environment += "ProgramFiles=$env:ProgramFiles" }
     if (${env:ProgramFiles(x86)}) { $environment += "ProgramFiles(x86)=${env:ProgramFiles(x86)}" }
@@ -770,7 +839,7 @@ try {
             if ($installerMode -and (Test-Path -LiteralPath (Join-Path $childEvidence 'installation-result.json'))) {
                 $audit.installation = Read-SmallJson (Join-Path $childEvidence 'installation-result.json')
                 $audit.installerExecuted = $null -ne $audit.installation.installerRun -and $audit.installation.installerRun.started -eq $true
-                if ($audit.installation.actualSid -cne $user.SID.Value -or $audit.installation.candidateSha -cne $ExpectedCommit) { throw 'Installation evidence belongs to a different identity or candidate' }
+                if ($audit.installation.actualSid -cne $user.SID.Value -or $audit.installation.candidateSha -cne $ApplicationCandidateSha) { throw 'Installation evidence belongs to a different identity or candidate' }
             }
             $audit.evidenceCopy = Copy-BoundedEvidence $childEvidence $EvidenceDirectory
             if (-not $audit.evidenceCopy.complete) {
@@ -783,7 +852,9 @@ try {
     }
     if ($audit.status -ceq 'passed' -and ($null -eq $audit.childResult -or $audit.childResult.status -cne 'passed')) { throw 'Successful supervisor lacks complete product-child evidence' }
     if ($installerMode -and $audit.status -ceq 'passed' -and ($null -eq $audit.installation -or
-        $audit.installation.status -cne 'passed' -or $audit.installation.productAcceptance -cne 'passed' -or -not $audit.installerExecuted)) { throw 'Successful installed acceptance lacks complete installation/product proof' }
+        $audit.installation.status -cne 'passed' -or
+        ($HarnessMode -ceq 'product' -and $audit.installation.productAcceptance -cne 'passed') -or
+        ($HarnessMode -ceq 'gui-regression' -and $audit.installation.guiAcceptance -cne 'passed') -or -not $audit.installerExecuted)) { throw 'Successful installed acceptance lacks complete installation/product proof' }
     if (-not $processesEmpty) { throw 'Outer process-tree cleanup is uncertain' }
 } catch {
     if ($null -ne $audit.childResult -and $audit.childResult.status -ceq 'failed' -and $audit.childResult.error) {

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { GUI_EVIDENCE_NAMES, validateGuiIdentity } from './mermaid-gui-contract.mjs'
 
 const steps = [
   '01-initial-disabled-source',
@@ -49,8 +50,16 @@ const outer = new Set([
   'evidence-files.json',
   ...sourcePhases.map((phase) => `mermaid-source-${phase}.json`),
 ])
+const guiEvidence = new Set([
+  ...GUI_EVIDENCE_NAMES,
+  ...['ordinary', 'wide', 'multi', 'busy'].map((name) => `fixture-gui-${name}.md.log`),
+])
 const allowed = (name) =>
-  outer.has(name) || metadata.has(name) || screenshots.has(name) || diagrams.has(name)
+  outer.has(name) ||
+  metadata.has(name) ||
+  screenshots.has(name) ||
+  diagrams.has(name) ||
+  guiEvidence.has(name)
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 export function stageEvidence(source, destination, candidateSha) {
   assert(/^[a-f0-9]{40}$/.test(candidateSha), 'Exact candidate SHA required')
@@ -92,6 +101,34 @@ export function stageEvidence(source, destination, candidateSha) {
   const byName = new Map(files.map((file) => [file.name, file]))
   const audit = JSON.parse(byName.get('windows-standard-product-audit.json').bytes)
   assert.equal(audit.source, candidateSha, 'Outer audit must match the exact built candidate')
+  if (files.some((file) => guiEvidence.has(file.name))) {
+    assert.equal(
+      audit.harnessMode,
+      'gui-regression',
+      'GUI evidence requires its explicit separate mode',
+    )
+    const gui = byName.get('gui-regression.json')
+    if (gui) {
+      const value = JSON.parse(gui.bytes)
+      validateGuiIdentity(value)
+      assert.equal(value.harnessCandidateSha, candidateSha)
+      assert.equal(value.applicationCandidateSha, audit.applicationCandidateSha)
+      const native = byName.get(value.nativeAudit?.file)
+      if (value.nativeAudit) {
+        assert.equal(value.nativeAudit.file, 'gui-native-audit.json')
+        assert(native, 'Referenced native audit must be retained')
+        assert.equal(native.sha256, value.nativeAudit.sha256)
+        assert.equal(JSON.parse(native.bytes).length, value.nativeAudit.events)
+      }
+      if (value.nativeWindowEvidence) {
+        const windows = byName.get('native-window-events.json')
+        assert(windows, 'Referenced OS window events must be retained')
+        assert.equal(windows.sha256, value.nativeWindowEvidence.sha256)
+      }
+      if (audit.status === 'passed') assert.equal(value.status, 'passed')
+    } else assert.notEqual(audit.status, 'passed', 'No passing GUI audit without its actual report')
+  }
+
   assert(['passed', 'failed', 'blocked'].includes(audit.status), 'Closed outer audit status')
   assert.equal(
     audit.passwordInLogsFilesArgumentsOrEnvironment,
