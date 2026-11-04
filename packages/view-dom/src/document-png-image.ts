@@ -128,6 +128,9 @@ export function createOwnedDocumentPngImage(
     event.stopPropagation()
     togglePointer(event)
   }
+  const capturePointer = (event: Event) => {
+    if (event.target instanceof Node && button.contains(event.target)) handlePointer(event)
+  }
   const toggleClick = (event: Event) => {
     if (pointerActivation) {
       pointerActivation = false
@@ -144,8 +147,10 @@ export function createOwnedDocumentPngImage(
     if (event.target === viewport) event.stopPropagation()
   }
   for (const name of ['keydown', 'keyup']) button.addEventListener(name, stopControlEvent)
-  for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup'])
+  for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
     button.addEventListener(name, handlePointer)
+    document.addEventListener(name, capturePointer, true)
+  }
   button.addEventListener('click', toggleClick)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
@@ -158,8 +163,10 @@ export function createOwnedDocumentPngImage(
     resize?.disconnect()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
     for (const name of ['keydown', 'keyup']) button.removeEventListener(name, stopControlEvent)
-    for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup'])
+    for (const name of ['pointerdown', 'mousedown', 'pointerup', 'mouseup']) {
       button.removeEventListener(name, handlePointer)
+      document.removeEventListener(name, capturePointer, true)
+    }
     button.removeEventListener('click', toggleClick)
     for (const name of ['mousedown', 'pointerdown', 'click'])
       viewport.removeEventListener(name, keepViewportEvent)
