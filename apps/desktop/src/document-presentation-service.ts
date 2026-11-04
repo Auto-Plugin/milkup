@@ -11,6 +11,9 @@ import {
   copyHostDocumentPresentationAggregate as copyDocumentPresentationAggregate,
   copyHostDocumentPresentationResult as copyDocumentPresentationResult,
   disposeDocumentPngImages,
+  documentPngImages,
+  documentPngImageByteLength,
+  isDocumentPngImage,
   retainDocumentPngImages,
 } from '@milkup/core/internal/document-png-image'
 import { createMarkdownWindowContextReader, type MarkdownContextSource } from '@milkup/markdown'
@@ -27,6 +30,9 @@ export interface DesktopDocumentPresentationOptions {
   readonly renderers: () => readonly DesktopDocumentRenderer[]
   /** Host activation epoch; never supplied by the plugin. */
   readonly rendererGeneration?: (pluginId: string) => number
+  /** Host-only attestation for a reviewed, context-independent inert PNG renderer.
+   * Never derive this from a plugin declaration or a matching renderer name. */
+  readonly cacheableFence?: (pluginId: string, rendererId: string) => boolean
   readonly render: (
     pluginId: string,
     rendererId: string,
@@ -41,6 +47,33 @@ export function createDesktopDocumentPresentationService(
   options: DesktopDocumentPresentationOptions,
 ) {
   let revision = 0
+  // A rendered fence can change the measured source window without changing
+  // that fence. Retain completed, validated units across those layout passes.
+  // The full request remains part of the key: ordinary plugins may depend on
+  // selection, context boundaries and every other public input field.
+  const fenceCache = new Map<
+    string,
+    { result: DocumentPresentationResult; cost: number; pure: boolean }
+  >()
+  let cacheCost = 0
+  let cacheIdentity: object | undefined
+  let cacheSource: MarkdownContextSource | undefined
+  let cacheVersion: number | undefined
+  let cacheScope = ''
+  const evict = (key: string) => {
+    const entry = fenceCache.get(key)
+    if (!entry) return
+    fenceCache.delete(key)
+    cacheCost -= entry.cost
+    disposeDocumentPngImages(entry.result)
+  }
+  const clearFenceCache = () => {
+    for (const key of fenceCache.keys()) evict(key)
+    cacheIdentity = undefined
+    cacheSource = undefined
+    cacheVersion = undefined
+    cacheScope = ''
+  }
   const context = createMarkdownWindowContextReader({ source: () => options.current()?.source })
   const provide: DocumentPresentationConfig['provide'] = async (window, operation) => {
     const owned = new Set<DocumentPresentationResult>()
@@ -129,6 +162,27 @@ export function createDesktopDocumentPresentationService(
           options.rendererGeneration?.(renderer.pluginId),
         ]),
       )
+      const scope = JSON.stringify([
+        capturedDocumentId,
+        capturedTheme,
+        declarations.map((declaration) => [
+          declaration,
+          generations.get(declaration.pluginId),
+          options.cacheableFence?.(declaration.pluginId, declaration.id) === true,
+        ]),
+      ])
+      if (cacheIdentity !== initial!.identity || cacheScope !== scope) {
+        clearFenceCache()
+        cacheIdentity = initial!.identity
+        cacheSource = capturedSource
+        cacheVersion = capturedVersion
+        cacheScope = scope
+      }
+      if (cacheSource !== capturedSource || cacheVersion !== capturedVersion) {
+        for (const [key, entry] of fenceCache) if (!entry.pure) evict(key)
+        cacheSource = capturedSource
+        cacheVersion = capturedVersion
+      }
       if (!trusted.contextKnown)
         return { request, result: { fragments: [], complete: false }, declarations }
       const acceptedRenderers = new Map<DesktopDocumentRenderer, () => void>()
@@ -137,6 +191,9 @@ export function createDesktopDocumentPresentationService(
         input: DocumentPresentationRequest,
       ) => {
         assertCurrent()
+        const pure =
+          !declaration.contexts.includes('text') &&
+          options.cacheableFence?.(declaration.pluginId, declaration.id) === true
         const assertRendererActive = () => {
           if (
             options.rendererGeneration?.(declaration.pluginId) !==
@@ -146,11 +203,40 @@ export function createDesktopDocumentPresentationService(
               .some(
                 (active) =>
                   active.pluginId === declaration.pluginId && active.id === declaration.id,
-              )
+              ) ||
+            (pure && options.cacheableFence?.(declaration.pluginId, declaration.id) !== true)
           )
             throw new DocumentPresentationError('revoked')
         }
         assertRendererActive()
+        const cacheKey = !declaration.contexts.includes('text')
+          ? JSON.stringify([
+              declaration,
+              pure ? [input.source, input.width, input.theme, input.target] : input,
+            ])
+          : undefined
+        const cached = cacheKey === undefined ? undefined : fenceCache.get(cacheKey)
+        if (cached) {
+          // A separate reference belongs to this invocation, even if another
+          // window invalidates/evicts the cache while later units are awaiting.
+          const value = cached.pure
+            ? {
+                ...cached.result,
+                fragments: cached.result.fragments.map((fragment) => ({
+                  ...fragment,
+                  from: input.from,
+                  to: input.to,
+                })),
+              }
+            : cached.result
+          const result = copyDocumentPresentationResult(value, input, declaration)
+          retainDocumentPngImages(result)
+          owned.add(result)
+          fenceCache.delete(cacheKey!)
+          fenceCache.set(cacheKey!, cached)
+          acceptedRenderers.set(declaration, assertRendererActive)
+          return result
+        }
         const value = await options.render(declaration.pluginId, declaration.id, input, {
           ...operation,
           deadline,
@@ -160,6 +246,39 @@ export function createDesktopDocumentPresentationService(
         assertRendererActive()
         const result = copyDocumentPresentationResult(value, input, declaration)
         acceptedRenderers.set(declaration, assertRendererActive)
+        if (
+          cacheKey !== undefined &&
+          result.complete &&
+          !result.pending &&
+          !result.fragments.some((fragment) => fragment.status === 'error') &&
+          cacheIdentity === initial!.identity &&
+          cacheScope === scope &&
+          (!pure ||
+            (result.fragments.length === 1 &&
+              result.fragments[0]!.from === input.from &&
+              result.fragments[0]!.to === input.to &&
+              result.fragments[0]!.layout === 'block' &&
+              isDocumentPngImage(result.fragments[0]!.content)))
+        ) {
+          // Charge actual encoded bytes plus intrinsic decoded pixel cost.
+          // Accounting exposes neither the bytes nor a new image authority.
+          const cost =
+            (cacheKey.length + JSON.stringify(result).length) * 2 +
+            documentPngImages(result).reduce(
+              (sum, image) =>
+                sum + documentPngImageByteLength(image) + image.width * image.height * 4,
+              0,
+            )
+          const limit = 64 * 1024 * 1024
+          if (cost <= limit) {
+            evict(cacheKey)
+            while (fenceCache.size >= 8 || cacheCost + cost > limit)
+              evict(fenceCache.keys().next().value!)
+            retainDocumentPngImages(result)
+            fenceCache.set(cacheKey, { result, cost, pure })
+            cacheCost += cost
+          }
+        }
         return result
       }
       // Text and mixed-context providers retain their full trusted window. Pure
@@ -338,9 +457,11 @@ export function createDesktopDocumentPresentationService(
     provide,
     invalidate: () => {
       revision++
+      clearFenceCache()
     },
     clear: () => {
       revision++
+      clearFenceCache()
       context.clear()
     },
   })

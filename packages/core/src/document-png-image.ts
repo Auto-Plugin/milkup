@@ -200,6 +200,10 @@ function images(value: unknown): Set<DocumentPngImage> {
 export function documentPngImages(value: unknown): readonly DocumentPngImage[] {
   return Object.freeze([...images(value)])
 }
+/** Internal cache accounting; does not expose bytes or create another lease. */
+export function documentPngImageByteLength(image: DocumentPngImage): number {
+  return entry(image).bytes.byteLength
+}
 export function retainDocumentPngImages(value: unknown): void {
   const owned = images(value)
   for (const image of owned) entry(image)

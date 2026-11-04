@@ -121,6 +121,23 @@ it('resumes settled host preparation after its deadline without viewport or sele
   await vi.advanceTimersByTimeAsync(1)
   expect(provide).toHaveBeenCalledTimes(2)
 })
+it('bounds repeated identical preparation timeouts and permits an explicit refresh', async () => {
+  const provide = vi.fn<DocumentPresentationConfig['provide']>(
+    (_window, { signal }) =>
+      new Promise((_resolve, reject) =>
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true }),
+      ),
+  )
+  const presentation = make({ provide })
+  await vi.advanceTimersByTimeAsync(75_000)
+  expect(provide).toHaveBeenCalledTimes(2)
+  presentation.schedule()
+  await vi.advanceTimersByTimeAsync(1000)
+  expect(provide).toHaveBeenCalledTimes(2)
+  presentation.refresh()
+  await vi.advanceTimersByTimeAsync(0)
+  expect(provide).toHaveBeenCalledTimes(3)
+})
 it('never overlaps a timed-out native read that has not settled, then resumes after settlement', async () => {
   let finish!: () => void
   const provide = vi.fn<DocumentPresentationConfig['provide']>()
@@ -249,7 +266,7 @@ it('cannot revive a retired job when its uncancellable read settles after config
   expect(provide).toHaveBeenCalledTimes(1)
   expect(replacement).toHaveBeenCalledTimes(1)
 })
-it('continues settled preparation in separate bounded attempts rather than only once', async () => {
+it('requires an explicit refresh after two failed attempts before accepting recovery', async () => {
   const provide = vi.fn<DocumentPresentationConfig['provide']>()
   const stalled: DocumentPresentationConfig['provide'] = (_window, { signal }) =>
     new Promise((_resolve, reject) =>
@@ -259,8 +276,11 @@ it('continues settled preparation in separate bounded attempts rather than only 
     .mockImplementationOnce(stalled)
     .mockImplementationOnce(stalled)
     .mockImplementation((window) => response(window))
-  make({ provide })
+  const presentation = make({ provide })
   await vi.advanceTimersByTimeAsync(22_001)
+  expect(provide).toHaveBeenCalledTimes(2)
+  presentation.refresh()
+  await vi.advanceTimersByTimeAsync(0)
   expect(provide).toHaveBeenCalledTimes(3)
   await vi.advanceTimersByTimeAsync(60_000)
   expect(provide).toHaveBeenCalledTimes(3)

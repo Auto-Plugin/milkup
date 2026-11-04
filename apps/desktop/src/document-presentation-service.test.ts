@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { deflateSync } from 'node:zlib'
 import {
   MemoryDocumentSource,
   MemoryTextDocument,
   type DocumentPresentationRequest,
+  type DocumentPresentationResult,
 } from '@milkup/core'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
 import { parseMarkdownWindow } from '@milkup/markdown'
@@ -42,6 +44,32 @@ const tinyPng = Uint8Array.from(
     'base64',
   ),
 )
+function squarePng(size: number): Uint8Array {
+  const chunk = (type: string, data = Buffer.alloc(0)) => {
+    const value = Buffer.alloc(data.length + 12)
+    value.writeUInt32BE(data.length)
+    value.write(type, 4, 'ascii')
+    data.copy(value, 8)
+    let crc = 0xffffffff
+    for (const byte of value.subarray(4, value.length - 4)) {
+      crc ^= byte
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0)
+    }
+    value.writeUInt32BE((crc ^ 0xffffffff) >>> 0, value.length - 4)
+    return value
+  }
+  const header = Buffer.alloc(13)
+  header.writeUInt32BE(size)
+  header.writeUInt32BE(size, 4)
+  header[8] = 8
+  header[9] = 6
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(Buffer.alloc((size * 4 + 1) * size))),
+    chunk('IEND'),
+  ])
+}
 function result(request: DocumentPresentationRequest) {
   const from = request.source.indexOf('$')
   return {
@@ -686,5 +714,245 @@ describe('viewport-prioritized bounded fence presentation', () => {
         (fragment) => fragment.from === fakeFrom || fragment.from === closingFrom,
       ),
     ).toBe(false)
+  })
+})
+
+describe('bounded completed fence reuse', () => {
+  const renderer = {
+    id: 'diagram',
+    pluginId: 'reviewed-diagram',
+    contexts: ['fence'] as const,
+    fenceLanguages: ['diagram'],
+  }
+  const text = 'intro\n\n```diagram\nhello\n```\n\noutside\nmore\n'
+  function setup(pure = false) {
+    let f = fixture(text)
+    let identity = {}
+    let generation = 1
+    let approved = pure
+    const release = vi.fn()
+    const render = vi.fn(
+      async (
+        _p: string,
+        _r: string,
+        input: DocumentPresentationRequest,
+      ): Promise<DocumentPresentationResult> => ({
+        complete: true,
+        fragments: [
+          {
+            from: input.from,
+            to: input.to,
+            layout: 'block' as const,
+            accessibleText: 'diagram',
+            content: createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release }),
+          },
+        ],
+      }),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity }),
+      theme: () => 'light',
+      renderers: () => [renderer],
+      rendererGeneration: () => generation,
+      cacheableFence: () => approved,
+      render,
+    })
+    const provide = (changes = {}) =>
+      service.provide(
+        { ...f.window, sourceIdentity: identity, ...changes },
+        { signal: new AbortController().signal },
+      )
+    return {
+      service,
+      render,
+      release,
+      provide,
+      generation: () => {
+        generation++
+      },
+      revoke: () => {
+        approved = false
+      },
+      replaceIdentity: () => {
+        identity = {}
+      },
+      edit: () => {
+        f = fixture('added before\n' + text)
+        f.source = new MemoryDocumentSource({ documentId: 'doc', version: 2, document: f.doc })
+        f.window.sourceVersion = 2
+      },
+    }
+  }
+  it('does not rerender the same fence when decoded geometry expands the source window', async () => {
+    const f = setup()
+    const short = text.slice(0, text.indexOf('outside'))
+    const first = await f.provide({
+      source: short,
+      to: short.length,
+      toLine: short.split('\n').length,
+      completeEnd: false,
+    })
+    const second = await f.provide()
+    expect(f.render).toHaveBeenCalledTimes(1)
+    expect(second.result.fragments).toHaveLength(1)
+    disposeDocumentPngImages(first.result)
+    disposeDocumentPngImages(second.result)
+    expect(f.release).not.toHaveBeenCalled()
+    f.service.clear()
+    expect(f.release).toHaveBeenCalledTimes(1)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('keeps selection semantics for ordinary plugin providers', async () => {
+    const f = setup()
+    const first = await f.provide()
+    const second = await f.provide({ selection: { anchor: 1, head: 1 } })
+    expect(f.render).toHaveBeenCalledTimes(2)
+    disposeDocumentPngImages(first.result)
+    disposeDocumentPngImages(second.result)
+    f.service.clear()
+    expect(f.release).toHaveBeenCalledTimes(2)
+  })
+  it('rebinds only an attested inert PNG to newly verified fence offsets after an unrelated edit', async () => {
+    const f = setup(true)
+    const first = await f.provide()
+    f.edit()
+    const second = await f.provide({ selection: { anchor: 1, head: 1 } })
+    expect(f.render).toHaveBeenCalledTimes(1)
+    expect(second.result.fragments[0]!.from).toBe(first.result.fragments[0]!.from + 13)
+    expect(second.request.version).toBe(2)
+    disposeDocumentPngImages(first.result)
+    disposeDocumentPngImages(second.result)
+    f.service.clear()
+    expect(f.release).toHaveBeenCalledTimes(1)
+  })
+  it.each(['generation', 'invalidate', 'attestation', 'width', 'identity'] as const)(
+    'does not reuse revoked or incompatible %s output',
+    async (change) => {
+      const f = setup(true)
+      const first = await f.provide()
+      disposeDocumentPngImages(first.result)
+      if (change === 'generation') f.generation()
+      if (change === 'invalidate') f.service.invalidate()
+      if (change === 'attestation') f.revoke()
+      if (change === 'identity') f.replaceIdentity()
+      const second = await f.provide(change === 'width' ? { width: 600 } : {})
+      expect(f.render).toHaveBeenCalledTimes(2)
+      disposeDocumentPngImages(second.result)
+      f.service.clear()
+      expect(f.release).toHaveBeenCalledTimes(2)
+      expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+    },
+  )
+  it('evicts bounded entries while independent response owners remain valid', async () => {
+    const f = setup(true)
+    const responses = []
+    for (let width = 700; width < 710; width++) responses.push(await f.provide({ width }))
+    expect(f.render).toHaveBeenCalledTimes(10)
+    // Eviction cannot release the independent response's ownership.
+    expect(f.release).not.toHaveBeenCalled()
+    f.service.clear()
+    expect(f.release).not.toHaveBeenCalled()
+    for (const response of responses) disposeDocumentPngImages(response.result)
+    expect(f.release).toHaveBeenCalledTimes(10)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('does not retain a valid PNG whose encoded bytes plus pixels exceed the cache budget', async () => {
+    const f = setup(true)
+    const bytes = squarePng(4096)
+    f.render.mockImplementation(async (_p, _r, input) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block',
+          accessibleText: 'large',
+          content: createDocumentPngImage({ bytes, width: 4096, height: 4096, release: f.release }),
+        },
+      ],
+    }))
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await f.provide()
+      expect(response.result.fragments).toHaveLength(1)
+      disposeDocumentPngImages(response.result)
+      expect(f.release).toHaveBeenCalledTimes(attempt + 1)
+    }
+    expect(f.render).toHaveBeenCalledTimes(2)
+    f.service.clear()
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('does not cache an error fragment or extend PNG attestation to arbitrary output', async () => {
+    const f = setup(true)
+    f.render.mockImplementation(async (_p, _r, input) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block',
+          accessibleText: 'source',
+          status: 'error',
+          message: 'Unavailable',
+          content: { type: 'text', text: 'source' },
+        },
+      ],
+    }))
+    await f.provide()
+    await f.provide()
+    expect(f.render).toHaveBeenCalledTimes(2)
+    f.render.mockImplementation(async (_p, _r, input) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block',
+          accessibleText: 'ordinary',
+          content: { type: 'text', text: 'ordinary' },
+        },
+      ],
+    }))
+    await f.provide()
+    await f.provide()
+    expect(f.render).toHaveBeenCalledTimes(4)
+    f.service.clear()
+  })
+  it('does not publish or retain a late PNG after invalidation', async () => {
+    const f = setup(true)
+    let finish!: () => void
+    f.render.mockImplementationOnce(async (_p, _r, input) => {
+      await new Promise<void>((resolve) => {
+        finish = resolve
+      })
+      return {
+        complete: true,
+        fragments: [
+          {
+            from: input.from,
+            to: input.to,
+            layout: 'block',
+            accessibleText: 'late',
+            content: createDocumentPngImage({
+              bytes: tinyPng,
+              width: 1,
+              height: 1,
+              release: f.release,
+            }),
+          },
+        ],
+      }
+    })
+    const pending = f.provide()
+    while (!finish) await new Promise((resolve) => setTimeout(resolve, 0))
+    f.service.invalidate()
+    finish()
+    await expect(pending).rejects.toThrow('revoked')
+    expect(f.release).toHaveBeenCalledTimes(1)
+    const current = await f.provide()
+    expect(f.render).toHaveBeenCalledTimes(2)
+    disposeDocumentPngImages(current.result)
+    f.service.clear()
+    expect(f.release).toHaveBeenCalledTimes(2)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
 })

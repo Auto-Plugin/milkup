@@ -13,6 +13,7 @@ import {
   createDocumentPngImage,
   disposeDocumentPngImages,
   documentPngResourceStats,
+  documentPngImageByteLength,
   retainDocumentPngImages,
   type DocumentPngImage,
 } from '../document-png-image'
@@ -94,6 +95,16 @@ function result(content: unknown) {
 const declarations = [{ id: 'private-fixture', contexts: ['text'] as const }]
 
 describe('private PNG document presentation transport', () => {
+  it('reports exact encoded cache cost only for a live host image without acquiring ownership', () => {
+    const bytes = png()
+    const image = create(bytes)
+    const before = documentPngResourceStats()
+    expect(documentPngImageByteLength(image)).toBe(bytes.byteLength)
+    expect(documentPngResourceStats()).toEqual(before)
+    expect(() => documentPngImageByteLength({ ...image })).toThrow()
+    disposeDocumentPngImages(image)
+    expect(() => documentPngImageByteLength(image)).toThrow()
+  })
   it('accepts only host-minted identity while the public grammar and serializer reject it', () => {
     const image = create()
     expect(copyHostDocumentPresentationNode(image)).toBe(image)

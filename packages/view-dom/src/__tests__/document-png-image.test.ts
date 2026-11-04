@@ -217,7 +217,7 @@ function destroy(view: EditorView | SourceDocumentView) {
 }
 
 for (const windowed of [false, true]) {
-  it(`keeps source until PNG decode and preserves natural wide geometry (${windowed})`, async () => {
+  it(`keeps source until PNG decode and fits wide pixels without changing intrinsic dimensions (${windowed})`, async () => {
     const view = await make(windowed, provider(2100, 2))
     const release = releases.at(-1)!
     visibleSource(view)
@@ -232,8 +232,11 @@ for (const windowed of [false, true]) {
     expect(image).toBe(decodes[0]!.image)
     expect(image?.width).toBe(2100)
     expect(image?.height).toBe(2)
-    expect(image?.style.width).toBe('2100px')
-    expect(image?.style.maxWidth).toBe('none')
+    expect(image?.style.width).toBe('100%')
+    expect(image?.style.height).toBe('auto')
+    expect(image?.style.maxWidth).toBe('100%')
+    expect(image?.parentElement?.style.width).toBe('2100px')
+    expect(image?.parentElement?.style.maxWidth).toBe('100%')
     expect(image?.closest<HTMLElement>('[data-document-presentation]')?.style.overflow).toBe('auto')
     expect(blobs[0]?.type).toBe('image/png')
     expect(view.contentDOM.querySelector('script, svg, foreignObject')).toBeNull()

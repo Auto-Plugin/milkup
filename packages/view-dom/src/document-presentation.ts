@@ -281,6 +281,7 @@ export class DocumentPresentation {
   private failedKey: string | undefined
   private readonly releasedCachePngImages = new Set<DocumentPngImage>()
   private retryAfter = 0
+  private preparationFailures: { key: string; count: number } | undefined
   private preparationRetry:
     { timer: ReturnType<typeof setTimeout>; matches: () => boolean } | undefined
   private observedIdentity: object | undefined
@@ -553,6 +554,7 @@ export class DocumentPresentation {
   /** Refresh provider data without withdrawing an unchanged, validated presentation. */
   refresh(): void {
     this.cancelPreparationRetry()
+    this.preparationFailures = undefined
     const current = this.snapshot()
     if (
       !this.config ||
@@ -575,6 +577,7 @@ export class DocumentPresentation {
   invalidate(): void {
     this.releaseReferencePointer()
     this.cancelPreparationRetry()
+    this.preparationFailures = undefined
     this.epoch++
     this.job?.controller.abort()
     this.job = undefined
@@ -777,10 +780,22 @@ export class DocumentPresentation {
       completeStart: from === 0,
       completeEnd: Number(last.dataset.line) === current.lineCount,
       selection: { anchor: current.selection.anchor, head: current.selection.head },
-      width: Math.min(8192, Math.max(1, this.content.clientWidth || this.root.clientWidth || 800)),
+      width: this.presentationWidth(),
       visibleFrom,
       visibleTo,
     }
+  }
+  private presentationWidth(): number {
+    const style = this.root.ownerDocument.defaultView?.getComputedStyle(this.content)
+    const padding =
+      (Number.parseFloat(style?.paddingLeft ?? '') || 0) +
+      (Number.parseFloat(style?.paddingRight ?? '') || 0)
+    // clientWidth is already in CSS pixels; devicePixelRatio must not enlarge
+    // renderer layout. Exclude editor padding and fractional rounding noise.
+    return Math.min(
+      8192,
+      Math.max(1, Math.floor((this.content.clientWidth || this.root.clientWidth || 800) - padding)),
+    )
   }
   private sync(): void {
     this.hasReferencePointer()
@@ -793,6 +808,7 @@ export class DocumentPresentation {
       this.observedIdentity = current.sourceIdentity
       this.observedVersion = current.sourceVersion
       this.failedKey = undefined
+      this.preparationFailures = undefined
       this.clearCache()
     }
     if (!this.config || current.mode !== 'live') {
@@ -861,7 +877,11 @@ export class DocumentPresentation {
         this.releaseReferencePointer()
         job.preparationTimedOut = true
         this.failedKey = key
-        this.retryAfter = Date.now() + 1000
+        const count = this.preparationFailures?.key === key ? this.preparationFailures.count + 1 : 1
+        this.preparationFailures = { key, count }
+        // One automatic retry can resume a slow context read. Repeated failure
+        // needs changed input or an explicit refresh, not an endless native loop.
+        this.retryAfter = count < 2 ? Date.now() + 1000 : Number.POSITIVE_INFINITY
         job.controller.abort()
         this.clearCache()
         this.restore(false, true)
@@ -937,7 +957,7 @@ export class DocumentPresentation {
         clearTimeout(timeout)
         if (this.job !== job) return
         this.job = undefined
-        if (!job.preparationTimedOut) return
+        if (!job.preparationTimedOut || !Number.isFinite(this.retryAfter)) return
         const matches = () => {
           const latest = this.snapshot()
           if (

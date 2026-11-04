@@ -14,8 +14,8 @@ export function createOwnedDocumentPngImage(
   const element = document.createElement('span')
   element.style.display = 'inline-block'
   element.style.width = `${value.width}px`
-  element.style.height = `${value.height}px`
-  element.style.maxWidth = 'none'
+  element.style.height = 'auto'
+  element.style.maxWidth = '100%'
   element.style.verticalAlign = 'middle'
   element.contentEditable = 'false'
   const image = document.createElement('img')
@@ -24,9 +24,11 @@ export function createOwnedDocumentPngImage(
   image.width = value.width
   image.height = value.height
   image.style.display = 'block'
-  image.style.width = `${value.width}px`
-  image.style.height = `${value.height}px`
-  image.style.maxWidth = 'none'
+  // Preserve intrinsic pixels for validation and export, but display wide
+  // diagrams at the editor's CSS width without enlarging smaller diagrams.
+  image.style.width = '100%'
+  image.style.height = 'auto'
+  image.style.maxWidth = '100%'
   image.style.maxHeight = 'none'
   element.append(image)
   let state: OwnedDocumentSvgImage['state'] = 'pending'

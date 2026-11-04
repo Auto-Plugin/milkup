@@ -111,6 +111,27 @@ const viewport = (window: DocumentPresentationWindow) => ({
   to: Reflect.get(window, 'visibleTo'),
 })
 
+it('reports available CSS content width after padding without device-pixel scaling', async () => {
+  const calls: DocumentPresentationWindow[] = []
+  const f = fixture({
+    provide: (window) => {
+      calls.push(window)
+      return response(window)
+    },
+  })
+  Object.defineProperty(f.content, 'clientWidth', { value: 1028, configurable: true })
+  f.content.style.paddingInline = '26px'
+  f.content.style.paddingLeft = '26px'
+  f.content.style.paddingRight = '26px'
+  f.scroll(0)
+  await settle()
+  expect(calls.at(-1)?.width).toBe(976)
+  Object.defineProperty(f.content, 'clientWidth', { value: 800 })
+  f.manager.schedule()
+  await settle()
+  expect(calls.at(-1)?.width).toBe(748)
+})
+
 it('reports actual visible source instead of overscan or a remote editing selection', async () => {
   const calls: DocumentPresentationWindow[] = []
   const f = fixture({
