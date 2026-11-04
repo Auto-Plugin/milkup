@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-InstallationCoordinator', 'Invoke-StandardInstallation')
+$wanted = @('Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
@@ -114,6 +114,115 @@ Case 'reject duplicate plugin archive' { Reject-Manifest { param($m) $m.bundledP
 Case 'reject plugin archive traversal' { Reject-Manifest { param($m) $m.bundledPlugins[0].archiveFile = '../milkup.diagrams.milkup-plugin' } }
 Case 'reject missing reviewed Mermaid package' { Reject-Manifest { param($m) $m.bundledPlugins[0].version = '1.2.0' } }
 Case 'reject missing embedded-byte hash' { Reject-Manifest { param($m) $m.bundledPlugins[0].sha256 = '' } }
+function New-SourcePluginSpec {
+    return @{ harnessMode = 'gui-regression'; mode = 'linked-binary'; candidateSha = $commit
+        applicationCandidateSha = $commit; binary = @{ sha256 = $built } }
+}
+function New-SourcePluginInventory {
+    return @{
+        schema = 1; kind = 'linked-gui-source-inventory'; candidateSha = $commit; binarySha256 = $built; platform = 'win32'
+        canonicalSource = 'release/bundled-plugins.json'; stagedSource = 'apps/desktop/src/bundled-plugins'
+        canonicalSourceSha256 = 'd' * 64; producerSha256 = 'e' * 64
+        plugins = @(@{ id = 'milkup.diagrams'; version = '1.3.0'; archiveFile = 'milkup.diagrams-1.3.0.milkup-plugin'
+            bytes = 456; sha256 = 'f' * 64; sourceManifestSha256 = 'c' * 64 })
+    }
+}
+function Reject-SourcePluginInventory([scriptblock]$Mutation) {
+    $value = New-SourcePluginInventory; $caseSpec = New-SourcePluginSpec
+    & $Mutation $value $caseSpec
+    $rejected = $false
+    try { Assert-SourcePluginInventory $value $caseSpec | Out-Null } catch { $rejected = $true }
+    Assert-True $rejected 'Invalid source plugin inventory was accepted'
+}
+Case 'linked GUI source inventory binds current candidate binary and canonical sealed plugin record' {
+    Assert-SourcePluginInventory (New-SourcePluginInventory) (New-SourcePluginSpec) | Out-Null
+}
+Case 'linked GUI source inventory accepts multiple distinct exact Windows plugin archives' {
+    $value = New-SourcePluginInventory
+    $value.plugins += @{ id = 'milkup.footnotes'; version = '1.0.1'; archiveFile = 'milkup.footnotes-1.0.1.milkup-plugin'
+        bytes = 123; sha256 = 'd' * 64; sourceManifestSha256 = 'e' * 64 }
+    Assert-SourcePluginInventory $value (New-SourcePluginSpec) | Out-Null
+}
+foreach ($change in @('product-mode', 'installer-mode', 'mixed-source-baseline', 'source-mismatch', 'binary-mismatch', 'malformed-source', 'malformed-binary')) {
+    Case "linked GUI source inventory rejects $change" {
+        Reject-SourcePluginInventory {
+            param($value, $caseSpec)
+            switch ($change) {
+                'product-mode' { $caseSpec.harnessMode = 'product' }
+                'installer-mode' { $caseSpec.mode = 'nsis-current-user' }
+                'mixed-source-baseline' { $caseSpec.applicationCandidateSha = $baselineSource }
+                'source-mismatch' { $value.candidateSha = 'f' * 40 }
+                'binary-mismatch' { $value.binarySha256 = 'f' * 64 }
+                'malformed-source' { $value.candidateSha = $caseSpec.candidateSha = $caseSpec.applicationCandidateSha = 'not-a-source-sha' }
+                'malformed-binary' { $value.binarySha256 = $caseSpec.binary.sha256 = 'not-a-binary-sha' }
+            }
+        }
+    }
+}
+foreach ($field in @('schema', 'kind', 'candidateSha', 'binarySha256', 'platform', 'canonicalSource', 'stagedSource', 'canonicalSourceSha256', 'producerSha256', 'plugins')) {
+    Case "source inventory rejects missing top-level $field" {
+        Reject-SourcePluginInventory { param($value) $value.Remove($field) }
+    }
+}
+foreach ($change in @('unknown-schema', 'unknown-kind', 'unknown-field', 'non-Windows-platform', 'wrong-canonical-source', 'wrong-staged-source', 'invalid-canonical-hash', 'invalid-producer-hash', 'empty-plugins', 'oversized-inventory', 'duplicate-id', 'duplicate-archive', 'missing-reviewed-Mermaid')) {
+    Case "source inventory rejects $change" {
+        Reject-SourcePluginInventory {
+            param($value)
+            switch ($change) {
+                'unknown-schema' { $value.schema = 2 }
+                'unknown-kind' { $value.kind = 'unreviewed-inventory' }
+                'unknown-field' { $value.additionalPermission = 'file:write' }
+                'non-Windows-platform' { $value.platform = 'linux' }
+                'wrong-canonical-source' { $value.canonicalSource = '../bundled-plugins.json' }
+                'wrong-staged-source' { $value.stagedSource = 'apps/desktop/src/../other-plugins' }
+                'invalid-canonical-hash' { $value.canonicalSourceSha256 = 'unverified' }
+                'invalid-producer-hash' { $value.producerSha256 = '' }
+                'empty-plugins' { $value.plugins = @() }
+                'oversized-inventory' {
+                    $value.plugins += @(1..32 | ForEach-Object {
+                        @{ id = "milkup.fixture$_"; version = '1.0.0'; archiveFile = "milkup.fixture$_-1.0.0.milkup-plugin"
+                            bytes = 1; sha256 = 'd' * 64; sourceManifestSha256 = 'e' * 64 }
+                    })
+                }
+                'duplicate-id' {
+                    $other = $value.plugins[0].Clone(); $other.version = '1.3.1'; $other.archiveFile = 'milkup.diagrams-1.3.1.milkup-plugin'
+                    $value.plugins += $other
+                }
+                'duplicate-archive' { $value.plugins += $value.plugins[0].Clone() }
+                'missing-reviewed-Mermaid' {
+                    $value.plugins[0].id = 'milkup.footnotes'; $value.plugins[0].version = '1.0.1'
+                    $value.plugins[0].archiveFile = 'milkup.footnotes-1.0.1.milkup-plugin'
+                }
+            }
+        }
+    }
+}
+foreach ($field in @('id', 'version', 'archiveFile', 'bytes', 'sha256', 'sourceManifestSha256')) {
+    Case "source inventory rejects missing plugin $field" {
+        Reject-SourcePluginInventory { param($value) $value.plugins[0].Remove($field) }
+    }
+}
+foreach ($change in @('unknown-plugin-field', 'invalid-id', 'invalid-version', 'archive-traversal', 'archive-filename-mismatch', 'zero-byte-archive', 'oversized-archive', 'fractional-byte-count', 'invalid-archive-hash', 'invalid-manifest-hash', 'wrong-Mermaid-version')) {
+    Case "source inventory rejects plugin $change" {
+        Reject-SourcePluginInventory {
+            param($value)
+            $plugin = $value.plugins[0]
+            switch ($change) {
+                'unknown-plugin-field' { $plugin.networkOrigins = @('*') }
+                'invalid-id' { $plugin.id = '../milkup.diagrams' }
+                'invalid-version' { $plugin.version = '1.3' }
+                'archive-traversal' { $plugin.archiveFile = '../milkup.diagrams-1.3.0.milkup-plugin' }
+                'archive-filename-mismatch' { $plugin.archiveFile = 'milkup.diagrams-1.3.1.milkup-plugin' }
+                'zero-byte-archive' { $plugin.bytes = 0 }
+                'oversized-archive' { $plugin.bytes = 32MB + 1 }
+                'fractional-byte-count' { $plugin.bytes = 1.5 }
+                'invalid-archive-hash' { $plugin.sha256 = 'not-a-hash' }
+                'invalid-manifest-hash' { $plugin.sourceManifestSha256 = '' }
+                'wrong-Mermaid-version' { $plugin.version = '1.2.0'; $plugin.archiveFile = 'milkup.diagrams-1.2.0.milkup-plugin' }
+            }
+        }
+    }
+}
 Case 'retain exact installer evidence names without admitting executables' {
     $names = Get-ChildEvidenceNames
     foreach ($n in @('installation-result.json', 'installed-binary-comparison.json', 'installed-binary-comparison-stderr.log', 'installer-stdout.log', 'installer-stderr.log')) { Assert-True ($names.ContainsKey($n)) ('Missing installer evidence ' + $n) }
