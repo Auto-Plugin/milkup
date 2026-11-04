@@ -35,6 +35,7 @@ import {
   validateGuiReport,
   validateCurrentNativeResourceProof,
   validateNativeWindowEvidence,
+  validateNativeDpiObservation,
   verifyGuiEvidence,
 } from './mermaid-gui-contract.mjs'
 
@@ -503,6 +504,19 @@ export async function main() {
   const execute = (script, ...args) =>
     request('POST', `/session/${session}/execute/sync`, { script, args })
   const state = () => execute(observe)
+  const measureWindow = async () => {
+    const native = await observer.call('measureProduct')
+    const dom = await execute(
+      'return {innerWidth,innerHeight,devicePixelRatio,screenAvailWidth:screen.availWidth,screenAvailHeight:screen.availHeight}',
+    )
+    const measured = { capturedAt: new Date().toISOString(), native, dom }
+    measured.relationship = validateNativeDpiObservation(
+      measured,
+      product.pid,
+      launch.identity.creationFileTime,
+    )
+    return measured
+  }
   const compact = async (started = performance.now()) => {
     const value = await execute(compactObserve)
     const jobs = [...ledger.jobs.values()].filter((job) => job.productPid === product.pid)
@@ -752,6 +766,7 @@ export async function main() {
       path: initial.path,
       devicePixelRatio: initial.devicePixelRatio,
     }
+    current.windowMetrics = await measureWindow()
     await persist()
   }
   const openFile = async (name) => {
@@ -1136,6 +1151,7 @@ export async function main() {
         row.operations.push(item)
         assert(item.nativeWindowChanged, 'Native window dimensions must actually change')
         item.layout = (await settle()).layout
+        item.windowMetrics = await measureWindow()
         await stability(item, 10000)
         item.settled = true
       }

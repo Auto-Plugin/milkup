@@ -163,6 +163,69 @@ export function validateGuiPluginState(record, phase) {
   return true
 }
 
+export function validateNativeDpiObservation(measurement, expectedPid, expectedCreation) {
+  const { native, dom } = measurement ?? {}
+  assert(native && dom, 'Actual native window and DOM measurements are both required')
+  assert.equal(native.observed, true)
+  assert.equal(native.displaySettingsChanged, false)
+  assert.equal(native.pid, expectedPid, 'DPI observation belongs to the held product')
+  assert.equal(native.creationFileTime, expectedCreation, 'DPI observation cannot reuse a PID')
+  assert.equal(native.className, 'Tauri Window')
+  assert(typeof native.hwnd === 'string' && native.hwnd.length > 0)
+  assert(
+    Number.isInteger(native.dpi) && native.dpi > 0 && native.dpi <= 1536,
+    'Known actual GetDpiForWindow result; no assumed 96',
+  )
+  assert([0, 1, 2].includes(native.dpiAwareness))
+  assert([0, 1, 2].includes(native.observerThreadDpiAwareness))
+  assert(typeof native.dpiAwarenessContext === 'string' && native.dpiAwarenessContext.length > 0)
+  for (const rect of [native.windowRect, native.clientRect, native.clientScreenRect]) {
+    assert(
+      rect &&
+        ['left', 'top', 'right', 'bottom', 'width', 'height'].every((key) =>
+          Number.isFinite(rect[key]),
+        ),
+    )
+    assert.equal(rect.width, rect.right - rect.left)
+    assert.equal(rect.height, rect.bottom - rect.top)
+    assert(rect.width > 0 && rect.height > 0)
+  }
+  for (const value of [
+    dom.innerWidth,
+    dom.innerHeight,
+    dom.devicePixelRatio,
+    dom.screenAvailWidth,
+    dom.screenAvailHeight,
+  ])
+    assert(Number.isFinite(value) && value > 0, 'Measured positive DOM/CSS dimensions')
+  assert(dom.devicePixelRatio <= 16)
+  // Win32 coordinates may be virtualized for the querying thread. Preserve its
+  // awareness and report which measured relationship fits. Do not label every
+  // GetClientRect result physical pixels, or infer window DPI from browser DPR.
+  const models = [
+    { name: 'client-coordinates-match-css', scale: 1 },
+    { name: 'client-coordinates-match-css-times-dpr', scale: dom.devicePixelRatio },
+  ]
+  const matched = models.find(
+    ({ scale }) =>
+      Math.abs(native.clientRect.width - dom.innerWidth * scale) <= 2 &&
+      Math.abs(native.clientRect.height - dom.innerHeight * scale) <= 2,
+  )
+  assert(
+    matched,
+    'Actual Win32 client and CSS viewport dimensions must have a consistent measured relationship',
+  )
+  return {
+    windowDpi: native.dpi,
+    dpiAwareness: native.dpiAwareness,
+    monitorDpiObserved: native.dpiAwareness === 2,
+    browserDpr: dom.devicePixelRatio,
+    coordinateRelationship: matched.name,
+    scale: matched.scale,
+    multiDpiMatrixAccepted: false,
+  }
+}
+
 export function validateNativeWindowEvidence(raw, summary) {
   validateGuiObserver(summary)
   for (const key of [
@@ -299,6 +362,16 @@ export function validateGuiReport(report) {
     report.steps.find((item) => item.name === 'busy-close').pluginState,
     'persisted',
   )
+  assert(Array.isArray(report.launches) && report.launches.length === 2)
+  for (const launch of report.launches)
+    assert.deepEqual(
+      launch.windowMetrics.relationship,
+      validateNativeDpiObservation(
+        launch.windowMetrics,
+        launch.productPid,
+        launch.identity.creationFileTime,
+      ),
+    )
   for (const name of ['open-ordinary-stable', 'open-wide-stable']) {
     const step = report.steps.find((item) => item.name === name)
     validateStableSamples(step.samples, { durationMs: 75000, imageCount: 1 })
@@ -309,6 +382,16 @@ export function validateGuiReport(report) {
   const resize = report.steps.find((item) => item.name === 'resize-wide')
   assert.equal(resize.operations.length, 6)
   assert(resize.operations.every((operation) => operation.nativeWindowChanged && operation.settled))
+  const firstLaunch = report.launches[0]
+  for (const operation of resize.operations)
+    assert.deepEqual(
+      operation.windowMetrics.relationship,
+      validateNativeDpiObservation(
+        operation.windowMetrics,
+        firstLaunch.productPid,
+        firstLaunch.identity.creationFileTime,
+      ),
+    )
   const repeated = report.steps.find((item) => item.name === 'repeat-document-open')
   assert.equal(repeated.opens.length, 3)
   assert(

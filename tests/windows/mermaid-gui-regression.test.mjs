@@ -15,6 +15,7 @@ import {
   validateGuiReport,
   validateNativeWindowEvidence,
   validateCurrentNativeResourceProof,
+  validateNativeDpiObservation,
 } from './mermaid-gui-contract.mjs'
 import {
   guiFixtures,
@@ -30,6 +31,86 @@ const identity = () => ({
   applicationCandidateSha: 'a'.repeat(40),
   harnessCandidateSha: 'a'.repeat(40),
   applicationSha256: 'b'.repeat(64),
+})
+const windowMetrics = (
+  pid = 41,
+  creationFileTime = '123',
+  dpi = 96,
+  devicePixelRatio = 1,
+  scale = 1,
+) => {
+  const width = 1000 * scale,
+    height = 700 * scale
+  const rect = { left: 0, top: 0, right: width, bottom: height, width, height }
+  const value = {
+    native: {
+      observed: true,
+      displaySettingsChanged: false,
+      pid,
+      creationFileTime,
+      hwnd: '0x42',
+      className: 'Tauri Window',
+      dpi,
+      dpiAwareness: 2,
+      dpiAwarenessContext: '0xfffffffffffffffc',
+      observerThreadDpiAwareness: 0,
+      windowRect: { ...rect },
+      clientRect: { ...rect },
+      clientScreenRect: { ...rect },
+    },
+    dom: {
+      innerWidth: 1000,
+      innerHeight: 700,
+      devicePixelRatio,
+      screenAvailWidth: 1920,
+      screenAvailHeight: 1080,
+    },
+  }
+  value.relationship = validateNativeDpiObservation(value, pid, creationFileTime)
+  return value
+}
+
+test('window DPI is observed independently from browser DPR and preserves coordinate awareness', () => {
+  assert.equal(windowMetrics().relationship.windowDpi, 96)
+  const physical = windowMetrics(41, '123', 192, 2, 2)
+  assert.equal(
+    physical.relationship.coordinateRelationship,
+    'client-coordinates-match-css-times-dpr',
+  )
+  const virtualized = windowMetrics(41, '123', 192, 2, 1)
+  assert.equal(virtualized.relationship.coordinateRelationship, 'client-coordinates-match-css')
+  assert.equal(virtualized.relationship.windowDpi, 192)
+  assert.equal(virtualized.relationship.multiDpiMatrixAccepted, false)
+  for (const modify of [
+    (value) => {
+      value.native.dpi = 0
+    },
+    (value) => {
+      delete value.native.dpi
+    },
+    (value) => {
+      value.native.dpiAwareness = -1
+    },
+    (value) => {
+      value.native.pid = 99
+    },
+    (value) => {
+      value.native.creationFileTime = '999'
+    },
+    (value) => {
+      value.dom.innerWidth = 600
+    },
+    (value) => {
+      value.dom.innerHeight = 800
+    },
+    (value) => {
+      value.native.displaySettingsChanged = true
+    },
+  ]) {
+    const bad = windowMetrics()
+    modify(bad)
+    assert.throws(() => validateNativeDpiObservation(bad, 41, '123'))
+  }
 })
 
 const pluginInventory = [
@@ -235,6 +316,14 @@ const passing = () => ({
   nativeCleanupVerified: true,
   logOverflow: false,
   observerSummary: summary(),
+  launches: [
+    { productPid: 41, identity: { creationFileTime: '123' }, windowMetrics: windowMetrics() },
+    {
+      productPid: 42,
+      identity: { creationFileTime: '456' },
+      windowMetrics: windowMetrics(42, '456'),
+    },
+  ],
   steps: GUI_STEPS.map((name) => {
     const step = { name, status: 'passed' }
     if (name === 'blank-start-enable' || name === 'busy-close') {
@@ -271,6 +360,7 @@ const passing = () => ({
       step.operations = Array.from({ length: 6 }, () => ({
         nativeWindowChanged: true,
         settled: true,
+        windowMetrics: windowMetrics(),
       }))
     if (name === 'repeat-document-open')
       step.opens = Array.from({ length: 3 }, () => ({
