@@ -1167,8 +1167,8 @@ async function guiInstalledFixture(t, options = {}) {
       creationFileTime: String(133000000000 + launch.productPid),
       token: product.context.desktop.token,
     }
-  const syntheticWindowMetrics = (launch) => {
-    const rect = { left: 0, top: 0, right: 1100, bottom: 760, width: 1100, height: 760 }
+  const syntheticWindowMetrics = (launch, width = 1100, height = 760) => {
+    const rect = { left: 0, top: 0, right: width, bottom: height, width, height }
     const value = {
       native: {
         observed: true,
@@ -1177,6 +1177,8 @@ async function guiInstalledFixture(t, options = {}) {
         creationFileTime: launch.identity.creationFileTime,
         hwnd: '0x' + launch.productPid.toString(16),
         className: 'Tauri Window',
+        maximized: false,
+        minimized: false,
         dpi: 96,
         dpiAwareness: 2,
         dpiAwarenessContext: '0xfffffffffffffffc',
@@ -1184,10 +1186,11 @@ async function guiInstalledFixture(t, options = {}) {
         windowRect: { ...rect },
         clientRect: { ...rect },
         clientScreenRect: { ...rect },
+        desktopRect: { left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080 },
       },
       dom: {
-        innerWidth: 1100,
-        innerHeight: 760,
+        innerWidth: width,
+        innerHeight: height,
         devicePixelRatio: 1,
         screenAvailWidth: 1920,
         screenAvailHeight: 1080,
@@ -1201,8 +1204,31 @@ async function guiInstalledFixture(t, options = {}) {
     return value
   }
   for (const launch of report.launches) launch.windowMetrics = syntheticWindowMetrics(launch)
-  for (const operation of report.steps.find((row) => row.name === 'resize-wide').operations)
-    operation.windowMetrics = syntheticWindowMetrics(report.launches[0])
+  let previousNativeWindow = structuredClone(report.launches[0].windowMetrics.native)
+  for (const [index, operation] of report.steps
+    .find((row) => row.name === 'resize-wide')
+    .operations.entries()) {
+    const requested = {
+      mode: 'normal',
+      width: index % 2 === 0 ? 740 : 1180,
+      height: index % 2 === 0 ? 650 : 820,
+    }
+    const metrics = syntheticWindowMetrics(report.launches[0], requested.width, requested.height)
+    Object.assign(operation, {
+      operation: requested,
+      before: structuredClone(previousNativeWindow.windowRect),
+      after: structuredClone(metrics.native.windowRect),
+      nativeControl: {
+        requested: structuredClone(requested),
+        nativeWindowOperation: true,
+        displaySettingsChanged: false,
+        before: structuredClone(previousNativeWindow),
+        after: structuredClone(metrics.native),
+      },
+      windowMetrics: metrics,
+    })
+    previousNativeWindow = structuredClone(metrics.native)
+  }
   windows.identityContext = {
     token: product.context.desktop.token,
     sessionId: installation.sessionId,
@@ -1351,6 +1377,14 @@ for (const scenario of [
   'unknown-native-dpi',
   'reused-dpi-window-pid',
   'inconsistent-css-client-size',
+  'missing-native-resize-control',
+  'webview-only-resize',
+  'wrong-resize-product',
+  'reused-resize-product',
+  'mismatched-measured-native-window',
+  'native-resize-changed-display',
+  'different-resize-hwnd',
+  'forged-resize-request',
 ])
   test(`installed GUI delivery gate rejects ${scenario}`, async (t) => {
     const f = await guiInstalledFixture(t)
@@ -1369,6 +1403,28 @@ for (const scenario of [
       f.report.steps.find(
         (row) => row.name === 'resize-wide',
       ).operations[0].windowMetrics.dom.innerWidth = 600
+    const resize = f.report.steps.find((row) => row.name === 'resize-wide').operations[0]
+    if (scenario === 'missing-native-resize-control') delete resize.nativeControl
+    if (scenario === 'webview-only-resize') {
+      // The DOM viewport changes while all actual Win32 window observations
+      // remain unchanged. A claimed boolean must not turn this into a resize.
+      resize.nativeControl.after = structuredClone(resize.nativeControl.before)
+      resize.after = structuredClone(resize.before)
+      resize.windowMetrics.native = structuredClone(resize.nativeControl.before)
+    }
+    if (scenario === 'wrong-resize-product') resize.nativeControl.before.pid++
+    if (scenario === 'reused-resize-product')
+      resize.nativeControl.after.creationFileTime = '133999999999'
+    if (scenario === 'mismatched-measured-native-window') {
+      resize.windowMetrics.native.windowRect.width++
+      resize.windowMetrics.native.windowRect.right++
+    }
+    if (scenario === 'native-resize-changed-display') {
+      resize.nativeControl.after.desktopRect.width++
+      resize.nativeControl.after.desktopRect.right++
+    }
+    if (scenario === 'different-resize-hwnd') resize.nativeControl.after.hwnd = '0x999'
+    if (scenario === 'forged-resize-request') resize.nativeControl.requested.width++
     if (scenario === 'wrong-contract') f.report.contractSha256 = 'c'.repeat(64)
     if (scenario === 'wrong-observer')
       f.report.observerInputs = { ...f.report.observerInputs, scriptSha256: 'c'.repeat(64) }
