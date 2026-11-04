@@ -251,6 +251,56 @@ export function validatePng(bytes, maxBytes = MAX_NATIVE_PNG) {
   return { width, height, bytes: bytes.length, sha256: sha(bytes), structuralValidation: true }
 }
 
+export function validateResponsiveDiagram(image, tolerance = 1) {
+  const container = image.presentation
+  assert(container && image.rect, 'Actual image and presentation container measurements required')
+  for (const value of [
+    image.naturalWidth,
+    image.naturalHeight,
+    image.rect.width,
+    image.rect.height,
+    container.clientWidth,
+    container.scrollWidth,
+    container.paddingLeft,
+    container.paddingRight,
+    container.borderLeft,
+    container.rect?.left,
+    image.rect.left,
+    image.rect.right,
+  ])
+    assert(Number.isFinite(value) && value >= 0, 'Finite measured CSS and intrinsic dimensions')
+  assert(image.naturalWidth > 0 && image.naturalHeight > 0)
+  const contentWidth = container.clientWidth - container.paddingLeft - container.paddingRight
+  assert(contentWidth > 0, 'Positive content width after actual container padding')
+  const expectedWidth = Math.min(image.naturalWidth, contentWidth)
+  const expectedHeight = (expectedWidth * image.naturalHeight) / image.naturalWidth
+  assert(
+    Math.abs(image.rect.width - expectedWidth) <= tolerance,
+    'Diagram fits available content width without under-sizing or upscaling',
+  )
+  assert(
+    Math.abs(image.rect.height - expectedHeight) <= tolerance,
+    'Fitted diagram preserves intrinsic aspect ratio',
+  )
+  const contentLeft = container.rect.left + container.borderLeft + container.paddingLeft
+  assert(
+    image.rect.left >= contentLeft - tolerance &&
+      image.rect.right <= contentLeft + contentWidth + tolerance,
+    'Fitted diagram stays inside the actual presentation content box',
+  )
+  assert(
+    container.scrollWidth <= container.clientWidth + tolerance,
+    'No horizontal presentation overflow',
+  )
+  return {
+    contentWidth,
+    expectedWidth,
+    expectedHeight,
+    paddingLeft: container.paddingLeft,
+    paddingRight: container.paddingRight,
+  }
+}
+
 export function validateAccountKind(value) {
   assert(['pure-standard', 'filtered-admin'].includes(value), 'Explicit supported account kind')
   return value
@@ -1094,13 +1144,14 @@ export const observe = `
 const editor=document.querySelector('.milkup-editor'),rect=e=>e?.getBoundingClientRect().toJSON()??null;
 const visible=e=>{if(!e)return false;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth};
 const text=s=>document.querySelector(s)?.textContent??null;
+const presentation=e=>{const p=e.closest('[data-document-presentation]');if(!p)return null;const s=getComputedStyle(p);return {rect:rect(p),clientWidth:p.clientWidth,scrollWidth:p.scrollWidth,paddingLeft:parseFloat(s.paddingLeft)||0,paddingRight:parseFloat(s.paddingRight)||0,borderLeft:parseFloat(s.borderLeftWidth)||0}};
 return {url:location.href,protocol:location.protocol,hostname:location.hostname,userAgent:navigator.userAgent,devicePixelRatio,
  path:text('[data-stat="path"]')??(text('[data-title-path]')+'/'+text('[data-title]')+'.md'),loading:document.querySelector('#app')?.dataset.loading,
  version:Number(text('[data-stat="version"]')),saving:document.querySelector('#app')?.dataset.saving==='true',dirty:!!document.querySelector('[data-save-dot]')?.classList.contains('is-dirty'),
  mode:editor?.dataset.mode,editor:rect(editor),cursor:Number(document.querySelector('.milkup-cursor')?.dataset.position),visibility:document.visibilityState,
  editorFocused:!!document.activeElement?.matches('.milkup-input-proxy'),menu:visible(document.querySelector('[data-app-menu]')),
  developmentProbe:typeof window.__searchProbe,diagnostics:typeof window.__productionDiagnostics,
- images:[...document.querySelectorAll('[data-document-presentation] img')].map(e=>({src:e.currentSrc,complete:e.complete,naturalWidth:e.naturalWidth,naturalHeight:e.naturalHeight,rect:rect(e),visible:visible(e),alt:e.alt})),
+ images:[...document.querySelectorAll('[data-document-presentation] img')].map(e=>({src:e.currentSrc,complete:e.complete,naturalWidth:e.naturalWidth,naturalHeight:e.naturalHeight,rect:rect(e),presentation:presentation(e),visible:visible(e),alt:e.alt})),
  vectorCount:document.querySelectorAll('[data-document-presentation] svg').length,
  source:[...document.querySelectorAll('.milkup-line,.milkup-code-source')].map(e=>({text:e.textContent,visible:visible(e)&&!e.classList.contains('milkup-marker-hidden'),rect:rect(e)})),
  notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,visible:visible(e)})),
@@ -2101,10 +2152,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             image = current.images.find((item) => item.visible)
           if (name === 'wide') {
             assert(image.naturalWidth > current.editor.width)
-            assert(
-              Math.abs(image.rect.width - image.naturalWidth) < 1,
-              'Wide PNG keeps natural width',
-            )
+            row.responsiveLayout = validateResponsiveDiagram(image)
             assert(image.naturalHeight >= 40)
           }
           if (name === 'c4')

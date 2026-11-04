@@ -7,6 +7,7 @@ import {
   fixtures,
   crc32,
   validatePng,
+  validateResponsiveDiagram,
   validateContext,
   validateHostProcessToken,
   AuditLedger,
@@ -28,6 +29,84 @@ import {
   probeCloseConfirmation,
   assertCleanCloseConfirmation,
 } from './mermaid-product-e2e.mjs'
+
+test('wide diagrams fit the measured padded content box while retaining intrinsic pixels', () => {
+  const image = {
+    naturalWidth: 2000,
+    naturalHeight: 400,
+    rect: { left: 112, right: 888, width: 776, height: 155.2 },
+    presentation: {
+      rect: { left: 100 },
+      clientWidth: 800,
+      scrollWidth: 800,
+      paddingLeft: 12,
+      paddingRight: 12,
+      borderLeft: 0,
+    },
+  }
+  assert.equal(validateResponsiveDiagram(image).contentWidth, 776)
+  const small = structuredClone(image)
+  small.naturalWidth = 300
+  small.naturalHeight = 150
+  small.rect.width = 300
+  small.rect.right = 412
+  small.rect.height = 150
+  assert.equal(validateResponsiveDiagram(small).expectedWidth, 300)
+  for (const [label, change] of [
+    [
+      'oversized',
+      (bad) => {
+        bad.rect.width = 2000
+        bad.rect.right = 2112
+        bad.rect.height = 400
+      },
+    ],
+    [
+      'undersized',
+      (bad) => {
+        bad.rect.width = 500
+        bad.rect.right = 612
+        bad.rect.height = 100
+      },
+    ],
+    [
+      'distorted',
+      (bad) => {
+        bad.rect.height = 190
+      },
+    ],
+    [
+      'padding ignored',
+      (bad) => {
+        bad.rect.width = 800
+        bad.rect.right = 912
+        bad.rect.height = 160
+      },
+    ],
+    [
+      'overflow',
+      (bad) => {
+        bad.presentation.scrollWidth = 1200
+      },
+    ],
+    [
+      'outside content box',
+      (bad) => {
+        bad.rect.left = 100
+        bad.rect.right = 876
+      },
+    ],
+  ]) {
+    const bad = structuredClone(image)
+    change(bad)
+    assert.throws(() => validateResponsiveDiagram(bad), label)
+  }
+  const upscaled = structuredClone(small)
+  upscaled.rect.width = 600
+  upscaled.rect.right = 712
+  upscaled.rect.height = 300
+  assert.throws(() => validateResponsiveDiagram(upscaled), /without under-sizing or upscaling/)
+})
 
 test('W3C null result is preserved instead of turning its envelope into a dialog truthy value', () => {
   const response = JSON.parse('{"value":null}')

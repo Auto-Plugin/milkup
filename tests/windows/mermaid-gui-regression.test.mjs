@@ -261,6 +261,35 @@ test('diagram geometry must preserve aspect and reachable wide content', () => {
   assert.equal((guiFixtures.multi.match(/```mermaid/g) ?? []).length, 2)
 })
 
+test('fixed-candidate GUI requires responsive fitting while legacy baseline stays observable', () => {
+  const layout = {
+    width: 900,
+    height: 150,
+    naturalWidth: 900,
+    naturalHeight: 150,
+    containerWidth: 700,
+    scrollWidth: 900,
+    overflowX: 'auto',
+    rect: { left: 12, right: 912, width: 900, height: 150 },
+    presentation: {
+      rect: { left: 0 },
+      clientWidth: 700,
+      scrollWidth: 900,
+      paddingLeft: 12,
+      paddingRight: 12,
+      borderLeft: 0,
+    },
+  }
+  assert(validateDiagramLayout({ layout: [layout] }, false))
+  assert.throws(() => validateDiagramLayout({ layout: [layout] }, true), /fits available/)
+  const fitted = structuredClone(layout)
+  fitted.width = fitted.rect.width = 676
+  fitted.rect.right = 688
+  fitted.height = fitted.rect.height = 676 / 6
+  fitted.scrollWidth = fitted.presentation.scrollWidth = 700
+  assert(validateDiagramLayout({ layout: [fitted] }, true))
+})
+
 test('current native cleanup and directory authority proofs are independently required', () => {
   const proof = {
     aclOperations: 2,

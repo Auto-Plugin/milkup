@@ -20,6 +20,7 @@ import {
   validateContext,
   validateProcessIdentities,
   validatePng,
+  validateResponsiveDiagram,
   parseExpectedPluginInventory,
   waitForBundledPluginInventory,
   waitForNativeJobs,
@@ -73,11 +74,16 @@ return {mode:e?.dataset.mode,dirty:!!document.querySelector('[data-save-dot]')?.
  sourceVisible:boxes.some(x=>x.dataset.documentPresentationStatus==='fallback')||[...document.querySelectorAll('.milkup-code-source')].some(x=>visible(x)&&/flowchart|C4Component/.test(x.textContent)),
  geometry:JSON.stringify({dpr:devicePixelRatio,editorWidth:round(r(e)?.width??0),images:images.map(x=>{const b=r(x);return [round(b.x),round(b.y),round(b.width),round(b.height),x.naturalWidth,x.naturalHeight]}),boxes:boxes.map(x=>[x.clientWidth,x.scrollWidth,x.clientHeight,x.scrollHeight])}),
  notices:JSON.stringify([...document.querySelectorAll('[data-document-presentation-notice]')].map(x=>x.textContent?.slice(0,300))),
- layout:images.map(x=>{const b=r(x),p=x.closest('[data-document-presentation]');return {width:b.width,height:b.height,naturalWidth:x.naturalWidth,naturalHeight:x.naturalHeight,containerWidth:p?.clientWidth,scrollWidth:p?.scrollWidth,overflowX:p&&getComputedStyle(p).overflowX}})};`
+ layout:images.map(x=>{const b=r(x),p=x.closest('[data-document-presentation]'),s=p&&getComputedStyle(p);return {width:b.width,height:b.height,naturalWidth:x.naturalWidth,naturalHeight:x.naturalHeight,rect:b.toJSON(),presentation:p?{rect:r(p).toJSON(),clientWidth:p.clientWidth,scrollWidth:p.scrollWidth,paddingLeft:parseFloat(s.paddingLeft)||0,paddingRight:parseFloat(s.paddingRight)||0,borderLeft:parseFloat(s.borderLeftWidth)||0}:null,containerWidth:p?.clientWidth,scrollWidth:p?.scrollWidth,overflowX:s?.overflowX}})};`
 
-export function validateDiagramLayout(value) {
+export function validateDiagramLayout(value, requireResponsiveFit = false) {
   assert(value.layout.length > 0)
   for (const image of value.layout) {
+    if (requireResponsiveFit) {
+      validateResponsiveDiagram(image)
+      assert(image.containerWidth >= 200, 'Real editor presentation width required')
+      continue
+    }
     assert(image.width >= 32 && image.height >= 24, 'Diagram must have usable nonzero dimensions')
     assert(image.containerWidth >= 200, 'Real editor presentation width required')
     assert(image.width <= image.naturalWidth + 1, 'Do not upscale the renderer image')
@@ -649,7 +655,7 @@ export async function main() {
           return false
         }
         if (performance.now() - since < 1500) return false
-        validateDiagramLayout(value)
+        validateDiagramLayout(value, report.identityKind === 'current-candidate')
         return value
       },
       'Decoded diagrams and native work settle',
@@ -936,7 +942,7 @@ export async function main() {
       await step(`open-${name}-stable`, async (row) => {
         row.picker = await openFile(name)
         row.nativePickerAccepted = true
-        await settle()
+        row.layout = (await settle()).layout
         row.png = (await decodeImages(name))[0]
         row.exactBytesUnchanged = await exactBytes(name)
         await stability(row, 75000)
@@ -973,7 +979,7 @@ export async function main() {
         }
         row.operations.push(item)
         assert(item.nativeWindowChanged, 'Native window dimensions must actually change')
-        await settle()
+        item.layout = (await settle()).layout
         await stability(item, 10000)
         item.settled = true
       }
@@ -985,7 +991,7 @@ export async function main() {
         row.opens.push(item)
         item.picker = await openFile(name)
         item.nativePickerAccepted = true
-        await settle()
+        item.layout = (await settle()).layout
         await stability(item, 3000)
         item.stable = true
         item.exactBytesUnchanged = await exactBytes(name)
@@ -994,7 +1000,7 @@ export async function main() {
     await step('multi-diagram', async (row) => {
       row.picker = await openFile('multi')
       row.nativePickerAccepted = true
-      await settle(2)
+      row.layout = (await settle(2)).layout
       row.decodedImages = await decodeImages('multi', 2)
       await stability(row, 10000, 2)
       row.exactBytesUnchanged = await exactBytes('multi')
