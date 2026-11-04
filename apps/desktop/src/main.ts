@@ -1646,6 +1646,8 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
   theme: () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
   renderers: () => desktopPluginManager.state().contributions.documentRenderers ?? [],
   rendererGeneration: (pluginId) => desktopPluginManager.documentRendererGeneration(pluginId),
+  cacheableFence: (pluginId, rendererId) =>
+    desktopPluginManager.canReusePrivateMermaidFence(pluginId, rendererId),
   render: (pluginId, rendererId, request, options) =>
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })

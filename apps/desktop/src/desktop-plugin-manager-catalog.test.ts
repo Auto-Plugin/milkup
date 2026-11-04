@@ -303,7 +303,11 @@ describe('private fixed Mermaid package authorization', () => {
     try {
       await s.manager.renderDocument('test.lifecycle', 'diagram', s.request).catch(() => {})
       expect(s.invoke).not.toHaveBeenCalled()
+      expect(s.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(false)
       await s.manager.enableFromUserIntent('test.lifecycle')
+      expect(s.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+      expect(s.manager.canReusePrivateMermaidFence('other.plugin', 'diagram')).toBe(false)
+      expect(s.manager.canReusePrivateMermaidFence('test.lifecycle', 'other')).toBe(false)
       const failed = await s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
       expect(failed.fragments[0]?.status).toBe('error')
       expect(failed.fragments[0]?.content).toEqual({
@@ -321,6 +325,7 @@ describe('private fixed Mermaid package authorization', () => {
         s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
       ).toHaveLength(1)
       await s.manager.disable('test.lifecycle')
+      expect(s.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(false)
       await s.manager.renderDocument('test.lifecycle', 'diagram', s.request).catch(() => {})
       expect(
         s.invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
@@ -337,6 +342,7 @@ describe('private fixed Mermaid package authorization', () => {
     const s = await renderer('f'.repeat(64))
     try {
       await s.manager.enableFromUserIntent('test.lifecycle')
+      expect(s.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(false)
       await s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
       expect(s.invoke).not.toHaveBeenCalled()
     } finally {

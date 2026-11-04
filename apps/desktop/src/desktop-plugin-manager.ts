@@ -1649,6 +1649,44 @@ export class DesktopPluginManager {
     throw new Error(result.error.message)
   }
 
+  /** Host-only cache authority; the same exact gate controls native rendering. */
+  canReusePrivateMermaidFence(pluginId: string, rendererId: string): boolean {
+    return this.privateMermaidIdentity(pluginId, rendererId) !== undefined
+  }
+
+  private privateMermaidIdentity(pluginId: string, rendererId: string) {
+    const config = this.privateMermaid
+    if (
+      !config ||
+      pluginId !== config.reviewed.pluginId ||
+      rendererId !== config.reviewed.rendererId
+    )
+      return undefined
+    const entry = this.catalogEntry(pluginId)
+    const active = entry?.active
+    const gate = this.activationGates.get(pluginId)
+    const epoch = this.activationEpochs.get(pluginId)
+    if (
+      this.documentRenderersClosing ||
+      !this.catalog ||
+      !entry?.enabled ||
+      entry.tombstone ||
+      !active?.verified ||
+      active.approvedFingerprint !== active.capabilityFingerprint ||
+      active.manifestSha256 !== config.reviewed.manifestSha256 ||
+      active.contentSha256 !== config.reviewed.contentSha256 ||
+      this.publishedGenerations.get(pluginId) !== active.id ||
+      !gate?.committed ||
+      gate.epoch !== epoch ||
+      this.runtime.getPlugin(pluginId)?.state !== 'enabled' ||
+      !this.state().contributions.documentRenderers?.some(
+        (renderer) => renderer.pluginId === pluginId && renderer.id === rendererId,
+      )
+    )
+      return undefined
+    return { generation: active.id, epoch: epoch! }
+  }
+
   async renderDocument(
     pluginId: string,
     rendererId: string,
@@ -1663,31 +1701,7 @@ export class DesktopPluginManager {
       pluginId === config.reviewed.pluginId &&
       rendererId === config.reviewed.rendererId
     ) {
-      const current = () => {
-        const entry = this.catalogEntry(pluginId)
-        const active = entry?.active
-        const gate = this.activationGates.get(pluginId)
-        const epoch = this.activationEpochs.get(pluginId)
-        if (
-          this.documentRenderersClosing ||
-          !this.catalog ||
-          !entry?.enabled ||
-          entry.tombstone ||
-          !active?.verified ||
-          active.approvedFingerprint !== active.capabilityFingerprint ||
-          active.manifestSha256 !== config.reviewed.manifestSha256 ||
-          active.contentSha256 !== config.reviewed.contentSha256 ||
-          this.publishedGenerations.get(pluginId) !== active.id ||
-          !gate?.committed ||
-          gate.epoch !== epoch ||
-          this.runtime.getPlugin(pluginId)?.state !== 'enabled' ||
-          !this.state().contributions.documentRenderers?.some(
-            (renderer) => renderer.pluginId === pluginId && renderer.id === rendererId,
-          )
-        )
-          return undefined
-        return { generation: active.id, epoch: epoch! }
-      }
+      const current = () => this.privateMermaidIdentity(pluginId, rendererId)
       const identity = current()
       // Other independently installed packages continue through their existing
       // bounded renderer. The private engine never receives their input.
