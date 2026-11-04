@@ -477,36 +477,16 @@ fn parent_observes_suspended_and_self_tokens() {
         report["freshAppContainerSid"] = json!(sid);
         let owner = host_summary["userSid"].as_str().ok_or("Missing host SID")?;
         let system = system_directory()?;
-        let mut acl_audit = json!([]);
         phase = "owned-acl-and-pinned-test-image";
-        acl(
-            &system,
-            &created,
-            &[
-                "/inheritance:r".into(),
-                "/grant:r".into(),
-                format!("*{owner}:(OI)(CI)F"),
-                "*S-1-5-18:(OI)(CI)F".into(),
-                format!("*{sid}:(OI)(CI)RX"),
-            ],
-            &mut acl_audit,
-        )?;
+        report["aclOperations"] = json!([directory_acl::root(&created, owner, &sid)?]);
         let code = created.join("code");
         let state = created.join("state");
         fs::create_dir(&code)?;
         fs::create_dir(&state)?;
-        acl(
-            &system,
-            &state,
-            &["/grant:r".into(), format!("*{sid}:(OI)(CI)F")],
-            &mut acl_audit,
-        )?;
-        acl(
-            &system,
-            &state,
-            &["/setintegritylevel".into(), "(OI)(CI)L".into()],
-            &mut acl_audit,
-        )?;
+        report["aclOperations"]
+            .as_array_mut()
+            .unwrap()
+            .push(directory_acl::state(&state, owner, &sid)?);
         let exe = code.join("milkup-token-diagnostic.exe");
         pins = Some(pinned_copy(&std::env::current_exe()?, &exe)?);
         phase = "creation-time-job";
@@ -543,6 +523,7 @@ fn parent_observes_suspended_and_self_tokens() {
         }
         report["executionAncestryAccessDenials"] =
             check_code_parent_access(process.as_raw_handle(), &code)?;
+        report["stateWriteAccess"] = check_state_write_access(process.as_raw_handle(), &state)?;
         report["childPid"] = json!(unsafe { GetProcessId(process.as_raw_handle()) });
         report["creationTimeJobVerified"] = json!(true);
         readers.push(("stdout", bounded_reader(output)));

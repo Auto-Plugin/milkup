@@ -13,7 +13,6 @@ use std::{
         io::{AsRawHandle, FromRawHandle, OwnedHandle},
     },
     path::{Path, PathBuf},
-    process::Command,
     ptr::{null, null_mut},
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -22,6 +21,9 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+
+#[path = "directory_acl.rs"]
+mod directory_acl;
 use windows_sys::Win32::{
     Foundation::*,
     Security::{Authorization::ConvertSidToStringSidW, Isolation::*, *},
@@ -447,10 +449,15 @@ impl Profile {
         let folder = self.folder.as_ref().ok_or(
             "AppContainer delete API succeeded, but folder absence is unverified after initialization failure",
         )?;
-        if folder.exists() {
-            return Err("AppContainer profile folder remains after deletion".into());
-        }
-        Ok(())
+        require_observed_absence(fs::symlink_metadata(folder).map(|_| ()))
+    }
+}
+
+fn require_observed_absence(presence: std::io::Result<()>) -> Result<()> {
+    match presence {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.into()),
+        Ok(()) => Err("Owned path remains after deletion".into()),
     }
 }
 impl Drop for Profile {
@@ -687,20 +694,6 @@ fn system_directory() -> Result<PathBuf> {
     }
     Ok(PathBuf::from(String::from_utf16_lossy(&path[..len])))
 }
-fn acl(system: &Path, path: &Path, args: &[String], report: &mut Value) -> Result<()> {
-    let output = Command::new(system.join("icacls.exe"))
-        .arg(path)
-        .args(args)
-        .output()?;
-    report.as_array_mut().ok_or("ACL audit must be an array")?.push(json!({
-        "path":path,"arguments":args,"exitCode":output.status.code(),
-        "stdout":String::from_utf8_lossy(&output.stdout),"stderr":String::from_utf8_lossy(&output.stderr)
-    }));
-    if !output.status.success() {
-        return Err("Exact private-directory ACL operation failed; no broader fallback".into());
-    }
-    Ok(())
-}
 fn reject_reparse_ancestors(path: &Path) -> Result<()> {
     for ancestor in path.ancestors() {
         if ancestor.as_os_str().is_empty() {
@@ -820,6 +813,45 @@ fn check_code_parent_access(process: HANDLE, code: &Path) -> Result<Value> {
         }
     }
     Ok(json!(checks))
+}
+
+fn check_state_write_access(process: HANDLE, state: &Path) -> Result<Value> {
+    let source = open_token(process, TOKEN_QUERY | TOKEN_DUPLICATE)?;
+    let mut duplicate = null_mut();
+    check(unsafe {
+        DuplicateToken(
+            source.as_raw_handle(),
+            SecurityImpersonation,
+            &mut duplicate,
+        )
+    })?;
+    let duplicate = unsafe { owned(duplicate)? };
+    let sentinel = state.join(".milkup-state-access-probe");
+    {
+        check(unsafe { ImpersonateLoggedOnUser(duplicate.as_raw_handle()) })?;
+        let _revert = RevertGuard;
+        // A fixed CREATE_NEW file in this request's empty private state only.
+        // DELETE_ON_CLOSE verifies actual Low/AppContainer write+delete access,
+        // including error paths, without leaving another cleanup responsibility.
+        let handle = unsafe {
+            owned(CreateFileW(
+                wide(sentinel.as_os_str()).as_ptr(),
+                GENERIC_WRITE | DELETE,
+                0,
+                null(),
+                CREATE_NEW,
+                FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_DELETE_ON_CLOSE,
+                null_mut(),
+            ))?
+        };
+        let mut file = File::from(handle);
+        file.write_all(b"owned-state-probe")?;
+    }
+    // Parent identity has been restored before the independent absence check.
+    require_observed_absence(fs::symlink_metadata(&sentinel).map(|_| ()))?;
+    Ok(
+        json!({"sameSuspendedToken":true,"createdAndWritten":true,"deleteOnClose":true,"independentlyAbsent":true}),
+    )
 }
 
 struct Spawned {
@@ -1190,6 +1222,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     let root = temp.join(&unique);
     fs::create_dir(&root)?; // CREATE_NEW semantics: a preexisting path is a hard failure.
     let mut report = json!({"name":unique,"runtime":runtime,"privateRoot":root,
+        "requestId":input["requestId"],"profileCreated":false,
         "hostToken":host_token,"standardUserEvidence":host_token["standardUserTokenEvidence"],
         "hostTokenClass":host_class.name(),"hostNonElevatedVerified":true,
         "cleanupOwner":"same-login-coordinator",
@@ -1233,35 +1266,21 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         // Reset only this newly owned root. This same-login coordinator and
         // SYSTEM retain cleanup access; no other login or existing object ACL
         // is modified. The AppContainer can read/execute, never replace code.
-        acl(
-            &system,
-            &root,
-            &[
-                "/inheritance:r".into(),
-                "/grant:r".into(),
-                format!("*{owner_sid}:(OI)(CI)F"),
-                "*S-1-5-18:(OI)(CI)F".into(),
-                format!("*{sid}:(OI)(CI)RX"),
-            ],
-            &mut report["aclOperations"],
-        )?;
+        report["aclOperations"]
+            .as_array_mut()
+            .unwrap()
+            .push(directory_acl::root(&root, owner_sid, &sid)?);
+        control.checkpoint()?;
         let code = root.join("code");
         let state = root.join("state");
         fs::create_dir(&code)?;
         fs::create_dir(&state)?;
         // Only this sibling contains UDF/temp. Never recurse an F grant over root/code.
-        acl(
-            &system,
-            &state,
-            &["/grant:r".into(), format!("*{sid}:(OI)(CI)F")],
-            &mut report["aclOperations"],
-        )?;
-        acl(
-            &system,
-            &state,
-            &["/setintegritylevel".into(), "(OI)(CI)L".into()],
-            &mut report["aclOperations"],
-        )?;
+        report["aclOperations"]
+            .as_array_mut()
+            .unwrap()
+            .push(directory_acl::state(&state, owner_sid, &sid)?);
+        control.checkpoint()?;
         fs::create_dir(state.join("udf"))?;
         let exe = code.join("milkup-fixed-mermaid.exe");
         pins = Some(pinned_copy(&std::env::current_exe()?, &exe)?);
@@ -1293,6 +1312,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         }
         report["executionAncestryAccessDenials"] =
             check_code_parent_access(process.as_raw_handle(), &code)?;
+        report["stateWriteAccess"] = check_state_write_access(process.as_raw_handle(), &state)?;
         control.checkpoint()?;
         report["suspendedJob"] = job.sample()?;
         let (tx, rx) = mpsc::channel();
@@ -1447,6 +1467,16 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     })();
     let cleanup_started = Instant::now();
     let mut cleanup_timeline = json!({});
+    report["ownedJobCreated"] = json!(job.is_some());
+    report["pinnedFilesCreated"] = json!(pins.is_some());
+    let mut started_streams = vec!["stdout"; readers.len()];
+    if writer.is_some() {
+        started_streams.push("stdin");
+    }
+    if stderr_reader.is_some() {
+        started_streams.push("stderr");
+    }
+    report["ipcStreamsStarted"] = json!(started_streams);
     stop_requested.store(true, Ordering::Release);
     report["capturedPngBytes"] = json!(png.len());
     let mut cleanup_errors = Vec::new();
@@ -1554,6 +1584,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     drop(job); // KILL_ON_JOB_CLOSE remains the last-resort ownership boundary.
     let had_pins = pins.is_some();
     drop(pins);
+    report["pinsReleased"] = json!(true);
     if had_pins {
         cleanup_timeline["pinsReleasedMs"] =
             json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
@@ -1634,6 +1665,22 @@ mod token_diagnostic;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn owned_path_absence_requires_explicit_not_found() {
+        assert!(require_observed_absence(Ok(())).is_err());
+        for kind in [
+            std::io::ErrorKind::PermissionDenied,
+            std::io::ErrorKind::Other,
+            std::io::ErrorKind::WouldBlock,
+        ] {
+            assert!(require_observed_absence(Err(std::io::Error::from(kind))).is_err());
+        }
+        assert!(
+            require_observed_absence(Err(std::io::Error::from(std::io::ErrorKind::NotFound)))
+                .is_ok()
+        );
+    }
 
     #[test]
     fn helper_exit_observation_does_not_query_exit_code_of_live_process() {
@@ -1738,6 +1785,7 @@ mod tests {
             cancelled: Arc::new(AtomicBool::new(false)),
             deadline: Instant::now() + Duration::from_secs(5),
             unhealthy: Arc::new(AtomicBool::new(false)),
+            cleanup_uncertain: Arc::new(AtomicBool::new(false)),
         };
         let result = run(
             &runtime,
@@ -1756,6 +1804,7 @@ mod tests {
             "No owned root may be created before host rejection"
         );
         assert!(!control.unhealthy.load(Ordering::Acquire));
+        assert!(!control.cleanup_uncertain.load(Ordering::Acquire));
         println!(
             "MILKUP_MERMAID_ELEVATED_REJECTION {}",
             json!({

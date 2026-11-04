@@ -184,6 +184,10 @@ pub(crate) fn finished(
     cancelled: bool,
     deadline_expired: bool,
 ) -> Value {
+    // Per-request observations, not the Registry's accumulated failure latches.
+    // Keep cleanupUncertain's historical render-health meaning for old readers.
+    let render_blocked = report["stopMatrixAfterThisCase"] == true;
+    let resources_released = crate::owned_native_resources_released(request_id, report);
     let members: Vec<_> = report["preStopJob"]["members"]
         .as_array()
         .into_iter()
@@ -225,7 +229,10 @@ pub(crate) fn finished(
             "profileCreated":report["profileCreated"]==true,
             "profileDeleted":report["profileDeletedAndFolderAbsent"]==true,
             "privateTreeRemoved":report["privateTreeRemoved"]==true,
-            "cleanupUncertain":report["stopMatrixAfterThisCase"]==true,
+            "cleanupUncertain":render_blocked,
+            "renderBlockedAfterFailure":render_blocked,
+            "resourceReleaseProven":resources_released,
+            "resourceCleanupUncertain":render_blocked && !resources_released,
             "cancelled":cancelled,"deadlineExpired":deadline_expired,
             "pngBytes":png.len(),
             "pngSha256":if png.is_empty(){None}else{Some(format!("{:x}",Sha256::digest(png)))},
@@ -286,6 +293,7 @@ fn helper_process_exit_observation(value: &Value) -> Option<Value> {
     }))
 }
 fn with_token_evidence(report: &Value, mut record: Value) -> Value {
+    record["directoryAccess"] = json!(directory_access(report));
     let verified = report["helperNativeProofVerified"] == true;
     let helper = if verified {
         &report["helperSelfToken"]
@@ -339,6 +347,79 @@ fn with_token_evidence(report: &Value, mut record: Value) -> Value {
         .expect("closed audit record")
         .extend(evidence.as_object().expect("closed token evidence").clone());
     record
+}
+
+/// Fixed facts only; raw ACL paths/SIDs and ancestor paths never enter audit.
+/// Missing or malformed evidence stays null rather than becoming a proof.
+fn directory_access(report: &Value) -> Option<Value> {
+    const FULL: u64 = 0x1f01ff;
+    const RX: u64 = 0x1200a9;
+    let operations = report["aclOperations"].as_array()?;
+    if operations.len() != 2 {
+        return None;
+    }
+    for (operation, scope, app_mask, low) in [
+        (&operations[0], "root", RX, false),
+        (&operations[1], "state", FULL, true),
+    ] {
+        if operation["api"].as_str()? != "SetSecurityInfo/GetSecurityInfo"
+            || operation["scope"].as_str()? != scope
+            || operation["exactAllowAceCount"].as_u64()? != 3
+            || operation["inheritanceFlags"].as_u64()? != 3
+            || operation["userMask"].as_u64()? != FULL
+            || operation["systemMask"].as_u64()? != FULL
+            || operation["appContainerMask"].as_u64()? != app_mask
+            || operation["lowNoWriteUpLabelVerified"].as_bool()? != low
+            || operation["externalProcessStarted"].as_bool()?
+        {
+            return None;
+        }
+        for field in ["ownerVerified", "daclProtected", "sameHandleReadback"] {
+            if !operation[field].as_bool()? {
+                return None;
+            }
+        }
+    }
+    let probe = &report["stateWriteAccess"];
+    for field in [
+        "sameSuspendedToken",
+        "createdAndWritten",
+        "deleteOnClose",
+        "independentlyAbsent",
+    ] {
+        if !probe[field].as_bool()? {
+            return None;
+        }
+    }
+    let denials = report["executionAncestryAccessDenials"].as_array()?;
+    const RIGHTS: [&str; 6] = [
+        "add-file",
+        "add-directory",
+        "delete-child",
+        "delete",
+        "write-dacl",
+        "write-owner",
+    ];
+    if denials.is_empty() || denials.len() > 384 || denials.len() % RIGHTS.len() != 0 {
+        return None;
+    }
+    for ancestor in denials.chunks_exact(RIGHTS.len()) {
+        let path = ancestor[0]["path"].as_str()?;
+        for (entry, right) in ancestor.iter().zip(RIGHTS) {
+            if entry["path"].as_str()? != path
+                || entry["right"].as_str()? != right
+                || entry["rawOsError"].as_u64()? != 5
+            {
+                return None;
+            }
+        }
+    }
+    Some(
+        json!({"aclOperations":2,"allowAcesPerDirectory":3,"inheritanceFlags":3,
+        "rootAppMask":RX,"stateAppMask":FULL,"ownerAndDaclVerified":true,
+        "sameHandleReadback":true,"lowStateLabel":true,"aclProcessesStarted":false,
+        "stateWriteProbe":true,"ancestorWritesDenied":true,"denialCount":denials.len()}),
+    )
 }
 // These diagnostics explain an existing cleanup failure; they never override
 // its gates or accept arbitrary launcher text, private paths or error messages.
@@ -565,6 +646,90 @@ mod tests {
     use super::*;
     use std::sync::Mutex;
 
+    fn directory_fixture() -> Value {
+        let operations: Vec<_> = [("root", 0x1200a9u32, false), ("state", 0x1f01ffu32, true)].into_iter().map(|(scope, mask, low)| {
+            json!({"api":"SetSecurityInfo/GetSecurityInfo","scope":scope,"exactAllowAceCount":3,
+                "inheritanceFlags":3,"userMask":0x1f01ffu32,"systemMask":0x1f01ffu32,"appContainerMask":mask,
+                "lowNoWriteUpLabelVerified":low,"externalProcessStarted":false,"ownerVerified":true,
+                "daclProtected":true,"sameHandleReadback":true,"path":"private-path","source":"private-source"})
+        }).collect();
+        let denials: Vec<_> = [
+            "add-file",
+            "add-directory",
+            "delete-child",
+            "delete",
+            "write-dacl",
+            "write-owner",
+        ]
+        .into_iter()
+        .map(|right| json!({"path":"private-path","right":right,"rawOsError":5}))
+        .collect();
+        json!({"aclOperations":operations,"stateWriteAccess":{"sameSuspendedToken":true,
+            "createdAndWritten":true,"deleteOnClose":true,"independentlyAbsent":true},
+            "executionAncestryAccessDenials":denials})
+    }
+
+    #[test]
+    fn directory_access_requires_complete_exact_acl_and_actual_access_probes() {
+        let good = directory_fixture();
+        let proof = directory_access(&good).unwrap();
+        assert_eq!(proof["denialCount"], 6);
+        assert_eq!(proof["rootAppMask"], 0x1200a9u32);
+        assert_eq!(proof["stateAppMask"], 0x1f01ffu32);
+        assert!(!proof.to_string().contains("private"));
+        for (pointer, replacement) in [
+            ("/aclOperations/0/appContainerMask", json!(0x1f01ffu32)),
+            ("/aclOperations/1/ownerVerified", json!(false)),
+            ("/aclOperations/1/inheritanceFlags", json!(19)),
+            ("/aclOperations/1/lowNoWriteUpLabelVerified", json!("true")),
+            ("/aclOperations/1/externalProcessStarted", json!(true)),
+            ("/stateWriteAccess/independentlyAbsent", Value::Null),
+            ("/executionAncestryAccessDenials/0/rawOsError", json!(0)),
+            ("/executionAncestryAccessDenials/0/right", json!("unknown")),
+            (
+                "/executionAncestryAccessDenials/1/path",
+                json!("another-path"),
+            ),
+        ] {
+            let mut bad = good.clone();
+            *bad.pointer_mut(pointer).unwrap() = replacement;
+            assert!(directory_access(&bad).is_none(), "accepted {pointer}");
+        }
+        let mut bad = good.clone();
+        bad["executionAncestryAccessDenials"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(directory_access(&bad).is_none());
+        assert!(directory_access(&Value::Null).is_none());
+        for record in [
+            started("request", &good),
+            finished("request", &good, &[], false, false),
+        ] {
+            assert_eq!(record["directoryAccess"], proof);
+            assert!(!record.to_string().contains("private-path"));
+            assert!(!record.to_string().contains("private-source"));
+        }
+    }
+
+    #[test]
+    fn render_failure_and_unreleased_resources_have_separate_audit_facts() {
+        let mut report = json!({"requestId":"request","stopMatrixAfterThisCase":true,
+            "ownedJobCreated":false,"pinnedFilesCreated":false,"pinsReleased":true,
+            "ipcStreamsStarted":[],"ipcThreadCleanup":[],"ipcThreadsCompleted":true,
+            "profileCreated":false,"privateTreeRemoved":true,
+            "privateTreeCleanup":{"attempts":1,"absenceChecked":true,"absent":true,"terminalPhase":"complete","finalOsError":null}});
+        let record = finished("request", &report, &[], false, false);
+        assert_eq!(record["cleanupUncertain"], true);
+        assert_eq!(record["renderBlockedAfterFailure"], true);
+        assert_eq!(record["resourceReleaseProven"], true);
+        assert_eq!(record["resourceCleanupUncertain"], false);
+        report["privateTreeCleanup"]["absent"] = Value::Null;
+        let record = finished("request", &report, &[], false, false);
+        assert_eq!(record["resourceReleaseProven"], false);
+        assert_eq!(record["resourceCleanupUncertain"], true);
+    }
+
     #[test]
     fn four_maximum_token_views_and_cleanup_fit_original_audit_budget() {
         let sandbox = crate::token_ready::maximum_sandbox();
@@ -588,6 +753,19 @@ mod tests {
             "ipcThreadCleanup":(["stdout","stdin","stderr"].map(|stream|json!({"stream":stream,"elapsedMs":u64::MAX,"cancelRequested":true,"cancelCallSucceeded":false,"cancelWin32Error":u32::MAX,"finished":false,"panicked":true}))),
             "stdoutFailure":{"phase":"trailing-byte","kind":"trailing-data","stopRequestedWhenObserved":true,"win32Error":u32::MAX},
             "stderrFailure":{"kind":"budget","stopRequestedWhenObserved":true,"win32Error":u32::MAX}});
+        for (key, value) in directory_fixture().as_object().unwrap() {
+            report[key] = value.clone();
+        }
+        let denials: Vec<_> = (0..64)
+            .flat_map(|_| {
+                report["executionAncestryAccessDenials"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .cloned()
+            })
+            .collect();
+        report["executionAncestryAccessDenials"] = json!(denials);
         report["privateTreeCleanup"] = json!({"attempts":31,"elapsedMs":u64::MAX,
             "finalOsError":i32::MIN,"terminalPhase":"absence-check","absenceChecked":true,"absent":null,
             "observations":(1..=31).map(|attempt|json!({"attempt":attempt,"osError":i32::MIN,"retryableWindowsDeleteError":false})).collect::<Vec<_>>()});
