@@ -22,12 +22,14 @@ export function createOwnedDocumentPngImage(
   element.dataset.documentPngView = 'fit'
   const controls = document.createElement('span')
   controls.className = 'milkup-document-png-controls'
+  controls.style.display = 'block'
   controls.style.pointerEvents = 'auto'
   controls.hidden = true
   const button = document.createElement('button')
   button.type = 'button'
   button.dataset.documentPngScale = ''
   button.className = 'milkup-document-png-scale'
+  button.style.display = 'inline-block'
   button.style.pointerEvents = 'auto'
   button.title = '按原始尺寸查看，可横向滚动'
   const buttonLabel = document.createTextNode('原始尺寸')
