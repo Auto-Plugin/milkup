@@ -21,7 +21,10 @@ import {
   verifyInstalledProductCloses,
   verifyRuntimeDependencies,
 } from './prepare-mermaid-trial-payload.mjs'
-import { GUI_STEPS } from '../../tests/windows/mermaid-gui-contract.mjs'
+import {
+  GUI_STEPS,
+  validateNativeDpiObservation,
+} from '../../tests/windows/mermaid-gui-contract.mjs'
 import { crc32, validatePng } from '../../tests/windows/mermaid-product-e2e.mjs'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
@@ -930,6 +933,18 @@ for (const scenario of [
 async function guiInstalledFixture(t, options = {}) {
   const f = await installedFixture(t, options)
   const { installation, audit, expected, product, directory } = f
+  // The general installer fixture uses invented package IDs. This GUI-specific
+  // synthetic fixture also exercises the explicit Diagrams persistence gate.
+  const originalFirstId = expected.bundledPlugins[0].id
+  Object.assign(expected.bundledPlugins[0], {
+    id: 'milkup.diagrams',
+    version: '1.3.0',
+    archiveFile: 'milkup.diagrams-1.3.0.milkup-plugin',
+  })
+  Object.assign(
+    product.steps[0].bundledPluginsObserved.find((item) => item.id === originalFirstId),
+    { id: 'milkup.diagrams', version: '1.3.0' },
+  )
   expected.version = '2.0.0-beta.10'
   expected.contractSha256 = '9'.repeat(64)
   expected.observerInputs = { scriptSha256: '3'.repeat(64), sourceSha256: '4'.repeat(64) }
@@ -1116,6 +1131,33 @@ async function guiInstalledFixture(t, options = {}) {
   )
   report.steps.find((row) => row.name === 'idle-close').close = close('idle')
   report.steps.find((row) => row.name === 'busy-close').close = close('busy')
+  const initialInventory = installation.bundledPlugins.map(({ id, version }) => ({
+    id,
+    version,
+    checked: 'false',
+    busy: null,
+  }))
+  const activeInventory = initialInventory.map((item) =>
+    item.id === 'milkup.diagrams'
+      ? { id: item.id, checked: 'true', busy: null, versionSource: 'details-required' }
+      : { ...item },
+  )
+  for (const [name, phase] of [
+    ['blank-start-enable', 'fresh'],
+    ['busy-close', 'persisted'],
+  ])
+    report.steps.find((row) => row.name === name).pluginState = {
+      phase,
+      togglePerformed: phase === 'fresh',
+      initialInventory: structuredClone(phase === 'fresh' ? initialInventory : activeInventory),
+      finalInventory: structuredClone(activeInventory),
+      installedIdentity: {
+        id: 'milkup.diagrams',
+        version: '1.3.0',
+        text: 'milkup.diagrams · v1.3.0',
+        source: 'public-details-ui',
+      },
+    }
   for (const launch of report.launches)
     launch.identity = {
       pid: launch.productPid,
@@ -1123,6 +1165,42 @@ async function guiInstalledFixture(t, options = {}) {
       creationFileTime: String(133000000000 + launch.productPid),
       token: product.context.desktop.token,
     }
+  const syntheticWindowMetrics = (launch) => {
+    const rect = { left: 0, top: 0, right: 1100, bottom: 760, width: 1100, height: 760 }
+    const value = {
+      native: {
+        observed: true,
+        displaySettingsChanged: false,
+        pid: launch.productPid,
+        creationFileTime: launch.identity.creationFileTime,
+        hwnd: '0x' + launch.productPid.toString(16),
+        className: 'Tauri Window',
+        dpi: 96,
+        dpiAwareness: 2,
+        dpiAwarenessContext: '0xfffffffffffffffc',
+        observerThreadDpiAwareness: 0,
+        windowRect: { ...rect },
+        clientRect: { ...rect },
+        clientScreenRect: { ...rect },
+      },
+      dom: {
+        innerWidth: 1100,
+        innerHeight: 760,
+        devicePixelRatio: 1,
+        screenAvailWidth: 1920,
+        screenAvailHeight: 1080,
+      },
+    }
+    value.relationship = validateNativeDpiObservation(
+      value,
+      launch.productPid,
+      launch.identity.creationFileTime,
+    )
+    return value
+  }
+  for (const launch of report.launches) launch.windowMetrics = syntheticWindowMetrics(launch)
+  for (const operation of report.steps.find((row) => row.name === 'resize-wide').operations)
+    operation.windowMetrics = syntheticWindowMetrics(report.launches[0])
   windows.identityContext = {
     token: product.context.desktop.token,
     sessionId: installation.sessionId,
@@ -1265,11 +1343,30 @@ for (const scenario of [
   'wrong-window-image',
   'window-product-still-live',
   'wrong-capture-hash',
+  'plugin-state-reset',
+  'plugin-toggled-again',
+  'wrong-installed-plugin-version',
+  'unknown-native-dpi',
+  'reused-dpi-window-pid',
+  'inconsistent-css-client-size',
 ])
   test(`installed GUI delivery gate rejects ${scenario}`, async (t) => {
     const f = await guiInstalledFixture(t)
     if (scenario === 'baseline-substitution') f.report.applicationCandidateSha = 'b'.repeat(40)
     if (scenario === 'wrong-harness') f.report.harnessSha256 = 'c'.repeat(64)
+    if (scenario === 'plugin-state-reset')
+      f.report.steps.at(-1).pluginState.initialInventory[0].checked = 'false'
+    if (scenario === 'plugin-toggled-again')
+      f.report.steps.at(-1).pluginState.togglePerformed = true
+    if (scenario === 'wrong-installed-plugin-version')
+      f.report.steps.at(-1).pluginState.installedIdentity.version = '1.2.0'
+    if (scenario === 'unknown-native-dpi') f.report.launches[0].windowMetrics.native.dpi = 0
+    if (scenario === 'reused-dpi-window-pid')
+      f.report.launches[0].windowMetrics.native.creationFileTime = '123'
+    if (scenario === 'inconsistent-css-client-size')
+      f.report.steps.find(
+        (row) => row.name === 'resize-wide',
+      ).operations[0].windowMetrics.dom.innerWidth = 600
     if (scenario === 'wrong-contract') f.report.contractSha256 = 'c'.repeat(64)
     if (scenario === 'wrong-observer')
       f.report.observerInputs = { ...f.report.observerInputs, scriptSha256: 'c'.repeat(64) }
