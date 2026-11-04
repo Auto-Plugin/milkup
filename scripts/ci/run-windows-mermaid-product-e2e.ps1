@@ -7,6 +7,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][switch]$ProductionAssetsConfirmed,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('product', 'gui-regression', IgnoreCase = $false)][string]$HarnessMode = 'product',
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$ApplicationCandidateSha,
+    [Parameter(ParameterSetName = 'Parent')][switch]$FrontendBoundaryProbe,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedInstallerSha256,
@@ -479,6 +480,7 @@ function Invoke-StandardChild {
         $spec.candidateSha -cne $env:GITHUB_SHA -or $spec.expectedSessionId -le 0) { throw 'Invalid immutable child specification' }
     if ($spec.harnessMode -cnotin @('product', 'gui-regression') -or $spec.applicationCandidateSha -cnotmatch '^[a-f0-9]{40}$' -or
         ($spec.harnessMode -ceq 'product' -and $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Invalid separated harness/application identity' }
+    if ($spec.frontendBoundaryProbe -and ($spec.harnessMode -cne 'gui-regression' -or $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
     Assert-AccountMode $spec.expectedAccountKind ($spec.mode -ceq 'nsis-current-user')
     $profile = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
     $roaming = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
@@ -545,6 +547,7 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_RUN_ID = $spec.runId
             MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $spec.candidateSha
             MILKUP_WINDOWS_MERMAID_HARNESS_MODE = $spec.harnessMode
+            MILKUP_WINDOWS_MERMAID_FRONTEND_BOUNDARY_PROBE = $(if ($spec.frontendBoundaryProbe) { '1' } else { '0' })
             MILKUP_WINDOWS_MERMAID_HARNESS_CANDIDATE_SHA = $spec.candidateSha
             MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA = $spec.applicationCandidateSha
             MILKUP_WINDOWS_MERMAID_RUNTIME_VERSION = $spec.runtime.version
@@ -625,6 +628,7 @@ if ($installerMode) {
 }
 if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
 if (-not $ApplicationCandidateSha) { $ApplicationCandidateSha = $ExpectedCommit }
+if ($FrontendBoundaryProbe -and ($HarnessMode -cne 'gui-regression' -or $ApplicationCandidateSha -cne $ExpectedCommit)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
 if ($ApplicationCandidateSha -cne $ExpectedCommit) {
     # The sole mixed-source case is the independently hashed, already delivered beta.9 baseline.
     # It never enters the ordinary installed-product acceptance or package finalizer.
@@ -728,7 +732,9 @@ try {
     }
     $additionalHarnessFiles = @()
     if ($HarnessMode -ceq 'gui-regression') {
-        foreach ($relative in @('tests/windows/mermaid-product-e2e.mjs', 'tests/windows/mermaid-gui-contract.mjs', 'scripts/ci/run-windows-mermaid-gui-observer.ps1', 'scripts/ci/WindowsMermaidGuiObserver.cs')) {
+        $guiSources = @('tests/windows/mermaid-product-e2e.mjs', 'tests/windows/mermaid-gui-contract.mjs', 'scripts/ci/run-windows-mermaid-gui-observer.ps1', 'scripts/ci/WindowsMermaidGuiObserver.cs')
+        if ($FrontendBoundaryProbe) { $guiSources += 'tests/windows/mermaid-frontend-boundary-probe.mjs' }
+        foreach ($relative in $guiSources) {
             $source = Join-Path $repository $relative
             $destination = Join-Path $code ([IO.Path]::GetFileName($relative))
             Assert-PlainPath $source
@@ -796,6 +802,7 @@ try {
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; harnessMode = $HarnessMode
+        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         binaryRole = $audit.binaryRole; binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
         driver = (File-Proof $driver); harness = (File-Proof (Join-Path $code $harnessLeaf))

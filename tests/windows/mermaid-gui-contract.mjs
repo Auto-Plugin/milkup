@@ -42,6 +42,11 @@ export function validateGuiIdentity(value) {
     assert.match(value[name], /^[a-f0-9]{40}$/, name)
   assert.match(value.applicationSha256, /^[a-f0-9]{64}$/)
   if (value.applicationCandidateSha !== value.harnessCandidateSha) {
+    assert.notEqual(
+      value.frontendBoundaryProbeRequested,
+      true,
+      'The delivered baseline cannot execute a new frontend diagnostic',
+    )
     for (const [name, expected] of Object.entries(GUI_BASELINE)) {
       if (name !== 'historicalRunId')
         assert.equal(value[name], expected, 'Exact delivered baseline ' + name)
@@ -237,6 +242,14 @@ export function validateCurrentNativeResourceProof(job) {
 export function validateGuiReport(report) {
   assert.equal(report.schema, 1)
   validateGuiIdentity(report)
+  if (report.frontendBoundaryProbeRequested) {
+    assert.match(report.frontendBoundaryProbeSha256, /^[a-f0-9]{64}$/)
+    assert.equal(
+      report.frontendBoundaryProbe?.cleanupConfirmed,
+      true,
+      'Optional diagnostic cleanup must be verified before product acceptance',
+    )
+  }
   assert.deepEqual(
     report.steps.map((step) => step.name),
     GUI_STEPS,

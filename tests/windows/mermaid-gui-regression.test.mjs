@@ -244,6 +244,26 @@ test('complete GUI acceptance requires every scenario and a two-diagram decode',
   assert.throws(() => validateGuiReport(multi))
 })
 
+test('optional frontend diagnostics cannot affect a baseline or bypass their own cleanup', () => {
+  const baseline = { ...identity(), ...GUI_BASELINE, frontendBoundaryProbeRequested: true }
+  assert.throws(() => validateGuiIdentity(baseline), /baseline cannot execute/)
+  const report = passing()
+  report.frontendBoundaryProbeRequested = true
+  report.frontendBoundaryProbeSha256 = 'd'.repeat(64)
+  report.frontendBoundaryProbe = {
+    status: 'diagnostic-error',
+    diagnosticOnly: true,
+    cleanupConfirmed: true,
+  }
+  assert.equal(
+    validateGuiReport(report).status,
+    'passed',
+    'Architecture diagnostics are not product acceptance',
+  )
+  report.frontendBoundaryProbe.cleanupConfirmed = false
+  assert.throws(() => validateGuiReport(report), /cleanup must be verified/)
+})
+
 test('diagram geometry must preserve aspect and reachable wide content', () => {
   const layout = {
     width: 900,

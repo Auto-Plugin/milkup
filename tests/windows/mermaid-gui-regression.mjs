@@ -210,6 +210,8 @@ export async function main() {
   const expectedAccountKind = required('EXPECTED_ACCOUNT_KIND')
   const runtimeVersion = required('RUNTIME_VERSION'),
     runtimeExe = path.resolve(required('RUNTIME_EXE'))
+  const frontendBoundaryProbeRequested =
+    process.env.MILKUP_WINDOWS_MERMAID_FRONTEND_BOUNDARY_PROBE === '1'
   const contextBytes = await readFile(path.join(evidence, 'standard-context.json'))
   const context = validateContext(
     JSON.parse(contextBytes.toString('utf8').replace(/^\uFEFF/, '')),
@@ -255,6 +257,7 @@ export async function main() {
     installerSha256: process.env.MILKUP_WINDOWS_MERMAID_INSTALLER_SHA256 ?? null,
     harnessSha256: hash(await readFile(fileURLToPath(import.meta.url))),
     contractSha256: hash(await readFile(new URL('./mermaid-gui-contract.mjs', import.meta.url))),
+    frontendBoundaryProbeRequested,
     context,
     contextSha256: hash(contextBytes),
     expectedAccountKind,
@@ -280,13 +283,19 @@ export async function main() {
     fixtureProofs: {},
     errors: [],
     boundaries: [
-      'No private application IPC or DOM writes.',
+      'Product acceptance uses public UI; the separately opted-in frontend diagnostic alone creates owned frames and calls fixed read-only bridge_status.',
       'Self-authored fixtures only; no system IME or DPI matrix acceptance.',
       'Application source and harness source are independently identified.',
       'A failed baseline remains failed; outer account cleanup does not establish product cleanup.',
     ],
   }
   report.identityKind = validateGuiIdentity(report)
+  if (frontendBoundaryProbeRequested) {
+    assert.equal(report.identityKind, 'current-candidate')
+    report.frontendBoundaryProbeSha256 = hash(
+      await readFile(new URL('./mermaid-frontend-boundary-probe.mjs', import.meta.url)),
+    )
+  }
   const ledger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind)
   const productLogs = new Map()
   const reportFile = path.join(evidence, 'gui-regression.json')
@@ -864,6 +873,8 @@ export async function main() {
           row.screenshot = `gui-${name}-window.png`
         } catch (error) {
           row.screenshotError = String(error)
+          row.status = 'failed'
+          report.errors.push(name + ': Required screenshot failed: ' + error)
         }
       }
       row.finishedAt = new Date().toISOString()
@@ -932,12 +943,34 @@ export async function main() {
       'EdgeDriver ready',
       15000,
     )
+    let probeCleanupFailure
     await step('blank-start-enable', async (row) => {
       await startProduct('gui-idle')
+      if (frontendBoundaryProbeRequested) {
+        try {
+          const { runFrontendBoundaryProbe } = await import('./mermaid-frontend-boundary-probe.mjs')
+          report.frontendBoundaryProbe = await runFrontendBoundaryProbe({ request, session })
+          assert.equal(
+            report.frontendBoundaryProbe.cleanupConfirmed,
+            true,
+            'Optional probe must remove its own frames and restore the main frame',
+          )
+        } catch (error) {
+          probeCleanupFailure = error
+          report.frontendBoundaryProbe = {
+            status: 'cleanup-or-main-frame-unconfirmed',
+            cleanupConfirmed: false,
+            error: String(error),
+            diagnosticOnly: true,
+          }
+          throw error
+        }
+      }
       await enablePlugin()
       row.arguments = []
       row.modeAndZoomUnchanged = true
     })
+    if (probeCleanupFailure) throw probeCleanupFailure
     for (const name of ['ordinary', 'wide'])
       await step(`open-${name}-stable`, async (row) => {
         row.picker = await openFile(name)
