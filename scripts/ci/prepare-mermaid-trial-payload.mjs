@@ -8,6 +8,7 @@ import ts from 'typescript'
 import { expectedNsisImage } from './verify-nsis-image.mjs'
 import { parseImports } from './windows-loader-imports.mjs'
 import { publicBuildFile, readPublicPluginBuildInputs } from './public-plugin-build-contract.mjs'
+import { verifyGuiEvidence, GUI_STEPS } from '../../tests/windows/mermaid-gui-contract.mjs'
 import { REVIEWED_MERMAID_PACKAGE } from '../../apps/desktop/src/reviewed-mermaid-package.ts'
 import { assertReviewedMermaidPackage } from '../../plugins/diagrams-worker/scripts/package-seals.mjs'
 import {
@@ -460,11 +461,57 @@ async function verifyInputs(evidence) {
 }
 
 function readme(manifest) {
-  return `# Milkup ${manifest.version} 完整 Mermaid Windows 测试包\n\n源码提交：${manifest.candidateSha}\n构建记录：${manifest.runUrl}\n\n这是未签名的 Windows x64 NSIS 测试包，不是正式 Release。安装程序只面向当前用户；不会安装或下载 WebView2，需要电脑已经安装可用的 [Microsoft Evergreen WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。完整 Mermaid 支持标准用户和正常启动的未提权管理员账户；请勿选择“以管理员身份运行”。实际提权、关闭 UAC 后具有完整管理员权限等不符合隔离要求的启动仍不支持，并保留源码。\n\n安装器：\`${manifest.installer.deliveredName}\`。应用内版本为 ${manifest.version}；完整提交与哈希在 manifest.json。可用 PowerShell 的 Get-FileHash -Algorithm SHA256 核对 SHA256SUMS.txt。请使用文档副本试用。已交付的 beta.8 安装包保持独立，不由本包覆盖其下载文件。\n\n10 个插件已经包含在应用中，首次安装默认全部不启用。在插件管理中查看权限后启用 Diagrams 1.3.0 即可测试；plugins 目录中的相同插件档案只供补装，不是正常使用的必需步骤。旧配置中的禁用或卸载选择应保留，不会借打包自动授权。\n\n正文预览接入固定官方 Mermaid 12.2.0 引擎。samples 包含普通图、宽图、C4 和故意无效语法四类；无效语法应显示源码或诊断。宽图保持自然尺寸并滚动查看。本候选包含 C4 标签白底碰边修复，以及原生自建目录删除遇 Windows 错误 5 时的有界重试；仍必须确认实际清理完成才发布图像，未扩大权限或放宽失败门禁。语法范围仍受固定引擎、输入与图片预算限制，不代表所有语法组合均已验收。导出仍走受限路径，不承诺正文图表一比一导出；Windows DOM/PDF 导出未开放。\n\n${manifest.deliveryReady ? '本候选已分别通过标准用户和未提权管理员安装后的 10 步自动化产品测试、各 7 张正文图、各 4 次自然关闭以及原生和外层清理，并核对两次安装后 EXE 完整字节。' : '两种账户的安装后产品测试尚未通过最终交付门禁；此目录仍是准备材料，不可作为已验收包上传。'} 自动化不是实际系统中文输入法、完整 DPI 矩阵或人工视觉验收；另行人工复核情况以本次交付消息为准。\n\n保留限制：运行 41692476025 的管道读取 Win32 995 在安装验收 41708284083 中再次出现，具体持有管道的进程仍未查明，错误 5 的重试与它无关。本候选已关闭辅助进程三个协议管道向后代的普通继承路径，并记录退出顺序；该收紧不等于证实历史根因，也不覆盖显式复制句柄。若再次出现清理不确定，程序仍会拒绝发布图像。更早运行 41653312849 的 cleanupUncertain 原因同样未定。历史运行 41642093459 的临时 profile 删除曾因 Win32 32 失败，旧 hosted runner 已结束，残留无法复查。真实旧配置升级与回滚、安装器交互和 SmartScreen 提示尚未完整验收。本包只有 Windows x64；Linux 原生路径此前限 X11，Wayland 未验收。C4 修复只覆盖所测布局，不代表所有复杂布局均无碰边。\n\n下载需要登录有仓库访问权的 GitHub 账户，在本次 Actions 运行的 Artifacts 中下载并解压。Artifacts 设置保留 7 天；准确到期时间以 GitHub 实际 artifact 记录及本次交付消息为准，本包不会推算或虚构日期。两种账户的原始离线测试报告分别位于 reports/pure-standard 和 reports/filtered-admin（只有最终门禁通过后才加入）；manifest.json 与 SHA256SUMS.txt 保留报告身份。反馈请填写 FEEDBACK.md。\n`
+  const modern = Number(/^2\.0\.0-beta\.([1-9][0-9]*)$/.exec(manifest.version)?.[1]) >= 10
+  const guiPassed = manifest.deliveryReady && manifest.guiAcceptance?.status === 'passed'
+  return `# Milkup ${manifest.version} 完整 Mermaid Windows 测试包\n\n源码提交：${manifest.candidateSha}\n构建记录：${manifest.runUrl}\n\n这是未签名的 Windows x64 NSIS 测试包，不是正式 Release。安装程序只面向当前用户；不会安装或下载 WebView2，需要电脑已经安装可用的 [Microsoft Evergreen WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。完整 Mermaid 支持标准用户和正常启动的未提权管理员账户；请勿选择“以管理员身份运行”。实际提权、关闭 UAC 后具有完整管理员权限等不符合隔离要求的启动仍不支持，并保留源码。\n\n安装器：\`${manifest.installer.deliveredName}\`。应用内版本为 ${manifest.version}；完整提交与哈希在 manifest.json。可用 PowerShell 的 Get-FileHash -Algorithm SHA256 核对 SHA256SUMS.txt。请使用文档副本试用。已交付的 beta.8 和 beta.9 安装包保持独立，不由本包覆盖其下载文件。\n\n10 个插件已经包含在应用中，首次安装默认全部不启用。在插件管理中查看权限后启用 Diagrams 1.3.0 即可测试；plugins 目录中的相同插件档案只供补装，不是正常使用的必需步骤。旧配置中的禁用或卸载选择应保留，不会借打包自动授权。\n\n正文预览接入固定官方 Mermaid 12.2.0 引擎。samples 包含普通图、宽图、C4 和故意无效语法四类；无效语法应显示源码或诊断。${modern ? '宽图按实际编辑区宽度等比缩小；滚动条预留位置避免图表替换源码后反复改变视口宽度。已完成的固定可信 Mermaid 图块在原有权限和内存预算内复用，避免同一内容因布局变化重复启动渲染。ACL 设置改为 Windows API，不再为每次渲染启动 icacls 命令行进程。' : '宽图保持自然尺寸并滚动查看。'}本候选包含 C4 标签白底碰边修复，以及原生自建目录删除遇 Windows 错误 5 时的有界重试；仍必须确认实际清理完成才发布图像，未扩大权限或放宽失败门禁。语法范围仍受固定引擎、输入与图片预算限制，不代表所有语法组合均已验收。导出仍走受限路径，不承诺正文图表一比一导出；Windows DOM/PDF 导出未开放。\n\n${manifest.deliveryReady ? '本候选已分别通过标准用户和未提权管理员安装后的 10 步自动化产品测试、各 7 张正文图、各 4 次自然关闭以及原生和外层清理，并核对两次安装后 EXE 完整字节。' : '两种账户的安装后产品测试尚未通过最终交付门禁；此目录仍是准备材料，不可作为已验收包上传。'}${modern ? (guiPassed ? ' 同一安装器另经两个新账户的独立 GUI 验收：启用后从原生文件选择器打开、普通图和宽图各持续 75 秒、反复改变实际窗口宽度、重复打开及多图预览、空闲与渲染进行中关闭、可见控制台正控以及产品期间未见新控制台窗口；同时核对产品内部资源和外层账户清理。' : ' 新增双账户 GUI 场景尚未通过最终门禁。') : ''} 自动化不是实际系统中文输入法、完整 DPI 矩阵或人工视觉验收；另行人工复核情况以本次交付消息为准。\n\n保留限制：运行 41692476025 的管道读取 Win32 995 在安装验收 41708284083 中再次出现，具体持有管道的进程仍未查明，错误 5 的重试与它无关。本候选已关闭辅助进程三个协议管道向后代的普通继承路径，并记录退出顺序；该收紧不等于证实历史根因，也不覆盖显式复制句柄。${modern ? '协议失败仍拒绝发布图像并停用新的渲染；仅在当前请求的进程、线程、配置和自建目录全部有完整释放证明时允许关闭。真实资源残留或缺失证明仍会阻止退出，不能用删除外层测试账号替代产品清理。' : '若再次出现清理不确定，程序仍会拒绝发布图像。'}更早运行 41653312849 的 cleanupUncertain 原因同样未定。历史运行 41642093459 的临时 profile 删除曾因 Win32 32 失败，旧 hosted runner 已结束，残留无法复查。真实旧配置升级与回滚、安装器交互和 SmartScreen 提示尚未完整验收。本包只有 Windows x64；Linux 原生路径此前限 X11，Wayland 未验收。C4 修复只覆盖所测布局，不代表所有复杂布局均无碰边。\n\n下载需要登录有仓库访问权的 GitHub 账户，在本次 Actions 运行的 Artifacts 中下载并解压。Artifacts 设置保留 7 天；准确到期时间以 GitHub 实际 artifact 记录及本次交付消息为准，本包不会推算或虚构日期。两种账户的原始离线测试报告分别位于 reports/pure-standard 和 reports/filtered-admin（只有最终门禁通过后才加入）${modern ? '；新增 GUI 原始报告、控制台正控和窗口/图表像素保留在 reports/gui-pure-standard 与 reports/gui-filtered-admin' : ''}；manifest.json 与 SHA256SUMS.txt 保留报告身份。反馈请填写 FEEDBACK.md。\n`
 }
-const feedback = `# 测试反馈\n\n请记录应用“关于”版本、manifest.json 的 candidateSha、Windows 版本、账户类型、已安装 WebView2 版本、显示缩放、插件启用状态和使用的是新配置还是旧配置。\n\n1. 安装、启动、关闭是否成功？\n2. 插件是否首次默认关闭，启用 Diagrams 后原位置是否显示图表？\n3. 普通图编辑、保存、撤销和重做是否保持准确文本？\n4. 宽图是否能滚动且文字清晰？C4 标签、连线是否有重叠？\n5. 无效语法是否保留源码并显示可理解的诊断？\n6. 禁用、重新启用和关闭后是否有残留窗口或错误？\n7. 中文输入的拼音、选词、取消和“- 空格 / - [ ] ”输入行为如何？\n\n请提供最小可复现 Markdown、实际现象、操作顺序和截图；避免附带私人文档内容。导出结果请单独标注，正文通过不表示导出通过。\n`
+const feedback = `# 测试反馈\n\n请记录应用“关于”版本、manifest.json 的 candidateSha、Windows 版本、账户类型、已安装 WebView2 版本、显示缩放、插件启用状态和使用的是新配置还是旧配置。\n\n1. 安装、启动、关闭是否成功？\n2. 插件是否首次默认关闭，启用 Diagrams 后原位置是否显示图表？\n3. 普通图编辑、保存、撤销和重做是否保持准确文本？\n4. 宽图尺寸是否适合编辑区，调整窗口后是否稳定且文字清晰？C4 标签、连线是否有重叠？\n5. 无效语法是否保留源码并显示可理解的诊断？\n6. 是否出现命令行闪窗、反复重绘或回退源码？禁用、重新启用以及空闲/出图中关闭后是否有残留窗口或错误？\n7. 中文输入的拼音、选词、取消和“- 空格 / - [ ] ”输入行为如何？\n\n请提供最小可复现 Markdown、实际现象、操作顺序和截图；避免附带私人文档内容。导出结果请单独标注，正文通过不表示导出通过。\n`
 
-async function inventory(directory) {
+const guiDeliveryReports = [
+  'installation-result.json',
+  'installed-binary-comparison.json',
+  'windows-standard-product-audit.json',
+  'gui-regression.json',
+  'gui-native-audit.json',
+  'native-window-events.json',
+  'evidence-files.json',
+  'standard-context.json',
+]
+export const guiDeliveryFiles = Object.freeze(
+  ['pure-standard', 'filtered-admin'].flatMap((kind) =>
+    [
+      ...guiDeliveryReports,
+      'gui-console-positive.png',
+      ...GUI_STEPS.map((name) => `gui-${name}-window.png`),
+      ...['ordinary', 'wide', 'multi', 'multi-2'].map((name) => `gui-${name}-diagram.png`),
+    ].map((name) => `reports/gui-${kind}/${name}`),
+  ),
+)
+export function verifyPayloadInventory(files, { gui = false } = {}) {
+  const extra = new Set(guiDeliveryFiles)
+  const guiNames = files
+    .filter((file) => file.name.startsWith('reports/gui-'))
+    .map((file) => file.name)
+  if (gui)
+    assert.deepEqual(
+      [...guiNames].sort(),
+      [...extra].sort(),
+      'Exact additional GUI delivery files required',
+    )
+  else assert.deepEqual(guiNames, [], 'No GUI evidence before the additional gate')
+  assert(
+    files.filter((file) => !extra.has(file.name)).length <= 32,
+    'Original payload file-count budget exceeded',
+  )
+  assert.equal(new Set(files.map((file) => file.name)).size, files.length)
+  assert(files.every((file) => Number.isSafeInteger(file.bytes) && file.bytes >= 0))
+  assert(
+    files.reduce((sum, file) => sum + file.bytes, 0) <= 128 * 1024 * 1024,
+    'Payload byte budget exceeded',
+  )
+  return files
+}
+async function inventory(directory, options) {
   const files = []
   async function visit(relative = '') {
     for (const entry of await readdir(path.join(directory, relative), { withFileTypes: true })) {
@@ -478,15 +525,11 @@ async function inventory(directory) {
     }
   }
   await visit()
-  assert(files.length <= 32, 'Payload file-count budget exceeded')
-  assert(
-    files.reduce((sum, file) => sum + file.bytes, 0) <= 128 * 1024 * 1024,
-    'Payload byte budget exceeded',
-  )
+  verifyPayloadInventory(files, options)
   return files.sort((a, b) => a.name.localeCompare(b.name))
 }
-async function sums(output) {
-  const files = (await inventory(output)).filter((item) => item.name !== 'SHA256SUMS.txt')
+async function sums(output, options) {
+  const files = (await inventory(output, options)).filter((item) => item.name !== 'SHA256SUMS.txt')
   await writeFile(
     path.join(output, 'SHA256SUMS.txt'),
     files.map((file) => `${file.sha256}  ${file.name}\n`).join(''),
@@ -1014,7 +1057,329 @@ export async function verifyInstalledAccountMatrix(parent, expected) {
   }
 }
 
-export async function finalizePayload(evidence, output, installedEvidence) {
+/** Additional GUI acceptance never replaces the original ten-step product gate. */
+export async function verifyInstalledGuiEvidence(directory, expected) {
+  const kind = validateAccountKind(expected.expectedAccountKind)
+  const names = guiDeliveryReports
+  const entries = await Promise.all(
+    names.map(async (name) => {
+      const bytes = await plainBytes(path.join(directory, name), 2 * 1024 * 1024)
+      return {
+        name,
+        bytes,
+        sha256: hash(bytes),
+        value: JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/, '')),
+      }
+    }),
+  )
+  const byName = new Map(entries.map((entry) => [entry.name, entry]))
+  const [installation, comparison, audit, report] = entries.map((entry) => entry.value)
+  for (const value of [installation, comparison, audit, report])
+    assert.equal(value.status, 'passed', 'Installed GUI evidence must independently pass')
+  assert.equal(installation.schema, 1)
+  assert.equal(installation.mode, 'nsis-current-user')
+  assert.equal(installation.candidateSha, expected.candidateSha)
+  assert.equal(installation.expectedAccountKind, kind)
+  assert.equal(installation.guiAcceptance, 'passed')
+  assert.equal(
+    installation.productAcceptance,
+    'not-run-gui-only',
+    'GUI evidence must not impersonate the original product sequence',
+  )
+  assert.equal(installation.installer.sha256, expected.installerSha256)
+  assert.deepEqual(installation.cleanupErrors, [])
+  const run = installation.installerRun
+  for (const key of ['started', 'exited', 'identityVerified', 'streamsDrained'])
+    assert.equal(run[key], true)
+  for (const key of ['forcedProcessTermination', 'timedOut']) assert.equal(run[key], false)
+  assert.equal(run.status, 'passed')
+  assert.equal(run.exitCode, 0)
+  assert.equal(run.expectedAccountKind, kind)
+  assert.deepEqual(run.cleanupErrors, [])
+  for (const identity of [run.callerIdentity, run.startedProcess]) {
+    validateHostProcessToken(identity.token, installation.actualSid, installation.sessionId, kind)
+    assert.equal(identity.sessionId, installation.sessionId)
+    assert.equal(identity.inJob, true)
+    assert.equal(identity.expectedAccountKind, kind)
+    assert.equal(identity.accountKindVerified, true)
+  }
+  assert.equal(run.startedProcess.imageTruncated, false)
+  assert.equal(windowsPath(run.startedProcess.image), windowsPath(installation.installer.path))
+  assert.match(run.startedProcess.creationFileTime, /^\d+$/)
+  assert.equal(installation.actualSid, installation.expectedSid)
+  assert.equal(installation.actualSid, audit.accountSid)
+  assert.equal(installation.sessionId, installation.expectedSessionId)
+  for (const key of ['productVersion', 'fileVersion'])
+    assert.equal(installation.installedBinary[key], expected.version)
+  assert.equal(installation.installedBinary.peMachine, '0x8664')
+  assert.equal(installation.installedBinary.sha256, expected.installedSha256)
+  assert.equal(installation.installedBinary.bytes, expected.applicationBytes)
+  for (const value of [comparison, installation.binaryComparison]) {
+    assert.equal(value.status, 'passed')
+    assert.equal(value.builtSha256, expected.builtSha256)
+    assert.equal(value.expectedInstalledSha256, expected.installedSha256)
+    assert.equal(value.installedSha256, expected.installedSha256)
+    assert.equal(value.bytes, expected.applicationBytes)
+    assert.equal(value.bundleMarkerOffset, expected.markerOffset)
+    assert.equal(value.transformation, '__TAURI_BUNDLE_TYPE_VAR_UNK -> __TAURI_BUNDLE_TYPE_VAR_NSS')
+  }
+  assert.deepEqual(installation.bundledPlugins, expected.bundledPlugins)
+  assert.deepEqual(
+    installation.resources,
+    expected.resources.map((item) => ({ ...item, verified: true })),
+  )
+  assert.equal(installation.embeddedPluginBinding, 'exact-installed-image-byte-comparison')
+  assert.equal(audit.source, expected.candidateSha)
+  assert.equal(audit.applicationCandidateSha, expected.candidateSha)
+  assert.equal(audit.harnessMode, 'gui-regression')
+  assert.equal(audit.mode, 'nsis-current-user')
+  assert.equal(audit.binaryRole, 'compiledCandidate')
+  assert.equal(audit.binary.sha256, expected.builtSha256)
+  assert.equal(audit.expectedAccountKind, kind)
+  assert.equal(audit.childResult.expectedAccountKind, kind)
+  assert.equal(audit.childResult.status, 'passed')
+  assert.equal(audit.evidenceCopy.complete, true)
+  assert.equal(audit.supervisor.jobEmpty, true)
+  assert.deepEqual(audit.supervisor.cleanupErrors, [])
+  assert.deepEqual(audit.cleanupErrors, [])
+  for (const key of [
+    'accountCreated',
+    'accountDeleted',
+    'accountGroupCleanupConfirmed',
+    'profileDeleted',
+    'stageRemoved',
+    'installerExecuted',
+    'installedDirectoryRemoved',
+  ])
+    assert.equal(audit[key], true, 'GUI outer cleanup must be observed: ' + key)
+  for (const key of [
+    'runtimeInstalled',
+    'fixedRuntimeUsed',
+    'changedAcl',
+    'changedUacOrSecurityPolicy',
+    'passwordInLogsFilesArgumentsOrEnvironment',
+    'outerCleanupProvesProductInnerCleanup',
+  ])
+    assert.equal(audit[key], false, 'GUI boundary must remain false: ' + key)
+  const groups = audit.accountGroupCleanup
+  assert.equal(groups.sid, installation.actualSid)
+  assert.equal(groups.readOnly, true)
+  assert.equal(groups.complete, true)
+  assert.deepEqual(groups.errors, [])
+  assert.deepEqual(
+    groups.groups.map((group) => group.groupSid),
+    ['S-1-5-32-545', 'S-1-5-32-544'],
+  )
+  assert(groups.groups.every((group) => group.queried === true && group.exactSidPresent === false))
+  for (const context of [
+    audit.standardContext,
+    report.context,
+    byName.get('standard-context.json').value,
+  ])
+    validateContext(context, installation.actualSid, installation.sessionId, kind)
+  assert.equal(report.contextSha256, byName.get('standard-context.json').sha256)
+  assert.deepEqual(report.context, byName.get('standard-context.json').value)
+  assert.equal(
+    report.identityKind,
+    'current-candidate',
+    'Historical baseline failures cannot authorize new delivery',
+  )
+  assert.equal(report.applicationCandidateSha, expected.candidateSha)
+  assert.equal(report.harnessCandidateSha, expected.candidateSha)
+  assert.equal(report.applicationSha256, expected.installedSha256)
+  assert.equal(report.installerSha256, expected.installerSha256)
+  assert.equal(report.expectedAccountKind, kind)
+  assert.equal(windowsPath(report.application), windowsPath(installation.installedBinary.path))
+  for (const key of ['harnessSha256', 'contractSha256']) {
+    assert.match(expected[key], /^[a-f0-9]{64}$/)
+    assert.equal(report[key], expected[key], 'Exact GUI source input required: ' + key)
+  }
+  assert.deepEqual(report.observerInputs, expected.observerInputs)
+  assert.equal(report.runtime.installedEvergreen, true)
+  assert.equal(report.runtime.sha256, audit.runtime.sha256)
+  assert.equal(report.runtime.version, audit.runtime.version)
+  assert.equal(windowsPath(report.runtime.executable), windowsPath(audit.runtime.path))
+  assert.equal(report.nativeAudit.file, 'gui-native-audit.json')
+  assert.equal(report.nativeWindowEvidence.file, 'native-window-events.json')
+  assert.equal(
+    report.nativeWindowEvidence.bytes,
+    byName.get('native-window-events.json').bytes.length,
+  )
+  assert.deepEqual(report.errors, [])
+  const rawWindows = byName.get('native-window-events.json').value
+  validateHostProcessToken(
+    rawWindows.identityContext.token,
+    installation.actualSid,
+    installation.sessionId,
+    kind,
+  )
+  assert.equal(rawWindows.identityContext.sessionId, installation.sessionId)
+  assert.equal(rawWindows.identityContext.desktopEligible, true)
+  assert.deepEqual(rawWindows.identityContext.blockedReasons, [])
+  assert.equal(rawWindows.context.sessionId, installation.sessionId)
+  assert.equal(rawWindows.context.sameInputDesktop, true)
+  assert.equal(rawWindows.context.desktopChanged, false)
+  assert.equal(rawWindows.context.threadDesktop, rawWindows.context.inputDesktop)
+  assert(
+    typeof rawWindows.context.inputDesktop === 'string' &&
+      rawWindows.context.inputDesktop.length > 0,
+  )
+  assert.equal(report.launches.length, 2)
+  assert.equal(rawWindows.trackedProducts.length, 2)
+  const tracked = new Map(rawWindows.trackedProducts.map((value) => [value.pid, value]))
+  assert.equal(tracked.size, 2)
+  for (const launch of report.launches) {
+    const identity = launch.identity,
+      held = tracked.get(launch.productPid)
+    assert(held, 'Native window observation must track this exact product launch')
+    assert.equal(identity.pid, launch.productPid)
+    assert.match(identity.creationFileTime, /^\d+$/)
+    validateHostProcessToken(identity.token, installation.actualSid, installation.sessionId, kind)
+    assert.equal(windowsPath(identity.image), windowsPath(installation.installedBinary.path))
+    assert.equal(held.creationFileTime, identity.creationFileTime)
+    assert.equal(windowsPath(held.image), windowsPath(identity.image))
+    assert.equal(held.heldProcessSignaledAtStop, true)
+  }
+  const gui = verifyGuiEvidence(
+    report,
+    byName.get('gui-native-audit.json').bytes,
+    byName.get('native-window-events.json').bytes,
+  )
+  // The outer copy manifest binds each retained child report and screenshot to
+  // the bytes read before that exact fresh account/profile was removed.
+  const copied = byName.get('evidence-files.json').value
+  assert.equal(copied.schema, 1)
+  assert.equal(copied.complete, true)
+  assert.equal(copied.rejectedCount, 0)
+  assert.equal(copied.rejectionsOmitted, 0)
+  assert.deepEqual(copied.rejected, [])
+  assert(Array.isArray(copied.files) && copied.files.length <= 94)
+  for (const entry of copied.files) {
+    assert(safeName(entry.retainedName) && safeName(entry.relativePath))
+    assert(Number.isSafeInteger(entry.bytes) && entry.bytes >= 0 && entry.bytes <= 32 * 1024 * 1024)
+    assert.match(entry.sha256, /^[a-f0-9]{64}$/)
+  }
+  assert.equal(
+    copied.totalBytes,
+    copied.files.reduce((sum, entry) => sum + entry.bytes, 0),
+  )
+  assert(
+    copied.totalBytes <= 126 * 1024 * 1024,
+    'Original GUI copy remains within its aggregate budget',
+  )
+  const copiedByName = new Map(copied.files.map((entry) => [entry.retainedName, entry]))
+  assert.equal(copiedByName.size, copied.files.length)
+  const bind = (name, bytes) => {
+    const entry = copiedByName.get(name)
+    assert(entry, 'Missing original evidence copy identity: ' + name)
+    assert.equal(entry.relativePath, name)
+    assert.equal(entry.bytes, bytes.length)
+    assert.equal(entry.sha256, hash(bytes), 'Copied GUI evidence changed: ' + name)
+  }
+  for (const entry of entries)
+    if (!['windows-standard-product-audit.json', 'evidence-files.json'].includes(entry.name))
+      bind(entry.name, entry.bytes)
+  const screenshots = new Map(report.screenshotProofs.map((item) => [item.file, item]))
+  const diagrams = new Map(report.diagramProofs.map((item) => [item.file, item]))
+  assert.equal(screenshots.size, report.screenshotProofs.length)
+  assert.equal(diagrams.size, report.diagramProofs.length)
+  assert.deepEqual(
+    [...screenshots.keys()].sort(),
+    GUI_STEPS.map((name) => `gui-${name}-window.png`).sort(),
+  )
+  assert.deepEqual(
+    [...diagrams.keys()].sort(),
+    ['ordinary', 'wide', 'multi', 'multi-2'].map((name) => `gui-${name}-diagram.png`).sort(),
+  )
+  const pixels = []
+  const retainPng = async (name, claimed) => {
+    assert(safeName(name) && name.endsWith('.png'))
+    const bytes = await plainBytes(path.join(directory, name), 32 * 1024 * 1024)
+    bind(name, bytes)
+    const actual = validatePng(bytes, 32 * 1024 * 1024)
+    const observed = screenshots.get(name) ?? diagrams.get(name)
+    if (name !== 'gui-console-positive.png') {
+      assert(observed, 'Actual GUI capture identity required')
+      assert.equal(observed.bytes, bytes.length)
+      assert.equal(observed.sha256, actual.sha256)
+    }
+    if (claimed)
+      for (const key of ['sha256', 'bytes', 'width', 'height'])
+        assert.equal(actual[key], claimed[key], 'Retained GUI PNG ' + key)
+    pixels.push({ name, bytes: bytes.length, sha256: actual.sha256 })
+  }
+  await retainPng('gui-console-positive.png')
+  for (const name of GUI_STEPS) {
+    const step = report.steps.find((step) => step.name === name)
+    assert.equal(step.screenshot, `gui-${name}-window.png`)
+    await retainPng(step.screenshot)
+  }
+  for (const [name, stepName] of [
+    ['ordinary', 'open-ordinary-stable'],
+    ['wide', 'open-wide-stable'],
+    ['multi', 'multi-diagram'],
+  ]) {
+    const step = report.steps.find((step) => step.name === stepName)
+    const claimed = name === 'multi' ? step.decodedImages[0] : step.finalPng
+    await retainPng(`gui-${name}-diagram.png`, claimed)
+  }
+  await retainPng(
+    'gui-multi-2-diagram.png',
+    report.steps.find((step) => step.name === 'multi-diagram').decodedImages[1],
+  )
+  return {
+    status: 'passed',
+    scope:
+      'Separate real installed GUI acceptance; observed desktop DPI only, no full DPI matrix or system IME acceptance',
+    expectedAccountKind: kind,
+    gui,
+    account: { sid: installation.actualSid, sessionId: installation.sessionId },
+    applicationSha256: report.applicationSha256,
+    runtime: report.runtime,
+    records: entries.map(({ name, bytes, sha256 }) => ({ name, bytes: bytes.length, sha256 })),
+    pixels,
+  }
+}
+
+export async function verifyInstalledGuiMatrix(parent, expected) {
+  const kinds = ['pure-standard', 'filtered-admin']
+  const info = await lstat(parent)
+  assert(
+    info.isDirectory() && !info.isSymbolicLink(),
+    'Plain installed GUI evidence parent required',
+  )
+  assert.deepEqual(
+    (await readdir(parent)).sort(),
+    [...kinds].sort(),
+    'Both distinct installed GUI account directories required',
+  )
+  const accounts = {}
+  for (const kind of kinds) {
+    const directory = path.join(parent, kind),
+      info = await lstat(directory)
+    assert(info.isDirectory() && !info.isSymbolicLink(), 'Plain GUI account directory required')
+    accounts[kind] = await verifyInstalledGuiEvidence(directory, {
+      ...expected,
+      expectedAccountKind: kind,
+    })
+  }
+  assert.notEqual(
+    accounts['pure-standard'].account.sid,
+    accounts['filtered-admin'].account.sid,
+    'GUI accounts need distinct actual SIDs',
+  )
+  return { status: 'passed', requiredAccountKinds: kinds, naturalUiCloses: 4, accounts }
+}
+
+export function requireGuiEvidence(version, directory) {
+  const match = /^2\.0\.0-beta\.([1-9][0-9]*)$/.exec(version)
+  assert(match, 'Explicit test version required')
+  const required = Number(match[1]) >= 10
+  if (required) assert(directory, 'beta.10 and later require separate installed GUI evidence')
+  return required || !!directory
+}
+
+export async function finalizePayload(evidence, output, installedEvidence, guiEvidence) {
   const preparation = await json(path.join(evidence, 'mermaid-trial-preparation.json'))
   assert.equal(preparation.status, 'prepared')
   assert.equal(preparation.output, path.resolve(output))
@@ -1043,7 +1408,7 @@ export async function finalizePayload(evidence, output, installedEvidence) {
     await json(path.join(evidence, 'public-plugins/verification.json')),
     verified.verification,
   )
-  const installed = await verifyInstalledAccountMatrix(installedEvidence, {
+  const expected = {
     candidateSha: verified.packaging.candidateSha,
     version: verified.packaging.version,
     installerSha256: verified.packaging.installer.sha256,
@@ -1056,7 +1421,39 @@ export async function finalizePayload(evidence, output, installedEvidence) {
     harnessSha256: hash(
       await plainBytes(path.join(checkout, 'tests/windows/mermaid-product-e2e.mjs')),
     ),
-  })
+  }
+  const installed = await verifyInstalledAccountMatrix(installedEvidence, expected)
+  const gui = requireGuiEvidence(expected.version, guiEvidence)
+    ? await verifyInstalledGuiMatrix(guiEvidence, {
+        ...expected,
+        harnessSha256: hash(
+          await plainBytes(path.join(checkout, 'tests/windows/mermaid-gui-regression.mjs')),
+        ),
+        contractSha256: hash(
+          await plainBytes(path.join(checkout, 'tests/windows/mermaid-gui-contract.mjs')),
+        ),
+        observerInputs: {
+          scriptSha256: hash(
+            await plainBytes(
+              path.join(checkout, 'scripts/ci/run-windows-mermaid-gui-observer.ps1'),
+            ),
+          ),
+          sourceSha256: hash(
+            await plainBytes(path.join(checkout, 'scripts/ci/WindowsMermaidGuiObserver.cs')),
+          ),
+        },
+      })
+    : undefined
+  if (gui) {
+    const sids = [...Object.values(installed.accounts), ...Object.values(gui.accounts)].map(
+      (account) => account.account.sid,
+    )
+    assert.equal(
+      new Set(sids).size,
+      4,
+      'Product and GUI matrices require four independently created installation accounts',
+    )
+  }
   const manifest = await json(path.join(output, 'manifest.json'))
   assert.equal(manifest.deliveryReady, false)
   await mkdir(path.join(output, 'reports'))
@@ -1071,16 +1468,49 @@ export async function finalizePayload(evidence, output, installedEvidence) {
       await writeFile(path.join(output, 'reports', kind, record.name), bytes, { flag: 'wx' })
     }
   }
+  if (gui)
+    for (const [kind, account] of Object.entries(gui.accounts)) {
+      const destination = path.join(output, 'reports', `gui-${kind}`)
+      await mkdir(destination)
+      for (const record of [...account.records, ...account.pixels]) {
+        const bytes = await plainBytes(
+          path.join(guiEvidence, kind, record.name),
+          record.name.endsWith('.png') ? 32 * 1024 * 1024 : 2 * 1024 * 1024,
+        )
+        assert.equal(hash(bytes), record.sha256, 'GUI report changed before delivery copy')
+        await writeFile(path.join(destination, record.name), bytes, { flag: 'wx' })
+      }
+    }
   Object.assign(manifest, {
     status: 'verified-for-user-trial',
     deliveryReady: true,
     installerExecuted: true,
     installationAcceptance: installed,
+    ...(gui ? { guiAcceptance: gui } : {}),
     finalizedAt: new Date().toISOString(),
   })
-  await writeJson(path.join(output, 'manifest.json'), manifest)
-  await writeFile(path.join(output, 'README.md'), readme(manifest))
-  const files = await sums(output)
+  const finalReadme = readme(manifest)
+  const finalManifest = JSON.stringify(manifest, null, 2) + '\n'
+  // Validate the exact future payload, including larger acceptance reports and
+  // checksum inventory, before persisting any delivery-ready marker.
+  const planned = await inventory(output, { gui: !!gui })
+  for (const [name, bytes] of [
+    ['manifest.json', Buffer.byteLength(finalManifest)],
+    ['README.md', Buffer.byteLength(finalReadme)],
+  ]) {
+    const item = planned.find((file) => file.name === name)
+    assert(item, 'Prepared payload metadata missing')
+    item.bytes = bytes
+  }
+  const checksum = planned.find((file) => file.name === 'SHA256SUMS.txt')
+  assert(checksum)
+  checksum.bytes = planned
+    .filter((file) => file.name !== 'SHA256SUMS.txt')
+    .reduce((sum, file) => sum + Buffer.byteLength(`${'0'.repeat(64)}  ${file.name}\n`), 0)
+  verifyPayloadInventory(planned, { gui: !!gui })
+  await writeFile(path.join(output, 'manifest.json'), finalManifest)
+  await writeFile(path.join(output, 'README.md'), finalReadme)
+  const files = await sums(output, { gui: !!gui })
   const proof = {
     schema: 1,
     status: 'passed',
@@ -1090,6 +1520,7 @@ export async function finalizePayload(evidence, output, installedEvidence) {
     files,
     checksumsSha256: hash(await plainBytes(path.join(output, 'SHA256SUMS.txt'))),
     installed,
+    ...(gui ? { gui } : {}),
     artifactRetentionDays: 7,
     artifactExpiresAt: null,
   }
@@ -1098,12 +1529,13 @@ export async function finalizePayload(evidence, output, installedEvidence) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  const [mode, evidence, output, installedEvidence] = process.argv.slice(2)
+  const [mode, evidence, output, installedEvidence, guiEvidence, ...extra] = process.argv.slice(2)
   assert(
     ['prepare', 'finalize'].includes(mode) && evidence && output,
-    'Usage: prepare-mermaid-trial-payload.mjs prepare|finalize <evidence> <new-payload> [installed-evidence-parent-with-both-account-directories]',
+    'Usage: prepare-mermaid-trial-payload.mjs prepare|finalize <evidence> <new-payload> [installed-evidence-parent-with-both-account-directories] [separate-installed-gui-evidence-parent]',
   )
-  assert(mode === 'prepare' ? !installedEvidence : !!installedEvidence)
+  assert.equal(extra.length, 0)
+  assert(mode === 'prepare' ? !installedEvidence && !guiEvidence : !!installedEvidence)
   const result =
     mode === 'prepare'
       ? await preparePayload(path.resolve(evidence), path.resolve(output))
@@ -1111,6 +1543,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
           path.resolve(evidence),
           path.resolve(output),
           path.resolve(installedEvidence),
+          guiEvidence ? path.resolve(guiEvidence) : undefined,
         )
   console.log(JSON.stringify(result))
 }

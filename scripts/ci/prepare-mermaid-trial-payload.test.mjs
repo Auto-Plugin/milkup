@@ -12,10 +12,16 @@ import {
   inspectDistArchives,
   inspectEmbeddedEngine,
   verifyInstalledEvidence,
+  verifyInstalledGuiEvidence,
+  verifyInstalledGuiMatrix,
+  requireGuiEvidence,
+  verifyPayloadInventory,
+  guiDeliveryFiles,
   verifyInstalledAccountMatrix,
   verifyInstalledProductCloses,
   verifyRuntimeDependencies,
 } from './prepare-mermaid-trial-payload.mjs'
+import { GUI_STEPS } from '../../tests/windows/mermaid-gui-contract.mjs'
 import { crc32, validatePng } from '../../tests/windows/mermaid-product-e2e.mjs'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
@@ -918,3 +924,452 @@ for (const scenario of [
     await assert.rejects(verifyInstalledEvidence(f.directory, f.expected))
   })
 }
+
+// Synthetic verifier fixtures only. No Windows execution or product acceptance
+// is claimed by these deliberately tiny PNGs and in-memory audit records.
+async function guiInstalledFixture(t, options = {}) {
+  const f = await installedFixture(t, options)
+  const { installation, audit, expected, product, directory } = f
+  expected.version = '2.0.0-beta.10'
+  expected.contractSha256 = '9'.repeat(64)
+  expected.observerInputs = { scriptSha256: '3'.repeat(64), sourceSha256: '4'.repeat(64) }
+  installation.productAcceptance = 'not-run-gui-only'
+  installation.guiAcceptance = 'passed'
+  Object.assign(installation.installedBinary, {
+    productVersion: expected.version,
+    fileVersion: expected.version,
+    bytes: expected.applicationBytes,
+  })
+  Object.assign(audit, {
+    applicationCandidateSha: expected.candidateSha,
+    harnessMode: 'gui-regression',
+    mode: 'nsis-current-user',
+    binaryRole: 'compiledCandidate',
+    binary: { sha256: expected.builtSha256 },
+    outerCleanupProvesProductInnerCleanup: false,
+  })
+  const runtime = {
+    installedEvergreen: true,
+    version: '156.0.0.0',
+    executable: 'C:/Runtime/msedgewebview2.exe',
+    sha256: '7'.repeat(64),
+  }
+  audit.runtime = { ...runtime, path: runtime.executable }
+  const bytes = png(),
+    decoded = {
+      ...validatePng(bytes),
+      fullyDecoded: true,
+      nonuniform: true,
+      nativeMatch: { productPid: 111 },
+    }
+  const directoryAccess = {
+    aclOperations: 2,
+    allowAcesPerDirectory: 3,
+    inheritanceFlags: 3,
+    rootAppMask: 0x1200a9,
+    stateAppMask: 0x1f01ff,
+    ownerAndDaclVerified: true,
+    sameHandleReadback: true,
+    lowStateLabel: true,
+    aclProcessesStarted: false,
+    stateWriteProbe: true,
+    ancestorWritesDenied: true,
+    denialCount: 6,
+  }
+  const native = [111, 112].flatMap((pid, index) =>
+    product.nativeAudit.map((event) => ({
+      ...structuredClone(event),
+      productPid: pid,
+      requestId: 'gui' + index,
+      timestampUnixMs: event.phase === 'finished' ? 3000 : 1000,
+      ...(event.phase !== 'admitted'
+        ? { directoryAccess, resourceReleaseProven: true, resourceCleanupUncertain: false }
+        : {}),
+    })),
+  )
+  const summary = {
+    complete: true,
+    positiveControlPassed: true,
+    productVisibleConsoleCount: 0,
+    unattributedVisibleConsoleCount: 0,
+    overflow: false,
+    observerErrors: [],
+  }
+  const windows = {
+    ...summary,
+    windowEventHookUsed: true,
+    desktopOrAclChanged: false,
+    productTerminatedByObserver: false,
+    positiveControl: {
+      title: 'synthetic-control',
+      sameInputDesktop: true,
+      passed: true,
+      detectedVisible: true,
+      heldProcessSignaled: true,
+      naturalExit: true,
+      cleanupComplete: true,
+      screenshotCaptured: true,
+      exitCode: 0,
+      jobActiveAfterStop: 0,
+    },
+    events: [
+      {
+        sequence: 1,
+        elapsedMs: 1,
+        positiveControlInterval: true,
+        productObservationInterval: false,
+        consoleCandidate: true,
+        visibleNow: true,
+        cloaked: 0,
+        rect: [0, 0, 100, 100],
+        title: 'synthetic-control',
+        showEvent: true,
+        baselineVisible: false,
+        observedVisible: true,
+      },
+    ],
+  }
+  const samples = (duration, count = 1) =>
+    Array.from({ length: Math.ceil(duration / 1000) + 1 }, (_, i) => ({
+      elapsedMs: Math.min(i * 1000, duration),
+      imageCount: count,
+      pending: 0,
+      admitted: 1,
+      mode: 'live',
+      dirty: false,
+      path: 'synthetic.md',
+      sourceVisible: false,
+      geometry: 'synthetic',
+      imageSources: 'synthetic',
+      notices: '[]',
+    }))
+  const close = (kind) => ({
+    kind,
+    productPid: kind === 'busy' ? 112 : 111,
+    realUiCloseRequested: true,
+    deadlineMs: 15000,
+    exitCode: 0,
+    signal: null,
+    exitedWithinDeadline: true,
+    stdioDrained: true,
+    innerCleanupVerified: true,
+    forcedTermination: false,
+    errors: [],
+    ...(kind === 'busy'
+      ? {
+          preDrained: false,
+          pendingAtClick: 1,
+          pendingRequestIds: ['gui1'],
+          clickedAt: new Date(2000).toISOString(),
+        }
+      : {}),
+  })
+  const report = {
+    schema: 1,
+    status: 'passed',
+    harnessMode: 'gui-regression',
+    identityKind: 'current-candidate',
+    applicationCandidateSha: expected.candidateSha,
+    harnessCandidateSha: expected.candidateSha,
+    application: installation.installedBinary.path,
+    applicationSha256: expected.installedSha256,
+    installerSha256: expected.installerSha256,
+    harnessSha256: expected.harnessSha256,
+    contractSha256: expected.contractSha256,
+    observerInputs: expected.observerInputs,
+    context: product.context,
+    expectedAccountKind: expected.expectedAccountKind,
+    runtime,
+    launches: [{ productPid: 111 }, { productPid: 112 }],
+    observerSummary: summary,
+    nativeCleanupVerified: true,
+    logOverflow: false,
+    errors: [],
+    steps: GUI_STEPS.map((name) => ({
+      name,
+      status: 'passed',
+      screenshot: `gui-${name}-window.png`,
+    })),
+  }
+  for (const name of ['open-ordinary-stable', 'open-wide-stable'])
+    Object.assign(
+      report.steps.find((row) => row.name === name),
+      {
+        samples: samples(75000),
+        nativePickerAccepted: true,
+        png: decoded,
+        finalPng: decoded,
+        exactBytesUnchanged: true,
+      },
+    )
+  report.steps.find((row) => row.name === 'resize-wide').operations = Array.from(
+    { length: 6 },
+    () => ({ nativeWindowChanged: true, settled: true }),
+  )
+  report.steps.find((row) => row.name === 'repeat-document-open').opens = Array.from(
+    { length: 3 },
+    () => ({ nativePickerAccepted: true, exactBytesUnchanged: true, stable: true }),
+  )
+  Object.assign(
+    report.steps.find((row) => row.name === 'multi-diagram'),
+    { decodedImages: [decoded, decoded], samples: samples(10000, 2) },
+  )
+  report.steps.find((row) => row.name === 'idle-close').close = close('idle')
+  report.steps.find((row) => row.name === 'busy-close').close = close('busy')
+  for (const launch of report.launches)
+    launch.identity = {
+      pid: launch.productPid,
+      image: installation.installedBinary.path,
+      creationFileTime: String(133000000000 + launch.productPid),
+      token: product.context.desktop.token,
+    }
+  windows.identityContext = {
+    token: product.context.desktop.token,
+    sessionId: installation.sessionId,
+    desktopEligible: true,
+    blockedReasons: [],
+  }
+  windows.context = {
+    sessionId: installation.sessionId,
+    threadDesktop: 'Default',
+    inputDesktop: 'Default',
+    sameInputDesktop: true,
+    desktopChanged: false,
+  }
+  windows.trackedProducts = report.launches.map((launch) => ({
+    pid: launch.productPid,
+    image: launch.identity.image,
+    creationFileTime: launch.identity.creationFileTime,
+    heldProcessSignaledAtStop: true,
+  }))
+  const imageNames = [
+    'gui-console-positive.png',
+    ...GUI_STEPS.map((name) => `gui-${name}-window.png`),
+    ...['ordinary', 'wide', 'multi', 'multi-2'].map((name) => `gui-${name}-diagram.png`),
+  ]
+  for (const name of imageNames) await writeFile(path.join(directory, name), bytes)
+  report.screenshotProofs = GUI_STEPS.map((name) => ({
+    file: `gui-${name}-window.png`,
+    bytes: bytes.length,
+    sha256: hash(bytes),
+  }))
+  report.diagramProofs = ['ordinary', 'wide', 'multi', 'multi-2'].map((name) => ({
+    file: `gui-${name}-diagram.png`,
+    bytes: bytes.length,
+    sha256: hash(bytes),
+  }))
+  const copyNames = [
+    'installation-result.json',
+    'installed-binary-comparison.json',
+    'gui-regression.json',
+    'gui-native-audit.json',
+    'native-window-events.json',
+    'standard-context.json',
+    ...imageNames,
+  ]
+  const save = async () => {
+    await f.save()
+    const nativeBytes = Buffer.from(JSON.stringify(native)),
+      windowBytes = Buffer.from(JSON.stringify(windows)),
+      contextBytes = Buffer.from(JSON.stringify(report.context))
+    report.nativeAudit = {
+      file: 'gui-native-audit.json',
+      sha256: hash(nativeBytes),
+      events: native.length,
+    }
+    report.nativeWindowEvidence = {
+      file: 'native-window-events.json',
+      sha256: hash(windowBytes),
+      bytes: windowBytes.length,
+    }
+    report.contextSha256 = hash(contextBytes)
+    for (const [name, value] of [
+      ['gui-regression.json', JSON.stringify(report)],
+      ['gui-native-audit.json', nativeBytes],
+      ['native-window-events.json', windowBytes],
+      ['standard-context.json', contextBytes],
+    ])
+      await writeFile(path.join(directory, name), value)
+    const files = await Promise.all(
+      copyNames.map(async (name) => {
+        const data = await readFile(path.join(directory, name))
+        return { relativePath: name, retainedName: name, bytes: data.length, sha256: hash(data) }
+      }),
+    )
+    await writeJson(path.join(directory, 'evidence-files.json'), {
+      schema: 1,
+      complete: true,
+      rejectedCount: 0,
+      rejectionsOmitted: 0,
+      rejected: [],
+      totalBytes: files.reduce((sum, entry) => sum + entry.bytes, 0),
+      files,
+    })
+  }
+  await save()
+  return { ...f, report, native, windows, save }
+}
+
+test('beta.10 requires a distinct installed GUI matrix without changing historical beta.9', () => {
+  assert.equal(requireGuiEvidence('2.0.0-beta.9'), false)
+  assert.throws(() => requireGuiEvidence('2.0.0-beta.10'))
+  assert.throws(() => requireGuiEvidence('2.0.0-beta.11'))
+  assert.equal(requireGuiEvidence('2.0.0-beta.10', '/synthetic/gui'), true)
+  assert.throws(() => requireGuiEvidence('2.0.0'))
+})
+test('additional installed GUI gate binds complete raw audit, real copied pixel bytes and current installer identity', async (t) => {
+  const f = await guiInstalledFixture(t)
+  const proof = await verifyInstalledGuiEvidence(f.directory, f.expected)
+  assert.equal(proof.status, 'passed')
+  assert.equal(proof.records.length, 8)
+  assert.equal(proof.pixels.length, 13)
+  assert.match(proof.scope, /no full DPI matrix/)
+})
+test('additional GUI matrix requires separately installed pure-standard and filtered-admin identities', async (t) => {
+  const parent = await temporary(t, 'milkup-gui-matrix-')
+  const a = await guiInstalledFixture(t, { parent })
+  await guiInstalledFixture(t, { parent, accountKind: 'filtered-admin' })
+  assert.equal((await verifyInstalledGuiMatrix(parent, a.expected)).naturalUiCloses, 4)
+})
+for (const scenario of [
+  'baseline-substitution',
+  'wrong-harness',
+  'wrong-contract',
+  'wrong-observer',
+  'wrong-installer',
+  'wrong-binary',
+  'not-installed',
+  'reported-as-product',
+  'missing-profile-cleanup',
+  'missing-inner-cleanup',
+  'uncertain-native-cleanup',
+  'incomplete-positive-control',
+  'visible-console',
+  'wrong-context',
+  'source-fallback',
+  'repeat-native-request',
+  'short-idle',
+  'predrained-busy-close',
+  'different-request-at-close',
+  'not-really-inflight',
+  'wrong-account',
+  'missing-second-png',
+  'copied-png-drift',
+  'raw-native-drift',
+  'raw-window-drift',
+  'copy-manifest-drift',
+  'other-observer-account',
+  'other-window-session',
+  'other-window-pid',
+  'reused-window-pid',
+  'wrong-window-image',
+  'window-product-still-live',
+  'wrong-capture-hash',
+])
+  test(`installed GUI delivery gate rejects ${scenario}`, async (t) => {
+    const f = await guiInstalledFixture(t)
+    if (scenario === 'baseline-substitution') f.report.applicationCandidateSha = 'b'.repeat(40)
+    if (scenario === 'wrong-harness') f.report.harnessSha256 = 'c'.repeat(64)
+    if (scenario === 'wrong-contract') f.report.contractSha256 = 'c'.repeat(64)
+    if (scenario === 'wrong-observer')
+      f.report.observerInputs = { ...f.report.observerInputs, scriptSha256: 'c'.repeat(64) }
+    if (scenario === 'wrong-installer') f.installation.installer.sha256 = 'c'.repeat(64)
+    if (scenario === 'wrong-binary') f.installation.installedBinary.sha256 = 'd'.repeat(64)
+    if (scenario === 'not-installed') f.audit.installerExecuted = false
+    if (scenario === 'reported-as-product') f.installation.productAcceptance = 'passed'
+    if (scenario === 'missing-profile-cleanup') f.audit.profileDeleted = false
+    if (scenario === 'missing-inner-cleanup')
+      f.report.steps.at(-1).close.innerCleanupVerified = false
+    if (scenario === 'uncertain-native-cleanup') f.native.at(-1).resourceCleanupUncertain = true
+    if (scenario === 'incomplete-positive-control')
+      f.windows.positiveControl.detectedVisible = false
+    if (scenario === 'visible-console')
+      f.windows.events.push({
+        ...f.windows.events[0],
+        sequence: 2,
+        elapsedMs: 2,
+        positiveControlInterval: false,
+        productObservationInterval: true,
+        attribution: 'unattributed',
+        hwnd: '2',
+        pid: 777,
+      })
+    if (scenario === 'wrong-context')
+      f.report.context = { ...f.report.context, actualSid: 'S-1-5-21-11-22-33-9999' }
+    if (scenario === 'source-fallback') f.report.steps[1].samples[5].sourceVisible = true
+    if (scenario === 'repeat-native-request') f.report.steps[1].samples[5].admitted++
+    if (scenario === 'short-idle') f.report.steps[1].samples.pop()
+    if (scenario === 'predrained-busy-close') f.report.steps.at(-1).close.preDrained = true
+    if (scenario === 'different-request-at-close')
+      f.report.steps.at(-1).close.pendingRequestIds = ['not-this-job']
+    if (scenario === 'not-really-inflight')
+      f.report.steps.at(-1).close.clickedAt = new Date(4000).toISOString()
+    if (scenario === 'wrong-account') f.report.expectedAccountKind = 'filtered-admin'
+    if (scenario === 'other-observer-account')
+      f.windows.identityContext.token = {
+        ...f.windows.identityContext.token,
+        sid: 'S-1-5-21-11-22-33-9999',
+      }
+    if (scenario === 'other-window-session') f.windows.context.sessionId++
+    if (scenario === 'other-window-pid') f.windows.trackedProducts[0].pid++
+    if (scenario === 'reused-window-pid')
+      f.windows.trackedProducts[0].creationFileTime = '133999999999'
+    if (scenario === 'wrong-window-image') f.windows.trackedProducts[0].image = 'C:/other.exe'
+    if (scenario === 'window-product-still-live')
+      f.windows.trackedProducts[0].heldProcessSignaledAtStop = false
+    if (scenario === 'wrong-capture-hash') f.report.screenshotProofs[0].sha256 = '0'.repeat(64)
+    await f.save()
+    if (scenario === 'missing-second-png')
+      await rm(path.join(f.directory, 'gui-multi-2-diagram.png'))
+    if (scenario === 'copied-png-drift')
+      await writeFile(
+        path.join(f.directory, 'gui-console-positive.png'),
+        Buffer.concat([png(), Buffer.from('changed')]),
+      )
+    if (scenario === 'raw-native-drift')
+      await writeFile(path.join(f.directory, 'gui-native-audit.json'), '[]')
+    if (scenario === 'raw-window-drift')
+      await writeFile(path.join(f.directory, 'native-window-events.json'), '{}')
+    if (scenario === 'copy-manifest-drift') {
+      const p = path.join(f.directory, 'evidence-files.json')
+      const value = JSON.parse(await readFile(p))
+      value.files[0].sha256 = '0'.repeat(64)
+      await writeJson(p, value)
+    }
+    await assert.rejects(verifyInstalledGuiEvidence(f.directory, f.expected))
+  })
+
+test('final payload permits only the exact additional 42 GUI evidence files and keeps the original 32-file budget', () => {
+  const original = Array.from({ length: 29 }, (_, i) => ({ name: `original-${i}.json`, bytes: 10 }))
+  const gui = guiDeliveryFiles.map((name) => ({ name, bytes: 10 }))
+  assert.equal(gui.length, 42)
+  assert.equal(verifyPayloadInventory([...original, ...gui], { gui: true }).length, 71)
+  assert.throws(() => verifyPayloadInventory([...original, ...gui]))
+  assert.throws(() => verifyPayloadInventory([...original, ...gui.slice(1)], { gui: true }))
+  assert.throws(() =>
+    verifyPayloadInventory(
+      [...original, ...gui, { name: 'reports/gui-pure-standard/unreviewed.txt', bytes: 1 }],
+      { gui: true },
+    ),
+  )
+  assert.throws(() =>
+    verifyPayloadInventory(
+      [
+        ...original,
+        ...gui,
+        ...Array.from({ length: 4 }, (_, i) => ({ name: `extra-${i}`, bytes: 1 })),
+      ],
+      { gui: true },
+    ),
+  )
+  assert.throws(() =>
+    verifyPayloadInventory(
+      [
+        ...original,
+        ...gui.map((file, index) => (index === 0 ? { ...file, bytes: 128 * 1024 * 1024 } : file)),
+      ],
+      { gui: true },
+    ),
+  )
+  assert.throws(() => verifyPayloadInventory([...original, ...gui, gui[0]], { gui: true }))
+})
