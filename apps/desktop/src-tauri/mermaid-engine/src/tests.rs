@@ -310,3 +310,286 @@ fn shutdown_never_accepts_uncertain_cleanup_and_clears_completed_leases() {
         .unwrap_err()
         .contains("uncertain"));
 }
+
+fn released_native_report(request_id: &str) -> Value {
+    json!({
+        "requestId":request_id,"stopMatrixAfterThisCase":true,
+        "ownedJobCreated":true,"profileCreated":true,"pinnedFilesCreated":true,
+        "pinsReleased":true,"preStopJob":{"active":2},"jobActiveAfterStop":0,
+        "ipcStreamsStarted":["stdout","stdin","stderr"],"ipcThreadsCompleted":true,
+        "ipcThreadCleanup":[
+            {"stream":"stdout","finished":true,"panicked":false},
+            {"stream":"stdin","finished":true,"panicked":false},
+            {"stream":"stderr","finished":true,"panicked":false}],
+        "profileDeleteApiSucceeded":true,"profileDeletedAndFolderAbsent":true,
+        "privateTreeRemoved":true,"privateTreeCleanup":{
+            "terminalPhase":"complete","absenceChecked":true,"absent":true,
+            "attempts":1,"finalOsError":null}
+    })
+}
+
+#[test]
+fn historical_995_facts_allow_exit_after_release_without_reopening_rendering() {
+    // The immutable original audit records the actual failure and completed
+    // resource cleanup. It predates the new explicit created-resource fields;
+    // the report below is a labelled test reconstruction, not a recovered raw
+    // launcher report or retroactive acceptance of the old failed run.
+    let log = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+        "/../../../../docs/evidence/mermaid-windows-trial-beta9-2026-11-03/attempt-41708284083/extracted/installed/pure-standard/ordinary-product.log"));
+    let records: Vec<Value> = log
+        .lines()
+        .filter_map(|line| line.strip_prefix("MILKUP_MERMAID_NATIVE_AUDIT "))
+        .map(|line| serde_json::from_str(line).unwrap())
+        .filter(|value: &Value| value["phase"] == "finished")
+        .collect();
+    assert_eq!(records.len(), 1);
+    let original = &records[0];
+    assert_eq!(original["requestId"], "7b60396d899c44c39ed512d12f3a68c8");
+    assert_eq!(original["successful"], false);
+    assert_eq!(original["pngBytes"], 0);
+    assert_eq!(original["cleanupUncertain"], true);
+    assert_eq!(original["stdoutFailure"]["win32Error"], 995);
+    assert_eq!(original["stderrFailure"]["win32Error"], 995);
+    assert_eq!(original["ownedJobCreated"], true);
+    assert_eq!(original["profileCreated"], true);
+    assert_eq!(original["profileDeleted"], true);
+    assert!(original["cleanupTimeline"]["pinsReleasedMs"].is_u64());
+
+    let request_id = original["requestId"].as_str().unwrap();
+    let mut report = released_native_report(request_id);
+    for field in [
+        "jobActiveAfterStop",
+        "ipcThreadsCompleted",
+        "ipcThreadCleanup",
+        "privateTreeRemoved",
+        "privateTreeCleanup",
+        "stdoutFailure",
+        "stderrFailure",
+    ] {
+        report[field] = original[field].clone();
+    }
+    assert!(owned_native_resources_released(request_id, &report));
+    let registry = Registry::default();
+    let failure = registry
+        .render_with("main", request(request_id), |_, control| {
+            control.mark_native_failure(request_id, &report);
+            Err("Original protocol 995 remains a failed render".into())
+        })
+        .unwrap_err();
+    assert!(failure.contains("995"));
+    assert!(registry.unhealthy.load(Ordering::Acquire));
+    assert!(!registry.cleanup_uncertain.load(Ordering::Acquire));
+    assert!(registry.state.lock().unwrap().leases.is_empty());
+    assert!(registry
+        .render_with("main", request("later"), |_, _| {
+            panic!("Released resources do not authorize another native render")
+        })
+        .is_err());
+    registry.shutdown_and_wait().unwrap();
+    registry.shutdown_and_wait().unwrap();
+}
+
+#[test]
+fn release_proof_rejects_missing_nonboolean_and_contradictory_resource_facts() {
+    let report = released_native_report("r");
+    for field in [
+        "requestId",
+        "ownedJobCreated",
+        "profileCreated",
+        "pinnedFilesCreated",
+        "pinsReleased",
+        "preStopJob",
+        "jobActiveAfterStop",
+        "ipcStreamsStarted",
+        "ipcThreadsCompleted",
+        "ipcThreadCleanup",
+        "profileDeleteApiSucceeded",
+        "profileDeletedAndFolderAbsent",
+        "privateTreeRemoved",
+        "privateTreeCleanup",
+    ] {
+        let mut missing = report.clone();
+        missing.as_object_mut().unwrap().remove(field);
+        assert!(
+            !owned_native_resources_released("r", &missing),
+            "missing {field}"
+        );
+        for value in [Value::Null, json!(false), json!("true")] {
+            let mut invalid = report.clone();
+            invalid[field] = value;
+            assert!(
+                !owned_native_resources_released("r", &invalid),
+                "invalid {field}"
+            );
+        }
+    }
+    for (pointer, value) in [
+        ("/ipcStreamsStarted/1", json!("stdout")),
+        ("/ipcStreamsStarted/1", json!("other")),
+        ("/ipcThreadCleanup/1/stream", json!("stdout")),
+        ("/ipcThreadCleanup/1/finished", json!(false)),
+        ("/ipcThreadCleanup/1/panicked", json!(true)),
+        ("/ipcThreadCleanup/1/panicked", Value::Null),
+        ("/privateTreeCleanup/terminalPhase", json!("remove")),
+        ("/privateTreeCleanup/absenceChecked", json!(false)),
+        ("/privateTreeCleanup/absent", json!(false)),
+        ("/privateTreeCleanup/finalOsError", json!(5)),
+        ("/privateTreeCleanup/attempts", json!(0)),
+        ("/jobActiveAfterStop", json!(1)),
+    ] {
+        let mut invalid = report.clone();
+        *invalid.pointer_mut(pointer).unwrap() = value;
+        assert!(!owned_native_resources_released("r", &invalid), "{pointer}");
+    }
+    let mut missing_thread = report.clone();
+    missing_thread["ipcThreadCleanup"]
+        .as_array_mut()
+        .unwrap()
+        .pop();
+    assert!(!owned_native_resources_released("r", &missing_thread));
+    let mut missing_absence_error = report.clone();
+    missing_absence_error["privateTreeCleanup"]
+        .as_object_mut()
+        .unwrap()
+        .remove("finalOsError");
+    assert!(!owned_native_resources_released(
+        "r",
+        &missing_absence_error
+    ));
+}
+
+#[test]
+fn explicitly_uncreated_resources_need_no_fabricated_cleanup_but_reject_contradictions() {
+    let report = json!({"requestId":"early","ownedJobCreated":false,"profileCreated":false,
+        "pinnedFilesCreated":false,"pinsReleased":true,"ipcStreamsStarted":[],
+        "ipcThreadCleanup":[],"ipcThreadsCompleted":true,"privateTreeRemoved":true,
+        "privateTreeCleanup":{"terminalPhase":"complete","absenceChecked":true,
+            "absent":true,"attempts":1,"finalOsError":null}});
+    assert!(owned_native_resources_released("early", &report));
+    for (field, value) in [
+        ("helperProcessId", json!(42)),
+        ("preStopJob", json!({"active":0})),
+        ("jobActiveAfterStop", json!(0)),
+        ("profileFolder", json!("created-folder")),
+        ("appContainerSid", json!("created-sid")),
+        ("privateExecutableBytes", json!(128)),
+        ("profileDeleteApiSucceeded", json!(true)),
+    ] {
+        let mut invalid = report.clone();
+        invalid[field] = value;
+        assert!(
+            !owned_native_resources_released("early", &invalid),
+            "{field}"
+        );
+    }
+}
+
+#[test]
+fn partially_initialized_launcher_requires_release_of_only_the_resources_it_created() {
+    for (job_created, pins_created) in [(false, false), (false, true), (true, true)] {
+        let mut report = released_native_report("partial");
+        report["ownedJobCreated"] = json!(job_created);
+        report["pinnedFilesCreated"] = json!(pins_created);
+        report["ipcStreamsStarted"] = json!([]);
+        report["ipcThreadCleanup"] = json!([]);
+        if !job_created {
+            report.as_object_mut().unwrap().remove("preStopJob");
+            report.as_object_mut().unwrap().remove("jobActiveAfterStop");
+        }
+        assert!(owned_native_resources_released("partial", &report));
+        // A profile exists even when later initialization did not reach a
+        // helper or any IPC threads; both deletion observations remain required.
+        report["profileDeletedAndFolderAbsent"] = json!(false);
+        let registry = Registry::default();
+        assert!(registry
+            .render_with("main", request("partial"), |_, control| {
+                control.mark_native_failure("partial", &report);
+                Err("Profile folder remains after partial initialization".into())
+            })
+            .is_err());
+        assert!(registry
+            .shutdown_and_wait()
+            .unwrap_err()
+            .contains("uncertain"));
+    }
+}
+
+#[test]
+fn another_requests_proof_and_later_clean_report_cannot_clear_uncertain_ownership() {
+    for unknown_first in [false, true] {
+        let registry = Registry::default();
+        assert!(registry
+            .render_with("main", request("this-request"), |_, control| {
+                if unknown_first {
+                    control.mark_cleanup_uncertain();
+                } else {
+                    control.mark_native_failure(
+                        "this-request",
+                        &released_native_report("other-request"),
+                    );
+                }
+                control
+                    .mark_native_failure("this-request", &released_native_report("this-request"));
+                Err("Uncertainty cannot be repaired by another report".into())
+            })
+            .is_err());
+        assert!(registry.unhealthy.load(Ordering::Acquire));
+        assert!(registry.cleanup_uncertain.load(Ordering::Acquire));
+        assert!(registry
+            .shutdown_and_wait()
+            .unwrap_err()
+            .contains("uncertain"));
+    }
+}
+
+#[test]
+fn protocol_failure_after_inflight_cancel_still_waits_for_actual_release_before_exit() {
+    let registry = Arc::new(Registry::default());
+    let rendering = registry.clone();
+    let (started_tx, started_rx) = mpsc::channel();
+    let (cancelled_tx, cancelled_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let renderer = thread::spawn(move || {
+        rendering.render_with("main", request("inflight"), |_, control| {
+            started_tx.send(()).unwrap();
+            while control.checkpoint().is_ok() {
+                thread::yield_now();
+            }
+            cancelled_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+            control.mark_native_failure("inflight", &released_native_report("inflight"));
+            Err("Protocol remains failed after checked release".into())
+        })
+    });
+    started_rx.recv().unwrap();
+    let closing = registry.clone();
+    let (closed_tx, closed_rx) = mpsc::channel();
+    let closer = thread::spawn(move || closed_tx.send(closing.shutdown_and_wait()).unwrap());
+    cancelled_rx.recv().unwrap();
+    assert!(closed_rx.recv_timeout(Duration::from_millis(20)).is_err());
+    release_tx.send(()).unwrap();
+    assert!(renderer.join().unwrap().is_err());
+    closed_rx
+        .recv_timeout(Duration::from_secs(1))
+        .unwrap()
+        .unwrap();
+    closer.join().unwrap();
+    assert!(registry.unhealthy.load(Ordering::Acquire));
+    assert!(!registry.cleanup_uncertain.load(Ordering::Acquire));
+}
+
+#[test]
+fn panicked_backend_remains_an_unresolved_resource_failure() {
+    let registry = Registry::default();
+    assert!(registry
+        .render_with("main", request("panic"), |_, _| {
+            panic!("Unknown ownership at a backend panic")
+        })
+        .unwrap_err()
+        .contains("panicked"));
+    assert!(registry.cleanup_uncertain.load(Ordering::Acquire));
+    assert!(registry
+        .shutdown_and_wait()
+        .unwrap_err()
+        .contains("uncertain"));
+}

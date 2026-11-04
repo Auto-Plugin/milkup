@@ -75,8 +75,10 @@ pub struct Rendered {
 pub struct Control {
     cancelled: Arc<AtomicBool>,
     deadline: Instant,
-    // A backend that cannot establish cleanup must block subsequent launches.
+    // A native failure stops future rendering, even when all owned resources
+    // were released. Unresolved ownership separately prevents process exit.
     unhealthy: Arc<AtomicBool>,
+    cleanup_uncertain: Arc<AtomicBool>,
 }
 impl Control {
     pub fn checkpoint(&self) -> std::result::Result<(), String> {
@@ -92,8 +94,117 @@ impl Control {
         self.deadline.saturating_duration_since(Instant::now())
     }
     pub fn mark_cleanup_uncertain(&self) {
+        self.cleanup_uncertain.store(true, Ordering::Release);
         self.unhealthy.store(true, Ordering::Release);
     }
+
+    #[cfg(any(windows, test))]
+    fn mark_native_failure(&self, request_id: &str, report: &Value) {
+        // Neither latch is reset. A later or reused complete report cannot
+        // excuse an earlier unknown/panicked backend or unresolved resource.
+        if !owned_native_resources_released(request_id, report) {
+            self.cleanup_uncertain.store(true, Ordering::Release);
+        }
+        self.unhealthy.store(true, Ordering::Release);
+    }
+}
+
+/// A protocol failure is still a failed render. This narrowly establishes only
+/// that the fixed launcher's owned resources for this request have been released
+/// so that a stopped service need not trap an otherwise clean application exit.
+/// The report is produced in-process by the fixed launcher, never accepted from
+/// a plugin or from a remembered/externally supplied audit record.
+#[cfg(any(windows, test))]
+fn owned_native_resources_released(request_id: &str, report: &Value) -> bool {
+    if report["requestId"].as_str() != Some(request_id)
+        || !id(request_id)
+        || report["ipcThreadsCompleted"] != true
+        || report["pinsReleased"] != true
+        || report["privateTreeRemoved"] != true
+    {
+        return false;
+    }
+    let (Some(job_created), Some(profile_created), Some(pins_created)) = (
+        report["ownedJobCreated"].as_bool(),
+        report["profileCreated"].as_bool(),
+        report["pinnedFilesCreated"].as_bool(),
+    ) else {
+        return false;
+    };
+    let (Some(started), Some(completed)) = (
+        report["ipcStreamsStarted"].as_array(),
+        report["ipcThreadCleanup"].as_array(),
+    ) else {
+        return false;
+    };
+    if started.len() > 3 || started.len() != completed.len() {
+        return false;
+    }
+    let mut streams = HashSet::new();
+    for stream in started {
+        let Some(name @ ("stdout" | "stdin" | "stderr")) = stream.as_str() else {
+            return false;
+        };
+        if !streams.insert(name) {
+            return false;
+        }
+    }
+    for observation in completed {
+        let Some(name) = observation["stream"].as_str() else {
+            return false;
+        };
+        if !streams.remove(name)
+            || observation["finished"] != true
+            || observation["panicked"] != false
+        {
+            return false;
+        }
+    }
+    if !streams.is_empty() {
+        return false;
+    }
+    if job_created {
+        if !profile_created
+            || !pins_created
+            || !report["preStopJob"].is_object()
+            || report["jobActiveAfterStop"].as_u64() != Some(0)
+        {
+            return false;
+        }
+    } else if !started.is_empty()
+        || !report["preStopJob"].is_null()
+        || !report["jobActiveAfterStop"].is_null()
+        || !report["helperProcessId"].is_null()
+    {
+        return false;
+    }
+    if profile_created {
+        if report["profileDeleteApiSucceeded"] != true
+            || report["profileDeletedAndFolderAbsent"] != true
+        {
+            return false;
+        }
+    } else if job_created
+        || pins_created
+        || !started.is_empty()
+        || report["profileDeleteApiSucceeded"] == true
+        || report["profileDeletedAndFolderAbsent"] == true
+        || !report["profileFolder"].is_null()
+        || !report["appContainerSid"].is_null()
+    {
+        return false;
+    }
+    if !pins_created && !report["privateExecutableBytes"].is_null() {
+        return false;
+    }
+    let tree = &report["privateTreeCleanup"];
+    tree["terminalPhase"] == "complete"
+        && tree["absenceChecked"] == true
+        && tree["absent"] == true
+        && tree.get("finalOsError").is_some_and(Value::is_null)
+        && tree["attempts"]
+            .as_u64()
+            .is_some_and(|n| (1..=31).contains(&n))
 }
 #[derive(Hash, PartialEq, Eq, Clone)]
 struct Owner {
@@ -128,6 +239,7 @@ pub struct Registry {
     state: Mutex<State>,
     wake: Condvar,
     unhealthy: Arc<AtomicBool>,
+    cleanup_uncertain: Arc<AtomicBool>,
 }
 
 fn id(value: &str) -> bool {
@@ -208,6 +320,7 @@ impl Registry {
             cancelled: Arc::new(AtomicBool::new(false)),
             deadline: received + Duration::from_millis(request.remaining_ms),
             unhealthy: self.unhealthy.clone(),
+            cleanup_uncertain: self.cleanup_uncertain.clone(),
         };
         {
             let mut state = self.state.lock().map_err(|e| e.to_string())?;
@@ -217,8 +330,7 @@ impl Registry {
             }
             if self.unhealthy.load(Ordering::Acquire) {
                 return Err(
-                    "Mermaid service stopped after uncertain native cleanup; restart required"
-                        .into(),
+                    "Mermaid service stopped after a native failure; restart required".into(),
                 );
             }
             if state.retired.contains(&key.owner) || state.seen.contains(&key) {
@@ -246,7 +358,7 @@ impl Registry {
             }
             if self.unhealthy.load(Ordering::Acquire) {
                 state.jobs.remove(&key);
-                return Err("Native cleanup is uncertain".into());
+                return Err("Mermaid service stopped after a native failure".into());
             }
             // Reserve the maximum new PNG and decode pixels while old outputs
             // remain owned. Reject before starting another browser, not after
@@ -441,7 +553,7 @@ impl Registry {
                 .0;
         }
         drop(state);
-        if self.unhealthy.load(Ordering::Acquire) {
+        if self.cleanup_uncertain.load(Ordering::Acquire) {
             return Err("Mermaid native cleanup is uncertain; window must remain open".into());
         }
         #[cfg(windows)]
@@ -501,7 +613,13 @@ pub fn render_native(input: &Value, control: &Control) -> std::result::Result<Re
         ));
     }
     if output.report["stopMatrixAfterThisCase"] == true {
-        control.mark_cleanup_uncertain();
+        control.mark_native_failure(request_id, &output.report);
+        // Stopping the service never makes a failed protocol frame publishable,
+        // even if a future launcher bug accidentally returns an ok metadata tag.
+        return Err(output.metadata["message"]
+            .as_str()
+            .unwrap_or("Fixed Mermaid render stopped after a native failure")
+            .into());
     }
     if output.metadata["status"] != "ok" {
         return Err(output.metadata["message"]

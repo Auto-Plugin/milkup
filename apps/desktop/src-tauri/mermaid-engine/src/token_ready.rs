@@ -185,6 +185,7 @@ fn cancellation_during_job_sampling_never_publishes_unstarted_helper_proof() {
         cancelled: Arc::new(AtomicBool::new(false)),
         deadline: Instant::now() + Duration::from_secs(5),
         unhealthy: Arc::new(AtomicBool::new(false)),
+        cleanup_uncertain: Arc::new(AtomicBool::new(false)),
     };
     let result = prepare_started(&mut report, &control, || {
         control.cancelled.store(true, Ordering::Release);
