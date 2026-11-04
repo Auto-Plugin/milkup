@@ -64,6 +64,14 @@ export function createOwnedDocumentPngImage(
   viewport.append(image)
   element.append(viewport)
   let state: OwnedDocumentSvgImage['state'] = 'pending'
+  const attachControls = () => {
+    const host = document.querySelector<HTMLElement>('#app')
+    if (host) {
+      if (controls.parentElement !== host) host.append(controls)
+      return
+    }
+    if (!controls.isConnected) (document.body ?? document.documentElement).append(controls)
+  }
   let url: string | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let released = false
@@ -73,7 +81,8 @@ export function createOwnedDocumentPngImage(
   const ownerWindow = document.defaultView
   const controlHeight = 28
   const syncControls = () => {
-    if (!element.isConnected) return
+    attachControls()
+    if (!element.isConnected || !controls.isConnected) return
     const rect = element.getBoundingClientRect()
     controls.style.left = `${rect.left}px`
     controls.style.top = `${rect.top}px`
