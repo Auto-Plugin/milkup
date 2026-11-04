@@ -26,11 +26,13 @@ export function createOwnedDocumentPngImage(
   // native pointer targeting for controls nested in the non-editable preview.
   controls.style.position = 'fixed'
   controls.style.zIndex = '1000'
+  controls.style.pointerEvents = 'auto'
   controls.hidden = true
   const button = document.createElement('button')
   button.type = 'button'
   button.dataset.documentPngScale = ''
   button.className = 'milkup-document-png-scale'
+  button.style.pointerEvents = 'auto'
   button.title = '按原始尺寸查看，可横向滚动'
   const buttonLabel = document.createTextNode('原始尺寸')
   button.append(buttonLabel)
@@ -152,7 +154,17 @@ export function createOwnedDocumentPngImage(
   }
   const toggleDocumentPointer = (event: Event) => {
     const target = event.target
-    if (!(target instanceof Node) || (target !== button && !button.contains(target))) return
+    const directTarget = target instanceof Node && (target === button || button.contains(target))
+    const point = event as MouseEvent
+    const rect = button.getBoundingClientRect()
+    const coordinateTarget =
+      Number.isFinite(point.clientX) &&
+      Number.isFinite(point.clientY) &&
+      point.clientX >= rect.left &&
+      point.clientX <= rect.right &&
+      point.clientY >= rect.top &&
+      point.clientY <= rect.bottom
+    if (!directTarget && !coordinateTarget) return
     const eventButton = 'button' in event ? Number((event as { button?: number }).button) : 0
     if (Number.isFinite(eventButton) && eventButton > 0) return
     togglePointer(event)
@@ -162,7 +174,6 @@ export function createOwnedDocumentPngImage(
   // from the preview hit tree and activate from that document-level path too.
   ownerWindow?.document.addEventListener('pointerdown', toggleDocumentPointer, true)
   ownerWindow?.document.addEventListener('pointerup', toggleDocumentPointer, true)
-  ownerWindow?.document.addEventListener('mousedown', toggleDocumentPointer, true)
   ownerWindow?.document.addEventListener('mouseup', toggleDocumentPointer, true)
   // Preserve native focus, keyboard activation and scrollbar operation. These
   // controls must not select the Markdown source through the preview wrapper.
@@ -186,7 +197,6 @@ export function createOwnedDocumentPngImage(
     ownerWindow?.removeEventListener('scroll', syncOnScroll, true)
     ownerWindow?.document.removeEventListener('pointerdown', toggleDocumentPointer, true)
     ownerWindow?.document.removeEventListener('pointerup', toggleDocumentPointer, true)
-    ownerWindow?.document.removeEventListener('mousedown', toggleDocumentPointer, true)
     ownerWindow?.document.removeEventListener('mouseup', toggleDocumentPointer, true)
     controls.remove()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
