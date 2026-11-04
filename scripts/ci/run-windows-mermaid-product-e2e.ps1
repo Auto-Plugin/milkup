@@ -136,6 +136,7 @@ function Get-ChildEvidenceNames {
     }
     $names.Add('gui-failure-cleanup-window.png', 'gui-failure-cleanup-window.png')
     $names.Add('gui-source-inventory.json', 'gui-source-inventory.json')
+    $names.Add('gui-wide-natural-window.png', 'gui-wide-natural-window.png')
     foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }

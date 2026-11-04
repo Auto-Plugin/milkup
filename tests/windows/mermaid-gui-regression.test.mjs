@@ -14,6 +14,7 @@ import {
   validateGuiObserver,
   validateGuiReport,
   validateNativeWindowEvidence,
+  validateNativeChildLifetimes,
   validateCurrentNativeResourceProof,
   validateNativeDpiObservation,
   validateNativeGuiResize,
@@ -27,6 +28,7 @@ import {
   guiNativeResizeOperations,
 } from './mermaid-gui-regression.mjs'
 import { stageEvidence } from './stage-mermaid-evidence.mjs'
+import { syntheticWideInteraction } from './mermaid-gui-test-fixtures.mjs'
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const identity = () => ({
@@ -48,6 +50,7 @@ const windowMetrics = (
   const value = {
     native: {
       observed: true,
+      readiness: { attempts: 2, zeroMatches: 0, elapsedMs: 100, stableSamples: 2 },
       displaySettingsChanged: false,
       pid,
       creationFileTime,
@@ -400,6 +403,16 @@ const summary = () => ({
 })
 const rawWindows = () => ({
   ...summary(),
+  childLifeVersion: 1,
+  windowLifetimes: [],
+  childShowEvidence: [],
+  unresolvedEvents: [],
+  resolvedChildEvents: [],
+  knownChildShowEvents: 0,
+  observationStoppedAtTick: 2300,
+  workingGenerationPeak: 0,
+  sharedRecordCount: 1,
+  processes: [],
   windowEventHookUsed: true,
   desktopOrAclChanged: false,
   productTerminatedByObserver: false,
@@ -484,6 +497,12 @@ const passing = () => ({
         png: { fullyDecoded: true },
         exactBytesUnchanged: true,
       })
+    if (name === 'open-wide-stable') {
+      step.png.sha256 = 'e'.repeat(64)
+      step.png.width = 3200
+      step.png.height = 160
+      step.wideInteraction = syntheticWideInteraction(step.png.sha256)
+    }
     if (name === 'resize-wide') step.operations = Array.from({ length: 6 }, nativeResize)
     if (name === 'repeat-document-open')
       step.opens = Array.from({ length: 3 }, () => ({
@@ -578,6 +597,7 @@ test('headless or incomplete observation never establishes absence of visible co
   noControl.events[0].showEvent = false
   assert.throws(() => validateNativeWindowEvidence(noControl, summary()), /Raw window events/)
   const flashed = rawWindows()
+  flashed.sharedRecordCount++
   flashed.events.push({
     ...flashed.events[0],
     sequence: 2,
@@ -589,6 +609,406 @@ test('headless or incomplete observation never establishes absence of visible co
     observedVisible: true,
   })
   assert.throws(() => validateNativeWindowEvidence(flashed, summary()), /strictly equal/)
+})
+
+const childLifetimeEvidence = () => {
+  const raw = rawWindows()
+  const event = (sequence, nativeTick, callbackTick, eventThreadId) => ({
+    sequence,
+    nativeTick,
+    callbackTick,
+    eventThreadId,
+    nativeEventUptimeMs32: nativeTick % 0x100000000,
+  })
+  raw.processes = [
+    { pid: 100, parentPid: 1, creationFileTime: '1000', image: 'product.exe' },
+    { pid: 101, parentPid: 100, creationFileTime: '1100', image: 'webview.exe' },
+  ]
+  raw.windowLifetimes = [
+    {
+      id: 1,
+      hwnd: '0x10',
+      generation: 1,
+      create: event(1, 100, 101, 11),
+      confirmation: {
+        sequence: 1,
+        callbackTick: 101,
+        className: 'Tauri Window',
+        rootHwnd: '0x10',
+        rootLifeId: null,
+        pid: 100,
+        processCreationFileTime: '1000',
+        threadId: 11,
+        threadCreationFileTime: '1010',
+        doubleReadMatched: true,
+      },
+      retirement: { ...event(4, 200, 210, 11), reason: 'destroy', parentLifeId: null },
+      proofReleasedAtTick: 2210,
+    },
+    {
+      id: 2,
+      hwnd: '0x11',
+      generation: 1,
+      create: event(2, 110, 111, 12),
+      confirmation: {
+        sequence: 2,
+        callbackTick: 111,
+        className: 'Button',
+        rootHwnd: '0x10',
+        rootLifeId: 1,
+        pid: 101,
+        processCreationFileTime: '1100',
+        threadId: 12,
+        threadCreationFileTime: '1110',
+        doubleReadMatched: true,
+      },
+      retirement: { ...event(4, 200, 210, 11), reason: 'parent-destroy', parentLifeId: 1 },
+      proofReleasedAtTick: 2210,
+    },
+  ]
+  raw.childShowEvidence = [
+    {
+      id: 1,
+      hwnd: '0x11',
+      ...event(5, 150, 220, 12),
+      status: 'resolved-child',
+      lifeId: 2,
+      proof: {
+        capturedAtTick: 220,
+        threadId: 12,
+        threadCreationFileTime: '1110',
+        pid: 101,
+        processCreationFileTime: '1100',
+        heldThreadVerified: true,
+        heldProcessVerified: true,
+      },
+      reason: 'held identity and original event interval',
+    },
+  ]
+  raw.knownChildShowEvents = 1
+  raw.workingGenerationPeak = 2
+  raw.sharedRecordCount = 4
+  return raw
+}
+
+test('late child SHOW is independently resolved by exact identities and its original lifetime interval', () => {
+  assert(validateNativeWindowEvidence(childLifetimeEvidence(), summary()))
+  const wrapped = childLifetimeEvidence()
+  const offset = 0x100000000 - 120
+  for (const life of wrapped.windowLifetimes) {
+    for (const record of [life.create, life.retirement]) {
+      record.callbackTick += offset
+      record.nativeTick += offset
+      record.nativeEventUptimeMs32 = record.nativeTick % 0x100000000
+    }
+    life.confirmation.callbackTick += offset
+    life.proofReleasedAtTick += offset
+  }
+  wrapped.observationStoppedAtTick += offset
+  const show = wrapped.childShowEvidence[0]
+  show.callbackTick += offset
+  show.nativeTick += offset
+  show.nativeEventUptimeMs32 = show.nativeTick % 0x100000000
+  show.proof.capturedAtTick += offset
+  assert(
+    validateNativeChildLifetimes(wrapped),
+    'Original 32-bit native time is independently unwrapped across rollover',
+  )
+
+  const noSuppression = rawWindows()
+  noSuppression.windowLifetimes = [structuredClone(childLifetimeEvidence().windowLifetimes[0])]
+  noSuppression.processes = childLifetimeEvidence().processes
+  noSuppression.windowLifetimes[0].retirement = null
+  noSuppression.windowLifetimes[0].proofReleasedAtTick = noSuppression.observationStoppedAtTick
+  noSuppression.workingGenerationPeak = 1
+  noSuppression.sharedRecordCount = 2
+  assert(
+    validateNativeChildLifetimes(noSuppression),
+    'Observer stop releases query handles without inventing a window destroy',
+  )
+})
+
+test('child classification rejects missing identities, stale generations, clock ambiguity and unproved suppression', () => {
+  const rejected = [
+    ['unknown SHOW', (raw) => raw.unresolvedEvents.push({ hwnd: '0xdead' })],
+    ['old child hint', (raw) => raw.resolvedChildEvents.push({ previouslyObservedAsChild: true })],
+    [
+      'missing schema',
+      (raw) => {
+        delete raw.childLifeVersion
+      },
+    ],
+    [
+      'unresolved status',
+      (raw) => {
+        raw.childShowEvidence[0].status = 'unresolved'
+      },
+    ],
+    [
+      'missing proof',
+      (raw) => {
+        raw.childShowEvidence[0].proof = null
+      },
+    ],
+    [
+      'wrong child generation',
+      (raw) => {
+        raw.childShowEvidence[0].lifeId = 1
+      },
+    ],
+    [
+      'unaccounted suppression',
+      (raw) => {
+        raw.knownChildShowEvents = 0
+      },
+    ],
+    [
+      'console pretending to be child',
+      (raw) => {
+        raw.windowLifetimes[1].confirmation.className = 'ConsoleWindowClass'
+      },
+    ],
+    [
+      'missing exact root',
+      (raw) => {
+        raw.windowLifetimes[1].confirmation.rootLifeId = 99
+      },
+    ],
+    [
+      'wrong root birth',
+      (raw) => {
+        raw.windowLifetimes[0].confirmation.processCreationFileTime = '999'
+      },
+    ],
+    [
+      'wrong parent generation at destroy',
+      (raw) => {
+        raw.windowLifetimes[1].retirement.parentLifeId = 2
+      },
+    ],
+    [
+      'invented parent destroy time',
+      (raw) => {
+        raw.windowLifetimes[1].retirement.callbackTick++
+      },
+    ],
+    [
+      'same thread ID with a new thread birth',
+      (raw) => {
+        raw.childShowEvidence[0].proof.threadCreationFileTime = '1200'
+      },
+    ],
+    [
+      'same PID with new process birth',
+      (raw) => {
+        raw.childShowEvidence[0].proof.processCreationFileTime = '1099'
+      },
+    ],
+    [
+      'same process but another thread',
+      (raw) => {
+        raw.childShowEvidence[0].eventThreadId = 13
+      },
+    ],
+    [
+      'unverified held process',
+      (raw) => {
+        raw.childShowEvidence[0].proof.heldProcessVerified = false
+      },
+    ],
+    [
+      'proof read after handle release',
+      (raw) => {
+        raw.childShowEvidence[0].proof.capturedAtTick = 2220
+      },
+    ],
+    [
+      'missing retirement boundary',
+      (raw) => {
+        raw.windowLifetimes[1].retirement = null
+        raw.windowLifetimes[1].proofReleasedAtTick = 2300
+      },
+    ],
+    [
+      'SHOW at confirmation boundary',
+      (raw) => {
+        raw.childShowEvidence[0].nativeTick = 111
+        raw.childShowEvidence[0].nativeEventUptimeMs32 = 111
+      },
+    ],
+    [
+      'SHOW at destroy boundary',
+      (raw) => {
+        raw.childShowEvidence[0].nativeTick = 200
+        raw.childShowEvidence[0].nativeEventUptimeMs32 = 200
+      },
+    ],
+    [
+      'forged native clock',
+      (raw) => {
+        raw.childShowEvidence[0].nativeTick = 151
+      },
+    ],
+    [
+      'future original event',
+      (raw) => {
+        raw.childShowEvidence[0].nativeTick = 221
+        raw.childShowEvidence[0].nativeEventUptimeMs32 = 221
+      },
+    ],
+    [
+      'out-of-bound delivery delay',
+      (raw) => {
+        raw.childShowEvidence[0].callbackTick = 2200
+        raw.childShowEvidence[0].proof.capturedAtTick = 2200
+      },
+    ],
+    [
+      'unobserved CREATE',
+      (raw) => {
+        raw.windowLifetimes[1].create.nativeEventUptimeMs32 = null
+      },
+    ],
+    [
+      'unresolvable original CREATE clock',
+      (raw) => {
+        raw.windowLifetimes[1].create.nativeEventUptimeMs32 = 112
+        raw.windowLifetimes[1].create.nativeTick = null
+      },
+    ],
+    [
+      'unresolvable original parent CREATE clock',
+      (raw) => {
+        raw.windowLifetimes[0].create.nativeEventUptimeMs32 = 102
+        raw.windowLifetimes[0].create.nativeTick = null
+      },
+    ],
+    [
+      'parent lifetime ended before child SHOW',
+      (raw) => {
+        raw.windowLifetimes[0].retirement.nativeTick = 140
+        raw.windowLifetimes[0].retirement.nativeEventUptimeMs32 = 140
+        raw.windowLifetimes[1].retirement = {
+          sequence: 6,
+          callbackTick: 230,
+          nativeTick: 210,
+          nativeEventUptimeMs32: 210,
+          reason: 'destroy',
+          parentLifeId: null,
+        }
+      },
+    ],
+    [
+      'false working peak',
+      (raw) => {
+        raw.workingGenerationPeak = 0
+      },
+    ],
+  ]
+  for (const [label, mutate] of rejected) {
+    const raw = childLifetimeEvidence()
+    mutate(raw)
+    assert.throws(() => validateNativeChildLifetimes(raw), undefined, label)
+  }
+  const reused = childLifetimeEvidence()
+  const barrier = {
+    sequence: 3,
+    callbackTick: 145,
+    nativeTick: 140,
+    nativeEventUptimeMs32: 140,
+    eventThreadId: 12,
+  }
+  reused.windowLifetimes[1].retirement = { ...barrier, reason: 'new-create', parentLifeId: null }
+  reused.windowLifetimes.push({
+    id: 3,
+    hwnd: '0x11',
+    generation: 2,
+    create: barrier,
+    confirmation: null,
+    retirement: null,
+    proofReleasedAtTick: 2300,
+  })
+  reused.sharedRecordCount++
+  reused.workingGenerationPeak = 3
+  assert.throws(
+    () => validateNativeChildLifetimes(reused),
+    /exactly one proven child/,
+    'An unreadable CREATE for the same HWND is a barrier even with the same PID/thread',
+  )
+
+  const ambiguous = childLifetimeEvidence()
+  ambiguous.observationStoppedAtTick = 4000
+  ambiguous.windowLifetimes.push({
+    id: 3,
+    hwnd: '0x11',
+    generation: 2,
+    create: {
+      sequence: 6,
+      callbackTick: 3000,
+      nativeTick: null,
+      nativeEventUptimeMs32: 0,
+      eventThreadId: 12,
+    },
+    confirmation: null,
+    retirement: null,
+    proofReleasedAtTick: 4000,
+  })
+  ambiguous.sharedRecordCount++
+  assert.throws(
+    () => validateNativeChildLifetimes(ambiguous),
+    /exactly one proven child/,
+    'An ambiguous later CREATE time cannot be assigned away from the old SHOW',
+  )
+})
+
+test('child lifetime evidence cannot silently downgrade or exceed the original shared budgets', () => {
+  const historical = rawWindows()
+  for (const field of [
+    'childLifeVersion',
+    'windowLifetimes',
+    'childShowEvidence',
+    'observationStoppedAtTick',
+    'workingGenerationPeak',
+    'sharedRecordCount',
+  ])
+    delete historical[field]
+  assert.throws(() => validateNativeChildLifetimes(historical), /Explicit child lifetime/)
+  assert(validateNativeChildLifetimes(historical, { allowLegacyChildLifetimes: true }))
+  historical.knownChildShowEvents = 1
+  assert.throws(
+    () => validateNativeChildLifetimes(historical, { allowLegacyChildLifetimes: true }),
+    /Historical unproved/,
+  )
+
+  const records = childLifetimeEvidence()
+  records.events = Array.from({ length: 2048 }, () => ({}))
+  records.sharedRecordCount = 2051
+  assert.throws(() => validateNativeChildLifetimes(records), /2048 budget/)
+  const processes = childLifetimeEvidence()
+  processes.processes = Array.from({ length: 257 }, () => ({}))
+  assert.throws(() => validateNativeChildLifetimes(processes))
+  const shows = childLifetimeEvidence()
+  shows.childShowEvidence = Array.from({ length: 129 }, () => ({}))
+  assert.throws(() => validateNativeChildLifetimes(shows))
+  const windows = rawWindows()
+  windows.windowLifetimes = Array.from({ length: 257 }, (_, index) => ({
+    id: index + 1,
+    hwnd: '0x' + (index + 1).toString(16),
+    generation: 1,
+    create: {
+      sequence: index + 1,
+      nativeTick: 100 + index,
+      callbackTick: 101 + index,
+      nativeEventUptimeMs32: 100 + index,
+      eventThreadId: 12,
+    },
+    confirmation: null,
+    retirement: null,
+    proofReleasedAtTick: 2300,
+  }))
+  windows.sharedRecordCount = 258
+  windows.workingGenerationPeak = 256
+  assert.throws(() => validateNativeChildLifetimes(windows), /peak|256-window/)
 })
 
 test('native visibility replays negative-coordinate desktops and strict screen intersections', () => {
@@ -610,6 +1030,7 @@ test('native visibility replays negative-coordinate desktops and strict screen i
     [2400, 1600, 2600, 1800],
   ]) {
     const offscreen = rawWindows()
+    offscreen.sharedRecordCount++
     offscreen.events.push({
       ...offscreen.events[0],
       sequence: 2,
@@ -684,6 +1105,7 @@ test('desktop observations require legal paired fields and cannot silently downg
     )
   }
   const mixed = rawWindows()
+  mixed.sharedRecordCount++
   mixed.events.push({ ...historical.events[0], sequence: 2, elapsedMs: 40 })
   assert.throws(
     () => validateNativeWindowEvidence(mixed, summary(), { allowLegacyDesktopBounds: true }),

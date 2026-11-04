@@ -34,6 +34,7 @@ export const GUI_EVIDENCE_NAMES = Object.freeze([
   ...GUI_STEPS.map((name) => `gui-${name}-window.png`),
   'gui-ordinary-diagram.png',
   'gui-wide-diagram.png',
+  'gui-wide-natural-window.png',
   'gui-multi-diagram.png',
   'gui-multi-2-diagram.png',
 ])
@@ -294,12 +295,354 @@ export function validateNativeGuiResize(operation, expectedPid, expectedCreation
   return true
 }
 
+export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = false } = {}) {
+  assert.equal(typeof allowLegacyChildLifetimes, 'boolean')
+  const fields = [
+    'childLifeVersion',
+    'windowLifetimes',
+    'childShowEvidence',
+    'observationStoppedAtTick',
+    'workingGenerationPeak',
+    'sharedRecordCount',
+  ]
+  const present = fields.filter((field) => Object.hasOwn(raw, field))
+  if (present.length === 0) {
+    assert(allowLegacyChildLifetimes, 'Explicit child lifetime evidence is required')
+    assert.deepEqual(raw.unresolvedEvents ?? [], [], 'Historical unknown SHOW cannot pass')
+    assert.deepEqual(
+      raw.resolvedChildEvents ?? [],
+      [],
+      'Historical child hints cannot replace lifetime evidence',
+    )
+    assert.equal(
+      raw.knownChildShowEvents ?? 0,
+      0,
+      'Historical unproved child suppression cannot pass',
+    )
+    return true
+  }
+  assert.deepEqual(raw.unresolvedEvents, [], 'Every unknown SHOW needs complete lifetime evidence')
+  assert.deepEqual(raw.resolvedChildEvents, [], 'Old child hints cannot replace lifetime evidence')
+  assert.equal(present.length, fields.length, 'Child lifetime evidence cannot be partially omitted')
+  assert.equal(raw.childLifeVersion, 1)
+  const integer = (value, label, min = 0, max = Number.MAX_SAFE_INTEGER) => {
+    assert(Number.isSafeInteger(value) && value >= min && value <= max, label)
+    return value
+  }
+  const hwnd = (value) => {
+    assert(
+      typeof value === 'string' && /^0x[0-9a-f]{1,16}$/.test(value) && BigInt(value) > 0n,
+      'Exact HWND required',
+    )
+    return BigInt(value).toString()
+  }
+  const birth = (value) => {
+    assert(
+      typeof value === 'string' &&
+        /^[1-9][0-9]{0,18}$/.test(value) &&
+        BigInt(value) <= 9223372036854775807n,
+      'Exact positive native creation FILETIME required',
+    )
+    return BigInt(value)
+  }
+  const stopped = integer(raw.observationStoppedAtTick, 'Final native observation tick required')
+  const time = (record) => {
+    integer(record.sequence, 'Native observation sequence required', 1)
+    integer(record.callbackTick, 'Native callback tick required', 0, stopped)
+    integer(record.nativeEventUptimeMs32, 'Original WinEvent uptime required', 0, 0xffffffff)
+    const delay =
+      ((record.callbackTick % 0x100000000) - record.nativeEventUptimeMs32 + 0x100000000) %
+      0x100000000
+    const expected =
+      delay <= 2000 && delay <= record.callbackTick ? record.callbackTick - delay : null
+    assert.equal(
+      record.nativeTick,
+      expected,
+      'Native event time must independently unwrap within 2000 ms',
+    )
+  }
+  assert(Array.isArray(raw.windowLifetimes) && raw.windowLifetimes.length <= 2048)
+  assert(Array.isArray(raw.childShowEvidence) && raw.childShowEvidence.length <= 128)
+  assert(Array.isArray(raw.processes) && raw.processes.length <= 256)
+  assert(Array.isArray(raw.events) && raw.events.length <= 2048)
+  const total = raw.events.length + raw.windowLifetimes.length + raw.childShowEvidence.length
+  assert(total <= 2048, 'All native event and lifetime records share the existing 2048 budget')
+  assert.equal(raw.sharedRecordCount, total)
+  const processes = new Map()
+  for (const process of raw.processes) {
+    integer(process.pid, 'Process PID required', 1, 0xffffffff)
+    birth(process.creationFileTime)
+    const key = `${process.pid}:${process.creationFileTime}`
+    assert(!processes.has(key), 'Exact process identities must not be duplicated')
+    processes.set(key, process)
+  }
+  const identity = (record) => {
+    integer(record.pid, 'Confirmed owner PID required', 1, 0xffffffff)
+    integer(record.threadId, 'Confirmed native thread ID required', 1, 0xffffffff)
+    assert(
+      birth(record.threadCreationFileTime) >= birth(record.processCreationFileTime),
+      'Thread cannot predate its exact owning process',
+    )
+    assert(
+      processes.has(`${record.pid}:${record.processCreationFileTime}`),
+      'Lifetime owner must have retained exact process identity evidence',
+    )
+  }
+  const lives = new Map(),
+    byHwnd = new Map()
+  let previousCreateSequence = 0
+  for (const life of raw.windowLifetimes) {
+    integer(life.id, 'Unique native lifetime ID required', 1)
+    assert(!lives.has(life.id), 'Native lifetime IDs must be unique')
+    const key = hwnd(life.hwnd)
+    const generations = byHwnd.get(key) ?? []
+    assert.equal(life.generation, generations.length + 1, 'Every CREATE is a new HWND generation')
+    time(life.create)
+    integer(life.create.eventThreadId, 'Original CREATE thread required', 1, 0xffffffff)
+    assert(life.create.sequence > previousCreateSequence, 'CREATE records preserve callback order')
+    previousCreateSequence = life.create.sequence
+    if (life.confirmation !== null) {
+      const confirmation = life.confirmation
+      integer(
+        confirmation.sequence,
+        'Child confirmation observation required',
+        life.create.sequence,
+      )
+      integer(
+        confirmation.callbackTick,
+        'Actual child confirmation tick required',
+        life.create.callbackTick,
+        stopped,
+      )
+      assert.equal(confirmation.doubleReadMatched, true)
+      identity(confirmation)
+      assert.equal(
+        confirmation.threadId,
+        life.create.eventThreadId,
+        'CREATE belongs to the exact confirmed window thread',
+      )
+      assert(
+        typeof confirmation.className === 'string' &&
+          confirmation.className.length > 0 &&
+          confirmation.className.length <= 64,
+      )
+      hwnd(confirmation.rootHwnd)
+      if (confirmation.rootLifeId === null)
+        assert.equal(hwnd(confirmation.rootHwnd), key, 'A root confirmation observes itself')
+      else {
+        integer(confirmation.rootLifeId, 'Exact observed root generation required', 1)
+        assert.notEqual(
+          hwnd(confirmation.rootHwnd),
+          key,
+          'A child is distinct from its observed root',
+        )
+        assert(
+          !['ConsoleWindowClass', 'CASCADIA_HOSTING_WINDOW_CLASS', 'PseudoConsoleWindow'].includes(
+            confirmation.className,
+          ),
+          'A console class can never become a negative child classification',
+        )
+      }
+    }
+    if (life.retirement !== null) {
+      time(life.retirement)
+      assert(life.retirement.sequence > life.create.sequence)
+      assert(life.retirement.callbackTick >= life.create.callbackTick)
+      assert(['destroy', 'parent-destroy', 'new-create'].includes(life.retirement.reason))
+      if (life.retirement.reason === 'parent-destroy')
+        integer(life.retirement.parentLifeId, 'Retiring parent generation required', 1)
+      else assert.equal(life.retirement.parentLifeId, null)
+      if (life.confirmation) {
+        assert(life.confirmation.sequence < life.retirement.sequence)
+        assert(life.confirmation.callbackTick <= life.retirement.callbackTick)
+      }
+    }
+    if (life.proofReleasedAtTick !== null) {
+      if (!life.retirement)
+        assert.equal(
+          life.proofReleasedAtTick,
+          stopped,
+          'A still-live generation releases its query handles only at observer stop',
+        )
+      integer(
+        life.proofReleasedAtTick,
+        'Native proof release tick required',
+        life.retirement?.callbackTick ?? life.create.callbackTick,
+        stopped,
+      )
+    }
+    lives.set(life.id, life)
+    generations.push(life)
+    byHwnd.set(key, generations)
+  }
+  const sameEventTime = (left, right) => {
+    for (const field of ['sequence', 'callbackTick', 'nativeTick', 'nativeEventUptimeMs32'])
+      assert.equal(
+        left[field],
+        right[field],
+        'Retirement must reference the actual terminating event',
+      )
+  }
+  for (const life of lives.values()) {
+    const confirmation = life.confirmation
+    if (confirmation?.rootLifeId !== null && confirmation) {
+      const root = lives.get(confirmation.rootLifeId)
+      assert(
+        root?.confirmation && root.confirmation.rootLifeId === null,
+        'Child requires a directly confirmed root lifetime',
+      )
+      assert.equal(hwnd(root.hwnd), hwnd(confirmation.rootHwnd))
+      assert(
+        root.confirmation.sequence <= confirmation.sequence &&
+          root.confirmation.callbackTick <= confirmation.callbackTick,
+        'Root identity must be established before child confirmation',
+      )
+      if (root.retirement)
+        assert(
+          confirmation.sequence < root.retirement.sequence,
+          'A retired root cannot confirm a new child',
+        )
+    }
+    if (life.retirement?.reason === 'parent-destroy') {
+      assert(
+        confirmation && confirmation.rootLifeId === life.retirement.parentLifeId,
+        'Parent retirement must match the root generation actually observed by this child',
+      )
+      const root = lives.get(life.retirement.parentLifeId)
+      assert(root?.retirement && root.retirement.reason === 'destroy')
+      sameEventTime(life.retirement, root.retirement)
+    }
+    const generations = byHwnd.get(hwnd(life.hwnd))
+    const next = generations[life.generation]
+    if (life.retirement?.reason === 'new-create') {
+      assert(next, 'A reuse retirement requires the next observed CREATE barrier')
+      sameEventTime(life.retirement, next.create)
+    }
+    if (next)
+      assert(
+        life.retirement && life.retirement.sequence <= next.create.sequence,
+        'A new CREATE cannot inherit an unclosed HWND lifetime',
+      )
+  }
+  let conservativePeak = 0,
+    minimumPeak = 0
+  for (const life of lives.values()) {
+    const tick = life.create.callbackTick
+    const occupied = [...lives.values()].filter(
+      (other) =>
+        other.create.callbackTick <= tick &&
+        (other.proofReleasedAtTick === null || other.proofReleasedAtTick >= tick),
+    ).length
+    conservativePeak = Math.max(conservativePeak, occupied)
+    const minimum = [...lives.values()].filter(
+      (other) =>
+        other.create.callbackTick <= tick &&
+        (other.proofReleasedAtTick === null || other.proofReleasedAtTick > tick),
+    ).length
+    minimumPeak = Math.max(minimumPeak, minimum)
+  }
+  integer(raw.workingGenerationPeak, 'Working lifetime generation peak required', 0, 256)
+  assert(
+    raw.workingGenerationPeak >= minimumPeak && raw.workingGenerationPeak <= conservativePeak,
+    'Reported peak must agree with the retained lifetime intervals',
+  )
+  assert(
+    conservativePeak <= 256,
+    'Live and retained retired generations share the existing 256-window budget',
+  )
+  const showIds = new Set(),
+    showSequences = new Set()
+  for (const show of raw.childShowEvidence) {
+    integer(show.id, 'Unique unresolved SHOW ID required', 1)
+    assert(!showIds.has(show.id), 'SHOW IDs must be unique')
+    showIds.add(show.id)
+    time(show)
+    assert(show.nativeTick !== null, 'An ambiguous event clock cannot suppress a SHOW')
+    assert(!showSequences.has(show.sequence), 'A SHOW observation cannot resolve more than once')
+    showSequences.add(show.sequence)
+    integer(show.eventThreadId, 'Original SHOW event thread required', 1, 0xffffffff)
+    assert(
+      typeof show.reason === 'string' && show.reason.length > 0 && show.reason.length <= 320,
+      'Retained SHOW resolution reason required',
+    )
+    const proof = show.proof
+    assert(proof, 'Suppressed SHOW requires fresh reads of the retained native identity handles')
+    identity(proof)
+    assert.equal(proof.heldThreadVerified, true)
+    assert.equal(proof.heldProcessVerified, true)
+    integer(
+      proof.capturedAtTick,
+      'Actual SHOW identity read tick required',
+      show.callbackTick,
+      stopped,
+    )
+    assert.equal(proof.threadId, show.eventThreadId)
+    const candidates = (byHwnd.get(hwnd(show.hwnd)) ?? []).filter((life) => {
+      const confirmation = life.confirmation,
+        retirement = life.retirement
+      if (
+        !confirmation ||
+        confirmation.rootLifeId === null ||
+        life.create.nativeTick === null ||
+        !retirement ||
+        retirement.nativeTick === null ||
+        !(confirmation.callbackTick < show.nativeTick && show.nativeTick < retirement.nativeTick) ||
+        !(confirmation.sequence < show.sequence) ||
+        (life.proofReleasedAtTick !== null && proof.capturedAtTick > life.proofReleasedAtTick)
+      )
+        return false
+      if (
+        ['pid', 'processCreationFileTime', 'threadId', 'threadCreationFileTime'].some(
+          (field) => proof[field] !== confirmation[field],
+        )
+      )
+        return false
+      const root = lives.get(confirmation.rootLifeId)
+      if (
+        root.create.nativeTick === null ||
+        (root.retirement &&
+          (root.retirement.nativeTick === null || show.nativeTick >= root.retirement.nativeTick))
+      )
+        return false
+      if (
+        (byHwnd.get(hwnd(root.hwnd)) ?? []).some(
+          (other) =>
+            other.id !== root.id &&
+            other.create.sequence > root.create.sequence &&
+            (other.create.nativeTick === null || other.create.nativeTick <= show.nativeTick),
+        )
+      )
+        return false
+      return !(byHwnd.get(hwnd(show.hwnd)) ?? []).some(
+        (other) =>
+          other.id !== life.id &&
+          other.create.sequence > life.create.sequence &&
+          (other.create.nativeTick === null || other.create.nativeTick <= show.nativeTick),
+      )
+    })
+    assert.equal(
+      candidates.length,
+      1,
+      'A SHOW must identify exactly one proven child generation without an intervening CREATE',
+    )
+    assert.equal(show.lifeId, candidates[0].id)
+    assert.equal(show.status, 'resolved-child')
+  }
+  assert.equal(
+    raw.knownChildShowEvents,
+    raw.childShowEvidence.length,
+    'Suppressed child SHOW count must be independently accounted for',
+  )
+  return true
+}
+
 export function validateNativeWindowEvidence(
   raw,
   summary,
-  { allowLegacyDesktopBounds = false } = {},
+  { allowLegacyDesktopBounds = false, allowLegacyChildLifetimes = false } = {},
 ) {
   validateGuiObserver(summary)
+  validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes })
   for (const key of [
     'complete',
     'positiveControlPassed',
@@ -459,6 +802,88 @@ export function validateCurrentNativeResourceProof(job) {
   return true
 }
 
+export function validateWideInteraction(interaction, png) {
+  assert(
+    interaction && interaction.status === 'passed',
+    'Wide diagram fit/native-size interaction required',
+  )
+  assert.equal(interaction.input, 'W3C-pointer-and-wheel')
+  assert.equal(interaction.exactBytesUnchanged, true)
+  assert.match(png.sha256, /^[a-f0-9]{64}$/)
+  assert.equal(interaction.pngSha256, png.sha256)
+  assert.equal(interaction.naturalPngSha256, png.sha256)
+  assert.equal(interaction.naturalScreenshot, 'gui-wide-natural-window.png')
+  const { fit, natural, scrolled, restored } = interaction
+  for (const [name, value] of Object.entries({ fit, natural, scrolled, restored })) {
+    assert(value, 'Actual wide UI observation: ' + name)
+    const atNaturalSize = name === 'natural' || name === 'scrolled'
+    assert.equal(value.mode, atNaturalSize ? 'natural' : 'fit')
+    assert.equal(value.button.text, atNaturalSize ? '适应宽度' : '原始尺寸')
+    assert.equal(value.button.visible, true)
+    assert.equal(value.button.disabled, false)
+    assert.equal(value.image.complete, true)
+    assert.equal(
+      value.image.naturalWidth,
+      png.width,
+      'Displayed intrinsic width belongs to the decoded native PNG',
+    )
+    assert.equal(
+      value.image.naturalHeight,
+      png.height,
+      'Displayed intrinsic height belongs to the decoded native PNG',
+    )
+    assert.match(value.image.sourceSha256, /^[a-f0-9]{64}$/)
+    assert.equal(
+      value.image.sourceSha256,
+      fit.image.sourceSha256,
+      'View change retains the accepted image lease',
+    )
+    assert.equal(value.image.naturalWidth, fit.image.naturalWidth)
+    assert.equal(value.image.naturalHeight, fit.image.naturalHeight)
+    assert(
+      value.image.naturalWidth > value.viewport.clientWidth && value.viewport.clientWidth >= 200,
+    )
+    const width = atNaturalSize ? value.image.naturalWidth : value.viewport.clientWidth
+    assert(Math.abs(value.image.width - width) <= 1, 'Actual fit/native image width')
+    assert(
+      Math.abs(
+        value.image.height - (width * value.image.naturalHeight) / value.image.naturalWidth,
+      ) <= 1,
+      'View change preserves image aspect ratio',
+    )
+    assert(
+      value.outer.scrollWidth <= value.outer.clientWidth + 1,
+      'Horizontal overflow remains inside the diagram viewport',
+    )
+    assert.equal(value.requests.pending, 0)
+    assert.equal(
+      value.requests.admitted,
+      fit.requests.admitted,
+      'View controls do not enqueue another native request',
+    )
+    assert.equal(value.dirty, false)
+    assert.equal(value.sourceVisible, false)
+    if (atNaturalSize) {
+      assert(['auto', 'scroll'].includes(value.viewport.overflowX))
+      assert(value.viewport.scrollWidth >= value.image.naturalWidth - 1)
+      assert(value.viewport.clientHeight >= value.image.naturalHeight - 1)
+    } else {
+      assert(value.viewport.scrollWidth <= value.viewport.clientWidth + 1)
+      assert.equal(value.viewport.scrollLeft, 0)
+    }
+  }
+  assert.equal(natural.viewport.scrollLeft, 0)
+  assert(scrolled.viewport.scrollLeft > 0, 'Real wheel input must reach the wide image')
+  assert(
+    Math.abs(
+      scrolled.viewport.scrollLeft -
+        (scrolled.viewport.scrollWidth - scrolled.viewport.clientWidth),
+    ) <= 2,
+    'The far end of the natural-size image is reachable',
+  )
+  return true
+}
+
 export function validateGuiReport(report) {
   assert.equal(report.schema, 1)
   validateGuiIdentity(report)
@@ -487,7 +912,23 @@ export function validateGuiReport(report) {
     'persisted',
   )
   assert(Array.isArray(report.launches) && report.launches.length === 2)
-  for (const launch of report.launches)
+  for (const launch of report.launches) {
+    const readiness = launch.windowMetrics.native.readiness
+    assert(
+      readiness && Number.isInteger(readiness.attempts) && readiness.attempts >= 2,
+      'Native startup needs two stable real window observations',
+    )
+    assert(
+      Number.isInteger(readiness.zeroMatches) &&
+        readiness.zeroMatches >= 0 &&
+        readiness.zeroMatches < readiness.attempts,
+    )
+    assert(
+      Number.isFinite(readiness.elapsedMs) &&
+        readiness.elapsedMs >= 0 &&
+        readiness.elapsedMs <= 8000,
+    )
+    assert.equal(readiness.stableSamples, 2)
     assert.deepEqual(
       launch.windowMetrics.relationship,
       validateNativeDpiObservation(
@@ -496,12 +937,15 @@ export function validateGuiReport(report) {
         launch.identity.creationFileTime,
       ),
     )
+  }
   for (const name of ['open-ordinary-stable', 'open-wide-stable']) {
     const step = report.steps.find((item) => item.name === name)
     validateStableSamples(step.samples, { durationMs: 75000, imageCount: 1 })
     assert.equal(step.nativePickerAccepted, true)
     assert.equal(step.png.fullyDecoded, true)
     assert.equal(step.exactBytesUnchanged, true)
+    if (name === 'open-wide-stable' && validateGuiIdentity(report) === 'current-candidate')
+      validateWideInteraction(step.wideInteraction, step.png)
   }
   const resize = report.steps.find((item) => item.name === 'resize-wide')
   assert.equal(resize.operations.length, 6)
@@ -546,6 +990,10 @@ export function validateGuiReport(report) {
 
 export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
   assert.equal(report.status, 'passed', 'Failed baselines cannot become passing GUI evidence')
+  assert(
+    Buffer.byteLength(windowBytes) <= 2 * 1024 * 1024,
+    'Native window evidence retains its 2 MiB limit',
+  )
   validateGuiReport(report)
   const digest = (bytes) => createHash('sha256').update(bytes).digest('hex')
   assert.equal(digest(nativeBytes), report.nativeAudit.sha256)
@@ -593,7 +1041,32 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
   const windows = JSON.parse(windowBytes)
   validateNativeWindowEvidence(windows, report.observerSummary, {
     allowLegacyDesktopBounds: validateGuiIdentity(report) === 'delivered-beta9-baseline',
+    allowLegacyChildLifetimes: validateGuiIdentity(report) === 'delivered-beta9-baseline',
   })
+  assert(
+    Array.isArray(windows.productWindowReadiness) && windows.productWindowReadiness.length === 2,
+    'Both product launches require their retained native readiness observations',
+  )
+  for (const [index, ready] of windows.productWindowReadiness.entries()) {
+    const native = report.launches[index].windowMetrics.native
+    assert.equal(ready.requestSequence, index + 1)
+    assert.equal(ready.ok, true)
+    assert.deepEqual(
+      ready.lastMeasurement,
+      native,
+      'Startup measurement must equal the retained native readiness result',
+    )
+    for (const field of ['attempts', 'zeroMatches'])
+      assert.equal(ready[field], native.readiness[field])
+    assert(Number.isFinite(ready.startedElapsedMs) && ready.startedElapsedMs >= 0)
+    assert(
+      Number.isFinite(ready.finishedElapsedMs) && ready.finishedElapsedMs >= ready.startedElapsedMs,
+    )
+    assert(
+      ready.finishedElapsedMs - ready.startedElapsedMs >= native.readiness.elapsedMs,
+      'Raw readiness interval must contain the reported actual observation duration',
+    )
+  }
   const resize = report.steps.find((step) => step.name === 'resize-wide')
   assert(
     Array.isArray(windows.productWindowOperations) && windows.productWindowOperations.length === 6,

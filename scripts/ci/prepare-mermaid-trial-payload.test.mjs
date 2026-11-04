@@ -26,6 +26,7 @@ import {
   validateNativeDpiObservation,
 } from '../../tests/windows/mermaid-gui-contract.mjs'
 import { crc32, validatePng } from '../../tests/windows/mermaid-product-e2e.mjs'
+import { syntheticWideInteraction } from '../../tests/windows/mermaid-gui-test-fixtures.mjs'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
@@ -249,7 +250,7 @@ test('binary evidence finds full official engine/bootstrap in both exact NSIS-re
   assert.throws(() => inspectEmbeddedEngine(compiled, expected, drifted, bootstrap), /hash changed/)
 })
 
-function png() {
+function png(width = 2, height = 1) {
   const chunk = (kind, data) => {
     const bytes = Buffer.alloc(data.length + 12)
     bytes.writeUInt32BE(data.length)
@@ -259,14 +260,21 @@ function png() {
     return bytes
   }
   const header = Buffer.alloc(13)
-  header.writeUInt32BE(2)
-  header.writeUInt32BE(1, 4)
+  header.writeUInt32BE(width)
+  header.writeUInt32BE(height, 4)
   header[8] = 8
   header[9] = 6
+  const pixels = Buffer.alloc((width * 4 + 1) * height, 255)
+  for (let y = 0; y < height; y++) {
+    const row = y * (width * 4 + 1)
+    pixels[row] = 0
+    for (let x = Math.ceil(width / 2); x < width; x++)
+      pixels.fill(0, row + 1 + x * 4, row + 1 + x * 4 + 3)
+  }
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     chunk('IHDR', header),
-    chunk('IDAT', deflateSync(Buffer.from([0, 255, 255, 255, 255, 0, 0, 0, 255]))),
+    chunk('IDAT', deflateSync(pixels)),
     chunk('IEND', Buffer.alloc(0)),
   ])
 }
@@ -970,7 +978,7 @@ async function guiInstalledFixture(t, options = {}) {
     sha256: '7'.repeat(64),
   }
   audit.runtime = { ...runtime, path: runtime.executable }
-  const bytes = png(),
+  const bytes = png(1200, 60),
     decoded = {
       ...validatePng(bytes),
       fullyDecoded: true,
@@ -997,6 +1005,7 @@ async function guiInstalledFixture(t, options = {}) {
       productPid: pid,
       requestId: 'gui' + index,
       timestampUnixMs: event.phase === 'finished' ? 3000 : 1000,
+      ...(event.phase === 'finished' ? { pngBytes: bytes.length, pngSha256: decoded.sha256 } : {}),
       ...(event.phase !== 'admitted'
         ? { directoryAccess, resourceReleaseProven: true, resourceCleanupUncertain: false }
         : {}),
@@ -1015,6 +1024,16 @@ async function guiInstalledFixture(t, options = {}) {
     windowEventHookUsed: true,
     desktopOrAclChanged: false,
     productTerminatedByObserver: false,
+    childLifeVersion: 1,
+    windowLifetimes: [],
+    childShowEvidence: [],
+    observationStoppedAtTick: 10000,
+    workingGenerationPeak: 0,
+    sharedRecordCount: 1,
+    knownChildShowEvents: 0,
+    unresolvedEvents: [],
+    resolvedChildEvents: [],
+    processes: [],
     positiveControl: {
       title: 'synthetic-control',
       sameInputDesktop: true,
@@ -1243,6 +1262,27 @@ async function guiInstalledFixture(t, options = {}) {
     previousNativeWindow = nativeSnapshot(metrics.native)
   }
   report.launches[1].windowMetrics = syntheticWindowMetrics(report.launches[1])
+  for (const launch of report.launches) {
+    launch.windowMetrics.native.readiness = {
+      attempts: 2,
+      zeroMatches: 0,
+      elapsedMs: 25,
+      stableSamples: 2,
+    }
+    const retained = windows.productMeasurements.find(
+      (entry) => entry.measurementSequence === launch.windowMetrics.native.measurementSequence,
+    )
+    retained.readiness = structuredClone(launch.windowMetrics.native.readiness)
+  }
+  windows.productWindowReadiness = report.launches.map((launch, index) => ({
+    requestSequence: index + 1,
+    startedElapsedMs: index * 1000,
+    finishedElapsedMs: index * 1000 + 26,
+    ok: true,
+    attempts: 2,
+    zeroMatches: 0,
+    lastMeasurement: structuredClone(launch.windowMetrics.native),
+  }))
   // Keep raw helper records independent. save() only serializes these arrays;
   // it must not rebuild them from the report and erase deliberate drift tests.
   windows.productWindowOperations = resizeStep.operations.map((operation) =>
@@ -1269,6 +1309,7 @@ async function guiInstalledFixture(t, options = {}) {
   }))
   const imageNames = [
     'gui-console-positive.png',
+    'gui-wide-natural-window.png',
     ...GUI_STEPS.map((name) => `gui-${name}-window.png`),
     ...['ordinary', 'wide', 'multi', 'multi-2'].map((name) => `gui-${name}-diagram.png`),
   ]
@@ -1278,6 +1319,13 @@ async function guiInstalledFixture(t, options = {}) {
     bytes: bytes.length,
     sha256: hash(bytes),
   }))
+  report.screenshotProofs.push({
+    file: 'gui-wide-natural-window.png',
+    bytes: bytes.length,
+    sha256: hash(bytes),
+  })
+  report.steps.find((step) => step.name === 'open-wide-stable').wideInteraction =
+    syntheticWideInteraction(decoded.sha256, decoded.width, decoded.height)
   report.diagramProofs = ['ordinary', 'wide', 'multi', 'multi-2'].map((name) => ({
     file: `gui-${name}-diagram.png`,
     bytes: bytes.length,
@@ -1347,7 +1395,7 @@ test('additional installed GUI gate binds complete raw audit, real copied pixel 
   const proof = await verifyInstalledGuiEvidence(f.directory, f.expected)
   assert.equal(proof.status, 'passed')
   assert.equal(proof.records.length, 8)
-  assert.equal(proof.pixels.length, 13)
+  assert.equal(proof.pixels.length, 14)
   assert.match(proof.scope, /no full DPI matrix/)
 })
 test('additional GUI matrix requires separately installed pure-standard and filtered-admin identities', async (t) => {
@@ -1412,9 +1460,24 @@ for (const scenario of [
   'missing-initial-native-measurement',
   'unretained-initial-native-measurement',
   'duplicate-measurement-sequence',
+  'missing-wide-interaction',
+  'wide-control-rerendered',
+  'wide-original-still-shrunk',
+  'missing-natural-view-screenshot',
+  'missing-startup-readiness',
+  'raw-startup-readiness-drift',
+  'missing-child-lifetime-proof',
 ])
   test(`installed GUI delivery gate rejects ${scenario}`, async (t) => {
     const f = await guiInstalledFixture(t)
+    const wide = f.report.steps.find((step) => step.name === 'open-wide-stable')
+    if (scenario === 'missing-wide-interaction') delete wide.wideInteraction
+    if (scenario === 'wide-control-rerendered') wide.wideInteraction.natural.requests.admitted++
+    if (scenario === 'wide-original-still-shrunk') wide.wideInteraction.natural.image.width = 800
+    if (scenario === 'missing-startup-readiness')
+      delete f.report.launches[0].windowMetrics.native.readiness
+    if (scenario === 'raw-startup-readiness-drift') f.windows.productWindowReadiness[0].attempts++
+    if (scenario === 'missing-child-lifetime-proof') delete f.windows.childLifeVersion
     if (scenario === 'baseline-substitution') f.report.applicationCandidateSha = 'b'.repeat(40)
     if (scenario === 'wrong-harness') f.report.harnessSha256 = 'c'.repeat(64)
     if (scenario === 'plugin-state-reset')
@@ -1519,6 +1582,8 @@ for (const scenario of [
       f.windows.trackedProducts[0].heldProcessSignaledAtStop = false
     if (scenario === 'wrong-capture-hash') f.report.screenshotProofs[0].sha256 = '0'.repeat(64)
     await f.save()
+    if (scenario === 'missing-natural-view-screenshot')
+      await rm(path.join(f.directory, 'gui-wide-natural-window.png'))
     if (scenario === 'missing-second-png')
       await rm(path.join(f.directory, 'gui-multi-2-diagram.png'))
     if (scenario === 'copied-png-drift')
@@ -1539,11 +1604,11 @@ for (const scenario of [
     await assert.rejects(verifyInstalledGuiEvidence(f.directory, f.expected))
   })
 
-test('final payload permits only the exact additional 42 GUI evidence files and keeps the original 32-file budget', () => {
+test('final payload permits only the exact additional 44 GUI evidence files and keeps the original 32-file budget', () => {
   const original = Array.from({ length: 29 }, (_, i) => ({ name: `original-${i}.json`, bytes: 10 }))
   const gui = guiDeliveryFiles.map((name) => ({ name, bytes: 10 }))
-  assert.equal(gui.length, 42)
-  assert.equal(verifyPayloadInventory([...original, ...gui], { gui: true }).length, 71)
+  assert.equal(gui.length, 44)
+  assert.equal(verifyPayloadInventory([...original, ...gui], { gui: true }).length, 73)
   assert.throws(() => verifyPayloadInventory([...original, ...gui]))
   assert.throws(() => verifyPayloadInventory([...original, ...gui.slice(1)], { gui: true }))
   assert.throws(() =>

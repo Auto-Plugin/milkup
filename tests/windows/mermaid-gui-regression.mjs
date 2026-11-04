@@ -37,6 +37,7 @@ import {
   validateNativeWindowEvidence,
   validateNativeDpiObservation,
   validateNativeGuiResize,
+  validateWideInteraction,
   verifyGuiEvidence,
 } from './mermaid-gui-contract.mjs'
 
@@ -69,6 +70,13 @@ export async function captureGuiWindowMetrics({
     measured.validation = { status: 'passed' }
     return measured
   } catch (error) {
+    if (measured.native === null && measured.dom === null) {
+      try {
+        measured.dom = await readDom()
+      } catch (domError) {
+        measured.domReadError = String(domError)
+      }
+    }
     measured.validation = { status: 'failed', error: String(error) }
     throw error
   } finally {
@@ -91,6 +99,59 @@ export function guiNativeResizeOperations(native) {
   if (wide.height <= narrow.height) wide.height = Math.min(height - 24, 600)
   assert(wide.width > narrow.width && wide.height > narrow.height)
   return [narrow, wide, { mode: 'maximize' }, { mode: 'restore' }, { ...narrow }, { ...wide }]
+}
+
+export function blockDependentGuiScenarios(report, prerequisite) {
+  const index = GUI_STEPS.indexOf(prerequisite.name)
+  assert(index >= 0)
+  assert.equal(
+    report.steps.length,
+    index + 1,
+    'Only preceding steps may have executed before this prerequisite gate',
+  )
+  report.status = 'blocked'
+  report.blockedPrerequisite = {
+    step: prerequisite.name,
+    error:
+      prerequisite.error ?? prerequisite.screenshotError ?? 'Required GUI preparation did not pass',
+    productScenariosExecuted: index > 0,
+  }
+  const recordedAt = new Date().toISOString()
+  for (const name of GUI_STEPS.slice(index + 1)) {
+    report.steps.push({
+      name,
+      status: 'blocked',
+      executed: false,
+      blockedBy: prerequisite.name,
+      reason: 'Required native GUI preparation must pass before dependent scenarios',
+      recordedAt,
+    })
+  }
+}
+
+export function requireGuiStartup(report, startup) {
+  assert.equal(startup.name, GUI_STEPS[0])
+  if (startup.status === 'passed') return true
+  blockDependentGuiScenarios(report, startup)
+  return false
+}
+
+export function acceptNativePickerResults(results) {
+  assert(Array.isArray(results) && results.length === 2)
+  if (
+    results.every((result) => result.status === 'fulfilled') &&
+    results[1].value?.accepted === true
+  )
+    return results[1].value
+  const reasons = results
+    .filter((result) => result.status === 'rejected')
+    .map((result) => String(result.reason))
+  const error = Error(
+    'Native file-open prerequisites failed: ' +
+      (reasons.join('; ') || 'Owned native picker did not acknowledge the fixture'),
+  )
+  error.nativeFilePickerFailure = true
+  throw error
 }
 
 export function inspectPersistedGuiPluginInventory(cards, inventory) {
@@ -254,6 +315,12 @@ return {mode:e?.dataset.mode,dirty:!!document.querySelector('[data-save-dot]')?.
  geometry:JSON.stringify({dpr:devicePixelRatio,editorWidth:round(r(e)?.width??0),images:images.map(x=>{const b=r(x);return [round(b.x),round(b.y),round(b.width),round(b.height),x.naturalWidth,x.naturalHeight]}),boxes:boxes.map(x=>[x.clientWidth,x.scrollWidth,x.clientHeight,x.scrollHeight])}),
  notices:JSON.stringify([...document.querySelectorAll('[data-document-presentation-notice]')].map(x=>x.textContent?.slice(0,300))),
  layout:images.map(x=>{const b=r(x),p=x.closest('[data-document-presentation]'),s=p&&getComputedStyle(p);return {width:b.width,height:b.height,naturalWidth:x.naturalWidth,naturalHeight:x.naturalHeight,rect:b.toJSON(),presentation:p?{rect:r(p).toJSON(),clientWidth:p.clientWidth,scrollWidth:p.scrollWidth,paddingLeft:parseFloat(s.paddingLeft)||0,paddingRight:parseFloat(s.paddingRight)||0,borderLeft:parseFloat(s.borderLeftWidth)||0}:null,containerWidth:p?.clientWidth,scrollWidth:p?.scrollWidth,overflowX:s?.overflowX}})};`
+
+export const wideViewObserve = `
+const box=document.querySelector('[data-document-presentation]'),view=box?.querySelector('[data-document-png-view]')??(box?.matches('[data-document-png-view]')?box:null),viewport=view?.querySelector('[data-document-png-viewport]'),button=view?.querySelector('[data-document-png-scale]'),img=viewport?.querySelector('img');
+if(!box||!view||!viewport||!button||!img)return null;
+const r=x=>x.getBoundingClientRect(),v=r(viewport),b=r(button),i=r(img),x=(v.left+v.right)/2,y=(v.top+v.bottom)/2,hit=document.elementFromPoint(x,y);
+return {mode:view.dataset.documentPngView,button:{text:button.textContent?.trim(),pressed:button.getAttribute('aria-pressed'),visible:b.width>0&&b.height>0&&getComputedStyle(button).visibility!=='hidden',disabled:button.disabled},image:{src:img.currentSrc,complete:img.complete,naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,width:i.width,height:i.height},viewport:{clientWidth:viewport.clientWidth,clientHeight:viewport.clientHeight,scrollWidth:viewport.scrollWidth,scrollLeft:viewport.scrollLeft,overflowX:getComputedStyle(viewport).overflowX},outer:{clientWidth:box.clientWidth,scrollWidth:box.scrollWidth},wheelPoint:{x,y,hit:!!hit&&(hit===viewport||viewport.contains(hit))}};`
 
 export function validateDiagramLayout(value, requireResponsiveFit = false) {
   assert(value.layout.length > 0)
@@ -553,10 +620,11 @@ export async function main() {
   const execute = (script, ...args) =>
     request('POST', `/session/${session}/execute/sync`, { script, args })
   const state = () => execute(observe)
-  const measureWindow = (target) =>
+  const measureWindow = (target, startup = false) =>
     captureGuiWindowMetrics({
       target,
-      readNative: () => observer.call('measureProduct'),
+      readNative: () =>
+        startup ? observer.call('awaitProductWindow', {}, 12000) : observer.call('measureProduct'),
       readDom: () =>
         execute(
           'return {innerWidth,innerHeight,devicePixelRatio,screenAvailWidth:screen.availWidth,screenAvailHeight:screen.availHeight}',
@@ -814,7 +882,7 @@ export async function main() {
       path: initial.path,
       devicePixelRatio: initial.devicePixelRatio,
     }
-    await measureWindow(current)
+    await measureWindow(current, true)
     await persist()
   }
   const openFile = async (name) => {
@@ -823,9 +891,7 @@ export async function main() {
     const picker = observer.call('chooseFile', { path: files[name] }, 30000)
     // The native chooser may keep the WebDriver click pending until selection.
     const results = await Promise.allSettled([pointer('[data-command="open-sample"]'), picker])
-    for (const result of results) if (result.status === 'rejected') throw result.reason
-    const selection = results[1].value
-    assert.equal(selection.accepted, true, 'Actual owned native file picker accepted exact fixture')
+    const selection = acceptNativePickerResults(results)
     await until(async () => {
       const value = await state()
       return value.loading === 'ready' && value.path && samePath(value.path, files[name])
@@ -925,6 +991,96 @@ export async function main() {
     const file = `gui-${name}-window.png`
     await writeFile(path.join(evidence, file), bytes, { flag: 'wx' })
     report.screenshotProofs.push({ file, bytes: bytes.length, sha256: hash(bytes) })
+  }
+  const readWideView = async () => {
+    const value = await execute(wideViewObserve)
+    if (!value) return null
+    value.image.sourceSha256 = hash(value.image.src)
+    delete value.image.src
+    const snapshot = await compact()
+    value.requests = { admitted: snapshot.admitted, pending: snapshot.pending }
+    value.dirty = snapshot.dirty
+    value.sourceVisible = snapshot.sourceVisible
+    return value
+  }
+  const exerciseWideView = async (row) => {
+    const interaction = (row.wideInteraction = {
+      status: 'running',
+      input: 'W3C-pointer-and-wheel',
+      pngSha256: row.png.sha256,
+    })
+    interaction.fit = await readWideView()
+    assert.equal(interaction.fit?.mode, 'fit', 'Wide diagram initially fits the available width')
+    await pointer('[data-document-png-scale]')
+    interaction.natural = await until(
+      async () => {
+        const value = await readWideView()
+        return value?.mode === 'natural' &&
+          Math.abs(value.image.width - value.image.naturalWidth) <= 1 &&
+          value.requests.pending === 0
+          ? value
+          : false
+      },
+      'Natural-size diagram view after the real button click',
+      10000,
+    )
+    await stability(interaction, 2000)
+    const point = interaction.natural.wheelPoint
+    assert(point.hit, 'Real diagram viewport receives wheel input')
+    const deltaX = Math.ceil(
+      interaction.natural.viewport.scrollWidth - interaction.natural.viewport.clientWidth,
+    )
+    assert(deltaX > 0 && deltaX <= 65536)
+    report.inputs.push({
+      at: new Date().toISOString(),
+      kind: 'W3C-wheel',
+      selector: '[data-document-png-viewport]',
+      x: point.x,
+      y: point.y,
+      deltaX,
+    })
+    await request('POST', `/session/${session}/actions`, {
+      actions: [
+        {
+          type: 'wheel',
+          id: 'wide-wheel',
+          actions: [
+            {
+              type: 'scroll',
+              origin: 'viewport',
+              x: Math.round(point.x),
+              y: Math.round(point.y),
+              deltaX,
+              deltaY: 0,
+              duration: 200,
+            },
+          ],
+        },
+      ],
+    })
+    interaction.scrolled = await until(
+      async () => {
+        const value = await readWideView()
+        return value &&
+          value.viewport.scrollLeft > 0 &&
+          Math.abs(
+            value.viewport.scrollLeft - (value.viewport.scrollWidth - value.viewport.clientWidth),
+          ) <= 2
+          ? value
+          : false
+      },
+      'Natural diagram far end is reachable with real horizontal wheel input',
+      10000,
+    )
+    await screenshot('wide-natural')
+    interaction.naturalScreenshot = 'gui-wide-natural-window.png'
+    interaction.naturalPngSha256 = (await decodeImages('wide-natural'))[0].sha256
+    await pointer('[data-document-png-scale]')
+    await settle()
+    interaction.restored = await readWideView()
+    interaction.exactBytesUnchanged = await exactBytes('wide')
+    interaction.status = 'passed'
+    validateWideInteraction(interaction, row.png)
   }
   const closeProduct = async (kind, row) => {
     assert(product, 'Held product exists')
@@ -1051,6 +1207,7 @@ export async function main() {
     } catch (error) {
       row.status = 'failed'
       row.error = String(error)
+      if (error.nativeFilePickerFailure) row.prerequisiteFailure = 'native-file-picker'
       report.errors.push(name + ': ' + error)
     } finally {
       if (session && product && product.exitCode === null) {
@@ -1065,6 +1222,13 @@ export async function main() {
       }
       row.finishedAt = new Date().toISOString()
       await persist()
+    }
+    if (row.prerequisiteFailure) {
+      blockDependentGuiScenarios(report, row)
+      await persist()
+      throw Error(
+        'Native file-open prerequisite failed; remaining product scenarios were not executed',
+      )
     }
     return row
   }
@@ -1129,8 +1293,7 @@ export async function main() {
       'EdgeDriver ready',
       15000,
     )
-    let probeCleanupFailure
-    await step('blank-start-enable', async (row) => {
+    const startup = await step('blank-start-enable', async (row) => {
       await startProduct('gui-idle')
       if (frontendBoundaryProbeRequested) {
         try {
@@ -1142,7 +1305,6 @@ export async function main() {
             'Optional probe must remove its own frames and restore the main frame',
           )
         } catch (error) {
-          probeCleanupFailure = error
           report.frontendBoundaryProbe = {
             status: 'cleanup-or-main-frame-unconfirmed',
             cleanupConfirmed: false,
@@ -1156,7 +1318,12 @@ export async function main() {
       row.arguments = []
       row.modeAndZoomUnchanged = true
     })
-    if (probeCleanupFailure) throw probeCleanupFailure
+    if (!requireGuiStartup(report, startup)) {
+      await persist()
+      throw Error(
+        'GUI initialization prerequisite failed; dependent product scenarios were not executed',
+      )
+    }
     for (const name of ['ordinary', 'wide'])
       await step(`open-${name}-stable`, async (row) => {
         row.picker = await openFile(name)
@@ -1164,6 +1331,8 @@ export async function main() {
         row.layout = (await settle()).layout
         row.png = (await decodeImages(name))[0]
         row.exactBytesUnchanged = await exactBytes(name)
+        if (name === 'wide' && report.identityKind === 'current-candidate')
+          await exerciseWideView(row)
         await stability(row, 75000)
         row.finalPng = (await decodeImages(name))[0]
         assert.equal(row.finalPng.sha256, row.png.sha256)
@@ -1274,19 +1443,21 @@ export async function main() {
     await writeFile(path.join(evidence, 'edgedriver-stdio.log'), driverLog)
     try {
       if (fatal) throw fatal
-      validateGuiReport(report)
       validateNativeWindowEvidence(
         JSON.parse(await readFile(path.join(evidence, 'native-window-events.json'), 'utf8')),
         report.observerSummary,
       )
-      assert.deepEqual(report.errors, [])
-      report.status = 'passed'
-      await persist()
-      verifyGuiEvidence(
-        report,
-        await readFile(path.join(evidence, 'gui-native-audit.json')),
-        await readFile(path.join(evidence, 'native-window-events.json')),
-      )
+      if (report.status !== 'blocked') {
+        validateGuiReport(report)
+        assert.deepEqual(report.errors, [])
+        report.status = 'passed'
+        await persist()
+        verifyGuiEvidence(
+          report,
+          await readFile(path.join(evidence, 'gui-native-audit.json')),
+          await readFile(path.join(evidence, 'native-window-events.json')),
+        )
+      }
     } catch (error) {
       report.errors.push('Final contract: ' + error)
       if (report.status !== 'blocked') report.status = 'failed'
