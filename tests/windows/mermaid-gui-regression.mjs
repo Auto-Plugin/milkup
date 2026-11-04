@@ -709,8 +709,7 @@ export async function main() {
           using: 'css selector',
           value: selector,
         })
-        const elementRef =
-          found?.value?.['element-6066-11e4-a52e-4f735466cecf'] ?? found?.value?.ELEMENT
+        const elementRef = found?.['element-6066-11e4-a52e-4f735466cecf'] ?? found?.ELEMENT
         assert(elementRef, 'Portal scale control must expose a WebDriver element reference')
         report.inputs.push({
           at: new Date().toISOString(),
