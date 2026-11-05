@@ -34,6 +34,9 @@ export function createOwnedDocumentPngImage(
   button.className = 'milkup-document-png-scale'
   button.style.pointerEvents = 'auto'
   button.title = '按原始尺寸查看，可横向滚动'
+  button.dataset.documentPngClickCount = '0'
+  button.dataset.documentPngToggleCount = '0'
+  button.dataset.documentPngLastEvent = 'init'
   const buttonLabel = document.createTextNode('原始尺寸')
   button.append(buttonLabel)
   controls.append(button)
@@ -99,6 +102,10 @@ export function createOwnedDocumentPngImage(
   }
   const setNatural = (next: boolean) => {
     natural = next
+    button.dataset.documentPngToggleCount = String(
+      Number(button.dataset.documentPngToggleCount ?? 0) + 1,
+    )
+    button.dataset.documentPngLastEvent = next ? 'natural' : 'fit'
     element.dataset.documentPngView = natural ? 'natural' : 'fit'
     // Keep the layout box constrained while the raster itself uses intrinsic
     // pixels. Otherwise the box can briefly expand to the raster width and
@@ -196,6 +203,10 @@ export function createOwnedDocumentPngImage(
   const toggleDocumentClick = (event: Event) => {
     const target = event.target
     if (!(target instanceof Node) || !(target === button || button.contains(target))) return
+    button.dataset.documentPngClickCount = String(
+      Number(button.dataset.documentPngClickCount ?? 0) + 1,
+    )
+    button.dataset.documentPngLastEvent = 'click'
     if (pointerActivation) {
       pointerActivation = false
       clearTimeout(pointerActivationTimer)
