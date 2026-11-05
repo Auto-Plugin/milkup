@@ -517,7 +517,8 @@ pub(crate) fn native_diagnostics(request_id: &str, report: &Value) -> Value {
         Some(json!({"stream":stream,"joinTickMs":entry["joinTickMs"].as_u64(),"cancelTickMs":entry["cancelTickMs"].as_u64(),"endTickMs":entry["endTickMs"].as_u64(),"progressTimeline":ipc_timeline(&entry["progressTimeline"])}))
     }).collect();
     json!({"phase":"native-diagnostic","requestId":request_id,"productPid":std::process::id(),
-        "clock":"process-local-monotonic-ms","timeline":native_diagnostic_timeline(&report["nativeDiagnosticTimeline"]),"streams":streams})
+        "clock":"process-local-monotonic-ms","timeline":native_diagnostic_timeline(&report["nativeDiagnosticTimeline"]),"streams":streams,
+        "helperStartup":crate::startup_diagnostic::startup_diagnostics(&report["stderr"])})
 }
 
 fn native_diagnostic_timeline(value: &Value) -> Value {
@@ -1266,7 +1267,8 @@ mod tests {
         assert_eq!(clean.len(), 24);
         let record = native_diagnostics(
             &"f".repeat(32),
-            &json!({"ipcThreadCleanup":vec![json!({"stream":"stdout","joinTickMs":u64::MAX,"cancelTickMs":u64::MAX,"endTickMs":u64::MAX,"progressTimeline":vec![json!({"tickMs":u64::MAX,"state":2314});24]});3]}),
+            &json!({"ipcThreadCleanup":vec![json!({"stream":"stdout","joinTickMs":u64::MAX,"cancelTickMs":u64::MAX,"endTickMs":u64::MAX,"progressTimeline":vec![json!({"tickMs":u64::MAX,"state":2314});24]});3],
+                "stderr":crate::startup_diagnostic::startup_phase_line("environment-callback-failed",u128::MAX,Some(-1)).unwrap().repeat(24)}),
         );
         assert!(serde_json::to_vec(&record).unwrap().len() + 100 < MAX_LINE_BYTES);
         assert_eq!(clean[0], json!({"tickMs":17,"state":262}));

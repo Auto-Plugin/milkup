@@ -12,7 +12,11 @@ import {
 import { iconSvg } from './icons'
 import { disposeDocumentPngImages } from '@milkup/core/internal/document-png-image'
 import { DocumentPresentationError } from '@milkup/core'
-import { createPrivateMermaidOwner, type PrivateMermaidInvoke } from './private-mermaid-service'
+import {
+  createPrivateMermaidOwner,
+  privateMermaidFailureMessage,
+  type PrivateMermaidInvoke,
+} from './private-mermaid-service'
 import type {
   ActionContext,
   ActionDefinition,
@@ -1792,8 +1796,7 @@ export class DesktopPluginManager {
             this.mermaidOwners.get(pluginId) !== owned
           )
             throw error
-          const message =
-            'Mermaid 图表未能渲染，已保留完整源码。请检查语法，或重新开启图表插件后重试。'
+          const message = privateMermaidFailureMessage(error)
           return {
             complete: true,
             fragments: [

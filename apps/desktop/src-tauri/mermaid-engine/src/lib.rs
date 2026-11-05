@@ -10,6 +10,8 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
+#[cfg(any(windows, test))]
+mod startup_diagnostic;
 mod frontend_trace;
 pub use frontend_trace::{record_frontend_trace, FrontendTrace};
 
@@ -629,10 +631,7 @@ pub fn render_native(input: &Value, control: &Control) -> std::result::Result<Re
         control.mark_native_failure(request_id, &output.report);
         // Stopping the service never makes a failed protocol frame publishable,
         // even if a future launcher bug accidentally returns an ok metadata tag.
-        return Err(output.metadata["message"]
-            .as_str()
-            .unwrap_or("Fixed Mermaid render stopped after a native failure")
-            .into());
+        return Err("Mermaid service stopped after a native failure; restart required".into());
     }
     if output.metadata["status"] != "ok" {
         return Err(output.metadata["message"]

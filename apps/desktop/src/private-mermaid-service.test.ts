@@ -5,7 +5,11 @@ import {
   disposeDocumentPngImages,
   documentPngResourceStats,
 } from '@milkup/core/internal/document-png-image'
-import { createPrivateMermaidOwner, isNativePngBase64 } from './private-mermaid-service'
+import {
+  createPrivateMermaidOwner,
+  isNativePngBase64,
+  privateMermaidFailureMessage,
+} from './private-mermaid-service'
 
 const pngBase64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg=='
@@ -68,6 +72,21 @@ function fixture(handler?: (command: string, args: Record<string, unknown>) => P
   return { invoke, owner }
 }
 describe('host-private Mermaid ownership', () => {
+  it('distinguishes a stopped native service from syntax failure without leaking native details', () => {
+    expect(
+      privateMermaidFailureMessage(
+        'Mermaid service stopped after a native failure; restart required',
+      ),
+    ).toContain('仅重新开启插件无法恢复')
+    expect(
+      privateMermaidFailureMessage(new Error('Mermaid service stopped after a native failure')),
+    ).toContain('重新启动 Milkup')
+    expect(privateMermaidFailureMessage('Mermaid original deadline expired')).toContain('预览超时')
+    expect(privateMermaidFailureMessage('unknown-diagram C:/private-user-path')).not.toContain(
+      'C:/',
+    )
+    expect(privateMermaidFailureMessage('unknown-diagram')).toContain('检查语法')
+  })
   it('validates large base64 without recursive regex stack growth', () => {
     expect(isNativePngBase64('A'.repeat(22_369_620) + 'AA==')).toBe(true)
     expect(isNativePngBase64('A'.repeat(22_369_628))).toBe(false)

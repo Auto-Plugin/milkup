@@ -34,41 +34,7 @@ use windows::{
 // webview2-com takes their closure before invoking it, including on reentry.
 // This run therefore emits at most 17 lines; even 24 maximum-width lines fit
 // below 2 KiB, within the launcher's unchanged 16 KiB aggregate stderr limit.
-const STARTUP_PHASES: &[&str] = &[
-    "helper-enter",
-    "token-before",
-    "token-ok",
-    "com-start",
-    "com-returned",
-    "environment-call-start",
-    "environment-call-returned",
-    "environment-callback-ok",
-    "environment-callback-failed",
-    "controller-call-start",
-    "controller-call-returned",
-    "controller-callback-ok",
-    "controller-callback-failed",
-    "controls-installed",
-    "navigate-start",
-    "navigate-returned",
-    "bootstrap-ready-validated",
-    "ready-frame-start",
-    "ready-frame-flushed",
-];
-
-fn startup_phase_line(phase: &str, elapsed_us: u128, hresult: Option<i32>) -> Option<String> {
-    if !STARTUP_PHASES.contains(&phase) {
-        return None;
-    }
-    let elapsed_us = elapsed_us.min(999_999_999_999);
-    Some(match hresult {
-        Some(code) => format!(
-            "MILKUP_PHASE {phase} elapsedUs={elapsed_us} hresult=0x{:08X}\n",
-            code as u32
-        ),
-        None => format!("MILKUP_PHASE {phase} elapsedUs={elapsed_us}\n"),
-    })
-}
+use crate::startup_diagnostic::startup_phase_line;
 
 fn startup_phase(started: Instant, phase: &str, hresult: Option<i32>) {
     if let Some(line) = startup_phase_line(phase, started.elapsed().as_micros(), hresult) {
@@ -604,7 +570,7 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod startup_phase_tests {
-    use super::{startup_phase_line, STARTUP_PHASES};
+    use crate::startup_diagnostic::{startup_phase_line, STARTUP_PHASES};
 
     #[test]
     fn startup_metadata_has_only_fixed_phase_and_numeric_fields() {

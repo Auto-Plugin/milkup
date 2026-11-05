@@ -41,6 +41,22 @@ export function isNativePngBase64(value: unknown): value is string {
   return padding === -1 || (padding >= value.length - 2 && /^={1,2}$/.test(value.slice(padding)))
 }
 
+/** Fixed user-facing states; never display arbitrary native error text. */
+export function privateMermaidFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : ''
+  if (
+    message === 'Mermaid service stopped after a native failure; restart required' ||
+    message === 'Mermaid service stopped after a native failure'
+  )
+    return 'Mermaid 预览服务已停止，源码已保留。请保存文档并重新启动 Milkup；仅重新开启插件无法恢复。'
+  if (
+    (error instanceof DocumentPresentationError && error.code === 'timeout') ||
+    message === 'Mermaid original deadline expired'
+  )
+    return 'Mermaid 预览超时，源码已保留。可重新开启图表插件重试；持续失败时请保留诊断信息。'
+  return 'Mermaid 图表未能渲染，已保留完整源码。请检查语法，或重新开启图表插件后重试。'
+}
+
 /** One exact, published catalog activation owns this adapter. */
 export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
   const ownerId = token()
