@@ -1107,13 +1107,11 @@ fn output_reader(
         phase = "png-body";
         progress.phase(Phase::PngBody);
         let png = read_exact_bounded(&mut output, bytes as usize, &mut total)?;
-        // Let the native owner stop the Job immediately after the complete frame.
-        // Browser descendants may still own a duplicate of stdout; EOF is not
-        // part of successful rendering and cannot be awaited before that stop.
+        // Confined standard handles should close when the helper finishes.
+        // A complete frame is not a complete protocol: require EOF under the
+        // original request deadline before publishing the result.
         phase = "result-event";
         progress.phase(Phase::ResultEvent);
-        tx.send(Event::Result(metadata, png, total))
-            .map_err(|error| OutputProblem::new("channel", error.to_string()))?;
         phase = "trailing-byte";
         progress.phase(Phase::TrailingByte);
         let mut tail = [0u8; 1];
@@ -1130,6 +1128,8 @@ fn output_reader(
             }
             Err(error) => return Err(OutputProblem::from(error)),
         }
+        tx.send(Event::Result(metadata, png, total))
+            .map_err(|error| OutputProblem::new("channel", error.to_string()))?;
         Ok(())
     })();
     result.map_err(|problem| {
