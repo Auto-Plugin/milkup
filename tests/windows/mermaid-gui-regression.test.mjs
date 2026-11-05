@@ -21,6 +21,7 @@ import {
 } from './mermaid-gui-contract.mjs'
 import {
   guiFixtures,
+  naturalViewStabilityMs,
   validateDiagramLayout,
   inspectPersistedGuiPluginInventory,
   prepareGuiPluginState,
@@ -1532,4 +1533,15 @@ test('GUI evidence names remain closed, bounded and explicitly separated from or
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
+})
+
+test('natural view observation duration satisfies the shared stability contract', () => {
+  assert.equal(
+    validateStableSamples(samples(naturalViewStabilityMs), {
+      durationMs: naturalViewStabilityMs,
+      imageCount: 1,
+    }).durationMs,
+    naturalViewStabilityMs,
+  )
+  assert.throws(() => validateStableSamples(samples(2000), { durationMs: 2000, imageCount: 1 }))
 })

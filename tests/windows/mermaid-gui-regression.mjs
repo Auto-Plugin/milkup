@@ -281,6 +281,8 @@ export async function prepareGuiPluginState({
   return record
 }
 
+export const naturalViewStabilityMs = 3000
+
 export const guiFixtures = Object.freeze({
   ordinary: fixtures.ordinary,
   wide: fixtures.wide,
@@ -1045,7 +1047,7 @@ export async function main() {
       'Natural-size diagram view after the real button click',
       10000,
     )
-    await stability(interaction, 3000)
+    await stability(interaction, naturalViewStabilityMs)
     const point = interaction.natural.wheelPoint
     assert(point.hit, 'Real diagram viewport receives wheel input')
     const deltaX = Math.ceil(
