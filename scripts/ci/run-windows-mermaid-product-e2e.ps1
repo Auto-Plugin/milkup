@@ -10,6 +10,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][switch]$FrontendBoundaryProbe,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
+    [Parameter(ParameterSetName = 'Parent')][string]$LifecycleBaselineInstaller,
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedInstallerSha256,
     [Parameter(ParameterSetName = 'Parent')][string]$ExpectedVersion,
     [Parameter(ParameterSetName = 'Parent')][string]$PackageManifest,
@@ -140,6 +141,7 @@ function Get-ChildEvidenceNames {
     foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }
+    foreach ($name in @('baseline-stdout.log', 'baseline-stderr.log', 'same-version-stdout.log', 'same-version-stderr.log', 'uninstall-stdout.log', 'uninstall-stderr.log')) { $names.Add($name, $name) }
     return ,$names
 }
 function Read-BoundedEvidenceProof([string]$Path, [long]$Limit, [string]$CopyTo = '', $Created = $null) {
@@ -421,7 +423,7 @@ function Assert-InstallationCoordinator($Spec, $Context) {
     }
 }
 function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]$Evidence) {
-    $installDirectory = Join-Path $Scratch 'install'
+    $installDirectory = Join-Path $Scratch $(if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) { '安装 生命周期' } else { 'install' })
     Assert-Contained $installDirectory $Scratch
     $record = [ordered]@{
         schema = 1; status = 'failed'; candidateSha = $Spec.applicationCandidateSha; mode = 'nsis-current-user'
@@ -442,13 +444,42 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         $manifestBuiltHash = $(if ($baseline) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $Spec.binary.sha256 })
         Assert-InstallationManifest $manifest $Spec.applicationCandidateSha $Spec.expectedVersion $manifestBuiltHash
         $record.bundledPlugins = @($manifest.bundledPlugins)
+        if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) {
+            Assert-Hash $Spec.lifecycleBaseline.path 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+            $record['lifecycle'] = [ordered]@{ status = 'failed'; baselineVersion = '2.0.0-beta.9'; baselineInstall = $null; sameVersion = $null; uninstall = $null; dataPreserved = $false; automaticRollbackAccepted = $false }
+            $record.lifecycle.baselineInstall = [WindowsMermaidStandardUser]::RunOwnedInstaller(
+                $Spec.lifecycleBaseline.path, $installDirectory, $Scratch,
+                (Join-Path $Evidence 'baseline-stdout.log'), (Join-Path $Evidence 'baseline-stderr.log'),
+                $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, 120000)
+            if ($record.lifecycle.baselineInstall.status -cne 'passed') { throw 'Pinned beta.9 baseline installation failed' }
+            Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+            $sentinel = Join-Path $Scratch 'work/升级保留.md'
+            [IO.File]::WriteAllText($sentinel, "# 原文 preservation`n中文 English`n", [Text.UTF8Encoding]::new($false))
+            $record.lifecycle['documentBefore'] = File-Proof $sentinel
+            $record.installerRun = [WindowsMermaidStandardUser]::RunOwnedMaintenance(
+                $Spec.installer.path, $installDirectory, $Scratch,
+                (Join-Path $Evidence 'installer-stdout.log'), (Join-Path $Evidence 'installer-stderr.log'),
+                $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, $false)
+        } else {
         $record.installerRun = [WindowsMermaidStandardUser]::RunOwnedInstaller(
             $Spec.installer.path, $installDirectory, $Scratch,
             (Join-Path $Evidence 'installer-stdout.log'), (Join-Path $Evidence 'installer-stderr.log'),
             $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, 120000)
+        }
         if ($record.installerRun.status -cne 'passed' -or $record.installerRun.exitCode -ne 0 -or
             $record.installerRun.identityVerified -ne $true -or
             $record.installerRun.expectedAccountKind -cne $Spec.expectedAccountKind) { throw 'Same-account installer did not complete with verified identity and exit zero' }
+        if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) {
+            Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') $manifest.expectedInstalledBinarySha256
+            Assert-Hash $record.lifecycle.documentBefore.path $record.lifecycle.documentBefore.sha256
+            $record.lifecycle['upgradeImageVerified'] = $true
+            $record.lifecycle.sameVersion = [WindowsMermaidStandardUser]::RunOwnedMaintenance(
+                $Spec.installer.path, $installDirectory, $Scratch,
+                (Join-Path $Evidence 'same-version-stdout.log'), (Join-Path $Evidence 'same-version-stderr.log'),
+                $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, $false)
+            if ($record.lifecycle.sameVersion.status -cne 'passed') { throw 'Same-version replacement failed' }
+            Assert-Hash $record.lifecycle.documentBefore.path $record.lifecycle.documentBefore.sha256
+        }
         Assert-PlainPath $installDirectory
         $installedPath = Join-Path $installDirectory 'milkup-desktop.exe'
         Assert-Contained $installedPath $Scratch
@@ -626,6 +657,40 @@ function Invoke-StandardChild {
             if ($spec.harnessMode -ceq 'gui-regression') { $installation['guiAcceptance'] = 'passed'; $installation.productAcceptance = 'not-run-gui-only' }
             else { $installation.productAcceptance = 'passed' }
         }
+        if ($spec.lifecycle) {
+            Assert-InstallationCoordinator $spec $context
+            $installation.lifecycle['savedDocumentsBefore'] = @(@(Get-ChildItem -LiteralPath $work -Filter '*.md' -File) + @(Get-ChildItem -LiteralPath $evidence -Filter 'saved-*.md' -File) | ForEach-Object { File-Proof $_.FullName })
+            if ($installation.lifecycle.savedDocumentsBefore.Count -lt 4) { throw 'Saved product documents missing before uninstall' }
+            $uninstaller = Join-Path $installation.installDirectory 'uninstall.exe'
+            Assert-PlainPath $uninstaller
+            $installation.lifecycle['uninstaller'] = File-Proof $uninstaller
+            $uninstallRegistry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall'
+            $keys = @(Get-ChildItem -LiteralPath $uninstallRegistry -ErrorAction Stop | Where-Object {
+                $value = Get-ItemProperty -LiteralPath $_.PSPath
+                $property = $value.PSObject.Properties['UninstallString']
+                $command = $(if ($null -ne $property) { [string]$property.Value } else { '' })
+                $command.IndexOf($uninstaller, [StringComparison]::OrdinalIgnoreCase) -ge 0
+            } | ForEach-Object { $_.PSPath })
+            if ($keys.Count -ne 1) { throw 'Expected exactly one owned per-user uninstall registration' }
+            $installation.lifecycle['uninstallRegistryKeys'] = $keys
+            $copy = Join-Path $scratch 'owned-uninstaller.exe'
+            Copy-Item -LiteralPath $uninstaller -Destination $copy -ErrorAction Stop
+            Assert-Hash $copy $installation.lifecycle.uninstaller.sha256
+            $installation.lifecycle.uninstall = [WindowsMermaidStandardUser]::RunOwnedMaintenance(
+                $copy, $installation.installDirectory, $scratch,
+                (Join-Path $evidence 'uninstall-stdout.log'), (Join-Path $evidence 'uninstall-stderr.log'),
+                $spec.expectedSid, [uint32]$spec.expectedSessionId, $spec.expectedAccountKind, $true)
+            if ($installation.lifecycle.uninstall.status -cne 'passed') { throw 'Real NSIS uninstall did not exit successfully with verified process identity' }
+            $installation.lifecycle['applicationAbsent'] = -not (Test-Path -LiteralPath $installation.installedBinary.path)
+            $installation.lifecycle['uninstallerAbsent'] = -not (Test-Path -LiteralPath $uninstaller)
+            if (-not $installation.lifecycle.applicationAbsent -or -not $installation.lifecycle.uninstallerAbsent) { throw 'NSIS uninstall left application or installed uninstaller behind' }
+            foreach ($key in $keys) { if (Test-Path -LiteralPath $key) { throw 'NSIS uninstall left its per-user uninstall registration' } }
+            $installation.lifecycle['uninstallRegistrationAbsent'] = $true
+            Assert-Hash $installation.lifecycle.documentBefore.path $installation.lifecycle.documentBefore.sha256
+            foreach ($saved in $installation.lifecycle.savedDocumentsBefore) { Assert-Hash $saved.path $saved.sha256 }
+            $installation.lifecycle.dataPreserved = $true
+            $installation.lifecycle.status = 'passed'
+        }
         $result.status = 'passed'
     } catch {
         $result.error = $_.Exception.Message
@@ -672,6 +737,7 @@ if ($installerMode) {
 } elseif ($ExpectedInstallerSha256 -or $ExpectedVersion -or $PackageManifest -or $ExpectedPackageManifestSha256) {
     throw 'Installer-only arguments cannot be silently ignored in linked-binary mode'
 }
+if ($LifecycleBaselineInstaller -and (-not $installerMode -or $HarnessMode -cne 'product')) { throw 'Lifecycle probe requires current-candidate installed product mode' }
 if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
 if (-not $ApplicationCandidateSha) { $ApplicationCandidateSha = $ExpectedCommit }
 if ($FrontendBoundaryProbe -and ($HarnessMode -cne 'gui-regression' -or $ApplicationCandidateSha -cne $ExpectedCommit)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
@@ -808,6 +874,11 @@ try {
             $audit['sourcePluginInventoryInputs'] = $sourceInventory
         }
     }
+    if ($LifecycleBaselineInstaller) {
+        Assert-Hash $LifecycleBaselineInstaller 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+        Copy-Item -LiteralPath $LifecycleBaselineInstaller -Destination (Join-Path $code 'baseline-installer.exe') -ErrorAction Stop
+        Assert-Hash (Join-Path $code 'baseline-installer.exe') 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+    }
     if ($installerMode) {
         foreach ($pair in @(@($installerProof.path, 'candidate-installer.exe'), @($manifestProof.path, 'installer-input.json'), @((Join-Path $repository 'tests/windows/verify-installed-binary.mjs'), 'verify-installed-binary.mjs'))) {
             Assert-PlainPath $pair[0]
@@ -867,7 +938,7 @@ try {
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; harnessMode = $HarnessMode
-        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe
+        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         sourcePluginInventory = $sourceInventoryProof
         binaryRole = $audit.binaryRole; binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
@@ -875,6 +946,7 @@ try {
         observer = (File-Proof (Join-Path $code 'WindowsMermaidStandardUser.cs'))
         wrapper = (File-Proof (Join-Path $code 'run-windows-mermaid-product-e2e.ps1'))
     }
+    if ($LifecycleBaselineInstaller) { $spec['lifecycleBaseline'] = File-Proof (Join-Path $code 'baseline-installer.exe') }
     if ($installerMode) {
         $spec['installer'] = File-Proof (Join-Path $code 'candidate-installer.exe')
         $spec['packageManifest'] = File-Proof (Join-Path $code 'installer-input.json')

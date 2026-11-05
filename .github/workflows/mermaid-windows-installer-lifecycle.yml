@@ -1,0 +1,217 @@
+name: Mermaid Windows installer lifecycle acceptance
+
+# User-authorized test installer and installed-product verification only.
+# No Release, tag, main merge, runtime provisioning, or original-instance access.
+on:
+  push:
+    branches: [dot/mermaid-stability-20261104]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: mermaid-rebuild-windows-compile
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/mermaid-stability-20261104' &&
+      github.event.repository.private == false &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.deleted == false &&
+        contains(github.event.head_commit.message, '[mermaid-windows-lifecycle]')))
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Verify exact candidate, approved ancestor and official engine
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $head = @(git rev-parse HEAD)
+          if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong source candidate' }
+          $sourceRun = (& gh api repos/Auto-Plugin/milkup/actions/runs/41985364078 | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0 -or $sourceRun.status -cne 'completed' -or $sourceRun.conclusion -cne 'success' -or
+              $sourceRun.head_sha -cne 'a22f8c35c4efc055c534feb907c4aa7add42ee33' -or
+              $sourceRun.path -cne '.github/workflows/mermaid-windows-account-compat.yml') { throw 'Exact dual-account source acceptance has not passed' }
+          git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
+          git diff --exit-code a22f8c35c4efc055c534feb907c4aa7add42ee33 HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed native, renderer or Diagrams implementation changed before packaging' }
+          $dirty = @(git status --porcelain)
+          if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Dirty candidate checkout' }
+          if (Test-Path scripts/experiments/mermaid-fixed-prototype) { throw 'Prototype must not enter installer' }
+          $engine = Get-Item apps/desktop/src-tauri/mermaid-engine/assets/mermaid-12.2.0.min.js
+          if ($engine.Length -ne 5494801 -or (Get-FileHash $engine.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f') { throw 'Official engine bytes changed' }
+          node scripts/check-versions.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Version metadata mismatch' }
+          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.10') { throw 'Wrong test version' }
+          $evidence = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
+          New-Item -ItemType Directory -Path (Join-Path $evidence 'public-plugins') | Out-Null
+          node tests/windows/capture-build-source-state.mjs $PWD checkout $env:GITHUB_SHA (Join-Path $evidence 'mermaid-source-checkout.json')
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot retain original source state' }
+          'CARGO_TARGET_DIR=' + (Join-Path $env:RUNNER_TEMP 'mermaid-trial-cargo-target') >> $env:GITHUB_ENV
+      - name: Select locked build tools and validate packaging scripts
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Rust setup failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+          rustup run 1.99.0 rustc --version --verbose
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned compiler unavailable' }
+          foreach ($file in @('build-windows-mermaid-trial.ps1', 'run-windows-mermaid-product-e2e.ps1', 'verify-windows-app-manifest.ps1')) {
+            $tokens = $null; $errors = $null
+            $null = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD "scripts/ci/$file"), [ref]$tokens, [ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+          $sevenZip = (Get-Command 7z -ErrorAction Stop | Select-Object -First 1).Source
+          & $sevenZip i
+          if ($LASTEXITCODE -ne 0) { throw 'Existing archive inspector unavailable' }
+          node --test scripts/ci/verify-nsis-image.test.mjs scripts/ci/inspect-mermaid-windows-dependencies.test.mjs tests/windows/stage-mermaid-evidence.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging evidence regressions failed' }
+      - name: Restore locked dependencies and stage the exact reviewed plugins
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          if ($LASTEXITCODE -ne 0) { throw 'Locked workspace restore failed' }
+          $mathDependencies = Join-Path $env:RUNNER_TEMP 'mermaid-trial-math-input'
+          npm install --prefix $mathDependencies --ignore-scripts --no-audit --no-fund katex@0.19.0
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned KaTeX build input restore failed' }
+          $katex = Join-Path $mathDependencies 'node_modules/katex'
+          if ((Get-Content (Join-Path $katex 'package.json') -Raw | ConvertFrom-Json).version -cne '0.19.0') { throw 'Wrong KaTeX input' }
+          $mathModules = Join-Path $PWD 'plugins/math/node_modules'
+          New-Item -ItemType Directory -Force -Path $mathModules | Out-Null
+          $katexLink = Join-Path $mathModules 'katex'
+          if (Test-Path -LiteralPath $katexLink) { throw 'Unexpected existing KaTeX staging path' }
+          New-Item -ItemType Junction -Path $katexLink -Target $katex | Out-Null
+          $records = @(node scripts/ci/prepare-bundled-plugins.mjs)
+          if ($LASTEXITCODE -ne 0) { throw 'Exact reviewed plugin staging failed' }
+          $records | Write-Host
+          $objects = @($records | ForEach-Object { $_ | ConvertFrom-Json })
+          if ($objects.Count -ne 10) { throw 'Expected ten Windows plugins' }
+          $objects | ConvertTo-Json -Depth 32 | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/public-plugins/staged-bundles.json') -Encoding utf8
+          pnpm --filter @milkup/desktop typecheck
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop type check failed' }
+          node --test scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/mermaid-product-e2e.test.mjs tests/windows/verify-installed-binary.test.mjs tests/windows/mermaid-gui-regression.test.mjs tests/windows/mermaid-gui-startup.test.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Delivery verification regressions failed' }
+          ./tests/windows/account-kind-wrapper.test.ps1
+          ./tests/windows/installer-wrapper.test.ps1
+          ./tests/windows/mermaid-gui-observer.test.ps1
+          $ownedProcess = @(& pwsh -NoProfile -File scripts/ci/test-windows-mermaid-owned-process.ps1 2>&1)
+          $ownedProcessExit = $LASTEXITCODE
+          $ownedProcess | Write-Host
+          $ownedProcess | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/owned-process-regression.log') -Encoding utf8
+          if ($ownedProcessExit -ne 0) { throw 'Held-process installer regressions failed' }
+          Push-Location plugins/diagrams-worker
+          try {
+            node ../../node_modules/vitest/vitest.mjs run --config vitest.config.ts
+            if ($LASTEXITCODE -ne 0) { throw 'Diagrams compiler/renderer regressions failed' }
+            node --test scripts/package-seals.test.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'Reviewed package-seal regressions failed' }
+          } finally { Pop-Location }
+      - name: Test private native contracts before packaging
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $nativeTests = @(& cargo test --locked --manifest-path apps/desktop/src-tauri/mermaid-engine/Cargo.toml --lib -- --test-threads=1 --nocapture 2>&1)
+          $nativeTestsExit = $LASTEXITCODE
+          $nativeTests | Write-Host
+          $nativeTests | Set-Content (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/native-regression.log') -Encoding utf8
+          if ($nativeTestsExit -ne 0) { throw 'Private engine regression tests failed' }
+          node tests/windows/capture-build-source-state.mjs $PWD desktop-check $env:GITHUB_SHA (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence/mermaid-source-desktop-check.json')
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot retain source state' }
+      - name: Build release NSIS and inspect exact engine and plugin payloads
+        id: packaged
+        run: |
+          ./scripts/ci/build-windows-mermaid-trial.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence') -OutputDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-delivery')
+      - name: Strict final source gate before installer execution
+        id: source_gate
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $evidence = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
+          if (-not (Test-Path -LiteralPath $evidence)) { throw 'Original source evidence unavailable' }
+          node tests/windows/capture-build-source-state.mjs $PWD final $env:GITHUB_SHA (Join-Path $evidence 'mermaid-source-final.json')
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot retain final source state' }
+          $head = @(git rev-parse HEAD)
+          if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Source SHA changed during packaging' }
+          $dirty = @(git status --porcelain=v1 --untracked-files=all)
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect source checkout' }
+          $dirty | Write-Host
+          git diff --no-ext-diff --no-textconv HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect source diff' }
+          git diff --cached --exit-code
+          if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Source checkout changed during packaging; never restore or relax the gate' }
+      - name: Record available Windows input and display prerequisites
+        run: |
+          $directory = Join-Path $env:RUNNER_TEMP 'mermaid-trial-installed-evidence'
+          New-Item -ItemType Directory -Force -Path $directory | Out-Null
+          $languages = @(Get-WinUserLanguageList | Select-Object LanguageTag, InputMethodTips)
+          $display = @(Get-CimInstance Win32_VideoController | Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution)
+          [ordered]@{ schema = 1; languages = $languages; display = $display; realImeAccepted = $false; systemDpiMatrixAccepted = $false; scope = 'Runner prerequisite inventory only; not a user-session composition or DPI test' } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $directory 'windows-environment.json') -Encoding utf8
+      - name: Fetch exact delivered beta.9 upgrade fixture
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = Join-Path $env:RUNNER_TEMP 'beta9-lifecycle.zip'
+          & gh api repos/Auto-Plugin/milkup/actions/artifacts/13270072153/zip > $zip
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned upgrade fixture download failed' }
+          $dir = Join-Path $env:RUNNER_TEMP 'beta9-lifecycle'
+          Expand-Archive -LiteralPath $zip -DestinationPath $dir
+          $installers = @(Get-ChildItem -LiteralPath $dir -File -Filter '*setup.exe')
+          if ($installers.Count -ne 1 -or (Get-FileHash $installers[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf') { throw 'Pinned beta.9 installer mismatch' }
+          "MILKUP_LIFECYCLE_BASELINE=$($installers[0].FullName)" >> $env:GITHUB_ENV
+      - name: Upgrade, launch, and uninstall under both fresh account kinds
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $evidence = Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence'
+          $record = Get-Content (Join-Path $evidence 'packaging-record.json') -Raw | ConvertFrom-Json
+          $manifest = Join-Path $evidence 'installer-input.json'
+          $manifestHash = (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()
+          $failures = @()
+          foreach ($kind in @('pure-standard', 'filtered-admin')) {
+            try {
+              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -Binary $record.compiledApplication.path -ExpectedBinarySha256 $record.compiledApplication.sha256 -LifecycleBaselineInstaller $env:MILKUP_LIFECYCLE_BASELINE -Installer $record.installer.path -ExpectedInstallerSha256 $record.installer.sha256 -ExpectedVersion $record.version -PackageManifest $manifest -ExpectedPackageManifestSha256 $manifestHash -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-trial-installed-evidence/$kind") -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind
+            } catch {
+              $failures += "$kind : $($_.Exception.Message)"
+              Write-Host "::error::$kind installed-product acceptance failed; original reports retained"
+            }
+          }
+          if ($failures.Count) { throw ($failures -join "`n") }
+      - name: Retain lifecycle evidence without delivering another installer
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mermaid-installer-lifecycle-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          path: ${{ runner.temp }}/mermaid-trial-installed-evidence/

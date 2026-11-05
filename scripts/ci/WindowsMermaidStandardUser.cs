@@ -472,6 +472,10 @@ public static class WindowsMermaidStandardUser
             throw new ArgumentException("NSIS installation directory has ambiguous outer whitespace");
         return "/S /D=" + installDirectory;
     }
+    static string UninstallerArguments(string installDirectory) {
+        InstallerArguments(installDirectory);
+        return "/S _?=" + installDirectory;
+    }
     static Dictionary<string, object> CurrentInstallerIdentity(string expectedSid, uint expectedSession, string expectedAccountKind) {
         var token = Token(GetCurrentProcess());
         uint session;
@@ -522,6 +526,21 @@ public static class WindowsMermaidStandardUser
         start.Arguments = InstallerArguments(installDirectory);
         return RunCapturedProcess(start, stdoutPath, stderrPath, timeoutMs, "Installer", expectedSid, expectedSession, installDirectory, expectedAccountKind);
     }
+    // Only an already verified installation inside the disposable current profile.
+    // NSIS _?= disables its temporary trampoline so the held process is the uninstaller.
+    public static Dictionary<string, object> RunOwnedMaintenance(string application, string installDirectory,
+        string directory, string stdoutPath, string stderrPath, string expectedSid, uint expectedSession,
+        string expectedAccountKind, bool uninstall) {
+        InstallerArguments(installDirectory); // same strict local-path admission
+        string profile = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        if (!Path.GetFullPath(installDirectory).StartsWith(profile + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !Directory.Exists(installDirectory) || !File.Exists(Path.Combine(installDirectory, "milkup-desktop.exe")))
+            throw new InvalidOperationException("Maintenance requires an existing installation in this disposable user profile");
+        var start = CapturedStart(application, directory);
+        start.Arguments = uninstall ? UninstallerArguments(installDirectory) : InstallerArguments(installDirectory);
+        return RunCapturedProcess(start, stdoutPath, stderrPath, 120000, "Installer", expectedSid,
+            expectedSession, installDirectory, expectedAccountKind, true);
+    }
     // Test-only diagnostic admission: callers cannot supply another test or any
     // renderer/source arguments. The trusted parent test owns its LowBox child.
     public const string TokenProbeParentTest = "launcher::token_diagnostic::parent_observes_suspended_and_self_tokens";
@@ -549,7 +568,7 @@ public static class WindowsMermaidStandardUser
         return RunNodeScript(application, new[] { harness }, directory, stdoutPath, stderrPath, timeoutMs);
     }
     static Dictionary<string, object> RunCapturedProcess(ProcessStartInfo start, string stdoutPath, string stderrPath,
-        int timeoutMs, string label, string expectedSid, uint expectedSession, string installDirectory, string expectedAccountKind = null) {
+        int timeoutMs, string label, string expectedSid, uint expectedSession, string installDirectory, string expectedAccountKind = null, bool existingInstallation = false) {
         var audit = new Dictionary<string, object> {
             { "status", "failed" }, { "started", false }, { "exited", false },
             { "exitCode", null }, { "timedOut", false }, { "streamsDrained", false },
@@ -577,7 +596,7 @@ public static class WindowsMermaidStandardUser
                 if (!Path.IsPathFullyQualified(start.FileName) || !Path.IsPathFullyQualified(installDirectory) ||
                     !String.Equals(Path.GetFullPath(installDirectory), installDirectory, StringComparison.OrdinalIgnoreCase))
                     throw new ArgumentException("Installer paths must be absolute and canonical");
-                if (File.Exists(installDirectory) || Directory.Exists(installDirectory))
+                if (!existingInstallation && (File.Exists(installDirectory) || Directory.Exists(installDirectory)))
                     throw new InvalidOperationException("Refusing to reuse an installation destination");
                 audit["callerIdentity"] = CurrentInstallerIdentity(expectedSid, expectedSession, expectedAccountKind);
             }

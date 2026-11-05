@@ -16,6 +16,15 @@ foreach($destination in @($null,'','relative\install','\\server\share\install','
  $failed=$false;try{$null=$builder.Invoke($null,@($destination))}catch{$failed=$true}
  if(-not $failed){throw 'Unsafe NSIS directory accepted'};$rejected++
 }
+$uninstallBuilder=[WindowsMermaidStandardUser].GetMethod('UninstallerArguments',[Reflection.BindingFlags]'Static,NonPublic')
+foreach($destination in @('C:\Users\Fresh Standard User\scratch\install','D:\test\中文 directory\install')){
+ $actual=$uninstallBuilder.Invoke($null,@($destination))
+ if($actual-cne ('/S _?='+$destination) -or $actual.Contains('"')){throw 'NSIS _? last/unquoted wait contract failed'}
+}
+foreach($destination in @('relative\install','\\server\share\install','C:\folder"\install')){
+ $failed=$false;try{$null=$uninstallBuilder.Invoke($null,@($destination))}catch{$failed=$true}
+ if(-not $failed){throw 'Unsafe NSIS uninstaller directory accepted'}
+}
 $root=Join-Path ([IO.Path]::GetTempPath()) ('mermaid-owned-installer-helper-'+[guid]::NewGuid().ToString('N'));[IO.Directory]::CreateDirectory($root)|Out-Null
 $node=(Get-Command node -CommandType Application|Select-Object -First 1).Source
 $cases=[ordered]@{}
