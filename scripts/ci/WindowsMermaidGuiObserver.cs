@@ -333,8 +333,15 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     }
     int WorkingLives(long tick) { int count = 0; foreach (WindowLife life in windowLives) if (!life.Released.HasValue || life.Released.Value >= tick) count++; return count; }
     int CombinedWindowSlots(long tick) {
-        int count = WorkingLives(tick);
-        foreach (long hwnd in previous.Keys) { bool represented = false; foreach (WindowLife life in windowLives) if (life.Hwnd.ToInt64() == hwnd && (!life.Released.HasValue || life.Released.Value >= tick)) { represented = true; break; } if (!represented) count++; }
+        // Keep the same generation count (including multiple lives for one
+        // HWND) while checking cache hints in one pass over the archive.
+        int count = 0;
+        var represented = new HashSet<long>();
+        foreach (WindowLife life in windowLives) if (!life.Released.HasValue || life.Released.Value >= tick) {
+            count++;
+            represented.Add(life.Hwnd.ToInt64());
+        }
+        foreach (long hwnd in previous.Keys) if (!represented.Contains(hwnd)) count++;
         return count;
     }
     void ReleaseLife(WindowLife life, long tick) { if (life.Released.HasValue) return; if (life.Identity != null) { life.Identity.Dispose(); life.Identity = null; } life.Released = tick; }
