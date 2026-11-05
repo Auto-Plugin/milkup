@@ -517,6 +517,177 @@ describe('viewport-prioritized bounded fence presentation', () => {
     expect(offsets).toEqual([...offsets].sort((a, b) => a - b))
     expect(offsets).toContain(third)
   })
+  it('publishes completed native fences in bounded batches without spending the next task deadline', async () => {
+    const f = threeFences()
+    let now = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const deadlines: number[] = []
+    const release = vi.fn()
+    const render = vi.fn(
+      async (
+        _p: string,
+        _r: string,
+        input: DocumentPresentationRequest,
+        operation: { deadline: number },
+      ) => {
+        deadlines.push(operation.deadline)
+        now += 8500
+        return {
+          complete: true,
+          fragments: [
+            {
+              from: input.from,
+              to: input.to,
+              layout: 'block' as const,
+              accessibleText: 'diagram',
+              content: createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release }),
+            },
+          ],
+        }
+      },
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      cacheableFence: () => true,
+      render,
+    })
+    const responses = []
+    try {
+      for (let pass = 0; pass < 3; pass++) {
+        const deadline = now + 10000
+        const response = await service.provide(f.window, {
+          signal: new AbortController().signal,
+          deadline,
+        })
+        responses.push(response)
+        expect(render).toHaveBeenCalledTimes(pass + 1)
+        expect(response.result.fragments).toHaveLength(pass + 1)
+        expect(response.continueAfterPaint === true).toBe(pass < 2)
+        expect(response.result.complete).toBe(pass === 2)
+        expect(deadlines[pass]).toBe(deadline)
+      }
+      expect(release).not.toHaveBeenCalled()
+    } finally {
+      for (const response of responses) disposeDocumentPngImages(response.result)
+      service.clear()
+    }
+    expect(release).toHaveBeenCalledTimes(3)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('bounds an unchanged native window and admits newly visible work without an eviction loop', async () => {
+    const f = fixture(
+      Array.from({ length: 9 }, (_, i) => '```diagram\n' + i + '\n```\n').join('\n'),
+    )
+    const release = vi.fn()
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block' as const,
+          accessibleText: 'diagram',
+          content: createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release }),
+        },
+      ],
+    }))
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      cacheableFence: () => true,
+      render,
+    })
+    try {
+      for (let pass = 0; pass < 8; pass++) {
+        const response = await service.provide(f.window, { signal: new AbortController().signal })
+        expect(response.continueAfterPaint === true).toBe(pass < 7)
+        expect(response.result.complete).toBe(false)
+        expect(render).toHaveBeenCalledTimes(pass + 1)
+        disposeDocumentPngImages(response.result)
+      }
+      expect(documentPngResourceStats().images).toBe(8)
+      const ninth = f.window.source.lastIndexOf('```diagram')
+      const response = await service.provide(
+        { ...f.window, visibleFrom: ninth, visibleTo: f.window.to },
+        { signal: new AbortController().signal },
+      )
+      expect(render).toHaveBeenCalledTimes(9)
+      expect(render.mock.calls[8]![2].from).toBe(ninth)
+      expect(response.result.fragments.some((fragment) => fragment.from === ninth)).toBe(true)
+      disposeDocumentPngImages(response.result)
+      expect(documentPngResourceStats().images).toBe(8)
+    } finally {
+      service.clear()
+    }
+    expect(release).toHaveBeenCalledTimes(9)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('runs every native competitor before rejecting overlap within a batch', async () => {
+    const f = threeFences()
+    const release = vi.fn()
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block' as const,
+          accessibleText: 'diagram',
+          content: createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release }),
+        },
+      ],
+    }))
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration, { ...fenceDeclaration, pluginId: 'competing' }],
+      cacheableFence: () => true,
+      render,
+    })
+    try {
+      const response = await service.provide(f.window, { signal: new AbortController().signal })
+      expect(render.mock.calls.map((call) => call[0])).toEqual(['generic-diagram', 'competing'])
+      expect(response.result.fragments).toEqual([])
+      expect(response.result.complete).toBe(false)
+      disposeDocumentPngImages(response.result)
+    } finally {
+      service.clear()
+    }
+    expect(release).toHaveBeenCalledTimes(2)
+  })
+  it('does not make automatic native batches retry a renderer error', async () => {
+    const f = threeFences()
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block' as const,
+          accessibleText: 'diagram',
+          status: 'error' as const,
+          message: 'failed',
+          content: { type: 'text' as const, text: 'source retained' },
+        },
+      ],
+    }))
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      cacheableFence: () => true,
+      render,
+    })
+    const response = await service.provide(f.window, { signal: new AbortController().signal })
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(response.result.complete).toBe(false)
+    expect(response.continueAfterPaint).toBeUndefined()
+    expect(response.result.fragments[0]?.status).toBe('error')
+    service.clear()
+  })
   it('settles a valid partial without starting another task inside the deadline reserve', async () => {
     const f = threeFences()
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)

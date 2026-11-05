@@ -42,6 +42,8 @@ export interface DocumentPresentationWindow {
   readonly visibleTo?: number
 }
 export interface DocumentPresentationResponse {
+  /** Host-only progressive work; never copied from a plugin result. */
+  readonly continueAfterPaint?: boolean
   readonly request: DocumentPresentationRequest
   readonly declarations: readonly DocumentRendererDeclaration[]
   readonly result: DocumentPresentationResult
@@ -828,6 +830,7 @@ export class DocumentPresentation {
     const key = `${baseKey}:${window.visibleFrom}:${window.visibleTo}`
     if (
       this.cache?.identity === current.sourceIdentity &&
+      !this.cache.response.continueAfterPaint &&
       (this.cache.key === key ||
         (this.cache.baseKey === baseKey &&
           this.cache.response.request.contextKnown &&
@@ -891,6 +894,7 @@ export class DocumentPresentation {
     const timeout = setTimeout(expirePreparation, hostPreparationDeadlineMs)
     job.controller.signal.addEventListener('abort', () => clearTimeout(timeout), { once: true })
     const config = this.config
+    let continueAfterPaint = false
     void Promise.resolve()
       .then(() => config.provide(window, { signal: job.controller.signal, deadline }))
       .then(async (response) => {
@@ -934,10 +938,16 @@ export class DocumentPresentation {
             baseKey,
             identity: current.sourceIdentity,
             documentVersion: current.documentVersion,
-            response: { request, result, declarations: response.declarations },
+            response: {
+              request,
+              result,
+              declarations: response.declarations,
+              ...(response.continueAfterPaint === true ? { continueAfterPaint: true } : {}),
+            },
           }
           transferred = true
           this.paint(this.cache.response)
+          continueAfterPaint = response.continueAfterPaint === true
         } finally {
           if (!transferred) disposeDocumentPngImages(response.result)
         }
@@ -957,6 +967,16 @@ export class DocumentPresentation {
         clearTimeout(timeout)
         if (this.job !== job) return
         this.job = undefined
+        if (
+          continueAfterPaint &&
+          !this.stopped &&
+          this.config === config &&
+          this.epoch === job.epoch &&
+          !job.controller.signal.aborted
+        ) {
+          this.schedule()
+          return
+        }
         if (!job.preparationTimedOut || !Number.isFinite(this.retryAfter)) return
         const matches = () => {
           const latest = this.snapshot()

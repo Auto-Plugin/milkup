@@ -60,6 +60,8 @@ export function createDesktopDocumentPresentationService(
   let cacheSource: MarkdownContextSource | undefined
   let cacheVersion: number | undefined
   let cacheScope = ''
+  let continuationScope = ''
+  let continuationPasses = 0
   const evict = (key: string) => {
     const entry = fenceCache.get(key)
     if (!entry) return
@@ -73,6 +75,8 @@ export function createDesktopDocumentPresentationService(
     cacheSource = undefined
     cacheVersion = undefined
     cacheScope = ''
+    continuationScope = ''
+    continuationPasses = 0
   }
   const context = createMarkdownWindowContextReader({ source: () => options.current()?.source })
   const provide: DocumentPresentationConfig['provide'] = async (window, operation) => {
@@ -185,15 +189,49 @@ export function createDesktopDocumentPresentationService(
       }
       if (!trusted.contextKnown)
         return { request, result: { fragments: [], complete: false }, declarations }
+      // A native PNG helper owns startup, rendering and teardown. Do not admit
+      // another uncached native unit using a legacy worker's nominal 2s reserve.
+      // Publish one completed native unit, then continue in a separate view
+      // preparation. Existing deadlines are never restarted within a request.
+      const progressScope = JSON.stringify([
+        scope,
+        capturedVersion,
+        window.sourceVersion,
+        request.from,
+        request.to,
+        request.source,
+        request.width,
+        request.selection,
+        window.visibleFrom,
+        window.visibleTo,
+      ])
+      if (continuationScope !== progressScope) {
+        continuationScope = progressScope
+        continuationPasses = 0
+      }
+      let nativeUnitAdmitted = false
+      let nativeCacheProgress = false
+      let deferredNativeUnit = false
+      const isPure = (declaration: DesktopDocumentRenderer) =>
+        !declaration.contexts.includes('text') &&
+        options.cacheableFence?.(declaration.pluginId, declaration.id) === true
+      const fenceKey = (
+        declaration: DesktopDocumentRenderer,
+        input: DocumentPresentationRequest,
+      ) =>
+        !declaration.contexts.includes('text')
+          ? JSON.stringify([
+              declaration,
+              isPure(declaration) ? [input.source, input.width, input.theme, input.target] : input,
+            ])
+          : undefined
       const acceptedRenderers = new Map<DesktopDocumentRenderer, () => void>()
       const renderOne = async (
         declaration: DesktopDocumentRenderer,
         input: DocumentPresentationRequest,
       ) => {
         assertCurrent()
-        const pure =
-          !declaration.contexts.includes('text') &&
-          options.cacheableFence?.(declaration.pluginId, declaration.id) === true
+        const pure = isPure(declaration)
         const assertRendererActive = () => {
           if (
             options.rendererGeneration?.(declaration.pluginId) !==
@@ -209,12 +247,7 @@ export function createDesktopDocumentPresentationService(
             throw new DocumentPresentationError('revoked')
         }
         assertRendererActive()
-        const cacheKey = !declaration.contexts.includes('text')
-          ? JSON.stringify([
-              declaration,
-              pure ? [input.source, input.width, input.theme, input.target] : input,
-            ])
-          : undefined
+        const cacheKey = fenceKey(declaration, input)
         const cached = cacheKey === undefined ? undefined : fenceCache.get(cacheKey)
         if (cached) {
           // A separate reference belongs to this invocation, even if another
@@ -276,6 +309,7 @@ export function createDesktopDocumentPresentationService(
               evict(fenceCache.keys().next().value!)
             retainDocumentPngImages(result)
             fenceCache.set(cacheKey, { result, cost, pure })
+            nativeCacheProgress ||= pure
             cacheCost += cost
           }
         }
@@ -375,13 +409,6 @@ export function createDesktopDocumentPresentationService(
         assertCurrent()
         let candidates = [...unit.candidates]
         if (unit.block) {
-          // Keep enough nominal time for one original2s task and local settlement.
-          // This100ms reserve is admission policy, not a completion guarantee.
-          // Do not restart or extend either the native or view watchdog.
-          if (deadline - performance.now() < DOCUMENT_PRESENTATION_LIMITS.timeoutMs + 100) {
-            complete = false
-            break
-          }
           const block = unit.block
           const source = request.source.slice(block.from - request.from, block.to - request.from)
           const fromLine =
@@ -405,6 +432,22 @@ export function createDesktopDocumentPresentationService(
                 to: Math.min(range.to, block.to),
               })),
           })
+          const needsNative = unit.providers.some(
+            (provider) => isPure(provider) && !fenceCache.has(fenceKey(provider, input)!),
+          )
+          if (needsNative && nativeUnitAdmitted) {
+            complete = false
+            deferredNativeUnit = true
+            break
+          }
+          // Keep enough nominal time for one original2s task and local settlement.
+          // This100ms reserve is admission policy, not a completion guarantee.
+          // Do not restart or extend either the native or view watchdog.
+          if (deadline - performance.now() < DOCUMENT_PRESENTATION_LIMITS.timeoutMs + 100) {
+            complete = false
+            break
+          }
+          nativeUnitAdmitted ||= needsNative
           // A scheduling unit includes every competing provider. Budget pressure
           // must never choose a winner by silently omitting the other provider.
           const results = await Promise.allSettled(unit.providers.map((d) => renderOne(d, input)))
@@ -448,6 +491,13 @@ export function createDesktopDocumentPresentationService(
         request,
         result,
         declarations,
+        // Bound continuation to the cache's eight retained units. A changed
+        // viewport/input gets a new pass; unchanged over-budget input cannot
+        // cycle through eviction/re-render forever. Errors are never cached or
+        // retried by this path, and competition/aggregate rejection cannot loop.
+        ...(deferredNativeUnit && nativeCacheProgress && ++continuationPasses < 8
+          ? { continueAfterPaint: true }
+          : {}),
       }
     } finally {
       for (const result of owned) disposeDocumentPngImages(result)

@@ -293,3 +293,29 @@ it('requires an explicit refresh after two failed attempts before accepting reco
   await vi.advanceTimersByTimeAsync(60_000)
   expect(provide).toHaveBeenCalledTimes(3)
 })
+
+it('paints a host partial before continuing and does not cache it as a completed window', async () => {
+  let finish!: () => void
+  const provide = vi.fn<DocumentPresentationConfig['provide']>()
+  provide
+    .mockImplementationOnce((window) => ({
+      ...response(window),
+      result: { fragments: [], complete: false },
+      continueAfterPaint: true,
+    }))
+    .mockImplementationOnce(
+      (window) =>
+        new Promise((resolve) => {
+          finish = () => resolve(response(window))
+        }),
+    )
+  make({ provide })
+  await vi.advanceTimersByTimeAsync(0)
+  expect(provide).toHaveBeenCalledTimes(2)
+  expect(provide.mock.calls[0]![1].signal.aborted).toBe(false)
+  expect(document.querySelector('.milkup-line')?.textContent).toBe('body')
+  finish()
+  await vi.advanceTimersByTimeAsync(0)
+  await vi.advanceTimersByTimeAsync(20000)
+  expect(provide).toHaveBeenCalledTimes(2)
+})
