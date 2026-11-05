@@ -687,7 +687,7 @@ test('final account matrix requires two separately verified installations with d
   await installedFixture(t, { parent, accountKind: 'filtered-admin' })
   const proof = await verifyInstalledAccountMatrix(parent, pure.expected)
   assert.equal(proof.status, 'passed')
-  assert.equal(proof.naturalUiCloses, 8)
+  assert.equal(proof.naturalUiCloses, 10)
   assert.deepEqual(Object.keys(proof.accounts), ['pure-standard', 'filtered-admin'])
   for (const account of Object.values(proof.accounts)) assert.equal(account.records.length, 4)
 })

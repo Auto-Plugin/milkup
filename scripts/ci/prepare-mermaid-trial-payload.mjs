@@ -789,7 +789,7 @@ export function verifyInstalledProductCloses(product, requireSyntax = false) {
     }
   }
   return {
-    naturalUiCloses: 4,
+    naturalUiCloses: product.launches.length,
     configuredWaitBudgetMs: 15000,
     independentMonotonicDeadlineRecomputed: false,
     dialogAbsenceInferredFromNullOrExit: false,
@@ -1032,7 +1032,7 @@ export async function verifyInstalledEvidence(directory, expected) {
   return {
     status: 'passed',
     scope:
-      'Exact installed image, same-SID verified account, ten product operations, retained PNG hashes and native cleanup records; no human visual/IME/DPI acceptance',
+      'Exact installed image, same-SID verified account, eleven product operations, retained PNG hashes and native cleanup records; no human visual/IME/DPI acceptance',
     expectedAccountKind: accountKind,
     closes,
     records: records.map(({ value: _value, ...record }) => record),
@@ -1075,7 +1075,10 @@ export async function verifyInstalledAccountMatrix(parent, expected) {
     scope:
       'Separate fresh pure-standard and non-elevated filtered-admin installations of the same verified package',
     requiredAccountKinds: kinds,
-    naturalUiCloses: 8,
+    naturalUiCloses: Object.values(accounts).reduce(
+      (total, account) => total + account.closes.naturalUiCloses,
+      0,
+    ),
     accounts,
   }
 }
