@@ -99,6 +99,11 @@ export function createOwnedDocumentPngImage(
   const setNatural = (next: boolean) => {
     natural = next
     element.dataset.documentPngView = natural ? 'natural' : 'fit'
+    // Keep the layout box constrained while the raster itself uses intrinsic
+    // pixels. Otherwise the box can briefly expand to the raster width and
+    // the ResizeObserver below interprets the explicit toggle as a resize
+    // back to fit mode.
+    element.style.width = natural ? '100%' : `${value.width}px`
     image.style.width = natural ? `${value.width}px` : '100%'
     image.style.maxWidth = natural ? 'none' : '100%'
     viewport.tabIndex = natural ? 0 : -1
