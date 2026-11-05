@@ -160,6 +160,10 @@ fn read_fixture_request(
     budget: Duration,
 ) -> std::io::Result<Vec<u8>> {
     let deadline = std::time::Instant::now() + budget;
+    // Winsock accept inherits the listener's nonblocking mode. A read timeout
+    // does not clear it: partial headers would return WouldBlock and close the
+    // connection. Establish the mode explicitly before bounded blocking reads.
+    stream.set_nonblocking(false)?;
     let mut request = Vec::new();
     loop {
         let remaining = deadline.saturating_duration_since(std::time::Instant::now());
@@ -182,6 +186,37 @@ fn read_fixture_request(
             return Ok(request);
         }
     }
+}
+
+#[test]
+fn fixture_request_reader_handles_inherited_nonblocking_mode() {
+    use std::net::TcpStream;
+    use std::sync::mpsc;
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let mut client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+    let (mut server, _) = listener.accept().unwrap();
+    // Explicitly reproduce the mode inherited by accepted Winsock sockets,
+    // even on hosts where accept() instead returns a blocking stream.
+    server.set_nonblocking(true).unwrap();
+    client.write_all(b"GET /pay").unwrap();
+    let (tx, rx) = mpsc::channel();
+    let reader = std::thread::spawn(move || {
+        tx.send(read_fixture_request(&mut server, Duration::from_secs(2)))
+            .unwrap();
+    });
+    let early = rx.recv_timeout(Duration::from_millis(100));
+    client
+        .write_all(b"load HTTP/1.1\r\nHost: fixture\r\n\r\n")
+        .ok();
+    reader.join().unwrap();
+    assert!(
+        matches!(early, Err(mpsc::RecvTimeoutError::Timeout)),
+        "partial headers must remain pending, not close with WouldBlock: {early:?}"
+    );
+    assert_eq!(
+        rx.recv().unwrap().unwrap(),
+        b"GET /payload HTTP/1.1\r\nHost: fixture\r\n\r\n"
+    );
 }
 
 #[test]
@@ -271,6 +306,12 @@ fn serve_with_check(
             let Ok(request) = read_fixture_request(&mut stream, Duration::from_secs(2)) else {
                 continue;
             };
+            if stream
+                .set_write_timeout(Some(Duration::from_secs(2)))
+                .is_err()
+            {
+                continue;
+            }
             let artifact = request.starts_with(b"GET /payload ");
             let body = if artifact {
                 payload.as_slice()

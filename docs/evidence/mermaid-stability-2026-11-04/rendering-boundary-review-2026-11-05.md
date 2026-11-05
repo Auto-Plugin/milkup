@@ -41,4 +41,8 @@
 
 [42102515568](https://github.com/Auto-Plugin/milkup/actions/runs/42102515568) 绑定上述 `11da1c3c` 源码；最终结论须读取该轮原始产品与 GUI 工件。本记录不预先给它通过结论。
 
+该轮随后结束为失败：桌面 Rust 228 passed、1 failed、3 ignored。新增 `fixture_http_waits_for_fragmented_headers_and_rejects_incomplete_requests` 在第 197 行期待读超时，实际收到 `Ok(0)`（EOF）。产品和 GUI 全部 skipped；artifact `13449384831` 只有 elevated rejection 日志，没有新的原生启动或窗口证据。
+
+已定位夹具的非阻塞模式问题：监听器设为 nonblocking，接收连接后未显式恢复 blocking；[Winsock accept 文档](https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-accept)说明新连接继承监听 socket 的属性。新增受控 TCP 测试显式设置该状态，旧 reader 在部分请求头后立即返回 `WouldBlock`；修复后等待完整请求头。读取仍使用原始绝对期限和 2048 字节上限，响应写入也设有限等待。提取的原始夹具在本地 2/2 通过，Windows 目标编译检查通过；不替代完整 Windows 桌面测试。这证明当前夹具缺陷，不能倒推此前每次 updater 错误都有同一原因。
+
 旧配置真实安装升级仍未完成。现有准备覆盖两账户各四种旧配置、旧版手动启用并重启、候选升级与覆盖、启动及实际卸载。只有精确源码验收成功且受保护源码无差异时，才可沿现有绑定机制构建对应安装候选；不能用旧 SHA 的成功覆盖新源码，不能用新装通过替代旧配置升级通过。
