@@ -153,6 +153,87 @@ impl Drop for FixtureServer {
         }
     }
 }
+// TCP reads may split any request byte. Do not reply (or close with unread
+// headers) until the bounded request is complete; retain one absolute budget.
+fn read_fixture_request(
+    stream: &mut std::net::TcpStream,
+    budget: Duration,
+) -> std::io::Result<Vec<u8>> {
+    let deadline = std::time::Instant::now() + budget;
+    let mut request = Vec::new();
+    loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            return Err(std::io::ErrorKind::TimedOut.into());
+        }
+        stream.set_read_timeout(Some(remaining))?;
+        let room = 2048usize.saturating_sub(request.len());
+        if room == 0 {
+            return Err(std::io::ErrorKind::InvalidData.into());
+        }
+        let mut chunk = [0; 512];
+        let capacity = chunk.len().min(room);
+        let count = stream.read(&mut chunk[..capacity])?;
+        if count == 0 {
+            return Err(std::io::ErrorKind::UnexpectedEof.into());
+        }
+        request.extend_from_slice(&chunk[..count]);
+        if request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+            return Ok(request);
+        }
+    }
+}
+
+#[test]
+fn fixture_http_waits_for_fragmented_headers_and_rejects_incomplete_requests() {
+    use std::net::{Shutdown, TcpStream};
+    let server = serve(b"fixture-payload", "signature", 200, None);
+    let address = ("127.0.0.1", server.url.port().unwrap());
+    let mut client = TcpStream::connect(address).unwrap();
+    client
+        .set_read_timeout(Some(Duration::from_millis(100)))
+        .unwrap();
+    client.write_all(b"GET /pay").unwrap();
+    let error = client.read(&mut [0; 1]).unwrap_err();
+    assert!(matches!(
+        error.kind(),
+        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+    ));
+    client
+        .write_all(b"load HTTP/1.1\r\nHost: fixture\r\n\r\n")
+        .unwrap();
+    client
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+    let mut reply = Vec::new();
+    client.read_to_end(&mut reply).unwrap();
+    assert!(reply.ends_with(b"fixture-payload"));
+    for incomplete in [
+        b"GET /check HTTP/1.1\r\nHost: missing terminator".to_vec(),
+        vec![b'x'; 2048],
+    ] {
+        let mut client = TcpStream::connect(address).unwrap();
+        client
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        client.write_all(&incomplete).unwrap();
+        if incomplete.len() < 2048 {
+            client.shutdown(Shutdown::Write).unwrap();
+        }
+        let mut reply = Vec::new();
+        client.read_to_end(&mut reply).unwrap();
+        assert!(
+            reply.is_empty(),
+            "incomplete requests must not receive successful fixture responses"
+        );
+    }
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let _idle_client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+    let (mut idle_server, _) = listener.accept().unwrap();
+    let error = read_fixture_request(&mut idle_server, Duration::ZERO).unwrap_err();
+    assert_eq!(error.kind(), std::io::ErrorKind::TimedOut);
+}
+
 fn serve(
     payload: &[u8],
     signature: &str,
@@ -187,12 +268,10 @@ fn serve_with_check(
                 std::thread::sleep(Duration::from_millis(5));
                 continue;
             };
-            stream
-                .set_read_timeout(Some(Duration::from_secs(2)))
-                .unwrap();
-            let mut request = [0; 2048];
-            let count = stream.read(&mut request).unwrap_or(0);
-            let artifact = String::from_utf8_lossy(&request[..count]).starts_with("GET /payload ");
+            let Ok(request) = read_fixture_request(&mut stream, Duration::from_secs(2)) else {
+                continue;
+            };
+            let artifact = request.starts_with(b"GET /payload ");
             let body = if artifact {
                 payload.as_slice()
             } else {
@@ -655,14 +734,12 @@ fn wire_server(response: Vec<u8>) -> (FixtureServer, Arc<std::sync::atomic::Atom
                 std::thread::sleep(Duration::from_millis(2));
                 continue;
             };
-            stream
-                .set_read_timeout(Some(Duration::from_secs(1)))
-                .unwrap();
+            if read_fixture_request(&mut stream, Duration::from_secs(1)).is_err() {
+                continue;
+            }
             stream
                 .set_write_timeout(Some(Duration::from_secs(1)))
                 .unwrap();
-            let mut request = [0; 2048];
-            let _ = stream.read(&mut request);
             count.fetch_add(1, Ordering::SeqCst);
             let _ = stream.write_all(&response);
         }
@@ -1080,7 +1157,10 @@ async fn version_gate_download_rechecks_expiry_and_retry_never_uses_expired_byte
     )
     .await
     .unwrap_err();
-    assert!(error.contains("过期"), "Expected expiry rejection, got: {error}");
+    assert!(
+        error.contains("过期"),
+        "Expected expiry rejection, got: {error}"
+    );
     let (_abort, receiver) = watch::channel(false);
     let progress = AtomicBool::new(false);
     assert!(authorized_download(
