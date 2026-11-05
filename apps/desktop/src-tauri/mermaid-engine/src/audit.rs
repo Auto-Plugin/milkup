@@ -18,6 +18,7 @@ const MAX_LINE_BYTES: usize = 8192;
 
 enum Message {
     Line(String),
+    DiagnosticLine(String),
     Barrier(SyncSender<Result<(), String>>),
 }
 
@@ -44,6 +45,12 @@ impl AuditWriter {
             .spawn(move || {
                 for message in receiver {
                     match message {
+                        Message::DiagnosticLine(line) => {
+                            if writeln!(output, "MILKUP_MERMAID_NATIVE_DIAGNOSTIC {line}").is_err()
+                            {
+                                worker_failures.fetch_or(WRITER_FAILED, Ordering::AcqRel);
+                            }
+                        }
                         Message::Line(line) => {
                             if writeln!(output, "MILKUP_MERMAID_NATIVE_AUDIT {line}").is_err() {
                                 worker_failures.fetch_or(WRITER_FAILED, Ordering::AcqRel);
@@ -68,6 +75,14 @@ impl AuditWriter {
         // Diagnostics never extend the render deadline. Lost evidence remains
         // uncertain even if a later barrier can drain the queue successfully.
         if line.len() > MAX_LINE_BYTES || self.sender.try_send(Message::Line(line)).is_err() {
+            self.failures.fetch_or(RECORD_DROPPED, Ordering::AcqRel);
+        }
+    }
+
+    fn emit_diagnostic_line(&self, line: String) {
+        if line.len() > MAX_LINE_BYTES
+            || self.sender.try_send(Message::DiagnosticLine(line)).is_err()
+        {
             self.failures.fetch_or(RECORD_DROPPED, Ordering::AcqRel);
         }
     }
@@ -129,6 +144,14 @@ pub(crate) fn enabled() -> bool {
 }
 #[cfg(windows)]
 pub(crate) fn emit(record: &Value) {
+    emit_record(record, false);
+}
+#[cfg(windows)]
+pub(crate) fn emit_diagnostic(record: &Value) {
+    emit_record(record, true);
+}
+#[cfg(windows)]
+fn emit_record(record: &Value, diagnostic: bool) {
     if !enabled() {
         return;
     }
@@ -139,7 +162,13 @@ pub(crate) fn emit(record: &Value) {
         .map(|duration| duration.as_millis())
         .unwrap_or_default());
     match serde_json::to_string(&record) {
-        Ok(line) => writer.emit_line(line),
+        Ok(line) => {
+            if diagnostic {
+                writer.emit_diagnostic_line(line)
+            } else {
+                writer.emit_line(line)
+            }
+        }
         Err(_) => {
             writer.failures.fetch_or(RECORD_DROPPED, Ordering::AcqRel);
         }
@@ -477,6 +506,47 @@ fn ipc_thread_cleanup(value: &Value) -> Vec<Value> {
                 "progressAtCancel":ipc_progress(&entry["progressAtCancel"]),
                 "progressAtEnd":ipc_progress(&entry["progressAtEnd"])
             }))
+        })
+        .collect()
+}
+
+pub(crate) fn native_diagnostics(request_id: &str, report: &Value) -> Value {
+    let streams: Vec<Value> = report["ipcThreadCleanup"].as_array().into_iter().flatten().take(3).filter_map(|entry| {
+        let stream = entry["stream"].as_str()?;
+        if !["stdout", "stderr", "stdin"].contains(&stream) { return None; }
+        Some(json!({"stream":stream,"joinTickMs":entry["joinTickMs"].as_u64(),"cancelTickMs":entry["cancelTickMs"].as_u64(),"endTickMs":entry["endTickMs"].as_u64(),"progressTimeline":ipc_timeline(&entry["progressTimeline"])}))
+    }).collect();
+    json!({"phase":"native-diagnostic","requestId":request_id,"productPid":std::process::id(),
+        "clock":"process-local-monotonic-ms","timeline":native_diagnostic_timeline(&report["nativeDiagnosticTimeline"]),"streams":streams})
+}
+
+fn native_diagnostic_timeline(value: &Value) -> Value {
+    let mut result = serde_json::Map::new();
+    for key in [
+        "launchStartedTickMs",
+        "parentChildPipeCopiesClosedByTickMs",
+        "beforeTerminateTickMs",
+        "afterTerminateRequestTickMs",
+        "jobStopFinishedTickMs",
+    ] {
+        if let Some(tick) = value[key].as_u64() {
+            result.insert(key.into(), json!(tick));
+        }
+    }
+    Value::Object(result)
+}
+fn ipc_timeline(value: &Value) -> Vec<Value> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .take(24)
+        .filter_map(|entry| {
+            let state = entry["state"].as_u64()?;
+            if state & 255 > 10 || state >> 8 > 9 {
+                return None;
+            }
+            Some(json!({"tickMs":entry["tickMs"].as_u64()?,"state":state}))
         })
         .collect()
 }
@@ -1168,13 +1238,32 @@ mod tests {
         assert!(cleanup_failure_kinds(&json!({"kind":"job-stop"})).is_empty());
     }
 
+    #[test]
+    fn native_timeline_is_bounded_typed_and_drops_payloads() {
+        let rows = vec![json!({"tickMs":17,"state":262,"payload":"secret"}); 30];
+        let clean = ipc_timeline(&json!(rows));
+        assert_eq!(clean.len(), 24);
+        let record = native_diagnostics(
+            &"f".repeat(32),
+            &json!({"ipcThreadCleanup":vec![json!({"stream":"stdout","joinTickMs":u64::MAX,"cancelTickMs":u64::MAX,"endTickMs":u64::MAX,"progressTimeline":vec![json!({"tickMs":u64::MAX,"state":2314});24]});3]}),
+        );
+        assert!(serde_json::to_vec(&record).unwrap().len() + 100 < MAX_LINE_BYTES);
+        assert_eq!(clean[0], json!({"tickMs":17,"state":262}));
+        assert!(ipc_timeline(&json!([{"tickMs":1,"state":65536}])).is_empty());
+        assert!(ipc_timeline(&json!([{"tickMs":"1","state":0}])).is_empty());
+        assert_eq!(
+            native_diagnostic_timeline(&json!({"beforeTerminateTickMs":5,"payload":"secret"})),
+            json!({"beforeTerminateTickMs":5})
+        );
+    }
+
     fn ipc_diagnostic(stream: &str) -> Value {
         json!({"stream":stream,"elapsedMs":27,"cancelRequested":true,
             "cancelCallSucceeded":false,"cancelWin32Error":1168,"finished":true,"panicked":false})
     }
 
     #[test]
-    fn ipc_diagnostics_keep_only_ten_typed_fields_and_three_rows() {
+    fn ipc_diagnostics_keep_only_typed_fields_and_three_rows() {
         let mut stdout = ipc_diagnostic("stdout");
         stdout["progressAtJoin"] = json!({"phase":"trailing-byte","completion":"pending"});
         stdout["progressAtCancel"] = json!({"phase":"trailing-byte","completion":"pending"});

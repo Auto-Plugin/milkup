@@ -18,6 +18,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     const uint CreateEvent = 0x8000, DestroyEvent = 0x8001, ShowEvent = 0x8002, HideEvent = 0x8003;
     readonly object gate = new object();
     readonly Stopwatch clock = Stopwatch.StartNew();
+    readonly List<Dictionary<string, object>> nativeDiagnostics = new List<Dictionary<string, object>>();
+    bool nativeDiagnosticsTruncated;
     readonly List<Dictionary<string, object>> events = new List<Dictionary<string, object>>();
     readonly List<string> errors = new List<string>();
     readonly Dictionary<long, WindowFact> previous = new Dictionary<long, WindowFact>();
@@ -265,6 +267,12 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     static Dictionary<string, object> NativeEventRecord(long order, uint time, long tick, uint tid) {
         return new Dictionary<string, object> { { "sequence", order }, { "nativeEventUptimeMs32", time }, { "nativeTick", ExpandEventTick(time, tick) }, { "callbackTick", tick }, { "eventThreadId", tid } };
     }
+    // Processing-time snapshots are diagnostic only, never event-time identity proof.
+    static Dictionary<string, object> WindowDiagnostic(IntPtr hwnd) {
+        long begin = NativeTick(); uint pid; uint tid = GetWindowThreadProcessId(hwnd, out pid);
+        bool live = IsWindow(hwnd); IntPtr parent = GetParent(hwnd), root = GetAncestor(hwnd, 2);
+        return new Dictionary<string, object> { { "beginTick", begin }, { "endTick", NativeTick() }, { "hwnd", HandleText(hwnd) }, { "isWindow", live }, { "parentHwnd", HandleText(parent) }, { "rootHwnd", HandleText(root) }, { "pid", pid }, { "threadId", tid }, { "className", Bounded(ClassName(hwnd), 256) } };
+    }
     static Dictionary<string, object> IdentityWait(IntPtr handle, bool thread, out long birth) {
         birth = 0; uint wait = WaitForSingleObject(handle, 0); long exit, kernel, user;
         if (wait != 0 && wait != 258) return null;
@@ -336,6 +344,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         ExpireRetiredLives(tick);
         if (kind != "create" && kind != "destroy") return;
         var source = NativeEventRecord(order, nativeTime, tick, eventThread);
+        source["processingWindow"] = WindowDiagnostic(hwnd);
+        source["eventKind"] = kind;
         WindowLife prior = CurrentLife(hwnd);
         if (kind == "create") {
             // Every CREATE is a barrier, even when HWND/class cannot be read.
@@ -411,6 +421,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     }
     Dictionary<string, object> NewChildShow(IntPtr hwnd, uint time, uint tid, long tick, long order, string scope) {
         var record = NativeEventRecord(order, time, tick, tid);
+        record["processingWindow"] = WindowDiagnostic(hwnd);
+        record["eventKind"] = "show";
         record["id"] = ++nextShowId; record["hwnd"] = HandleText(hwnd); record["phase"] = phase;
         record["scope"] = scope;
         record["status"] = "unresolved"; record["lifeId"] = null; record["proof"] = null; record["reason"] = "No unique retained child lifetime with fresh native identity";
@@ -528,6 +540,15 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         if (hwnd == IntPtr.Zero) return;
         long callbackTick = entryTick ?? NativeTick();
         long order = entryOrder ?? (nativeEventTime.HasValue ? Interlocked.Increment(ref observationSequence) : 0);
+        if (nativeEventTime.HasValue && (kind == "show" || kind == "destroy")) {
+            lock (gate) {
+                if (nativeDiagnostics.Count < 4096) {
+                    var diagnostic = NativeEventRecord(order, nativeEventTime.Value, callbackTick, eventThread);
+                    diagnostic["eventKind"] = kind; diagnostic["processingWindow"] = WindowDiagnostic(hwnd);
+                    nativeDiagnostics.Add(diagnostic);
+                } else nativeDiagnosticsTruncated = true;
+            }
+        }
         lock (gate) { if (nativeEventTime.HasValue) RecordLifeEvent(hwnd, kind, nativeEventTime.Value, eventThread, callbackTick, order); }
         bool live = IsWindow(hwnd);
         IntPtr observedRoot = live ? GetAncestor(hwnd, 2) : IntPtr.Zero;
@@ -991,7 +1012,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             var lifeRows = new List<Dictionary<string, object>>(); foreach (WindowLife life in windowLives) lifeRows.Add(life.Record());
             var tracked = new List<Dictionary<string, object>>(); foreach (Product product in products) tracked.Add(new Dictionary<string, object> { { "pid", product.Pid }, { "image", product.Image }, { "creationFileTime", product.Creation.ToString() }, { "heldProcessSignaledAtStop", WaitForSingleObject(product.Handle, 0) == 0 } });
             var processRows = new List<Dictionary<string, object>>(); foreach (ProcessFact process in processEvidence.Values) processRows.Add(new Dictionary<string, object> { { "pid", process.Pid }, { "parentPid", process.Parent }, { "creationFileTime", process.Creation.ToString() }, { "image", process.Image } });
-            return new Dictionary<string, object> { { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "retiredChildHints", retiredChildHints }, { "productMeasurements", productMeasurements.ToArray() }, { "productWindowOperations", productWindowOperations.ToArray() }, { "productWindowReadiness", productWindowReadiness.ToArray() }, { "filePickerOperations", filePickerOperations.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "knownWindowShowEvents", knownWindowShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false }, { "childLifeVersion", 1 }, { "windowLifetimes", lifeRows.ToArray() }, { "childShowEvidence", childShowEvidence.ToArray() }, { "observationStoppedAtTick", observationStoppedAtTick }, { "workingGenerationPeak", workingGenerationPeak }, { "sharedRecordCount", SharedRecordCount() } };
+            return new Dictionary<string, object> { { "nativeDiagnostics", nativeDiagnostics.ToArray() }, { "nativeDiagnosticsTruncated", nativeDiagnosticsTruncated }, { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "retiredChildHints", retiredChildHints }, { "productMeasurements", productMeasurements.ToArray() }, { "productWindowOperations", productWindowOperations.ToArray() }, { "productWindowReadiness", productWindowReadiness.ToArray() }, { "filePickerOperations", filePickerOperations.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "knownWindowShowEvents", knownWindowShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false }, { "childLifeVersion", 1 }, { "windowLifetimes", lifeRows.ToArray() }, { "childShowEvidence", childShowEvidence.ToArray() }, { "observationStoppedAtTick", observationStoppedAtTick }, { "workingGenerationPeak", workingGenerationPeak }, { "sharedRecordCount", SharedRecordCount() } };
         }
     }
     public void Dispose() { if (started && !stopping) { try { Stop(); } catch { } } lock (gate) foreach (WindowLife life in windowLives) if (life.Identity != null) { life.Identity.Dispose(); life.Identity = null; } foreach (Product product in products) if (product.Handle != IntPtr.Zero) { CloseHandle(product.Handle); product.Handle = IntPtr.Zero; } ready.Dispose(); }

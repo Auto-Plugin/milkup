@@ -27,13 +27,13 @@ mod audit;
 mod cleanup;
 #[cfg(windows)]
 mod engine;
-#[cfg(windows)]
-mod protocol_handles;
 #[cfg(any(windows, test))]
 mod ipc_observation;
 #[cfg(windows)]
 mod launcher;
 mod png;
+#[cfg(windows)]
+mod protocol_handles;
 #[cfg(windows)]
 mod stream;
 #[cfg(test)]
@@ -611,6 +611,9 @@ pub fn render_native(input: &Value, control: &Control) -> std::result::Result<Re
             control.cancelled.load(Ordering::Acquire),
             control.remaining().is_zero(),
         ));
+    }
+    if audit::enabled() {
+        audit::emit_diagnostic(&audit::native_diagnostics(request_id, &output.report));
     }
     if output.report["stopMatrixAfterThisCase"] == true {
         control.mark_native_failure(request_id, &output.report);

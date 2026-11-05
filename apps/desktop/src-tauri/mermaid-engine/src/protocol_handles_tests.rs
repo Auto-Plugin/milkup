@@ -413,3 +413,27 @@ fn confined_protocol_handles_prevent_generic_child_from_holding_pipe_eof() {
         );
     }
 }
+
+#[test]
+fn delayed_last_writer_close_is_distinct_from_cancelled_read() {
+    let (output, writer) = pipe(true).unwrap();
+    let reader = Reader::start(output);
+    // Deliberately exceed the launcher's cancellation threshold. This native
+    // mechanism test does not change that threshold or declare a product pass.
+    thread::sleep(Duration::from_millis(80));
+    assert!(
+        reader.pending(),
+        "EOF cannot precede the final writer close"
+    );
+    let close_started = Instant::now();
+    drop(writer);
+    assert_eq!(reader.join().unwrap(), 0);
+    println!(
+        "MILKUP_DELAYED_EOF {}",
+        serde_json::json!({
+            "writerHeldMs":80,"lastWriterClosed":true,"cancelRequested":false,
+            "eofAfterCloseMs":close_started.elapsed().as_millis(),
+            "historicalHolderIdentified":false
+        })
+    );
+}

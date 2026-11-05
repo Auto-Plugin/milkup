@@ -1,5 +1,5 @@
 //! Same-login, creation-time Job ownership for the fixed product engine.
-use crate::ipc_observation::{Completion, Phase, Progress};
+use crate::ipc_observation::{diagnostic_tick_ms, Completion, Phase, Progress};
 use crate::{Control, Result};
 use serde_json::{json, Value};
 use std::{
@@ -974,6 +974,11 @@ fn launch_entry(
             &mut info,
         )
     })?;
+    // Close the parent copies of child endpoints before returning. Descendant
+    // writer copies, if any, are not observed or presumed closed by this action.
+    drop(child_input);
+    drop(child_output);
+    drop(child_error);
     Ok(Spawned {
         process: unsafe { owned(info.hProcess)? },
         thread: unsafe { owned(info.hThread)? },
@@ -1135,6 +1140,8 @@ fn join_bounded<T>(
     progress: Option<&Progress>,
 ) -> Option<T> {
     let started = Instant::now();
+    let join_tick = diagnostic_tick_ms();
+    let mut cancel_tick = None;
     let progress_at_join = progress.map(Progress::snapshot);
     let mut progress_at_cancel = None;
     let prior_errors = errors.len();
@@ -1146,6 +1153,7 @@ fn join_bounded<T>(
             // A failed ownership proof must not hang the supervisor just because
             // an unexpected process retained a pipe. Cancel only our own thread's
             // synchronous pipe I/O, never an unowned process or another job.
+            cancel_tick = Some(diagnostic_tick_ms());
             progress_at_cancel = progress.map(Progress::snapshot);
             let result = unsafe { CancelSynchronousIo(thread.as_raw_handle()) };
             let error = std::io::Error::last_os_error();
@@ -1181,6 +1189,8 @@ fn join_bounded<T>(
         }
     };
     observations.push(json!({"stream":name,
+        "joinTickMs":join_tick,"cancelTickMs":cancel_tick,"endTickMs":diagnostic_tick_ms(),
+        "progressTimeline":progress.map(Progress::timeline),
         "elapsedMs":started.elapsed().as_millis().min(u64::MAX as u128) as u64,
         "cancelRequested":cancelled,"cancelCallSucceeded":cancel_call_succeeded,
         "cancelWin32Error":cancel_win32_error,"finished":finished,"panicked":panicked,
@@ -1289,6 +1299,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         control.checkpoint()?;
         job = Some(Job::new()?);
         let job = job.as_ref().unwrap();
+        report["nativeDiagnosticTimeline"]["launchStartedTickMs"] = json!(diagnostic_tick_ms());
         let Spawned {
             process: created_process,
             thread: primary_thread,
@@ -1296,6 +1307,8 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             output: child_output,
             error: child_error,
         } = launch(&exe, &runtime, &state, &system, profile, job)?;
+        report["nativeDiagnosticTimeline"]["parentChildPipeCopiesClosedByTickMs"] =
+            json!(diagnostic_tick_ms());
         // Preserve the actual creation handle through the outcome, including
         // every fallible token/Job proof below. No duplicate or reopened PID.
         helper_process = Some(created_process);
@@ -1487,10 +1500,13 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         report["preStopJob"] = job
             .sample()
             .unwrap_or_else(|e| json!({"inspectionError":e.to_string()}));
+        report["nativeDiagnosticTimeline"]["beforeTerminateTickMs"] = json!(diagnostic_tick_ms());
         let before_terminate = helper_process.as_ref().map(helper_exit_observation);
         let mut after_terminate = None;
         let mut helper_released = false;
         let stopped = job.stop_observed(|| {
+            report["nativeDiagnosticTimeline"]["afterTerminateRequestTickMs"] =
+                json!(diagnostic_tick_ms());
             after_terminate = helper_process.as_ref().map(helper_exit_observation);
             // Release before the original accounting poll, including a failed
             // termination request. Holding a diagnostic process reference must
@@ -1514,6 +1530,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         } else {
             report["jobActiveAfterStop"] = json!(0);
         }
+        report["nativeDiagnosticTimeline"]["jobStopFinishedTickMs"] = json!(diagnostic_tick_ms());
         cleanup_timeline["jobStopFinishedMs"] =
             json!(cleanup_started.elapsed().as_millis().min(u64::MAX as u128) as u64);
     }
