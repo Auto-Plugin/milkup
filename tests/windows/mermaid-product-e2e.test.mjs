@@ -6,6 +6,7 @@ import path from 'node:path'
 import { deflateSync } from 'node:zlib'
 import {
   fixtures,
+  validatePreviewModes,
   crc32,
   validatePng,
   validateResponsiveDiagram,
@@ -1309,6 +1310,7 @@ const bundledCards = () =>
   pluginInventory.map(({ id, version }) =>
     pluginCard({
       id,
+      checked: id === 'milkup.diagrams' ? 'true' : 'false',
       availableVersionText: `${version} · 下次开启时应用`,
       visible: false,
       rect: { x: 20, y: 1400, width: 600, height: 90 },
@@ -1352,7 +1354,7 @@ test('bundled inventory waits for late cards, DOM versions, layout and settled b
     pluginInventory.map(({ id, version }) => ({
       id,
       version,
-      checked: 'false',
+      checked: id === 'milkup.diagrams' ? 'true' : 'false',
       busy: null,
     })),
   )
@@ -1374,8 +1376,8 @@ test('bundled inventory rejects extra, duplicate, enabled and mismatched public 
   )
   assert.throws(
     () =>
-      inspectBundledPluginInventory([{ ...cards[0], checked: 'true' }, cards[1]], pluginInventory),
-    /must be disabled/,
+      inspectBundledPluginInventory([cards[0], { ...cards[1], checked: 'true' }], pluginInventory),
+    /remain disabled/,
   )
   for (const version of ['1.3.01', '1.3.0-beta.1', '9.9.9'])
     assert.throws(
@@ -1430,11 +1432,11 @@ test('missing bundled cards or DOM versions time out without manifest-supplied o
   )
   await assert.rejects(
     waitForBundledPluginInventory(
-      async () => ({ cards: [{ ...bundledCards()[0], checked: 'true' }, bundledCards()[1]] }),
+      async () => ({ cards: [bundledCards()[0], { ...bundledCards()[1], checked: 'true' }] }),
       pluginInventory,
       { timeoutMs: 1000 },
     ),
-    /must be disabled/,
+    /remain disabled/,
   )
 })
 
@@ -2133,4 +2135,28 @@ test('identity path comparison keeps Chinese characters and exposes mismatched c
       return true
     },
   )
+})
+
+test('preview acceptance rejects missing modes, caret relocation and restart-dependent enable', () => {
+  const good = {
+    modeTransitions: [
+      { mode: 'source', cursor: 35, images: 0 },
+      { mode: 'preview', cursor: 35, images: 1 },
+      { mode: 'live', cursor: 35, images: 0 },
+    ],
+    hotEnableWithoutRestart: true,
+    sourcePreserved: true,
+  }
+  validatePreviewModes(good)
+  for (const change of [
+    (v) => v.modeTransitions.pop(),
+    (v) => (v.modeTransitions[1].cursor = 0),
+    (v) => (v.modeTransitions[1].images = 0),
+    (v) => (v.hotEnableWithoutRestart = false),
+    (v) => (v.sourcePreserved = false),
+  ]) {
+    const bad = structuredClone(good)
+    change(bad)
+    assert.throws(() => validatePreviewModes(bad))
+  }
 })

@@ -127,7 +127,7 @@ function Get-ChildEvidenceNames {
         $names.Add($fixture + '-product.log', $fixture + '-product.log')
         foreach ($prefix in @('fixture-', 'saved-')) { $name = $prefix + $fixture + '.md'; $names.Add($name, $name + '.log') }
     }
-    $steps = @('01-initial-disabled-source', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-invalid', '08-final-disable')
+    $steps = @('01-default-mermaid-preview', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-invalid', '08-final-disable')
     foreach ($step in $steps) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
     foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }

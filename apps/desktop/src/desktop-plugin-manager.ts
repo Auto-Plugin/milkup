@@ -1292,18 +1292,21 @@ export class DesktopPluginManager {
     const selected = entry.pending?.generation ?? entry.active
     const receiptAllowed = (path: string) =>
       path === offer?.path || this.bundledUpgradeSources.get(entry.id)?.has(path) === true
-    if (
-      !offer ||
-      !selected ||
-      !receiptAllowed(selected.sourcePath) ||
-      !isNewerBundledVersion(offer.archive.manifest.version, selected.manifest.version)
-    )
+    const needsUpgrade = (generation: PluginCatalogGeneration) => {
+      if (!offer) return false
+      if (isNewerBundledVersion(offer.archive.manifest.version, generation.manifest.version))
+        return true
+      const reviewed = this.privateMermaid?.reviewed
+      return (
+        entry.id === reviewed?.pluginId &&
+        offer.archive.manifest.version === generation.manifest.version &&
+        (generation.manifestSha256 !== reviewed.manifestSha256 ||
+          generation.contentSha256 !== reviewed.contentSha256)
+      )
+    }
+    if (!offer || !selected || !receiptAllowed(selected.sourcePath) || !needsUpgrade(selected))
       return undefined
-    if (
-      entry.active &&
-      (!receiptAllowed(entry.active.sourcePath) ||
-        !isNewerBundledVersion(offer.archive.manifest.version, entry.active.manifest.version))
-    )
+    if (entry.active && (!receiptAllowed(entry.active.sourcePath) || !needsUpgrade(entry.active)))
       return undefined
     return offer
   }
@@ -3294,7 +3297,7 @@ function renderPluginCard(
     )
     .join('')
   const more = `<details class="plugin-card-more" data-plugin-card-more="${id}"><summary class="dialog-button" data-plugin-card-more-trigger="${id}" aria-label="${escapeHtml(manifest.name)} 更多操作" title="更多操作">${iconSvg(Ellipsis)}<span>更多</span></summary><div class="plugin-card-menu" aria-label="${escapeHtml(manifest.name)} 操作">${record.enabled ? `<button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="${id}">${iconSvg(RotateCw)}重新加载</button>` : ''}<button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="${id}">${iconSvg(Download)}导出插件</button>${commands.map((command) => `<button type="button" class="dialog-button" data-plugin-action="command" data-plugin-command="${escapeHtml(command.id)}" data-plugin-id="${id}">${iconSvg(Terminal)}<span>${escapeHtml(command.title)}</span></button>`).join('')}<button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="${id}">${iconSvg(Trash2)}${entry?.tombstone ? '重试清理' : '移除插件'}</button></div></details>`
-  return `<article class="plugin-card plugin-summary-card" data-plugin-id="${id}">${renderPluginLogo(manifest.name, icon)}<div class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span><span class="plugin-card-status" data-enabled="${record.enabled}">${escapeHtml(status)}</span>${bundledUpgrade ? `<span class="plugin-card-update">随应用新版 ${escapeHtml(bundledUpgrade.version)} · ${upgradeHostLabel(bundledUpgrade)} · 下次开启时应用</span>${bundledUpgrade.description ? `<span class="plugin-card-description">${escapeHtml(bundledUpgrade.description)}</span>` : ''}` : entry?.pending ? `<span class="plugin-card-update">${escapeHtml(entry.pending.generation.manifest.version)} · 下次开启时应用</span>` : ''}${errors.length ? `<span class="plugin-card-error" role="status">操作未完成，请查看详情中的诊断</span>` : ''}</div><button type="button" class="plugin-enable-switch" role="switch" aria-checked="${record.enabled}" aria-label="${escapeHtml(manifest.name)} 启用" data-plugin-action="toggle" data-plugin-id="${id}" ${blocked ? 'disabled' : ''} title="${escapeHtml(blocked ? status : record.enabled ? '关闭插件' : '开启插件')}"><span aria-hidden="true"></span></button><div class="plugin-card-actions">${panelButtons}<button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="${id}" aria-label="${escapeHtml(manifest.name)} 详情">${iconSvg(Info)}详情</button>${more}</div></article>`
+  return `<article class="plugin-card plugin-summary-card" data-plugin-id="${id}">${renderPluginLogo(manifest.name, icon)}<div class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-installed-version">${escapeHtml(manifest.version)} · 插件版本</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span><span class="plugin-card-status" data-enabled="${record.enabled}">${escapeHtml(status)}</span>${bundledUpgrade ? `<span class="plugin-card-update">随应用新版 ${escapeHtml(bundledUpgrade.version)} · ${upgradeHostLabel(bundledUpgrade)} · 下次开启时应用</span>${bundledUpgrade.description ? `<span class="plugin-card-description">${escapeHtml(bundledUpgrade.description)}</span>` : ''}` : entry?.pending ? `<span class="plugin-card-update">${escapeHtml(entry.pending.generation.manifest.version)} · 下次开启时应用</span>` : ''}${errors.length ? `<span class="plugin-card-error" role="status">操作未完成，请查看详情中的诊断</span>` : ''}</div><button type="button" class="plugin-enable-switch" role="switch" aria-checked="${record.enabled}" aria-label="${escapeHtml(manifest.name)} 启用" data-plugin-action="toggle" data-plugin-id="${id}" ${blocked ? 'disabled' : ''} title="${escapeHtml(blocked ? status : record.enabled ? '关闭插件' : '开启插件')}"><span aria-hidden="true"></span></button><div class="plugin-card-actions">${panelButtons}<button type="button" class="dialog-button" data-plugin-action="details" data-plugin-id="${id}" aria-label="${escapeHtml(manifest.name)} 详情">${iconSvg(Info)}详情</button>${more}</div></article>`
 }
 
 function renderPluginDetails(

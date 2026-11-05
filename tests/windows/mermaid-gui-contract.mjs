@@ -137,8 +137,8 @@ export function validateGuiPluginState(record, phase) {
   assert.equal(record?.phase, phase, 'Plugin startup state must be explicit')
   assert.equal(
     record.togglePerformed,
-    phase === 'fresh',
-    'Only the first launch may enable Diagrams',
+    false,
+    'Fresh and persisted launches must preview without toggling Diagrams',
   )
   assert(Array.isArray(record.initialInventory) && record.initialInventory.length > 0)
   assert(Array.isArray(record.finalInventory))
@@ -154,7 +154,7 @@ export function validateGuiPluginState(record, phase) {
   for (const before of record.initialInventory) {
     const after = record.finalInventory.find((item) => item.id === before.id)
     const diagrams = before.id === 'milkup.diagrams'
-    assert.equal(before.checked, diagrams && phase === 'persisted' ? 'true' : 'false')
+    assert.equal(before.checked, diagrams ? 'true' : 'false')
     assert.equal(after.checked, diagrams ? 'true' : 'false')
     assert.notEqual(before.busy, 'true')
     assert.notEqual(after.busy, 'true')

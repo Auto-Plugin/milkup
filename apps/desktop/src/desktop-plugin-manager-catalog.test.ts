@@ -312,6 +312,25 @@ describe('private fixed Mermaid package authorization', () => {
     await reopened.manager.disable('test.lifecycle')
     vi.unstubAllGlobals()
   })
+  it.each([true, false])(
+    'repairs same-version bundled bytes while preserving enabled=%s',
+    async (enabled) => {
+      vi.stubGlobal('crypto', webcrypto)
+      const first = await renderer('1'.repeat(64), true)
+      if (!enabled) await first.manager.disable('test.lifecycle')
+      const replacementHash = (enabled ? '3' : '2').repeat(64)
+      const next = await renderer(replacementHash, true, first.catalog)
+      expect(next.manager.state().records[0]?.enabled).toBe(enabled)
+      if (!enabled) {
+        expect(next.catalog.snapshot.entries[0]?.active?.contentSha256).toBe('1'.repeat(64))
+        await next.manager.enableFromUserIntent('test.lifecycle')
+      }
+      expect(next.catalog.snapshot.entries[0]?.active?.contentSha256).toBe(replacementHash)
+      expect(next.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+      await next.manager.disable('test.lifecycle')
+      vi.unstubAllGlobals()
+    },
+  )
   it('reports an unreviewed package instead of silently using the limited worker', async () => {
     vi.stubGlobal('crypto', webcrypto)
     const s = await renderer('2'.repeat(64))

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { GUI_EVIDENCE_NAMES, validateGuiIdentity } from './mermaid-gui-contract.mjs'
 
 const steps = [
-  '01-initial-disabled-source',
+  '01-default-mermaid-preview',
   '02-enable-and-exact-bytes',
   '03-real-edit-save-replacement',
   '04-undo-exact-original',

@@ -64,6 +64,23 @@ export const fixtures = Object.freeze({
 })
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 
+export function validatePreviewModes(row) {
+  assert.deepEqual(
+    row.modeTransitions?.map((value) => value.mode),
+    ['source', 'preview', 'live'],
+    'All three public document modes must be exercised',
+  )
+  const [source, preview, live] = row.modeTransitions
+  assert(Number.isInteger(source.cursor) && source.cursor > 0, 'Caret must remain inside the fence')
+  assert.equal(preview.cursor, source.cursor)
+  assert.equal(live.cursor, source.cursor)
+  assert.equal(source.images, 0)
+  assert(preview.images > 0, 'Rendered mode must show a decoded image with caret inside fence')
+  assert.equal(live.images, 0, 'Mixed mode keeps the focused fence editable')
+  assert.equal(row.hotEnableWithoutRestart, true)
+  assert.equal(row.sourcePreserved, true)
+}
+
 export const unwrapWebDriverValue = (response) =>
   response !== null && typeof response === 'object' && Object.hasOwn(response, 'value')
     ? response.value
@@ -596,7 +613,10 @@ export function inspectBundledPluginInventory(cards, inventory) {
   let pending = cards.length !== inventory.length
   const observed = cards.map((card) => {
     assert(expected.has(card.id), 'Unexpected bundled plugin: ' + card.id)
-    assert.equal(card.checked, 'false', 'Fresh bundled plugin must be disabled: ' + card.id)
+    assert(['true', 'false'].includes(card.checked), 'Observed bundled switch state')
+    if (card.id === PLUGIN && card.checked !== 'true') pending = true
+    if (card.id !== PLUGIN)
+      assert.equal(card.checked, 'false', 'Other bundled plugins remain disabled')
     assert([null, 'false', 'true'].includes(card.busy), 'Observed plugin busy state required')
     const versionText = card.availableVersionText
     assert(
@@ -1159,8 +1179,8 @@ return {url:location.href,protocol:location.protocol,hostname:location.hostname,
  images:[...document.querySelectorAll('[data-document-presentation] img')].map(e=>({src:e.currentSrc,complete:e.complete,naturalWidth:e.naturalWidth,naturalHeight:e.naturalHeight,rect:rect(e),presentation:presentation(e),visible:visible(e),alt:e.alt})),
  vectorCount:document.querySelectorAll('[data-document-presentation] svg').length,
  source:[...document.querySelectorAll('.milkup-line,.milkup-code-source')].map(e=>({text:e.textContent,visible:visible(e)&&!e.classList.contains('milkup-marker-hidden'),rect:rect(e)})),
- notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,visible:visible(e)})),
- cards:[...document.querySelectorAll('.plugin-summary-card[data-plugin-id]')].map(e=>{const toggle=e.querySelector('[role="switch"]');return {id:e.dataset.pluginId,text:e.textContent,availableVersionText:e.querySelector('.plugin-card-update')?.textContent??null,checked:toggle?.getAttribute('aria-checked'),busy:toggle?.getAttribute('aria-busy'),ariaDisabled:toggle?.getAttribute('aria-disabled'),switchDisabled:!!toggle?.disabled,switchRect:rect(toggle),visible:visible(e),switchVisible:visible(toggle),rect:rect(e)}}),
+ notices:[...document.querySelectorAll('[data-document-presentation-notice], [data-mermaid-availability]')].map(e=>({text:e.textContent,visible:visible(e)})),
+ cards:[...document.querySelectorAll('.plugin-summary-card[data-plugin-id]')].map(e=>{const toggle=e.querySelector('[role="switch"]');return {id:e.dataset.pluginId,text:e.textContent,availableVersionText:e.querySelector('.plugin-card-installed-version, .plugin-card-update')?.textContent??null,checked:toggle?.getAttribute('aria-checked'),busy:toggle?.getAttribute('aria-busy'),ariaDisabled:toggle?.getAttribute('aria-disabled'),switchDisabled:!!toggle?.disabled,switchRect:rect(toggle),visible:visible(e),switchVisible:visible(toggle),rect:rect(e)}}),
  applicationNotices:[...document.querySelectorAll('[data-notice]')].map(e=>({text:e.textContent?.slice(0,2000),visible:visible(e)})),
  pluginText:document.querySelector('.plugin-manager')?.textContent??document.querySelector('[data-plugin-manager]')?.textContent};`
 
@@ -1624,7 +1644,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         const value = await state()
         assert.equal(value.vectorCount, 0, 'No inline SVG private output')
         return expected
-          ? value.mode === 'live' &&
+          ? ['live', 'preview'].includes(value.mode) &&
               value.images.some(
                 (image) =>
                   image.visible &&
@@ -2052,8 +2072,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     )
     await observeProcesses(false)
     await startProduct('ordinary')
-    await step('01-initial-disabled-source', async (row) => {
-      await rendered(false)
+    await step('01-default-mermaid-preview', async (row) => {
+      await rendered(true)
       const before = await state()
       assert.equal(before.dirty, false)
       await menu()
@@ -2064,7 +2084,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       let current = inventory?.state ?? (await state())
       const initialCard = current.cards.find((card) => card.id === PLUGIN)
       assert(initialCard, 'Exact Diagrams card exists after asynchronous catalog readiness')
-      assert.equal(initialCard.checked, 'false', 'Fresh Diagrams is actually disabled')
+      assert.equal(initialCard.checked, 'true', 'Fresh Diagrams previews without a plugin gesture')
       assert.notEqual(initialCard.busy, 'true', 'Initial Diagrams switch is not busy')
       assert.equal(initialCard.switchDisabled, false, 'Initial Diagrams switch is actionable')
       await pointer(`[data-plugin-action="details"][data-plugin-id="${PLUGIN}"]`)
@@ -2081,12 +2101,54 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     let initialImage, editedImage
     await step('02-enable-and-exact-bytes', async (row) => {
       const before = await state()
+      await switchPlugin(false)
+      await rendered(false)
+      assert(
+        (await state()).notices.some(
+          (notice) => notice.visible && notice.text.includes('无需重启'),
+        ),
+        'Disabled renderer gives a visible explanation',
+      )
       await switchPlugin(true)
+      await rendered(true)
+      assert(
+        !(await state()).notices.some(
+          (notice) => notice.visible && notice.text.includes('预览未开启'),
+        ),
+        'Hot enable clears unavailable status',
+      )
+      assert.equal((await state()).version, before.version)
+      assert.equal((await state()).dirty, before.dirty)
+      // Drive the public selector through native keyboard input. Keep the caret
+      // inside the fence: preview must not depend on moving it out of the source.
+      const fenceOffset = fixtures.ordinary.indexOf('flowchart LR')
+      await position(fixtures.ordinary, fenceOffset, 'source')
+      await rendered(false)
+      row.modeTransitions = [{ mode: 'source', cursor: (await state()).cursor, images: 0 }]
+      await pointer('[data-view-mode-selector]')
+      await keys('\uE011\uE015\uE007') // Home, Down, Enter => 渲染.
+      await until(async () => (await state()).mode === 'preview', 'Public rendered mode selector')
+      await rendered(true)
+      let modeState = await state()
+      assert.equal(modeState.cursor, fenceOffset, 'Preview retains the caret inside the fence')
+      row.modeTransitions.push({
+        mode: modeState.mode,
+        cursor: modeState.cursor,
+        images: modeState.images.length,
+      })
+      await position(fixtures.ordinary, fenceOffset, 'live')
+      await rendered(false)
+      modeState = await state()
+      row.modeTransitions.push({ mode: modeState.mode, cursor: modeState.cursor, images: 0 })
+      await position(fixtures.ordinary)
       await rendered(true)
       assert.equal((await state()).version, before.version)
       assert.equal((await state()).dirty, before.dirty)
       row.image = initialImage = await readImage('02-enabled')
       row.saved = await saved()
+      row.hotEnableWithoutRestart = true
+      row.sourcePreserved = true
+      validatePreviewModes(row)
     })
     const offset = fixtures.ordinary.indexOf('Draft'),
       edited = fixtures.ordinary.slice(0, offset) + 'X' + fixtures.ordinary.slice(offset)

@@ -250,8 +250,7 @@ const pluginInventory = [
 const pluginCards = (enabled) =>
   pluginInventory.map(({ id, version }) => ({
     id,
-    availableVersionText:
-      enabled && id === 'milkup.diagrams' ? null : `${version} · 下次开启时应用`,
+    availableVersionText: `${version} · 插件版本`,
     checked: String(enabled && id === 'milkup.diagrams'),
     busy: null,
     ariaDisabled: null,
@@ -261,7 +260,7 @@ const pluginCards = (enabled) =>
   }))
 
 test('first GUI launch enables once; restarted GUI verifies persisted state and installed version without toggling', async () => {
-  let cards = pluginCards(false),
+  let cards = pluginCards(true),
     inDetails = false,
     toggles = 0,
     closes = 0,
@@ -292,11 +291,15 @@ test('first GUI launch enables once; restarted GUI verifies persisted state and 
     },
   }
   const first = await prepareGuiPluginState({ ...options, phase: 'fresh' })
-  assert.equal(toggles, 1)
-  assert.equal(first.togglePerformed, true)
-  assert(first.initialInventory.every((entry) => entry.checked === 'false'))
+  assert.equal(toggles, 0)
+  assert.equal(first.togglePerformed, false)
+  assert(
+    first.initialInventory.every(
+      (entry) => entry.checked === String(entry.id === 'milkup.diagrams'),
+    ),
+  )
   const restarted = await prepareGuiPluginState({ ...options, phase: 'persisted' })
-  assert.equal(toggles, 1, 'Restart must not reset or toggle the correctly persisted plugin')
+  assert.equal(toggles, 0, 'Restart must not reset or toggle the correctly persisted plugin')
   assert.equal(restarted.togglePerformed, false)
   assert.equal(
     restarted.initialInventory.find((entry) => entry.id === 'milkup.diagrams').checked,
@@ -356,12 +359,14 @@ test('persisted inventory still rejects reset state, other enabled plugins, iden
       prepareGuiPluginState({
         phase: 'fresh',
         inventory: pluginInventory,
-        readState: async () => ({ cards: pluginCards(true) }),
+        readState: async () => ({
+          cards: pluginCards(true).map((c) => ({ ...c, checked: 'true' })),
+        }),
         readInstalledIdentity: async () => '',
         pointer: async () => assert.fail('Fresh enabled state must be rejected before any toggle'),
         closeMenu: async () => {},
       }),
-    /Fresh bundled plugin must be disabled/,
+    /remain disabled/,
   )
 })
 const samples = (duration = 75000, count = 1) =>
@@ -473,7 +478,7 @@ const passing = () => ({
       const fresh = name === 'blank-start-enable'
       step.pluginState = {
         phase: fresh ? 'fresh' : 'persisted',
-        togglePerformed: fresh,
+        togglePerformed: false,
         installedIdentity: {
           id: 'milkup.diagrams',
           version: '1.3.0',
@@ -482,7 +487,7 @@ const passing = () => ({
         },
         initialInventory: pluginInventory.map((item) => ({
           ...item,
-          checked: String(!fresh && item.id === 'milkup.diagrams'),
+          checked: String(item.id === 'milkup.diagrams'),
           busy: null,
         })),
         finalInventory: pluginInventory.map((item) => ({
@@ -1381,7 +1386,7 @@ test('complete GUI acceptance requires every scenario and a two-diagram decode',
   assert.throws(() => validateGuiReport(multi))
   const toggledAgain = passing()
   toggledAgain.steps[7].pluginState.togglePerformed = true
-  assert.throws(() => validateGuiReport(toggledAgain), /Only the first launch/)
+  assert.throws(() => validateGuiReport(toggledAgain), /without toggling/)
   const reset = passing()
   reset.steps[7].pluginState.initialInventory[0].checked = 'false'
   assert.throws(() => validateGuiReport(reset))

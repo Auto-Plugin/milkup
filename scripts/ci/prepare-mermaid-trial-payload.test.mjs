@@ -532,7 +532,7 @@ async function installedFixture(
     pngSha256: image.sha256,
   }
   const names = [
-    '01-initial-disabled-source',
+    '01-default-mermaid-preview',
     '02-enable-and-exact-bytes',
     '03-real-edit-save-replacement',
     '04-undo-exact-original',
@@ -566,10 +566,19 @@ async function installedFixture(
       cleanLaunch(fixture, 111 + index),
     ),
   }
+  Object.assign(product.steps[1], {
+    modeTransitions: [
+      { mode: 'source', cursor: 35, images: 0 },
+      { mode: 'preview', cursor: 35, images: 1 },
+      { mode: 'live', cursor: 35, images: 0 },
+    ],
+    hotEnableWithoutRestart: true,
+    sourcePreserved: true,
+  })
   product.steps[0].bundledPluginsObserved = expected.bundledPlugins.map((item) => ({
     id: item.id,
     version: item.version,
-    checked: 'false',
+    checked: item.id === 'milkup.diagrams' ? 'true' : 'false',
     busy: 'false',
   }))
   for (const index of [1, 2, 3, 4, 5, 6, 7])
@@ -1156,7 +1165,7 @@ async function guiInstalledFixture(t, options = {}) {
   const initialInventory = installation.bundledPlugins.map(({ id, version }) => ({
     id,
     version,
-    checked: 'false',
+    checked: id === 'milkup.diagrams' ? 'true' : 'false',
     busy: null,
   }))
   const activeInventory = initialInventory.map((item) =>
@@ -1170,7 +1179,7 @@ async function guiInstalledFixture(t, options = {}) {
   ])
     report.steps.find((row) => row.name === name).pluginState = {
       phase,
-      togglePerformed: phase === 'fresh',
+      togglePerformed: false,
       initialInventory: structuredClone(phase === 'fresh' ? initialInventory : activeInventory),
       finalInventory: structuredClone(activeInventory),
       installedIdentity: {

@@ -20,6 +20,7 @@ import {
   validateContext,
   validateHostProcessToken,
   validatePng,
+  validatePreviewModes,
 } from '../../tests/windows/mermaid-product-e2e.mjs'
 
 const checkout = fileURLToPath(new URL('../..', import.meta.url))
@@ -31,7 +32,7 @@ const enginePath = 'apps/desktop/src-tauri/mermaid-engine/assets/mermaid-12.2.0.
 const bootstrapPath = 'apps/desktop/src-tauri/mermaid-engine/assets/bootstrap.js'
 const engineSha256 = 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f'
 const stepNames = [
-  '01-initial-disabled-source',
+  '01-default-mermaid-preview',
   '02-enable-and-exact-bytes',
   '03-real-edit-save-replacement',
   '04-undo-exact-original',
@@ -402,7 +403,7 @@ async function verifyInputs(evidence) {
       host: item.host,
       permissions: item.permissions,
       bundled: true,
-      enabledByDefault: false,
+      enabledByDefault: item.id === REVIEWED_MERMAID_PACKAGE.pluginId,
       standaloneArchiveRequired: false,
       buildMode: item.buildMode,
       buildInputVerification: {
@@ -463,9 +464,9 @@ async function verifyInputs(evidence) {
 function readme(manifest) {
   const modern = Number(/^2\.0\.0-beta\.([1-9][0-9]*)$/.exec(manifest.version)?.[1]) >= 10
   const guiPassed = manifest.deliveryReady && manifest.guiAcceptance?.status === 'passed'
-  return `# Milkup ${manifest.version} 完整 Mermaid Windows 测试包\n\n源码提交：${manifest.candidateSha}\n构建记录：${manifest.runUrl}\n\n这是未签名的 Windows x64 NSIS 测试包，不是正式 Release。安装程序只面向当前用户；不会安装或下载 WebView2，需要电脑已经安装可用的 [Microsoft Evergreen WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。完整 Mermaid 支持标准用户和正常启动的未提权管理员账户；请勿选择“以管理员身份运行”。实际提权、关闭 UAC 后具有完整管理员权限等不符合隔离要求的启动仍不支持，并保留源码。\n\n安装器：\`${manifest.installer.deliveredName}\`。应用内版本为 ${manifest.version}；完整提交与哈希在 manifest.json。可用 PowerShell 的 Get-FileHash -Algorithm SHA256 核对 SHA256SUMS.txt。请使用文档副本试用。已交付的 beta.8 和 beta.9 安装包保持独立，不由本包覆盖其下载文件。\n\n10 个插件已经包含在应用中，首次安装默认全部不启用。在插件管理中查看权限后启用 Diagrams 1.3.0 即可测试；plugins 目录中的相同插件档案只供补装，不是正常使用的必需步骤。旧配置中的禁用或卸载选择应保留，不会借打包自动授权。\n\n正文预览接入固定官方 Mermaid 12.2.0 引擎。samples 包含普通图、宽图、C4 和故意无效语法四类；无效语法应显示源码或诊断。${modern ? '宽图默认按实际编辑区宽度等比缩小；可点击“原始尺寸”查看清晰原图并横向滚动，再点击“适应宽度”返回缩略全图，切换不修改文档或重复渲染。滚动条预留位置避免图表替换源码后反复改变视口宽度。已完成的固定可信 Mermaid 图块在原有权限和内存预算内复用，避免同一内容因布局变化重复启动渲染。ACL 设置改为 Windows API，不再为每次渲染启动 icacls 命令行进程。' : '宽图保持自然尺寸并滚动查看。'}本候选包含 C4 标签白底碰边修复，以及原生自建目录删除遇 Windows 错误 5 时的有界重试；仍必须确认实际清理完成才发布图像，未扩大权限或放宽失败门禁。语法范围仍受固定引擎、输入与图片预算限制，不代表所有语法组合均已验收。导出仍走受限路径，不承诺正文图表一比一导出；Windows DOM/PDF 导出未开放。\n\n${manifest.deliveryReady ? '本候选已分别通过标准用户和未提权管理员安装后的 10 步自动化产品测试、各 7 张正文图、各 4 次自然关闭以及原生和外层清理，并核对两次安装后 EXE 完整字节。' : '两种账户的安装后产品测试尚未通过最终交付门禁；此目录仍是准备材料，不可作为已验收包上传。'}${modern ? (guiPassed ? ' 同一安装器另经两个新账户的独立 GUI 验收：启用后从原生文件选择器打开、普通图和宽图各持续 75 秒、宽图原始尺寸/适应宽度切换及横向滚动、反复改变实际窗口宽度、重复打开及多图预览、空闲与渲染进行中关闭、可见控制台正控以及产品期间未见新控制台窗口；同时核对产品内部资源和外层账户清理。' : ' 新增双账户 GUI 场景尚未通过最终门禁。') : ''} 自动化不是实际系统中文输入法、完整 DPI 矩阵或人工视觉验收；另行人工复核情况以本次交付消息为准。\n\n保留限制：运行 41692476025 的管道读取 Win32 995 在安装验收 41708284083 中再次出现，具体持有管道的进程仍未查明，错误 5 的重试与它无关。本候选已关闭辅助进程三个协议管道向后代的普通继承路径，并记录退出顺序；该收紧不等于证实历史根因，也不覆盖显式复制句柄。${modern ? '协议失败仍拒绝发布图像并停用新的渲染；仅在当前请求的进程、线程、配置和自建目录全部有完整释放证明时允许关闭。真实资源残留或缺失证明仍会阻止退出，不能用删除外层测试账号替代产品清理。' : '若再次出现清理不确定，程序仍会拒绝发布图像。'}更早运行 41653312849 的 cleanupUncertain 原因同样未定。历史运行 41642093459 的临时 profile 删除曾因 Win32 32 失败，旧 hosted runner 已结束，残留无法复查。真实旧配置升级与回滚、安装器交互和 SmartScreen 提示尚未完整验收。本包只有 Windows x64；Linux 原生路径此前限 X11，Wayland 未验收。C4 修复只覆盖所测布局，不代表所有复杂布局均无碰边。\n\n下载需要登录有仓库访问权的 GitHub 账户，在本次 Actions 运行的 Artifacts 中下载并解压。Artifacts 设置保留 7 天；准确到期时间以 GitHub 实际 artifact 记录及本次交付消息为准，本包不会推算或虚构日期。两种账户的原始离线测试报告分别位于 reports/pure-standard 和 reports/filtered-admin（只有最终门禁通过后才加入）${modern ? '；新增 GUI 原始报告、控制台正控和窗口/图表像素保留在 reports/gui-pure-standard 与 reports/gui-filtered-admin' : ''}；manifest.json 与 SHA256SUMS.txt 保留报告身份。反馈请填写 FEEDBACK.md。\n`
+  return `# Milkup ${manifest.version} 完整 Mermaid Windows 测试包\n\n源码提交：${manifest.candidateSha}\n构建记录：${manifest.runUrl}\n\n这是未签名的 Windows x64 NSIS 测试包，不是正式 Release。安装程序只面向当前用户；不会安装或下载 WebView2，需要电脑已经安装可用的 [Microsoft Evergreen WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)。完整 Mermaid 支持标准用户和正常启动的未提权管理员账户；请勿选择“以管理员身份运行”。实际提权、关闭 UAC 后具有完整管理员权限等不符合隔离要求的启动仍不支持，并保留源码。\n\n安装器：\`${manifest.installer.deliveredName}\`。应用内版本为 ${manifest.version}；完整提交与哈希在 manifest.json。可用 PowerShell 的 Get-FileHash -Algorithm SHA256 核对 SHA256SUMS.txt。请使用文档副本试用。已交付的 beta.8 和 beta.9 安装包保持独立，不由本包覆盖其下载文件。\n\n10 个插件已经包含在应用中，首次安装默认启用随包审核的 Diagrams 1.3.0，打开 Mermaid 文档即可预览；其他插件保持关闭；plugins 目录中的相同插件档案只供补装，不是正常使用的必需步骤。旧配置中的禁用或卸载选择应保留，不会借打包自动授权。\n\n正文预览接入固定官方 Mermaid 12.2.0 引擎。samples 包含普通图、宽图、C4 和故意无效语法四类；无效语法应显示源码或诊断。${modern ? '宽图默认按实际编辑区宽度等比缩小；可点击“原始尺寸”查看清晰原图并横向滚动，再点击“适应宽度”返回缩略全图，切换不修改文档或重复渲染。滚动条预留位置避免图表替换源码后反复改变视口宽度。已完成的固定可信 Mermaid 图块在原有权限和内存预算内复用，避免同一内容因布局变化重复启动渲染。ACL 设置改为 Windows API，不再为每次渲染启动 icacls 命令行进程。' : '宽图保持自然尺寸并滚动查看。'}本候选包含 C4 标签白底碰边修复，以及原生自建目录删除遇 Windows 错误 5 时的有界重试；仍必须确认实际清理完成才发布图像，未扩大权限或放宽失败门禁。语法范围仍受固定引擎、输入与图片预算限制，不代表所有语法组合均已验收。导出仍走受限路径，不承诺正文图表一比一导出；Windows DOM/PDF 导出未开放。\n\n${manifest.deliveryReady ? '本候选已分别通过标准用户和未提权管理员安装后的 10 步自动化产品测试、各 7 张正文图、各 4 次自然关闭以及原生和外层清理，并核对两次安装后 EXE 完整字节。' : '两种账户的安装后产品测试尚未通过最终交付门禁；此目录仍是准备材料，不可作为已验收包上传。'}${modern ? (guiPassed ? ' 同一安装器另经两个新账户的独立 GUI 验收：启用后从原生文件选择器打开、普通图和宽图各持续 75 秒、宽图原始尺寸/适应宽度切换及横向滚动、反复改变实际窗口宽度、重复打开及多图预览、空闲与渲染进行中关闭、可见控制台正控以及产品期间未见新控制台窗口；同时核对产品内部资源和外层账户清理。' : ' 新增双账户 GUI 场景尚未通过最终门禁。') : ''} 自动化不是实际系统中文输入法、完整 DPI 矩阵或人工视觉验收；另行人工复核情况以本次交付消息为准。\n\n保留限制：运行 41692476025 的管道读取 Win32 995 在安装验收 41708284083 中再次出现，具体持有管道的进程仍未查明，错误 5 的重试与它无关。本候选已关闭辅助进程三个协议管道向后代的普通继承路径，并记录退出顺序；该收紧不等于证实历史根因，也不覆盖显式复制句柄。${modern ? '协议失败仍拒绝发布图像并停用新的渲染；仅在当前请求的进程、线程、配置和自建目录全部有完整释放证明时允许关闭。真实资源残留或缺失证明仍会阻止退出，不能用删除外层测试账号替代产品清理。' : '若再次出现清理不确定，程序仍会拒绝发布图像。'}更早运行 41653312849 的 cleanupUncertain 原因同样未定。历史运行 41642093459 的临时 profile 删除曾因 Win32 32 失败，旧 hosted runner 已结束，残留无法复查。真实旧配置升级与回滚、安装器交互和 SmartScreen 提示尚未完整验收。本包只有 Windows x64；Linux 原生路径此前限 X11，Wayland 未验收。C4 修复只覆盖所测布局，不代表所有复杂布局均无碰边。\n\n下载需要登录有仓库访问权的 GitHub 账户，在本次 Actions 运行的 Artifacts 中下载并解压。Artifacts 设置保留 7 天；准确到期时间以 GitHub 实际 artifact 记录及本次交付消息为准，本包不会推算或虚构日期。两种账户的原始离线测试报告分别位于 reports/pure-standard 和 reports/filtered-admin（只有最终门禁通过后才加入）${modern ? '；新增 GUI 原始报告、控制台正控和窗口/图表像素保留在 reports/gui-pure-standard 与 reports/gui-filtered-admin' : ''}；manifest.json 与 SHA256SUMS.txt 保留报告身份。反馈请填写 FEEDBACK.md。\n`
 }
-const feedback = `# 测试反馈\n\n请记录应用“关于”版本、manifest.json 的 candidateSha、Windows 版本、账户类型、已安装 WebView2 版本、显示缩放、插件启用状态和使用的是新配置还是旧配置。\n\n1. 安装、启动、关闭是否成功？\n2. 插件是否首次默认关闭，启用 Diagrams 后原位置是否显示图表？\n3. 普通图编辑、保存、撤销和重做是否保持准确文本？\n4. 宽图尺寸是否适合编辑区，调整窗口后是否稳定且文字清晰？C4 标签、连线是否有重叠？\n5. 无效语法是否保留源码并显示可理解的诊断？\n6. 是否出现命令行闪窗、反复重绘或回退源码？禁用、重新启用以及空闲/出图中关闭后是否有残留窗口或错误？\n7. 中文输入的拼音、选词、取消和“- 空格 / - [ ] ”输入行为如何？\n\n请提供最小可复现 Markdown、实际现象、操作顺序和截图；避免附带私人文档内容。导出结果请单独标注，正文通过不表示导出通过。\n`
+const feedback = `# 测试反馈\n\n请记录应用“关于”版本、manifest.json 的 candidateSha、Windows 版本、账户类型、已安装 WebView2 版本、显示缩放、插件启用状态和使用的是新配置还是旧配置。\n\n1. 安装、启动、关闭是否成功？\n2. 首次安装是否无需操作就显示图表？源码、渲染、混合能否切换？旧配置禁用是否保留，重新启用后是否立即显示？\n3. 普通图编辑、保存、撤销和重做是否保持准确文本？\n4. 宽图尺寸是否适合编辑区，调整窗口后是否稳定且文字清晰？C4 标签、连线是否有重叠？\n5. 无效语法是否保留源码并显示可理解的诊断？\n6. 是否出现命令行闪窗、反复重绘或回退源码？禁用、重新启用以及空闲/出图中关闭后是否有残留窗口或错误？\n7. 中文输入的拼音、选词、取消和“- 空格 / - [ ] ”输入行为如何？\n\n请提供最小可复现 Markdown、实际现象、操作顺序和截图；避免附带私人文档内容。导出结果请单独标注，正文通过不表示导出通过。\n`
 
 const guiDeliveryReports = [
   'installation-result.json',
@@ -938,6 +939,7 @@ export async function verifyInstalledEvidence(directory, expected) {
     product.steps.every((step) => step.passed === true),
     'An installed product step failed',
   )
+  validatePreviewModes(product.steps[1])
   const observedPlugins = product.steps[0].bundledPluginsObserved
   assert(Array.isArray(observedPlugins), 'Actual initial bundled-plugin switch states required')
   assert.deepEqual(
@@ -945,8 +947,12 @@ export async function verifyInstalledEvidence(directory, expected) {
     expected.bundledPlugins.map((item) => item.id).sort(),
   )
   assert(
-    observedPlugins.every((item) => item.checked === 'false' && item.busy !== 'true'),
-    'All ten bundled plugins must actually start disabled',
+    observedPlugins.every(
+      (item) =>
+        item.checked === (item.id === REVIEWED_MERMAID_PACKAGE.pluginId ? 'true' : 'false') &&
+        item.busy !== 'true',
+    ),
+    'Diagrams must start enabled; other bundled plugins remain disabled',
   )
   for (const observed of observedPlugins)
     assert.equal(

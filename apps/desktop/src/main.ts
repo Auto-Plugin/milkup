@@ -554,6 +554,7 @@ app.innerHTML = `
         </button>
         <select data-view-mode-selector aria-label="文档模式"><option value="source">源码</option><option value="preview">渲染</option><option value="live">混合</option></select><button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
+      <span class="statusbar-notice" data-mermaid-availability role="status" aria-live="polite" hidden></span>
       <span class="statusbar-notice" data-notice role="status" aria-live="polite" hidden></span>
       <span class="recovery-status" data-recovery-status role="status" hidden></span>
       <span class="statusbar-spacer"></span>
@@ -1652,9 +1653,34 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
 function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
-  if (!desktopPluginManager.state().contributions.documentRenderers?.length) return undefined
   return {
-    provide: desktopDocumentPresentation.provide,
+    provide: async (window, options) => {
+      const response = await desktopDocumentPresentation.provide(window, options)
+      if (!options.signal.aborted) {
+        const unavailable =
+          response.request.blocks.some(
+            (block) =>
+              block.kind === 'fence' && (block.info ?? '').trim().split(/\s+/u)[0] === 'mermaid',
+          ) &&
+          !response.declarations.some(
+            (renderer) =>
+              renderer.contexts.includes('fence') && renderer.fenceLanguages?.includes('mermaid'),
+          )
+        const status = appRoot.querySelector<HTMLElement>('[data-mermaid-availability]')
+        if (status) {
+          const enabled = desktopPluginManager
+            .state()
+            .records.find((record) => record.manifest.id === 'milkup.diagrams')?.enabled
+          status.textContent = unavailable
+            ? enabled
+              ? 'Mermaid 预览不可用：图表插件已开启，但渲染器尚未注册。请打开插件详情检查加载错误；源码已保留。'
+              : 'Mermaid 预览未开启：请在插件中开启 Diagrams（图表），无需重启；源码已保留。'
+            : ''
+          status.hidden = !unavailable || session.viewMode === 'source'
+        }
+      }
+      return response
+    },
     onNavigate: (target) =>
       revealPluginLocation(target, {
         signal: new AbortController().signal,
@@ -5610,6 +5636,9 @@ function scheduleLargeDocumentPreviewClose(): void {
 }
 
 function updateModeToggle(mode: ViewMode): void {
+  const status = appRoot.querySelector<HTMLElement>('[data-mermaid-availability]')
+  if (status) status.hidden = mode === 'source' || !status.textContent
+
   const button = app?.querySelector<HTMLButtonElement>('[data-mode-toggle]')
 
   if (!button) {

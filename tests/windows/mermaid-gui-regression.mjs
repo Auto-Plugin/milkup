@@ -175,15 +175,13 @@ export function inspectPersistedGuiPluginInventory(cards, inventory) {
   if (!card || !observedOthers || cards.length !== inventory.length) return null
   assert.equal(card.checked, 'true', 'Diagrams must remain enabled after the owned restart')
   assert([null, 'false', 'true'].includes(card.busy), 'Actual persisted plugin busy state required')
-  // An enabled card no longer has the pending-version label. Its installed
-  // version is read through the real Details UI below, never inferred here.
+  // Verify the visible version when present and independently read Details below.
   if (card.availableVersionText?.trim()) {
     assert.equal(
       card.availableVersionText.match(/^(\S+) · /)?.[1],
       inventory.find((item) => item.id === PLUGIN).version,
       'No unexpected pending version on the persisted Diagrams card',
     )
-    return null
   }
   if (
     card.busy === 'true' ||
@@ -242,21 +240,6 @@ export async function prepareGuiPluginState({
         ).observed
       : await waitPersisted()
   const record = { phase, initialInventory, togglePerformed: false }
-  if (phase === 'fresh') {
-    await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [role="switch"]`)
-    record.togglePerformed = true
-    // During the first enable, checked/busy and the pending offer may update
-    // separately. Wait for the actual switch before enforcing persisted state.
-    const deadline = performance.now() + timeoutMs
-    do {
-      guard()
-      const card = (await readState()).cards.find((item) => item.id === PLUGIN)
-      if (card?.checked === 'true') break
-      assert(card?.checked === 'false', 'Observed first-enable switch state')
-      assert(performance.now() < deadline, 'First-enable switch must settle')
-      await delay(pollIntervalMs)
-    } while (true)
-  }
   await waitPersisted()
   await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [data-plugin-action="details"]`)
   const version = expected.find((item) => item.id === PLUGIN).version
