@@ -156,7 +156,7 @@ function Get-ChildEvidenceNames {
     $names.Add('gui-failure-cleanup-window.png', 'gui-failure-cleanup-window.png')
     $names.Add('gui-source-inventory.json', 'gui-source-inventory.json')
     $names.Add('gui-wide-natural-window.png', 'gui-wide-natural-window.png')
-    foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
+    foreach ($fixture in @('ordinary', 'wide', 'multi', 'many', 'manyScroll', 'busy')) {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }
     foreach ($name in @('lifecycle-progress.log', 'baseline-stdout.log', 'baseline-stderr.log', 'same-version-stdout.log', 'same-version-stderr.log', 'uninstall-stdout.log', 'uninstall-stderr.log')) { $names.Add($name, $name) }

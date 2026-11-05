@@ -118,6 +118,12 @@ export function validateManyDiagrams(rounds) {
       assert.match(visit.png.sha256, /^[a-f0-9]{64}$/)
       assert(Number.isSafeInteger(visit.imageCount) && visit.imageCount >= 1)
       assert(Array.isArray(visit.wheelInputs) && visit.wheelInputs.length <= 80)
+      assert(visit.geometryTable && Object.keys(visit.geometryTable).length <= 64)
+      for (const sample of visit.samples) {
+        const geometry = visit.geometryTable[sample.geometry]
+        assert.equal(typeof geometry, 'string', 'Original geometry retained for every sample')
+        assert.equal(createHash('sha256').update(geometry).digest('hex'), sample.geometry)
+      }
       validateStableSamples(visit.samples, { durationMs: 3000, imageCount: visit.imageCount })
     }
     assert.equal(

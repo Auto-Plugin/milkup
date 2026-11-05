@@ -261,6 +261,10 @@ Case 'retain exact installer evidence names without admitting executables' {
     $names = Get-ChildEvidenceNames
     foreach ($n in @('installation-result.json', 'installed-binary-comparison.json', 'installed-binary-comparison-stderr.log', 'installer-stdout.log', 'installer-stderr.log')) { Assert-True ($names.ContainsKey($n)) ('Missing installer evidence ' + $n) }
     Assert-True (-not $names.ContainsKey('installer.exe')) 'Installer bytes entered evidence whitelist'
+    foreach ($fixture in @('many', 'manyScroll')) {
+        $name = 'fixture-gui-' + $fixture + '.md'
+        Assert-True ($names[$name] -ceq ($name + '.log')) 'Exact multi-diagram fixture evidence missing'
+    }
 }
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('milkup-installer-wrapper-regression-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null

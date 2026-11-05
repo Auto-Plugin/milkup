@@ -66,7 +66,9 @@ const outer = new Set([
 ])
 const guiEvidence = new Set([
   ...GUI_EVIDENCE_NAMES,
-  ...['ordinary', 'wide', 'multi', 'busy'].map((name) => `fixture-gui-${name}.md.log`),
+  ...['ordinary', 'wide', 'multi', 'many', 'manyScroll', 'busy'].map(
+    (name) => `fixture-gui-${name}.md.log`,
+  ),
 ])
 const allowedBase = (name) =>
   outer.has(name) ||

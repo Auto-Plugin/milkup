@@ -996,12 +996,19 @@ export async function main() {
     )
     return true
   }
-  const stability = async (row, durationMs, imageCount = 1) => {
+  const stability = async (row, durationMs, imageCount = 1, deduplicateGeometry = false) => {
     row.samples = []
     const started = performance.now()
     do {
       const sample = await compact(started)
       delete sample.layout
+      if (deduplicateGeometry) {
+        row.geometryTable ??= {}
+        const digest = hash(sample.geometry)
+        row.geometryTable[digest] = sample.geometry
+        assert(Object.keys(row.geometryTable).length <= 64, 'Bounded lossless geometry evidence')
+        sample.geometry = digest
+      }
       row.samples.push(sample)
       if (row.samples.length % 20 === 0) await persist()
       if (sample.elapsedMs - row.samples[0].elapsedMs >= durationMs) break
@@ -1071,7 +1078,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       assert(index >= 0, 'Requested diagram remains mounted after settling')
       visit.png = (await decodeImages(name, snapshot.imageCount, [index]))[0]
       visit.imageCount = snapshot.imageCount
-      await stability(visit, 3000, snapshot.imageCount)
+      await stability(visit, 3000, snapshot.imageCount, true)
       await persist()
     }
     proof.exactBytesUnchanged = await exactBytes(name)

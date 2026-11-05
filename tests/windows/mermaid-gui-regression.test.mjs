@@ -394,7 +394,8 @@ const manyProof = () =>
       from: diagram * 30,
       png: { fullyDecoded: true, sha256: sha(String(diagram)) },
       imageCount: 1,
-      samples: samples(3000),
+      samples: samples(3000).map((sample) => ({ ...sample, geometry: sha('unchanged') })),
+      geometryTable: { [sha('unchanged')]: 'unchanged' },
       wheelInputs: [{ deltaY: i === 12 || i === 14 ? -300 : 300 }],
     })),
   }))
@@ -402,6 +403,12 @@ test('many-diagram evidence requires all twelve distinct previews, return scroll
   assert(validateManyDiagrams(manyProof()))
   for (const change of [
     (rounds) => rounds[0].visits.splice(8, 1),
+    (rounds) => {
+      rounds[0].visits[0].geometryTable = {}
+    },
+    (rounds) => {
+      rounds[0].visits[0].geometryTable[sha('unchanged')] = 'tampered'
+    },
     (rounds) => {
       rounds[0].visits[8].png.sha256 = rounds[0].visits[0].png.sha256
     },
@@ -1472,6 +1479,8 @@ test('diagram geometry must preserve aspect and reachable wide content', () => {
   assert.throws(() => validateDiagramLayout({ layout: [{ ...layout, height: 60 }] }))
   assert.throws(() => validateDiagramLayout({ layout: [{ ...layout, scrollWidth: 700 }] }))
   assert.equal((guiFixtures.multi.match(/```mermaid/g) ?? []).length, 2)
+  for (const name of ['many', 'manyScroll'])
+    assert.equal((guiFixtures[name].match(/```mermaid/g) ?? []).length, 12)
 })
 
 test('fixed-candidate GUI requires responsive fitting while legacy baseline stays observable', () => {

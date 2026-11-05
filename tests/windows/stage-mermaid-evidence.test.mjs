@@ -86,10 +86,18 @@ for (const name of [
   'installed-binary-comparison-stderr.log',
   'installer-stdout.log',
   'installer-stderr.log',
+  'fixture-gui-many.md.log',
+  'fixture-gui-manyScroll.md.log',
 ])
-  test(`retains declared installer evidence: ${name}`, () => {
+  test(`retains declared bounded evidence: ${name}`, () => {
     const f = fixture()
     try {
+      if (name.startsWith('fixture-gui-')) {
+        const auditPath = join(f.source, 'windows-standard-product-audit.json')
+        const audit = JSON.parse(readFileSync(auditPath, 'utf8'))
+        audit.harnessMode = 'gui-regression'
+        writeFileSync(auditPath, JSON.stringify(audit))
+      }
       const body = Buffer.from(name.endsWith('.json') ? '{"status":"blocked"}\n' : 'fixture log\n')
       const sha256 = createHash('sha256').update(body).digest('hex')
       writeFileSync(join(f.source, name), body)
@@ -97,7 +105,14 @@ for (const name of [
         join(f.source, 'evidence-files.json'),
         JSON.stringify({
           schema: 1,
-          files: [{ retainedName: name, relativePath: name, bytes: body.length, sha256 }],
+          files: [
+            {
+              retainedName: name,
+              relativePath: name.startsWith('fixture-gui-') ? name.slice(0, -4) : name,
+              bytes: body.length,
+              sha256,
+            },
+          ],
         }),
       )
       const manifest = stageEvidence(f.source, f.destination, candidate)
