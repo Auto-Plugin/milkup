@@ -2869,6 +2869,12 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               'Invalid grammar leaves source and actual diagnostic',
               45000,
             )
+            assert(
+              !(await state()).notices.some(
+                (notice) => notice.visible && notice.text.includes('预览未开启'),
+              ),
+              'An enabled renderer failure must not retain a stale disabled-plugin notice',
+            )
             await drain()
             assert(
               ledger.verifyAll(product.pid).some(isUnknownGrammarRejection),

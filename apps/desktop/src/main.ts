@@ -1668,6 +1668,14 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
 function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
   return {
     provide: async (window, options) => {
+      // A previous request may have run before plugin activation completed.
+      // Clear its availability notice before awaiting the current renderer:
+      // a timeout/error must not leave a stale "plugin disabled" explanation.
+      const pendingStatus = appRoot.querySelector<HTMLElement>('[data-mermaid-availability]')
+      if (!options.signal.aborted && pendingStatus) {
+        pendingStatus.hidden = true
+        pendingStatus.textContent = ''
+      }
       const response = await desktopDocumentPresentation.provide(window, options)
       if (!options.signal.aborted) {
         const unavailable =
