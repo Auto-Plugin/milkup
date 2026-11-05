@@ -6,6 +6,17 @@ on:
   push:
     branches: [dot/mermaid-stability-20261104]
   workflow_dispatch:
+    inputs:
+      accepted_source_run:
+        description: Successful dual-account source acceptance run
+        required: true
+        type: string
+        default: '41985364078'
+      accepted_source_sha:
+        description: Exact source commit tested by that run
+        required: true
+        type: string
+        default: 'a22f8c35c4efc055c534feb907c4aa7add42ee33'
 
 permissions:
   contents: read
@@ -53,17 +64,23 @@ jobs:
       - name: Verify exact candidate, approved ancestor and official engine
         env:
           GH_TOKEN: ${{ github.token }}
+          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '41985364078' }}
+          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || 'a22f8c35c4efc055c534feb907c4aa7add42ee33' }}
         run: |
           $ErrorActionPreference = 'Stop'
           $head = @(git rev-parse HEAD)
           if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong source candidate' }
-          $sourceRun = (& gh api repos/Auto-Plugin/milkup/actions/runs/41985364078 | ConvertFrom-Json)
+          if ($env:ACCEPTED_SOURCE_RUN -cnotmatch '^[0-9]+$' -or $env:ACCEPTED_SOURCE_SHA -cnotmatch '^[a-f0-9]{40}$') { throw 'Invalid exact source acceptance identity' }
+          $sourceRun = (& gh api ('repos/Auto-Plugin/milkup/actions/runs/' + $env:ACCEPTED_SOURCE_RUN) | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0 -or $sourceRun.status -cne 'completed' -or $sourceRun.conclusion -cne 'success' -or
-              $sourceRun.head_sha -cne 'a22f8c35c4efc055c534feb907c4aa7add42ee33' -or
+              $sourceRun.head_sha -cne $env:ACCEPTED_SOURCE_SHA -or
+              $sourceRun.head_branch -cne 'dot/mermaid-stability-20261104' -or
               $sourceRun.path -cne '.github/workflows/mermaid-windows-account-compat.yml') { throw 'Exact dual-account source acceptance has not passed' }
           git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
-          git diff --exit-code a22f8c35c4efc055c534feb907c4aa7add42ee33 HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
+          git merge-base --is-ancestor $env:ACCEPTED_SOURCE_SHA HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Accepted source is not an ancestor of this installer candidate' }
+          git diff --exit-code $env:ACCEPTED_SOURCE_SHA HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed native, renderer or Diagrams implementation changed before packaging' }
           $dirty = @(git status --porcelain)
           if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Dirty candidate checkout' }
