@@ -1,5 +1,17 @@
 # 固定 Mermaid 引擎的前端渲染与隔离评估
 
+## 当前状态（2026-11-05）
+
+现有产品分支已经改为在应用主 WebView 内的固定不透明 iframe 中执行官方 Mermaid.js 12.2.0；正文渲染路径不再启动旧 helper。原生层只负责帧消息/导航拒绝和有限审计。下方 11 月 4 日的架构分析与旧探针结论作为历史保留，不能当作当前验收结论。
+
+- `42114193342` / `371e6dda` 已失败。pure-standard 产品在 WebDriver 建立会话前失败，但原始日志已记录主帧正控、同名原生子帧 IPC 拒绝、about:blank 导航取消和实际 PNG（448×95，4268 字节）；没有产品 UI 验收通过。filtered-admin 产品以及双账户 GUI 均在 `frame-load` 超时，未到实际引擎调用。帧移除后的 false 状态不能证明它从未创建。
+- 双账户 GUI idle 进程退出 0，旧注册表 panic 未复现；审计失败仍保留。busy 未完成，窗口观察器 working-generation/live-window-cache 溢出，不能证明零可见控制台。
+- `5d98b288` 将导航拦截限定在精确 Mermaid owner 帧，并新增有限原生创建/导航/DOM/销毁诊断；对应真实回归 `42116928170` 仍在运行。该轮还包含 `6d1f524c` 的生产父 DOM 读取阴性检查和 `9313da55` 的观察器失败收尾修复。
+- 后续 `24935783` 令致命审计错误停止后续 GUI 操作，保持整轮失败和当前进程清理；没有扩大窗口预算。它不在 `42116928170` 中。
+- 真实新架构双账户完整验收和旧配置安装升级尚未通过。iframe 移除仍不代表任意 JavaScript 的硬终止或操作系统内存限额。没有发布 Release。
+
+## 历史评估与分阶段证据
+
 核查日期：2026-11-04。范围：独立工作树 `dot/mermaid-stability-20261104`，产品基线 `a5556beea5cdd1570361c528b2326bc0ad8ba0c4`（已交付 beta.9），核查时 HEAD `500f64379c06a6c05e98e3336e3119e68e6a1599`。同时阅读正在集成的原生修复；本文是架构及源码评估，不是新方案的 Windows 运行验收。
 
 **判断：固定、可信的 Mermaid 完全可以在前端生成并显示 SVG，无须调用命令行。** 当前产品已经由 WebView2 中的浏览器 JavaScript 调用 `mermaid.render()` 生成 SVG，再由宿主捕获 PNG；命令行来自外层 ACL 管理，不是 Mermaid 的要求。直接将 SVG 留在隔离 iframe 或独立 WebView 中，功能和安装体积上都可行。但是“没有主页面 DOM 权限”“没有 Tauri 命令能力”“能够硬终止并限制内存”是三个不同保证，不能把 iframe 的 `sandbox` 一项当作全部证明。[Mermaid 使用说明](https://mermaid.ai/open-source/config/usage.html)
