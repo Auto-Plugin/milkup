@@ -18,6 +18,7 @@ import {
   AuditLedger,
   validateProcessIdentities,
   isUnknownGrammarRejection,
+  waitForUnknownGrammarRejection,
   observe,
   decodeScript,
   waitForPluginCard,
@@ -2294,4 +2295,42 @@ test('synthetic prior packages bind identity, preserve approvals and cannot impe
     mutate(bad)
     assert.throws(() => validateSyntheticMigrationFixture(bad, expected))
   }
+})
+
+test('unknown-grammar gate waits through an empty startup ledger and pending native work', async () => {
+  let samples = 0
+  const job = {
+    requestId: 'owned',
+    started: ownership,
+    finished: { ...completion, successful: false, rendererErrorKind: 'unknown-diagram' },
+  }
+  const ledger = {
+    pending: () => {
+      samples++
+      return samples === 2 ? 1 : 0
+    },
+    verifyAll: () => (samples >= 3 ? [job] : []),
+  }
+  assert.equal(
+    await waitForUnknownGrammarRejection(ledger, 111, { timeoutMs: 1000, pollIntervalMs: 1 }),
+    job,
+  )
+  assert(samples >= 3)
+  await assert.rejects(
+    waitForUnknownGrammarRejection({ pending: () => 0, verifyAll: () => [] }, 111, {
+      timeoutMs: 5,
+      pollIntervalMs: 1,
+    }),
+    /Timed out/,
+  )
+  for (const failed of [
+    { ...job, started: undefined },
+    { ...job, finished: { ...job.finished, deadlineExpired: true } },
+    { ...job, finished: { ...job.finished, cancelled: true } },
+    { ...job, finished: { ...job.finished, rendererErrorKind: 'other' } },
+  ])
+    await assert.rejects(
+      waitForUnknownGrammarRejection({ pending: () => 0, verifyAll: () => [failed] }, 111),
+      /timeout\/startup failure is not syntax acceptance/,
+    )
 })

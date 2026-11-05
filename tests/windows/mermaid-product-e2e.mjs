@@ -566,6 +566,30 @@ export function isUnknownGrammarRejection(job) {
   )
 }
 
+export async function waitForUnknownGrammarRejection(
+  ledger,
+  productPid,
+  { timeoutMs = 45000, pollIntervalMs = 100, guard = () => {} } = {},
+) {
+  const deadline = performance.now() + timeoutMs
+  while (performance.now() < deadline) {
+    guard()
+    if (ledger.pending(productPid) === 0) {
+      const jobs = ledger.verifyAll(productPid)
+      if (jobs.length) {
+        const rejection = jobs.find(isUnknownGrammarRejection)
+        assert(
+          rejection,
+          'Invalid grammar reached owned renderer; timeout/startup failure is not syntax acceptance',
+        )
+        return rejection
+      }
+    }
+    await delay(Math.min(pollIntervalMs, Math.max(0, deadline - performance.now())))
+  }
+  throw Error('Timed out waiting for owned unknown-grammar rejection')
+}
+
 // Catalog readiness is independent of document readiness. The card may be laid
 // out below the scroll viewport; the real pointer helper reveals it before use.
 export async function waitForPluginCard(
@@ -2616,12 +2640,16 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               syntaxCases.map((item) => item.id),
             )
           } else if (name === 'invalid') {
+            const rejected = await waitForUnknownGrammarRejection(ledger, product.pid, { guard })
+            row.grammarRejection = { requestId: rejected.requestId, finished: rejected.finished }
             await until(
               async () => {
                 const s = await state()
                 return (
                   !s.images.length &&
-                  s.notices.some((notice) => notice.visible && notice.text.trim()) &&
+                  s.notices.some(
+                    (notice) => notice.visible && notice.text.includes('Mermaid 图表未能渲染'),
+                  ) &&
                   s.source.some(
                     (line) => line.visible && line.text.includes('unknownWindowsMermaidGrammar'),
                   )

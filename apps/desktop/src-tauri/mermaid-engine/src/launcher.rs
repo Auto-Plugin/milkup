@@ -710,24 +710,39 @@ fn reject_reparse_ancestors(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+#[cfg(test)]
 fn pinned_copy(source: &Path, destination: &Path) -> Result<(File, File)> {
+    pinned_copy_observed(source, destination, |_| {})
+}
+fn pinned_copy_observed(
+    source: &Path,
+    destination: &Path,
+    mut observe: impl FnMut(&'static str),
+) -> Result<(File, File)> {
     reject_reparse_ancestors(source)?;
+    observe("copySourceAncestryCheckedTickMs");
     let mut original = OpenOptions::new()
         .read(true)
         .share_mode(FILE_SHARE_READ)
         .open(source)?;
+    observe("copySourcePinnedTickMs");
     let mut copy = OpenOptions::new()
         .write(true)
         .create_new(true)
         .share_mode(0)
         .open(destination)?;
+    observe("copyDestinationCreatedTickMs");
     std::io::copy(&mut original, &mut copy)?;
+    observe("copyBytesWrittenTickMs");
     copy.sync_all()?;
+    observe("copySyncFinishedTickMs");
     drop(copy);
+    observe("copyWriteHandleClosedTickMs");
     let copy = OpenOptions::new()
         .read(true)
         .share_mode(FILE_SHARE_READ)
         .open(destination)?;
+    observe("copyDestinationPinnedTickMs");
     // Compare against the still write/delete-pinned build artifact; neither side
     // may be changed while its executable image is selected and bound at launch.
     let mut a = original.try_clone()?;
@@ -747,6 +762,7 @@ fn pinned_copy(source: &Path, destination: &Path) -> Result<(File, File)> {
             break;
         }
     }
+    observe("copyByteComparisonFinishedTickMs");
     Ok((original, copy))
 }
 
@@ -1305,7 +1321,13 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         let exe = code.join("milkup-fixed-mermaid.exe");
         report["nativeDiagnosticTimeline"]["executableCopyStartedTickMs"] =
             json!(diagnostic_tick_ms());
-        pins = Some(pinned_copy(&std::env::current_exe()?, &exe)?);
+        pins = Some(pinned_copy_observed(
+            &std::env::current_exe()?,
+            &exe,
+            |phase| {
+                report["nativeDiagnosticTimeline"][phase] = json!(diagnostic_tick_ms());
+            },
+        )?);
         report["nativeDiagnosticTimeline"]["executableCopyFinishedTickMs"] =
             json!(diagnostic_tick_ms());
         reject_reparse_ancestors(&exe)?;

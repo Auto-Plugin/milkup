@@ -535,6 +535,14 @@ fn native_diagnostic_timeline(value: &Value) -> Value {
         "stateAclFinishedTickMs",
         "executableCopyStartedTickMs",
         "executableCopyFinishedTickMs",
+        "copySourceAncestryCheckedTickMs",
+        "copySourcePinnedTickMs",
+        "copyDestinationCreatedTickMs",
+        "copyBytesWrittenTickMs",
+        "copySyncFinishedTickMs",
+        "copyWriteHandleClosedTickMs",
+        "copyDestinationPinnedTickMs",
+        "copyByteComparisonFinishedTickMs",
         "launchStartedTickMs",
         "parentChildPipeCopiesClosedByTickMs",
         "beforeTerminateTickMs",
@@ -1264,8 +1272,10 @@ mod tests {
         assert!(ipc_timeline(&json!([{"tickMs":1,"state":65536}])).is_empty());
         assert!(ipc_timeline(&json!([{"tickMs":"1","state":0}])).is_empty());
         assert_eq!(
-            native_diagnostic_timeline(&json!({"beforeTerminateTickMs":5,"payload":"secret"})),
-            json!({"beforeTerminateTickMs":5})
+            native_diagnostic_timeline(
+                &json!({"beforeTerminateTickMs":5,"copyBytesWrittenTickMs":3,"copySyncFinishedTickMs":4,"payload":"secret"})
+            ),
+            json!({"beforeTerminateTickMs":5,"copyBytesWrittenTickMs":3,"copySyncFinishedTickMs":4})
         );
     }
 
