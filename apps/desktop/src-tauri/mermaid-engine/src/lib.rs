@@ -597,12 +597,19 @@ pub fn run_helper_if_requested() -> bool {
 }
 #[cfg(windows)]
 pub fn render_native(input: &Value, control: &Control) -> std::result::Result<Rendered, String> {
+    let render_entry_tick = ipc_observation::diagnostic_tick_ms();
+    let remaining_at_entry = control.remaining().as_millis().min(u64::MAX as u128) as u64;
     control.checkpoint()?;
     let runtime = installed_runtime()?;
+    let runtime_ready_tick = ipc_observation::diagnostic_tick_ms();
     let request_id = input["requestId"].as_str().unwrap_or_default();
     // The launcher reports admission only after CREATE_NEW establishes owned
     // native resources. Read-only preflight failures have nothing to tear down.
-    let output = launcher::run(&runtime, input, control).map_err(|error| error.to_string())?;
+    let mut output = launcher::run(&runtime, input, control).map_err(|error| error.to_string())?;
+    output.report["nativeDiagnosticTimeline"]["renderEntryTickMs"] = json!(render_entry_tick);
+    output.report["nativeDiagnosticTimeline"]["runtimeReadyTickMs"] = json!(runtime_ready_tick);
+    output.report["nativeDiagnosticTimeline"]["remainingAtRenderEntryMs"] =
+        json!(remaining_at_entry);
     if audit::enabled() {
         audit::emit(&audit::finished(
             request_id,

@@ -523,6 +523,18 @@ pub(crate) fn native_diagnostics(request_id: &str, report: &Value) -> Value {
 fn native_diagnostic_timeline(value: &Value) -> Value {
     let mut result = serde_json::Map::new();
     for key in [
+        "renderEntryTickMs",
+        "runtimeReadyTickMs",
+        "remainingAtRenderEntryMs",
+        "runStartedTickMs",
+        "admissionTickMs",
+        "profileCreateStartedTickMs",
+        "profileCreatedTickMs",
+        "profileFolderReadyTickMs",
+        "rootAclFinishedTickMs",
+        "stateAclFinishedTickMs",
+        "executableCopyStartedTickMs",
+        "executableCopyFinishedTickMs",
         "launchStartedTickMs",
         "parentChildPipeCopiesClosedByTickMs",
         "beforeTerminateTickMs",

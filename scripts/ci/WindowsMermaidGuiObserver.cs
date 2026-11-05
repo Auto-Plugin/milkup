@@ -508,6 +508,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         record["status"] = "unresolved"; record["lifeId"] = null; record["proof"] = null; record["reason"] = "No unique retained child lifetime with fresh native identity";
         // Do not choose the newest HWND generation. Exactly one retained
         // identity may supply a proof; final reconciliation also checks time.
+        WindowLife current = CurrentLife(hwnd);
+        if (current != null) record["postParentDestroy"] = CapturePostParentDestroy(current, tid);
         Dictionary<string, object> proof = null; int matches = 0;
         foreach (WindowLife life in windowLives) if (life.Hwnd == hwnd && (life.Confirmation != null || life.PendingConfirmation != null) && !life.Released.HasValue) {
             var observed = life.Confirmation ?? life.PendingConfirmation;
@@ -516,13 +518,11 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             if (candidate != null) { matches++; proof = candidate; }
         }
         if (matches == 1) record["proof"] = proof;
-        WindowLife current = CurrentLife(hwnd);
-        if (current != null) record["postParentDestroy"] = CapturePostParentDestroy(current, tid);
         return record;
     }
-    void RecordPendingChildShow(IntPtr hwnd, uint time, uint tid, long tick, long order) {
+    void RecordPendingChildShow(IntPtr hwnd, uint time, uint tid, long tick, long order, Dictionary<string, object> captured = null) {
         if (childShowEvidence.Count >= 128 || !HasRecordRoom()) { MarkOverflow("child-show-evidence-budget"); return; }
-        childShowEvidence.Add(NewChildShow(hwnd, time, tid, tick, order, "child"));
+        childShowEvidence.Add(captured ?? NewChildShow(hwnd, time, tid, tick, order, "child"));
     }
     void ReconcileChildShows() {
         knownChildShowEvents = 0;
@@ -658,6 +658,16 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             lock (gate) { ConfirmWindowLife(hwnd, true); ProcessFact childProcess; processes.TryGetValue(childPid, out childProcess); CacheWindow(new WindowFact { Handle = hwnd, Pid = childPid, ThreadId = childThread, KnownChild = true, ObservedRoot = observedRoot, Class = observedClass, Process = childProcess }, kind == "destroy"); }
             return;
         }
+        Dictionary<string, object> earlyChildShow = null;
+        if (showEvent && currentChild && nativeEventTime.HasValue) {
+            lock (gate) {
+                bool controlInterval = positiveActive || (positiveEnded && unchecked(nativeEventTime.Value - positiveStartedTick) <= unchecked(positiveEndedTick - positiveStartedTick));
+                WindowLife current = CurrentLife(hwnd);
+                if (productPhase && !controlInterval && current != null && current.Retirement != null && (string)current.Retirement["reason"] == "parent-destroy" && HasRecordRoom()) earlyChildShow = NewChildShow(hwnd, nativeEventTime.Value, eventThread, callbackTick, order, "child");
+            }
+        }
+        // Capture identity before title/geometry/DWM queries can outlive a
+        // short-lived child. Its proof still faces the same final contract.
         WindowFact fact = ReadWindow(hwnd), old = null;
         lock (gate) {
             // WinEvent delivery is asynchronous. Attribute queued control
@@ -686,7 +696,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             if (fact == null) {
                 if (kind == "destroy") { DestroyCachedWindow(hwnd); return; }
                 if (showEvent && productPhase && !positiveInterval) {
-                    if (nativeEventTime.HasValue) RecordPendingChildShow(hwnd, nativeEventTime.Value, eventThread, callbackTick, order);
+                    if (nativeEventTime.HasValue) RecordPendingChildShow(hwnd, nativeEventTime.Value, eventThread, callbackTick, order, earlyChildShow);
                     else AddError("SHOW without original native event timestamp cannot establish absence of consoles");
                 }
                 return;
@@ -717,7 +727,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             }
             if (kind == "poll" && !changed) return;
             if (!HasRecordRoom()) return;
-            Dictionary<string, object> windowShow = negativeShow && nativeEventTime.HasValue ? NewChildShow(hwnd, nativeEventTime.Value, eventThread, callbackTick, order, currentChild ? "child" : "root") : null;
+            Dictionary<string, object> windowShow = negativeShow && nativeEventTime.HasValue ? (earlyChildShow ?? NewChildShow(hwnd, nativeEventTime.Value, eventThread, callbackTick, order, currentChild ? "child" : "root")) : null;
             if (negativeShow && windowShow == null) AddError("Non-console SHOW lacks its original native event time");
             var lineageKeys = new List<string>();
             foreach (ProcessFact ancestor in lineage) { if (lineageKeys.Count < 8) { RememberProcess(ancestor); lineageKeys.Add(ancestor.Pid + ":" + ancestor.Creation); } else if (product) MarkOverflow("event-lineage-budget"); }

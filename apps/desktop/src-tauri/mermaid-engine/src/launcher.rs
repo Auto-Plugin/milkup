@@ -1205,6 +1205,7 @@ fn join_bounded<T>(
 /// Each call creates a new profile/process tree; failures stay failures and never
 /// retry with an ordinary token, weaker Job, alternative Runtime or broader ACL.
 pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput> {
+    let run_started_tick = diagnostic_tick_ms();
     let input_bytes = serde_json::to_vec(input)?;
     if input_bytes.len() > MAX_INPUT || input_bytes.is_empty() {
         return Err("Input JSON exceeds the fixed engine budget".into());
@@ -1241,6 +1242,8 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
         "remainingDeadlineMs":control.remaining().as_millis(),
         "aclOperations":[],"productIntegrated":true,"networkGuarantee":false,
         "runtimeInstalled":false,"firewallChanged":false,"systemAclChanged":false,"elevationRequested":false});
+    report["nativeDiagnosticTimeline"]["runStartedTickMs"] = json!(run_started_tick);
+    report["nativeDiagnosticTimeline"]["admissionTickMs"] = json!(diagnostic_tick_ms());
     let mut profile = None;
     let mut job = None;
     let mut helper_process = None;
@@ -1261,11 +1264,16 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
     let outcome = (|| -> Result<()> {
         control.checkpoint()?;
         let system = system_directory()?;
+        report["nativeDiagnosticTimeline"]["profileCreateStartedTickMs"] =
+            json!(diagnostic_tick_ms());
         profile = Some(Profile::create(&unique)?);
+        report["nativeDiagnosticTimeline"]["profileCreatedTickMs"] = json!(diagnostic_tick_ms());
         report["profileCreated"] = json!(true);
         // Ownership is already visible to the checked cleanup path if either
         // SID conversion or folder lookup fails; Drop-only cleanup cannot hide it.
         profile.as_mut().unwrap().initialize_folder()?;
+        report["nativeDiagnosticTimeline"]["profileFolderReadyTickMs"] =
+            json!(diagnostic_tick_ms());
         let profile = profile.as_ref().unwrap();
         let sid = sid_text(profile.sid)?;
         report["appContainerSid"] = json!(sid);
@@ -1280,6 +1288,7 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             .as_array_mut()
             .unwrap()
             .push(directory_acl::root(&root, owner_sid, &sid)?);
+        report["nativeDiagnosticTimeline"]["rootAclFinishedTickMs"] = json!(diagnostic_tick_ms());
         control.checkpoint()?;
         let code = root.join("code");
         let state = root.join("state");
@@ -1290,10 +1299,15 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             .as_array_mut()
             .unwrap()
             .push(directory_acl::state(&state, owner_sid, &sid)?);
+        report["nativeDiagnosticTimeline"]["stateAclFinishedTickMs"] = json!(diagnostic_tick_ms());
         control.checkpoint()?;
         fs::create_dir(state.join("udf"))?;
         let exe = code.join("milkup-fixed-mermaid.exe");
+        report["nativeDiagnosticTimeline"]["executableCopyStartedTickMs"] =
+            json!(diagnostic_tick_ms());
         pins = Some(pinned_copy(&std::env::current_exe()?, &exe)?);
+        report["nativeDiagnosticTimeline"]["executableCopyFinishedTickMs"] =
+            json!(diagnostic_tick_ms());
         reject_reparse_ancestors(&exe)?;
         report["privateExecutableBytes"] = json!(fs::metadata(&exe)?.len());
         control.checkpoint()?;
