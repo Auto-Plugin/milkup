@@ -34,6 +34,19 @@ Assert ([WindowsMermaidGuiObserver]::ValidateFixturePath($root, $inside) -eq [IO
 foreach ($path in @('relative.md', (Join-Path $root '../escaped.md'), (Join-Path ($root + '-sibling') 'escape.md'), (Join-Path $root 'file.txt'), (Join-Path $root "newline`n.md"))) {
     Rejects { $null = [WindowsMermaidGuiObserver]::ValidateFixturePath($root, $path) } 'Out-of-root or malformed fixture path accepted'
 }
+# Native input is paced without splitting UTF-16 pairs or changing bytes.
+foreach ($value in @('C:\Users\owned\中文.md', (('a' * 15) + [String][char]0xd83d + [String][char]0xde00 + '.md'), ('b' * 2048))) {
+    $chunks = [WindowsMermaidGuiObserver]::FilenameInputChunks($value)
+    Assert ([String]::Concat($chunks) -ceq $value) 'Chunking changed the exact fixture path'
+    foreach ($chunk in $chunks) {
+        Assert ($chunk.Length -gt 0 -and $chunk.Length -le 16) 'Native filename input is not bounded'
+        Assert (-not [Char]::IsHighSurrogate($chunk[$chunk.Length - 1])) 'Split a UTF-16 pair between native input batches'
+        Assert (-not [Char]::IsLowSurrogate($chunk[0])) 'Low surrogate started a native input batch'
+    }
+}
+foreach ($value in @('', ('a' * 2049), [String][char]0xd83d, [String][char]0xde00)) {
+    Rejects { $null = [WindowsMermaidGuiObserver]::FilenameInputChunks($value) } 'Invalid or unbounded filename input was accepted'
+}
 # These interop layouts are the Windows ABI: the union must contain the full
 # MOUSEINPUT alignment for both filename keystrokes and native button clicks.
 $private = [Reflection.BindingFlags]::NonPublic

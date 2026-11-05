@@ -909,6 +909,20 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         catch (Exception error) { record["error"] = Bounded(error.Message, 512); if (!File.Exists(Path.Combine(evidenceDirectory, "gui-native-failure.png"))) { try { CaptureDesktop("gui-native-failure.png"); record["failureScreenshot"] = "gui-native-failure.png"; } catch (Exception captureError) { record["screenshotError"] = Bounded(captureError.Message, 256); } } record["failureCleanup"] = CancelFailedPicker(target); throw; }
         finally { record["finishedElapsedMs"] = clock.ElapsedMilliseconds; }
     }
+    public static string[] FilenameInputChunks(string value) {
+        if (String.IsNullOrEmpty(value) || value.Length > 2048) throw new ArgumentException("Bounded filename input required");
+        for (int i = 0; i < value.Length; i++) {
+            if (Char.IsHighSurrogate(value[i])) { if (++i >= value.Length || !Char.IsLowSurrogate(value[i])) throw new ArgumentException("Unpaired filename surrogate"); }
+            else if (Char.IsLowSurrogate(value[i])) throw new ArgumentException("Unpaired filename surrogate");
+        }
+        var chunks = new List<string>();
+        for (int start = 0; start < value.Length;) {
+            int length = Math.Min(16, value.Length - start);
+            if (Char.IsHighSurrogate(value[start + length - 1])) length--;
+            chunks.Add(value.Substring(start, length)); start += length;
+        }
+        return chunks.ToArray();
+    }
     static string ReadOwnedEditText(IntPtr edit) {
         IntPtr buffer = Marshal.AllocHGlobal(4100);
         try { Marshal.WriteInt16(buffer, 0); UIntPtr copied; Check(SendMessageTimeoutW(edit, 0x0d, new IntPtr(2050), buffer, 2, 2000, out copied) != IntPtr.Zero, "Read owned native filename field"); if (copied.ToUInt64() > 2048) throw new InvalidOperationException("Filename readback exceeds fixture bound"); return Marshal.PtrToStringUni(buffer, (int)copied.ToUInt64()); }
@@ -987,18 +1001,46 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         UIntPtr returned; Check(SendMessageTimeoutW(dialog, 0x28, edits[0], new IntPtr(1), 2, 2000, out returned) != IntPtr.Zero, "Focus native filename control");
         var gui = new GuiThreadInfo { size = (uint)Marshal.SizeOf<GuiThreadInfo>() }; Check(GetGUIThreadInfo(dialogThread, ref gui), "Verify native filename focus");
         if (gui.focus != edits[0] || GetAncestor(GetForegroundWindow(), 2) != dialog) throw new InvalidOperationException("Native filename field is not the foreground input target");
-        var inputs = new List<Input>();
-        inputs.Add(Key(0x11, 0, 0)); inputs.Add(Key(0x41, 0, 0)); inputs.Add(Key(0x41, 0, 2)); inputs.Add(Key(0x11, 0, 2));
-        foreach (char value in file) { inputs.Add(Key(0, value, 4)); inputs.Add(Key(0, value, 6)); }
-        Input[] array = inputs.ToArray(); Check(SendInput((uint)array.Length, array, Marshal.SizeOf<Input>()) == array.Length, "Send native fixture filename keystrokes");
+        // SendInput acknowledges queued events, not completed Edit text. A real
+        // Windows failure accepted all events but retained only 53/121 UTF-16
+        // units while the shell suggestion popup was visible. Pace actual input
+        // with exact prefix acknowledgements; never rewrite/retry missing text.
         long until = clock.ElapsedMilliseconds + 10000, readbackDeadline = clock.ElapsedMilliseconds + 2000;
-        string typed;
-        do { if (!SamePickerTarget(target)) throw new InvalidOperationException("Original file picker identity changed during input"); typed = ReadOwnedEditText(edits[0]); if (String.Equals(typed, file, StringComparison.Ordinal)) break; Thread.Sleep(25); } while (clock.ElapsedMilliseconds < readbackDeadline);
-        record["filenameReadback"] = typed; record["filenameReadbackExact"] = String.Equals(typed, file, StringComparison.Ordinal);
+        var receipts = new List<Dictionary<string, object>>(); record["filenameInputChunks"] = receipts;
+        int sentUnits = 0; string typed = "";
+        foreach (string chunk in FilenameInputChunks(file)) {
+            if (clock.ElapsedMilliseconds >= readbackDeadline) throw new InvalidOperationException("Native filename input deadline elapsed");
+            if (!SamePickerTarget(target)) throw new InvalidOperationException("Original file picker identity changed during input");
+            gui = new GuiThreadInfo { size = (uint)Marshal.SizeOf<GuiThreadInfo>() }; Check(GetGUIThreadInfo(dialogThread, ref gui), "Recheck native filename focus");
+            uint editPid; uint editThread = GetWindowThreadProcessId(edits[0], out editPid);
+            if (gui.focus != edits[0] || GetAncestor(GetForegroundWindow(), 2) != dialog || GetAncestor(edits[0], 2) != dialog || editPid != product.Pid || editThread != dialogThread || ClassName(edits[0]) != "Edit") throw new InvalidOperationException("Native filename input target changed");
+            var inputs = new List<Input>();
+            if (sentUnits == 0) { inputs.Add(Key(0x11, 0, 0)); inputs.Add(Key(0x41, 0, 0)); inputs.Add(Key(0x41, 0, 2)); inputs.Add(Key(0x11, 0, 2)); }
+            foreach (char value in chunk) { inputs.Add(Key(0, value, 4)); inputs.Add(Key(0, value, 6)); }
+            Input[] array = inputs.ToArray(); uint delivered = SendInput((uint)array.Length, array, Marshal.SizeOf<Input>());
+            sentUnits += chunk.Length;
+            var receipt = new Dictionary<string, object> { { "sentUtf16Units", sentUnits }, { "inputCount", array.Length }, { "queuedInputCount", delivered }, { "startedElapsedMs", clock.ElapsedMilliseconds }, { "readbackExact", false } }; receipts.Add(receipt);
+            Check(delivered == array.Length, "Send native fixture filename keystrokes");
+            string expectedPrefix = file.Substring(0, sentUnits); int stableReads = 0;
+            do {
+                if (!SamePickerTarget(target)) throw new InvalidOperationException("Original file picker identity changed during input");
+                typed = ReadOwnedEditText(edits[0]);
+                if (clock.ElapsedMilliseconds >= readbackDeadline) break;
+                stableReads = String.Equals(typed, expectedPrefix, StringComparison.Ordinal) ? stableReads + 1 : 0;
+                if (stableReads >= 2) break;
+                Thread.Sleep(25);
+            } while (clock.ElapsedMilliseconds < readbackDeadline);
+            receipt["readbackExact"] = stableReads >= 2; receipt["readbackUtf16Units"] = typed.Length; receipt["finishedElapsedMs"] = clock.ElapsedMilliseconds;
+            record["filenameReadback"] = typed; record["filenameReadbackExact"] = String.Equals(typed, file, StringComparison.Ordinal);
+            if (stableReads < 2) throw new InvalidOperationException("Native filename chunk did not reach the exact acknowledged prefix");
+        }
         if (!(bool)record["filenameReadbackExact"]) throw new InvalidOperationException("Native filename field did not contain the exact owned fixture");
         // Enter can accept shell autocomplete without activating Open. Click
         // the actual, identity-checked native button after exact field readback.
         ObserveOwnedDialogChildren(dialog);
+        record["filenameBeforeOpenExact"] = String.Equals(ReadOwnedEditText(edits[0]), file, StringComparison.Ordinal);
+        if (!(bool)record["filenameBeforeOpenExact"]) throw new InvalidOperationException("Native filename changed before Open");
+        if (clock.ElapsedMilliseconds >= until) throw new InvalidOperationException("Native file picker input deadline elapsed before Open");
         record["openClick"] = ClickOwnedDialogButton(target, 1); record["submission"] = "native-open-button-mouse";
         while (SameDialog(dialog, product.Pid, dialogThread) && IsWindowVisible(dialog) && clock.ElapsedMilliseconds < until) Thread.Sleep(25);
         record["sameDialogAtEnd"] = SameDialog(dialog, product.Pid, dialogThread); record["dialogVisibleAtEnd"] = IsWindowVisible(dialog);
