@@ -281,7 +281,13 @@
     attached = true
     removeEventListener('message', handshake)
     const port = event.ports[0]
+    let parentDomReadable = false
+    try {
+      void parent.document.documentElement
+      parentDomReadable = true
+    } catch {}
     const bridge = {
+      parentDomReadable,
       tauriInternals: '__TAURI_INTERNALS__' in window,
       tauriInvoke: '__TAURI__' in window,
       wryIpc: 'ipc' in window,

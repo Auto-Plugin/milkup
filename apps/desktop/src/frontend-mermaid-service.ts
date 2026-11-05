@@ -206,6 +206,7 @@ export function createFrontendMermaidOwner(
       })
       if (
         !hello.bridge ||
+        hello.bridge.parentDomReadable !== false ||
         hello.bridge.tauriInternals ||
         hello.bridge.tauriInvoke ||
         hello.bridge.wryIpc

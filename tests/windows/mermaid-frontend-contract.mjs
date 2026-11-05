@@ -14,6 +14,7 @@ export function frontendLedgerClass(ProcessLedger) {
       super(sid, session, kind, true)
       this.rendererMode = 'frontend'
       this.boundaries = new Map()
+      this.inventories = new Set()
       this.released = new Set()
     }
     ownerKey(pid, birth, owner) {
@@ -46,7 +47,10 @@ export function frontendLedgerClass(ProcessLedger) {
         if (event.stage === 'bridge-inventory') {
           for (const key of ['tauriInternals', 'tauriInvoke', 'wryIpc'])
             assert.equal(event[key], false, 'Privileged bridge remains exposed: ' + key)
+          assert.equal(event.parentDomReadable, false, 'Opaque renderer cannot read parent DOM')
           assert.equal(event.chromeWebview, true, 'Actual native frame message transport required')
+          assert.equal(event.nativeFrameLive, true, 'Inventory belongs to a live native frame')
+          this.inventories.add(this.ownerKey(pid, birth, event.ownerId))
         }
         return
       }
@@ -67,6 +71,7 @@ export function frontendLedgerClass(ProcessLedger) {
         nonce(event.nonce)
         const key = this.ownerKey(pid, birth, event.nonce)
         if (event.kind === 'main-probe-dispatched') {
+          assert(this.inventories.has(key), 'Real frame inventory must precede native probes')
           assert(!this.boundaries.has(key), 'Unique owner positive control')
           assert(Number.isSafeInteger(event.dispatchedProbes) && event.dispatchedProbes > 0)
           this.boundaries.set(key, { positive: event })

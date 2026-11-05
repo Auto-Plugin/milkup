@@ -23,7 +23,27 @@ function fixture() {
   return ledger
 }
 const event = (v) => ({ renderer: FRONTEND_RENDERER, productPid: pid, timestampUnixMs: 1000, ...v })
+function inventory(l, b = birth, extra = {}) {
+  l.accept(
+    event({
+      kind: 'connection',
+      ownerId: owner,
+      stage: 'bridge-inventory',
+      nativeFrameLive: true,
+      failed: false,
+      tauriInternals: false,
+      tauriInvoke: false,
+      wryIpc: false,
+      chromeWebview: true,
+      parentDomReadable: false,
+      ...extra,
+    }),
+    pid,
+    b,
+  )
+}
 function boundary(l, b = birth) {
+  inventory(l, b)
   l.accept(event({ kind: 'main-probe-dispatched', nonce: owner, dispatchedProbes: 1 }), pid, b)
   l.accept(
     event({
@@ -113,6 +133,7 @@ test('missing native bridge proof, dispatched child, navigation and unclosed old
     l.accept(event({ ...base, phase: 'admitted', nativeBridgeRejected: true }), pid, birth),
   )
   const m = fixture()
+  inventory(m)
   m.accept(event({ kind: 'main-probe-dispatched', nonce: owner, dispatchedProbes: 1 }), pid, birth)
   assert.throws(() =>
     m.accept(
@@ -195,4 +216,18 @@ test('connection diagnostics retain the exact failed stage and reject exposed fr
     /main-probe/,
   )
   assert.equal(m.events[0].stage, 'main-probe')
+})
+
+test('parent DOM readability and missing production inventory reject admission', () => {
+  assert.throws(() => inventory(fixture(), birth, { parentDomReadable: true }), /parent DOM/)
+  assert.throws(() => inventory(fixture(), birth, { parentDomReadable: undefined }), /parent DOM/)
+  assert.throws(
+    () =>
+      fixture().accept(
+        event({ kind: 'main-probe-dispatched', nonce: owner, dispatchedProbes: 1 }),
+        pid,
+        birth,
+      ),
+    /inventory/,
+  )
 })

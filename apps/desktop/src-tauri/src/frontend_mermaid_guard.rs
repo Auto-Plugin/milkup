@@ -63,6 +63,7 @@ impl Registry {
                 "kind",
                 "ownerId",
                 "stage",
+                "parentDomReadable",
                 "tauriInternals",
                 "tauriInvoke",
                 "wryIpc",
@@ -92,6 +93,7 @@ impl Registry {
                 return Err("Invalid connection stage".into());
             }
             for key in [
+                "parentDomReadable",
                 "tauriInternals",
                 "tauriInvoke",
                 "wryIpc",
