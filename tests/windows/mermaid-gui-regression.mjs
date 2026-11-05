@@ -354,6 +354,26 @@ export function validateDiagramLayout(value, requireResponsiveFit = false) {
   return true
 }
 
+// Closing our RPC input lets the observer retain its incomplete report and exit
+// after a failed stop/parse. It does not manufacture an acknowledgement or kill a
+// PID whose identity cannot be proven.
+export async function finalizeObserverProcess(observer, collect, waitClosed) {
+  const failures = []
+  try {
+    await collect()
+  } catch (error) {
+    failures.push(error)
+  }
+  try {
+    observer.child.stdin.end()
+    await waitClosed()
+    assert.equal(observer.exitCode, 0, 'Observer process exit')
+  } catch (error) {
+    failures.push(error)
+  }
+  if (failures.length) throw new AggregateError(failures, failures.map(String).join('; '))
+}
+
 async function freePort() {
   const server = createServer()
   await new Promise((resolve, reject) => {
@@ -1613,17 +1633,20 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
     }
     if (observer) {
       try {
-        report.observerSummary = await observer.call('stop', {}, 30000)
-        const windowBytes = await readFile(path.join(evidence, 'native-window-events.json'))
-        assert(windowBytes.length <= 2 * 1024 * 1024)
-        report.nativeWindowEvidence = {
-          file: 'native-window-events.json',
-          sha256: hash(windowBytes),
-          bytes: windowBytes.length,
-        }
-        observer.child.stdin.end()
-        await until(() => observer.closed, 'Observer final exit', 10000, false)
-        assert.equal(observer.exitCode, 0)
+        await finalizeObserverProcess(
+          observer,
+          async () => {
+            report.observerSummary = await observer.call('stop', {}, 30000)
+            const windowBytes = await readFile(path.join(evidence, 'native-window-events.json'))
+            assert(windowBytes.length <= 2 * 1024 * 1024)
+            report.nativeWindowEvidence = {
+              file: 'native-window-events.json',
+              sha256: hash(windowBytes),
+              bytes: windowBytes.length,
+            }
+          },
+          () => until(() => observer.closed, 'Observer final exit', 10000, false),
+        )
       } catch (error) {
         report.errors.push('Observer finalization: ' + error)
       }

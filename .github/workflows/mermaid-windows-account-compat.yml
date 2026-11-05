@@ -106,7 +106,7 @@ jobs:
       - name: Validate account fixtures and strict close evidence
         run: |
           $ErrorActionPreference = 'Stop'
-          node --test tests/windows/mermaid-product-e2e.test.mjs scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/stage-mermaid-evidence.test.mjs tests/windows/mermaid-gui-regression.test.mjs tests/windows/mermaid-gui-startup.test.mjs scripts/ci/read-linked-gui-plugin-inventory.test.mjs
+          node --test tests/windows/mermaid-observer-finalization.test.mjs tests/windows/mermaid-product-e2e.test.mjs scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/stage-mermaid-evidence.test.mjs tests/windows/mermaid-gui-regression.test.mjs tests/windows/mermaid-gui-startup.test.mjs scripts/ci/read-linked-gui-plugin-inventory.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Account/close/payload evidence regression failed' }
           ./tests/windows/account-kind-wrapper.test.ps1
           ./tests/windows/installer-wrapper.test.ps1
