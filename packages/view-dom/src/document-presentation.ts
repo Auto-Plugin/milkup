@@ -311,7 +311,20 @@ export class DocumentPresentation {
   private readonly observer: MutationObserver
   private readonly resize: ResizeObserver | undefined
   private resizeFrame: { view: Window; id: number } | undefined
-  private readonly scroll = () => this.schedule()
+  private scrollQuietTimer: ReturnType<typeof setTimeout> | undefined
+  private scrollLimitTimer: ReturnType<typeof setTimeout> | undefined
+  private readonly flushScroll = () => {
+    clearTimeout(this.scrollQuietTimer)
+    clearTimeout(this.scrollLimitTimer)
+    this.scrollQuietTimer = undefined
+    this.scrollLimitTimer = undefined
+    this.schedule()
+  }
+  private readonly scroll = () => {
+    clearTimeout(this.scrollQuietTimer)
+    this.scrollQuietTimer = setTimeout(this.flushScroll, 300)
+    this.scrollLimitTimer ??= setTimeout(this.flushScroll, 900)
+  }
   private tabOrigin: { event: KeyboardEvent; element: HTMLElement } | undefined
   private tabOriginTimer: ReturnType<typeof setTimeout> | undefined
   private proxyNavigation: { element: HTMLElement; snapshot: PresentationSnapshot } | undefined
@@ -557,6 +570,10 @@ export class DocumentPresentation {
   }
   /** Refresh provider data without withdrawing an unchanged, validated presentation. */
   refresh(): void {
+    clearTimeout(this.scrollQuietTimer)
+    clearTimeout(this.scrollLimitTimer)
+    this.scrollQuietTimer = undefined
+    this.scrollLimitTimer = undefined
     this.cancelPreparationRetry()
     this.preparationFailures = undefined
     const current = this.snapshot()
@@ -579,6 +596,10 @@ export class DocumentPresentation {
     this.schedule()
   }
   invalidate(): void {
+    clearTimeout(this.scrollQuietTimer)
+    clearTimeout(this.scrollLimitTimer)
+    this.scrollQuietTimer = undefined
+    this.scrollLimitTimer = undefined
     this.releaseReferencePointer()
     this.cancelPreparationRetry()
     this.preparationFailures = undefined
@@ -592,6 +613,8 @@ export class DocumentPresentation {
     this.schedule()
   }
   destroy(): void {
+    clearTimeout(this.scrollQuietTimer)
+    clearTimeout(this.scrollLimitTimer)
     this.releaseReferencePointer()
     this.cancelPreparationRetry()
     this.clearProxyNavigation()
@@ -802,6 +825,7 @@ export class DocumentPresentation {
     )
   }
   private sync(): void {
+    if (this.scrollQuietTimer !== undefined) return
     this.hasReferencePointer()
     const current = this.snapshot()
     if (this.preparationRetry && !this.preparationRetry.matches()) this.cancelPreparationRetry()

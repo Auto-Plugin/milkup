@@ -12,6 +12,7 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 const settle = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 320))
   for (let i = 0; i < 6; i++) await new Promise((resolve) => setTimeout(resolve, 0))
 }
 function response(window: DocumentPresentationWindow): DocumentPresentationResponse {
@@ -263,4 +264,42 @@ it('cancels a superseded window job when returning to an already complete cached
   f.scroll(40)
   await settle()
   expect(calls).toHaveLength(2)
+})
+
+it('coalesces rapid viewport changes and renders the final position', async () => {
+  const calls: DocumentPresentationWindow[] = []
+  const f = fixture({
+    provide: (window) => {
+      calls.push(window)
+      return response(window)
+    },
+  })
+  f.scroll(40)
+  await new Promise((resolve) => setTimeout(resolve, 80))
+  f.scroll(100)
+  await new Promise((resolve) => setTimeout(resolve, 80))
+  f.scroll(150)
+  await settle()
+  expect(calls).toHaveLength(1)
+  expect(viewport(calls[0]!)).toEqual({ from: 105, to: 118 })
+  expect(f.content.textContent).toBe(f.source.replaceAll('\n', ''))
+})
+
+it('refreshes during continuous scrolling and cancels timers on destroy', async () => {
+  const calls: DocumentPresentationWindow[] = []
+  const f = fixture({
+    provide: (window) => {
+      calls.push(window)
+      return { ...response(window), result: { complete: false, fragments: [] } }
+    },
+  })
+  for (let i = 0; i < 5; i++) {
+    f.scroll(i * 20)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
+  expect(calls.length).toBeGreaterThanOrEqual(1)
+  f.manager.destroy()
+  const count = calls.length
+  await new Promise((resolve) => setTimeout(resolve, 350))
+  expect(calls).toHaveLength(count)
 })
