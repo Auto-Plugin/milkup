@@ -2372,3 +2372,29 @@ test('only a normally exited exact process identity with drained stdio can retir
   assert.deepEqual([...births], [[10, '100']])
   assert.throws(() => retireClosedProcessIdentity(births, record))
 })
+
+
+test('launch-scoped audit rejects old-generation PNG and permits only closed PID reuse', () => {
+  const ledger = new AuditLedger(sid, 2, 'pure-standard', true)
+  const old = {productPid: 111, creationFileTime: '100'}
+  const next = {productPid: 111, creationFileTime: '200'}
+  ledger.registerLaunch(old)
+  for (const event of successful().events) ledger.accept(event, 111, '100')
+  const image = validatePng(png())
+  assert.equal(ledger.matchPng(111, image).productCreationFileTime, '100')
+  assert.throws(() => ledger.registerLaunch(next), /must close/)
+  for (const changed of [{exitCode: null}, {signal: 'SIGTERM'}, {stdioClosedAt: null}, {creationFileTime: '999'}])
+    assert.throws(() => ledger.closeLaunch({...old, exitCode: 0, signal: null, exitedAt: 'exit', stdioClosedAt: 'closed', ...changed}))
+  ledger.closeLaunch({...old, exitCode: 0, signal: null, exitedAt: 'exit', stdioClosedAt: 'closed'})
+  ledger.registerLaunch(next)
+  assert.throws(() => ledger.matchPng(111, image), /Accepted DOM PNG/)
+  assert.equal(ledger.verifyAll(111).length, 0)
+  for (const event of successful().events) {
+    assert.throws(() => ledger.accept({...event, productCreationFileTime: '100'}, 111, '200'), /mismatch/)
+    ledger.accept(event, 111, '200')
+  }
+  assert.equal(ledger.matchPng(111, image).productCreationFileTime, '200')
+  assert.equal(ledger.verifyAll().length, 2)
+  assert.throws(() => ledger.matchPng(111, image, '999'), /Registered/)
+  assert.throws(() => ledger.registerLaunch({productPid: 112}))
+})

@@ -991,7 +991,7 @@ export async function settleOwnedProduct({
 }
 
 export class AuditLedger {
-  constructor(expectedSid, expectedSessionId, expectedAccountKind = 'pure-standard') {
+  constructor(expectedSid, expectedSessionId, expectedAccountKind = 'pure-standard', strictLaunches = false) {
     this.expectedSid = expectedSid
     assert(
       Number.isSafeInteger(expectedSessionId) && expectedSessionId > 0,
@@ -1001,8 +1001,40 @@ export class AuditLedger {
     this.expectedAccountKind = validateAccountKind(expectedAccountKind)
     this.jobs = new Map()
     this.events = []
+    this.strictLaunches = strictLaunches
+    this.launches = new Map()
+    this.activeLaunches = new Map()
   }
-  accept(value, productPid) {
+  registerLaunch(record) {
+    assert(Number.isSafeInteger(record.productPid) && record.productPid > 0)
+    assert.match(record.creationFileTime ?? '', /^\d+$/)
+    const key = `${record.productPid}:${record.creationFileTime}`
+    assert(!this.launches.has(key), 'Unique launch identity')
+    const old = this.activeLaunches.get(record.productPid)
+    assert(!old || this.launches.get(`${record.productPid}:${old}`).closed, 'Previous generation must close')
+    this.launches.set(key, { ...record, closed: false })
+    this.activeLaunches.set(record.productPid, record.creationFileTime)
+  }
+  closeLaunch(record) {
+    const key = `${record.productPid}:${record.creationFileTime}`
+    const launch = this.launches.get(key)
+    assert(launch && !launch.closed, 'Exact open launch')
+    assert.equal(record.exitCode, 0)
+    assert.equal(record.signal, null)
+    assert(record.exitedAt && record.stdioClosedAt, 'Held exit and EOF required')
+    this.verifyAll(record.productPid, record.creationFileTime)
+    launch.closed = true
+  }
+  creationFor(pid, creation = this.activeLaunches.get(pid)) {
+    if (!this.strictLaunches) return undefined
+    assert.match(creation ?? '', /^\d+$/, 'Exact launch creation required')
+    assert(this.launches.has(`${pid}:${creation}`), 'Registered launch required')
+    return creation
+  }
+  belongs(job, pid, creation) {
+    return job.productPid === pid && job.productCreationFileTime === this.creationFor(pid, creation)
+  }
+  accept(value, productPid, creation) {
     assert(
       value && ['admitted', 'started', 'finished'].includes(value.phase),
       'Known native audit phase',
@@ -1010,8 +1042,14 @@ export class AuditLedger {
     assert.equal(value.productPid, productPid, 'Audit belongs to this directly spawned product PID')
     assert(/^[A-Za-z0-9_-]{1,80}$/.test(value.requestId), 'Bounded audit request identity')
     assert(this.events.length < 512, 'Native audit event budget')
-    const key = `${productPid}:${value.requestId}`
-    const job = this.jobs.get(key) ?? { productPid, requestId: value.requestId }
+    const productCreationFileTime = this.creationFor(productPid, creation)
+    if (this.strictLaunches) {
+      assert(!this.launches.get(`${productPid}:${productCreationFileTime}`).closed, 'No events after launch close')
+      assert(value.productCreationFileTime === undefined || value.productCreationFileTime === productCreationFileTime, 'Audit launch identity mismatch')
+      value = { ...value, productCreationFileTime }
+    }
+    const key = `${productPid}:${productCreationFileTime ?? ''}:${value.requestId}`
+    const job = this.jobs.get(key) ?? { productPid, productCreationFileTime, requestId: value.requestId }
     assert(!job[value.phase], 'No duplicate native audit phase')
     assert(!job.finished, 'No audit event after native completion')
     if (value.phase !== 'admitted')
@@ -1216,28 +1254,28 @@ export class AuditLedger {
     }
     return finish
   }
-  pending(productPid) {
-    return [...this.jobs.values()].filter((job) => job.productPid === productPid && !job.finished)
+  pending(productPid, creation) {
+    return [...this.jobs.values()].filter((job) => this.belongs(job, productPid, creation) && !job.finished)
       .length
   }
-  verifyAll(productPid) {
+  verifyAll(productPid, creation) {
     const jobs = [...this.jobs.values()].filter(
-      (job) => productPid === undefined || job.productPid === productPid,
+      (job) => productPid === undefined || this.belongs(job, productPid, creation),
     )
     for (const job of jobs) this.verifyFinished(job)
     return jobs
   }
-  matchPng(productPid, png) {
+  matchPng(productPid, png, creation) {
     const job = [...this.jobs.values()].find(
       (item) =>
-        item.productPid === productPid &&
+        this.belongs(item, productPid, creation) &&
         item.finished?.successful &&
         item.finished.pngSha256 === png.sha256 &&
         item.finished.pngBytes === png.bytes,
     )
     assert(job, 'Accepted DOM PNG must match a completed owned native render')
     this.verifyFinished(job)
-    return { productPid, requestId: job.requestId, pngSha256: png.sha256 }
+    return { productPid, ...(this.strictLaunches ? { productCreationFileTime: job.productCreationFileTime } : {}), requestId: job.requestId, pngSha256: png.sha256 }
   }
 }
 
