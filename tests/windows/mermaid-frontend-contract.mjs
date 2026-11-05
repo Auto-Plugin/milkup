@@ -30,6 +30,17 @@ export function frontendLedgerClass(ProcessLedger) {
       assert(this.events.length < 1024, 'Bounded complete frontend evidence')
       const event = { ...value, productCreationFileTime: birth }
       this.events.push(event)
+      if (event.kind === 'frame-console-diagnostic') {
+        for (const key of [
+          'cspViolation',
+          'engineAssetMentioned',
+          'bootstrapAssetMentioned',
+          'error',
+          'resourceLoadFailure',
+        ])
+          assert.equal(typeof event[key], 'boolean')
+        return // Diagnostics never provide a rendering or isolation proof.
+      }
       if (event.kind === 'frame-lifecycle') {
         assert(Number.isSafeInteger(event.frameId) && event.frameId > 0)
         assert(
@@ -39,6 +50,7 @@ export function frontendLedgerClass(ProcessLedger) {
             'navigation-start',
             'dom-content-loaded',
             'navigation-completed',
+            'script-state',
           ].includes(event.stage),
         )
         if (event.ownerId !== null) nonce(event.ownerId)
@@ -55,6 +67,8 @@ export function frontendLedgerClass(ProcessLedger) {
         assert(
           [
             'frame-load',
+            'port-transfer',
+            'frame-hello',
             'bridge-inventory',
             'main-probe',
             'child-ipc',
@@ -64,6 +78,11 @@ export function frontendLedgerClass(ProcessLedger) {
         )
         assert.equal(event.failed, false, 'Frontend connection failed at ' + event.stage)
         assert.equal(typeof event.nativeFrameLive, 'boolean')
+        if (event.stage === 'frame-hello') {
+          assert.equal(event.opaqueOrigin, true, 'Opaque hello origin required')
+          assert.equal(event.nonceMatches, true, 'Exact hello nonce required')
+          assert.equal(event.portAlreadyAssigned, false, 'One-use hello')
+        }
         if (event.stage === 'bridge-inventory') {
           for (const key of ['tauriInternals', 'tauriInvoke', 'wryIpc'])
             assert.equal(event[key], false, 'Privileged bridge remains exposed: ' + key)

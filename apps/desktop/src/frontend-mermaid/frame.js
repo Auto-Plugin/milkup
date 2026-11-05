@@ -2,6 +2,7 @@
 // Diagram text is data on an authenticated MessagePort, never script or HTML.
 ;(() => {
   'use strict'
+  document.documentElement.dataset.milkupMermaidBootstrap = 'started'
   const MAX_AXIS = 8192
   const MAX_PIXELS = 16777216
   const finiteBox = (box) =>
@@ -520,4 +521,5 @@
   }
   addEventListener('message', handshake)
   parent.postMessage({ kind: 'milkup-mermaid-ready', nonce }, parentOrigin)
+  document.documentElement.dataset.milkupMermaidReadySent = 'true'
 })()

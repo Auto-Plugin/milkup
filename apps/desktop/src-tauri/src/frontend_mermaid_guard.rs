@@ -20,6 +20,7 @@ struct Status {
     connection_records: usize,
     frame_serial: u64,
     lifecycle_records: usize,
+    console_records: usize,
 }
 
 #[derive(Clone)]
@@ -76,6 +77,9 @@ impl Registry {
                 "kind",
                 "ownerId",
                 "stage",
+                "opaqueOrigin",
+                "nonceMatches",
+                "portAlreadyAssigned",
                 "parentDomReadable",
                 "tauriInternals",
                 "tauriInvoke",
@@ -95,6 +99,8 @@ impl Registry {
             if !value["stage"].as_str().is_some_and(|v| {
                 [
                     "frame-load",
+                    "port-transfer",
+                    "frame-hello",
                     "bridge-inventory",
                     "main-probe",
                     "child-ipc",
@@ -106,6 +112,9 @@ impl Registry {
                 return Err("Invalid connection stage".into());
             }
             for key in [
+                "opaqueOrigin",
+                "nonceMatches",
+                "portAlreadyAssigned",
                 "parentDomReadable",
                 "tauriInternals",
                 "tauriInvoke",
@@ -299,6 +308,17 @@ impl Registry {
     }
 }
 
+fn classify_load_console(entry: &Value) -> Option<Value> {
+    let text=entry["text"].as_str()?;
+    let csp=text.to_ascii_lowercase().contains("content security policy");
+    let engine=text.contains("mermaid-12.2.0.min-");
+    let bootstrap=text.contains("/assets/frame-");
+    if !csp && !engine && !bootstrap { return None; }
+    Some(json!({"kind":"frame-console-diagnostic", "cspViolation":csp,
+        "engineAssetMentioned":engine,"bootstrapAssetMentioned":bootstrap,
+        "error":entry["level"]=="error", "resourceLoadFailure":text.contains("Failed to load resource")}))
+}
+
 fn cancel_frame_navigation(owned: bool, uri: &str) -> bool {
     // Unrelated application/automation frames are not Mermaid owners. They
     // receive no Mermaid port or source and cannot earn an owner proof.
@@ -321,6 +341,32 @@ pub fn install(
     let created_registry = registry.clone();
     let mut token = 0;
     unsafe {
+        if registry.1.is_some() {
+            // Read-only, opt-in browser load diagnostics. Retain only fixed
+            // classifications, never console text, source, URLs or stack traces.
+            let receiver=view.GetDevToolsProtocolEventReceiver(&windows::core::HSTRING::from("Log.entryAdded"))?;
+            let log_registry=registry.clone();
+            let mut log_token=0;
+            receiver.add_DevToolsProtocolEventReceived(&DevToolsProtocolEventReceivedEventHandler::create(Box::new(move |_, args| {
+                let Some(args)=args else { return Ok(()); };
+                let mut raw=PWSTR::null(); args.ParameterObjectAsJson(&mut raw)?;
+                let raw=take_pwstr(raw);
+                if raw.len()>16384 { return Ok(()); }
+                let Ok(value)=serde_json::from_str::<Value>(&raw) else { return Ok(()); };
+                if let Some(detail)=classify_load_console(&value["entry"]) {
+                    let mut state=log_registry.0.lock().unwrap();
+                    state.console_records+=1;
+                    if state.console_records>64 || log_registry.1.as_ref().as_ref().unwrap().emit(&detail).is_err() { state.failed=true; }
+                }
+                Ok(())
+            })), &mut log_token)?;
+            let enabled_registry=registry.clone();
+            view.CallDevToolsProtocolMethod(&windows::core::HSTRING::from("Log.enable"), &windows::core::HSTRING::from("{}"),
+                &CallDevToolsProtocolMethodCompletedHandler::create(Box::new(move |result, _| {
+                    if result.is_err() { enabled_registry.0.lock().unwrap().failed=true; }
+                    Ok(())
+                })))?;
+        }
         view.cast::<ICoreWebView2_4>()?.add_FrameCreated(
             &FrameCreatedEventHandler::create(Box::new(move |_, args| {
                 let Some(args) = args else { return Ok(()); };
@@ -386,8 +432,22 @@ pub fn install(
                     let dom_registry = created_registry.clone();
                     let dom_nonce = created_nonce.clone();
                     let mut dom_token=0;
-                    frame.add_DOMContentLoaded(&FrameDOMContentLoadedEventHandler::create(Box::new(move |_, _| {
+                    frame.add_DOMContentLoaded(&FrameDOMContentLoadedEventHandler::create(Box::new(move |sender, _| {
                         dom_registry.lifecycle(frame_id, &dom_nonce, "dom-content-loaded", json!({}));
+                        // Opt-in, fixed read-only snapshot. This never installs scripts,
+                        // starts Mermaid, reads source text, or supplies rendering data.
+                        if dom_nonce.is_some() && dom_registry.1.is_some() {
+                            if let Some(sender)=sender {
+                                let script=windows::core::HSTRING::from(r#"({readyState:document.readyState,scriptCount:document.scripts.length,enginePresent:typeof globalThis.mermaid==='object',bootstrapStarted:document.documentElement.dataset.milkupMermaidBootstrap==='started',readySent:document.documentElement.dataset.milkupMermaidReadySent==='true',opaqueOrigin:globalThis.origin==='null'})"#);
+                                let snapshot_registry=dom_registry.clone();
+                                let snapshot_nonce=dom_nonce.clone();
+                                sender.cast::<ICoreWebView2Frame2>()?.ExecuteScript(&script, &ExecuteScriptCompletedHandler::create(Box::new(move |result, raw| {
+                                    let detail = if result.is_ok() && raw.len()<=512 { serde_json::from_str::<Value>(&raw).ok().filter(|v| v.is_object()) } else { None };
+                                    snapshot_registry.lifecycle(frame_id, &snapshot_nonce, "script-state", detail.unwrap_or(json!({"snapshotFailed":true})));
+                                    Ok(())
+                                })))?;
+                            }
+                        }
                         Ok(())
                     })), &mut dom_token)?;
                     let complete_registry = created_registry.clone();
@@ -461,6 +521,15 @@ mod tests {
     }
     fn event(phase: &str) -> Value {
         json!({"phase":phase,"ownerId":"a".repeat(32),"requestId":"b".repeat(32),"sourceSha256":"c".repeat(64)})
+    }
+    #[test]
+    fn load_diagnostics_never_retain_console_content_or_urls() {
+        let value=classify_load_console(&json!({"level":"error", "text":"Refused http://tauri.localhost/assets/frame-secret.js because of Content Security Policy: private document text"})).unwrap();
+        assert_eq!(value["cspViolation"], true);
+        assert_eq!(value["bootstrapAssetMentioned"], true);
+        assert!(!value.to_string().contains("private"));
+        assert!(!value.to_string().contains("http"));
+        assert!(classify_load_console(&json!({"text":"other private output"})).is_none());
     }
     #[test]
     fn navigation_policy_only_applies_to_exact_owned_frames() {

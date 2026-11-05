@@ -164,6 +164,17 @@ export function createFrontendMermaidOwner(
       frame.style.cssText =
         'position:fixed;left:0;top:0;width:8192px;height:8192px;opacity:0;pointer-events:none;z-index:-2147483648;border:0'
       const handshake = (event: MessageEvent) => {
+        if (event.source === frame?.contentWindow && event.data?.kind === 'milkup-mermaid-ready') {
+          void audit({
+            kind: 'connection',
+            ownerId: nonce,
+            stage: 'frame-hello',
+            failed: false,
+            opaqueOrigin: event.origin === 'null',
+            nonceMatches: event.data.nonce === nonce,
+            portAlreadyAssigned: !!port,
+          })
+        }
         if (
           event.source !== frame?.contentWindow ||
           event.origin !== 'null' ||
@@ -172,6 +183,8 @@ export function createFrontendMermaidOwner(
           port
         )
           return
+        connectionStage = 'port-transfer'
+        void audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
         const channel = new MessageChannel()
         port = channel.port1
         port.onmessage = ({ data }: MessageEvent<Message>) => {
