@@ -704,6 +704,26 @@ export async function main() {
         continue
       }
       beforeDispatch?.()
+      if (selector === '[data-document-png-scale]') {
+        const found = await request('POST', `/session/${session}/element`, {
+          using: 'css selector',
+          value: selector,
+        })
+        const elementRef = found?.['element-6066-11e4-a52e-4f735466cecf'] ?? found?.ELEMENT
+        assert(elementRef, 'Portal scale control must expose a WebDriver element reference')
+        report.inputs.push({
+          at: new Date().toISOString(),
+          selector,
+          kind: 'WebDriver-element-click',
+          x: target.x,
+          y: target.y,
+        })
+        return request(
+          'POST',
+          `/session/${session}/element/${encodeURIComponent(elementRef)}/click`,
+          {},
+        )
+      }
       report.inputs.push({
         at: new Date().toISOString(),
         selector,
