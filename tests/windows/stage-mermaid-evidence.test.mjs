@@ -88,6 +88,9 @@ for (const name of [
   'installer-stderr.log',
   'fixture-gui-many.md.log',
   'fixture-gui-manyScroll.md.log',
+  'migration-prepare-ordinary-restart-product.log',
+  'migration-prepare-00-restart-old-plugin-choice-window.png',
+  'migration-prepare-migration-old-restarted-diagram.png',
 ])
   test(`retains declared bounded evidence: ${name}`, () => {
     const f = fixture()
@@ -98,7 +101,9 @@ for (const name of [
         audit.harnessMode = 'gui-regression'
         writeFileSync(auditPath, JSON.stringify(audit))
       }
-      const body = Buffer.from(name.endsWith('.json') ? '{"status":"blocked"}\n' : 'fixture log\n')
+      const body = name.endsWith('.png')
+        ? Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+        : Buffer.from(name.endsWith('.json') ? '{"status":"blocked"}\n' : 'fixture log\n')
       const sha256 = createHash('sha256').update(body).digest('hex')
       writeFileSync(join(f.source, name), body)
       writeFileSync(

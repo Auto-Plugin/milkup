@@ -2185,7 +2185,37 @@ test('old profile receipts require the real pinned baseline, same owned account 
     candidateSha: expected.candidateSha,
     context: { actualSid: expected.sid, sessionId: 2 },
     applicationSha256: MIGRATION_BASELINE_SHA256,
-    launches: [{ closedByUi: true }],
+    launches: [
+      {
+        productPid: 100,
+        creationFileTime: '1000',
+        closedByUi: true,
+        exitCode: 0,
+        signal: null,
+        stdioClosedAt: 'closed-1',
+        profile: 'same-owned-profile',
+      },
+      {
+        productPid: 100,
+        creationFileTime: '2000',
+        closedByUi: true,
+        exitCode: 0,
+        signal: null,
+        stdioClosedAt: 'closed-2',
+        profile: 'same-owned-profile',
+        restartedOldProfile: true,
+      },
+    ],
+    steps: [
+      {
+        name: '00-restart-old-plugin-choice',
+        passed: true,
+        productPid: 100,
+        productCreationFileTime: '2000',
+        checked: 'false',
+        previewVerified: false,
+      },
+    ],
     migration: {
       phase: 'prepare',
       auditContract: 'shipped-beta9-preparation-only',
@@ -2201,11 +2231,26 @@ test('old profile receipts require the real pinned baseline, same owned account 
     },
   }
   validateMigrationReceipt(receipt, expected)
+  const enabled = structuredClone(receipt)
+  enabled.migration.choice = 'enabled'
+  enabled.migration.catalog.enabled = true
+  enabled.steps[0].checked = 'true'
+  enabled.steps[0].previewVerified = true
+  validateMigrationReceipt(enabled, { ...expected, choice: 'enabled' })
   for (const change of [
     (r) => (r.status = 'failed'),
     (r) => (r.context.actualSid += '0'),
     (r) => (r.applicationSha256 = 'c'.repeat(64)),
     (r) => (r.launches[0].closedByUi = false),
+    (r) => r.launches.pop(),
+    (r) => (r.launches[1].creationFileTime = '1000'),
+    (r) => (r.launches[1].profile = 'fresh-profile'),
+    (r) => r.launches.forEach((launch) => delete launch.profile),
+    (r) => (r.launches[1].stdioClosedAt = null),
+    (r) => (r.steps[0].passed = false),
+    (r) => (r.steps[0].checked = 'true'),
+    (r) => (r.steps[0].productCreationFileTime = '1000'),
+    (r) => (r.steps[0].previewVerified = true),
     (r) => (r.migration.catalog.enabled = true),
     (r) => (r.migration.catalog.approved = false),
     (r) => (r.migration.catalog.sourcePath = 'C:/manual.milkup-plugin'),

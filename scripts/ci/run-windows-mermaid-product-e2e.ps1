@@ -144,8 +144,10 @@ function Get-ChildEvidenceNames {
     $steps = @('01-default-mermaid-preview', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-syntax', '07-invalid', '08-final-disable')
     foreach ($step in $steps) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
     foreach ($syntax in @('sequence', 'classDiagram', 'stateDiagram', 'er', 'gantt', 'gitGraph', 'pie', 'journey', 'mindmap', 'timeline', 'xychart', 'architecture')) { $name = 'syntax-' + $syntax + '-diagram.png'; $names.Add($name, $name) }
-    foreach ($step in @('00-prepare-old-plugin-choice', '01-migrated-plugin-choice')) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
+    foreach ($step in @('00-prepare-old-plugin-choice', '00-restart-old-plugin-choice', '01-migrated-plugin-choice')) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
     $names.Add('migration-old-enabled-diagram.png', 'migration-old-enabled-diagram.png')
+    $names.Add('migration-old-restarted-diagram.png', 'migration-old-restarted-diagram.png')
+    $names.Add('ordinary-restart-product.log', 'ordinary-restart-product.log')
     foreach ($name in @('migration-synthetic-catalog.json', 'migration-synthetic-catalog.log')) { $names.Add($name, $name) }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
     foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }

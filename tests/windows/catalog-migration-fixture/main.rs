@@ -44,8 +44,46 @@ fn run(receipt_path: &Path, receipt_hash: &str, scenario: &str, out: &Path) {
         receipt["applicationSha256"],
         "5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84"
     );
-    assert_eq!(receipt["launches"].as_array().unwrap().len(), 1);
-    assert_eq!(receipt["launches"][0]["closedByUi"], true);
+    let launches = receipt["launches"].as_array().unwrap();
+    assert_eq!(launches.len(), 2);
+    for launch in launches {
+        assert_eq!(launch["closedByUi"], true);
+        assert_eq!(launch["exitCode"], 0);
+        assert!(launch["signal"].is_null());
+        assert!(!launch["stdioClosedAt"].as_str().unwrap().is_empty());
+        assert!(launch["productPid"].as_u64().unwrap() > 0);
+        assert!(
+            launch["creationFileTime"]
+                .as_str()
+                .unwrap()
+                .parse::<u64>()
+                .unwrap()
+                > 0
+        );
+    }
+    assert!(
+        launches[0]["productPid"] != launches[1]["productPid"]
+            || launches[0]["creationFileTime"] != launches[1]["creationFileTime"]
+    );
+    assert_eq!(launches[1]["restartedOldProfile"], true);
+    assert_eq!(
+        launches[0]["profile"].as_str().unwrap(),
+        launches[1]["profile"].as_str().unwrap()
+    );
+    let restart = receipt["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|step| step["name"] == "00-restart-old-plugin-choice")
+        .unwrap();
+    assert_eq!(restart["passed"], true);
+    assert_eq!(restart["productPid"], launches[1]["productPid"]);
+    assert_eq!(
+        restart["productCreationFileTime"],
+        launches[1]["creationFileTime"]
+    );
+    assert_eq!(restart["checked"], "true");
+    assert_eq!(restart["previewVerified"], true);
     let old = &receipt["migration"]["catalog"];
     let catalog_path = Path::new(old["path"].as_str().unwrap());
     assert_eq!(catalog_path.file_name().unwrap(), "catalog-v1.json");
@@ -188,7 +226,7 @@ mod fixture_tests {
                 );
             }
             let catalog_path = root.join("catalog-v1.json");
-            let receipt = json!({"status":"passed","applicationSha256":"5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84","runId":"local-fixture-unit-test","candidateSha":"local-fixture-unit-test","context":{"actualSid":"unit-test-not-Windows-evidence","knownFolders":{"localAppData":base,"roamingAppData":base}},"launches":[{"closedByUi":true}],"migration":{"phase":"prepare","choice":"enabled","auditContract":"shipped-beta9-preparation-only","catalog":{"path":catalog_path,"sha256":hash(&fs::read(&catalog_path).unwrap()),"sourcePath":e["active"]["sourcePath"],"contentSha256":e["active"]["contentSha256"]}}});
+            let receipt = json!({"status":"passed","applicationSha256":"5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84","runId":"local-fixture-unit-test","candidateSha":"local-fixture-unit-test","context":{"actualSid":"unit-test-not-Windows-evidence","knownFolders":{"localAppData":base,"roamingAppData":base}},"launches":[{"productPid":100,"creationFileTime":"1000","closedByUi":true,"exitCode":0,"signal":null,"stdioClosedAt":"closed-1","profile":"same-owned-profile"},{"productPid":100,"creationFileTime":"2000","closedByUi":true,"exitCode":0,"signal":null,"stdioClosedAt":"closed-2","profile":"same-owned-profile","restartedOldProfile":true}],"steps":[{"name":"00-restart-old-plugin-choice","passed":true,"productPid":100,"productCreationFileTime":"2000","checked":"true","previewVerified":true}],"migration":{"phase":"prepare","choice":"enabled","auditContract":"shipped-beta9-preparation-only","catalog":{"path":catalog_path,"sha256":hash(&fs::read(&catalog_path).unwrap()),"sourcePath":e["active"]["sourcePath"],"contentSha256":e["active"]["contentSha256"]}}});
             let receipt_path = base.join("receipt.json");
             let bytes = serde_json::to_vec(&receipt).unwrap();
             fs::write(&receipt_path, &bytes).unwrap();

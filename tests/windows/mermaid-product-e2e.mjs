@@ -1419,8 +1419,34 @@ export function validateMigrationReceipt(receipt, expected) {
   assert.equal(receipt.migration.phase, 'prepare')
   assert.equal(receipt.migration.auditContract, 'shipped-beta9-preparation-only')
   assert.equal(receipt.migration.choice, expected.choice === 'disabled' ? 'disabled' : 'enabled')
-  assert.equal(receipt.launches.length, 1)
-  assert.equal(receipt.launches[0].closedByUi, true)
+  assert.equal(
+    receipt.launches.length,
+    2,
+    'Old UI choice must survive a real restart before upgrade',
+  )
+  for (const launch of receipt.launches) {
+    assert.equal(launch.closedByUi, true)
+    assert.equal(launch.exitCode, 0)
+    assert.equal(launch.signal, null)
+    assert(launch.stdioClosedAt)
+    assert.equal(typeof launch.profile, 'string')
+    assert(launch.profile.length > 0)
+    assert(Number.isInteger(launch.productPid) && launch.productPid > 0)
+    assert.match(launch.creationFileTime, /^[1-9][0-9]*$/)
+  }
+  const [first, restarted] = receipt.launches
+  assert.notEqual(
+    `${first.productPid}:${first.creationFileTime}`,
+    `${restarted.productPid}:${restarted.creationFileTime}`,
+  )
+  assert.equal(restarted.restartedOldProfile, true)
+  assert.equal(restarted.profile, first.profile)
+  const restart = receipt.steps.find((step) => step.name === '00-restart-old-plugin-choice')
+  assert.equal(restart?.passed, true)
+  assert.equal(restart.productPid, restarted.productPid)
+  assert.equal(restart.productCreationFileTime, restarted.creationFileTime)
+  assert.equal(restart.checked, String(expected.choice !== 'disabled'))
+  assert.equal(restart.previewVerified, expected.choice !== 'disabled')
   assert.equal(receipt.migration.catalog.enabled, expected.choice !== 'disabled')
   assert.equal(receipt.migration.catalog.verified, true)
   assert.equal(receipt.migration.catalog.approved, true)
@@ -2064,11 +2090,17 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     guard()
     return ledger.verifyAll(product.pid)
   }
-  const startProduct = async (name) => {
+  const startProduct = async (name, restart = false) => {
+    if (restart) {
+      assert.equal(migrationPhase, 'prepare')
+      assert.equal(report.launches.length, 1)
+      assert.equal(report.launches[0].closedByUi, true)
+      assert.equal(name, 'ordinary')
+    }
     active = name
     const port = await freePort(),
       profile = path.join(profileRoot, name)
-    await mkdir(profile)
+    await mkdir(profile, { recursive: restart })
     const env = { ...process.env }
     for (const key of Object.keys(env))
       if (key.startsWith('WEBVIEW2_') || key.startsWith('TAURI_')) delete env[key]
@@ -2084,6 +2116,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     })
     launch = {
       fixture: name,
+      ...(restart ? { restartedOldProfile: true } : {}),
       productPid: product.pid,
       fileArgument: files[name].path,
       profile,
@@ -2373,7 +2406,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       }
       try {
         await writeFile(
-          path.join(evidence, `${record.fixture}-product.log`),
+          path.join(
+            evidence,
+            `${record.fixture}${record.restartedOldProfile ? '-restart' : ''}-product.log`,
+          ),
           record.applicationOutput,
         )
       } catch (error) {
@@ -2438,14 +2474,33 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         const initial = (await state()).cards.find((item) => item.id === PLUGIN)
         assert(initial && ['true', 'false'].includes(initial.checked))
         row.initial = initial
-        if (initial.checked === 'false') await switchPlugin(true)
-        else await closeMenu()
+        if (initial.checked === 'true') {
+          await switchPlugin(false)
+          await rendered(false)
+        }
+        await switchPlugin(true)
         await rendered(true)
         row.image = await readImage('migration-old-enabled')
         if (migrationChoice === 'disabled') {
           await switchPlugin(false)
           await rendered(false)
         }
+        row.saved = await saved()
+      })
+      await closeProduct(true)
+      await startProduct('ordinary', true)
+      await step('00-restart-old-plugin-choice', async (row) => {
+        row.productPid = launch.productPid
+        row.productCreationFileTime = launch.creationFileTime
+        await menu()
+        const card = (await state()).cards.find((item) => item.id === PLUGIN)
+        assert.equal(card?.checked, String(migrationChoice !== 'disabled'))
+        assert.notEqual(card.busy, 'true')
+        row.checked = card.checked
+        await closeMenu()
+        await rendered(migrationChoice !== 'disabled')
+        if (migrationChoice !== 'disabled') row.image = await readImage('migration-old-restarted')
+        row.previewVerified = migrationChoice !== 'disabled'
         row.saved = await saved()
       })
       await closeProduct(true)
