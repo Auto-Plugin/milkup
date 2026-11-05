@@ -57,13 +57,13 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $head = @(git rev-parse HEAD)
           if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong source candidate' }
-          $sourceRun = (& gh api repos/Auto-Plugin/milkup/actions/runs/41755515328 | ConvertFrom-Json)
+          $sourceRun = (& gh api repos/Auto-Plugin/milkup/actions/runs/41985364078 | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0 -or $sourceRun.status -cne 'completed' -or $sourceRun.conclusion -cne 'success' -or
-              $sourceRun.head_sha -cne '4055d7f44c95b1714b3f9fb5551a6ee10d3bd62c' -or
+              $sourceRun.head_sha -cne 'a22f8c35c4efc055c534feb907c4aa7add42ee33' -or
               $sourceRun.path -cne '.github/workflows/mermaid-windows-account-compat.yml') { throw 'Exact dual-account source acceptance has not passed' }
           git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
-          git diff --exit-code 4055d7f44c95b1714b3f9fb5551a6ee10d3bd62c HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
+          git diff --exit-code a22f8c35c4efc055c534feb907c4aa7add42ee33 HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed native, renderer or Diagrams implementation changed before packaging' }
           $dirty = @(git status --porcelain)
           if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Dirty candidate checkout' }
