@@ -714,30 +714,14 @@ export async function main() {
         report.inputs.push({
           at: new Date().toISOString(),
           selector,
-          kind: 'W3C-element-origin-pointer',
+          kind: 'WebDriver-element-click',
           x: target.x,
           y: target.y,
         })
-        return request('POST', `/session/${session}/actions`, {
-          actions: [
-            {
-              type: 'pointer',
-              id: 'mouse',
-              parameters: { pointerType: 'mouse' },
-              actions: [
-                {
-                  type: 'pointerMove',
-                  origin: { 'element-6066-11e4-a52e-4f735466cecf': elementRef },
-                  x: 0,
-                  y: 0,
-                  duration: 20,
-                },
-                { type: 'pointerDown', button: 0 },
-                { type: 'pointerUp', button: 0 },
-              ],
-            },
-          ],
-        })
+        return request(
+          'POST',
+          `/session/${session}/element/${encodeURIComponent(elementRef)}/click`,
+        )
       }
       report.inputs.push({
         at: new Date().toISOString(),
