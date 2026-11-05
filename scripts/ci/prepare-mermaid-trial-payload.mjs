@@ -1,3 +1,4 @@
+import { frontendLedgerClass } from '../../tests/windows/mermaid-frontend-contract.mjs'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
@@ -186,6 +187,45 @@ export async function inspectDistArchives(dist, expected) {
   }
 }
 
+/** Exact fixed frontend assets must be referenced by the reachable production modules. */
+export async function inspectFrontendAssets(dist, modules, expected) {
+  const names = await readdir(path.join(dist, 'assets'))
+  assert(names.length <= 4096, 'Bounded production asset inventory')
+  const moduleSources = await Promise.all(
+    modules.map(async (module) => {
+      const bytes = (await publicBuildFile(dist, module.name)).bytes
+      assert.equal(hash(bytes), module.sha256, 'Reachable module changed during asset inspection')
+      return bytes.toString('utf8')
+    }),
+  )
+  const records = []
+  for (const [kind, pattern] of [
+    ['engine', /^mermaid-12\.2\.0\.min-[A-Za-z0-9_-]+\.js$/],
+    ['bootstrap', /^frame-[A-Za-z0-9_-]+\.js$/],
+  ]) {
+    const found = names.filter((name) => pattern.test(name))
+    assert.equal(found.length, 1, 'Exactly one pinned ' + kind + ' frontend asset')
+    const name = 'assets/' + found[0]
+    const bytes = (await publicBuildFile(dist, name)).bytes
+    assert(bytes.length > 0 && bytes.length <= 8 * 1024 * 1024, 'Bounded fixed frontend asset')
+    assert.equal(
+      hash(bytes),
+      hash(expected[kind]),
+      'Frontend ' + kind + ' bytes differ from reviewed source',
+    )
+    assert(
+      moduleSources.some((source) => source.includes('/' + name)),
+      'Fixed ' + kind + ' asset is not reachable from the production entry',
+    )
+    records.push({ kind, name, bytes: bytes.length, sha256: hash(bytes) })
+  }
+  return {
+    renderer: 'frontend-mermaid-12.2.0',
+    assets: records,
+    claim: 'Exact reachable production build assets; installed execution is verified separately',
+  }
+}
+
 /** Compare full binary bytes; only the pinned Tauri UNK-to-NSS transform is allowed. */
 export function inspectEmbeddedEngine(compiled, extracted, engine, bootstrap) {
   assert.equal(engine.length, 5_494_801, 'Official Mermaid asset length changed')
@@ -272,6 +312,11 @@ export function verifyRuntimeDependencies(report, importsBytes, applicationSha25
 async function verifyInputs(evidence) {
   const packaging = await json(path.join(evidence, 'packaging-record.json'))
   assert.equal(packaging.schema, 1)
+  assert.equal(
+    packaging.rendererMode,
+    'frontend',
+    'Current package requires the frontend renderer contract',
+  )
   assert.match(packaging.candidateSha, /^[a-f0-9]{40}$/)
   const head = execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: checkout,
@@ -421,7 +466,18 @@ async function verifyInputs(evidence) {
     })
   }
   const dist = await inspectDistArchives(path.join(checkout, 'apps/desktop/dist'), plugins)
+  const frontendAssets = await inspectFrontendAssets(
+    path.join(checkout, 'apps/desktop/dist'),
+    dist.modules,
+    {
+      engine,
+      bootstrap: await plainBytes(
+        path.join(checkout, 'apps/desktop/src/frontend-mermaid/frame.js'),
+      ),
+    },
+  )
   const input = await json(path.join(evidence, 'installer-input.json'))
+  assert.equal(input.rendererMode, 'frontend')
   assert.equal(input.schema, 1)
   assert.equal(input.candidateSha, packaging.candidateSha)
   assert.equal(input.version, version)
@@ -454,9 +510,10 @@ async function verifyInputs(evidence) {
     candidateSha: packaging.candidateSha,
     version,
     scope:
-      'Current staged build records, reviewed package seals, reachable production archive bytes, compiled/extracted fixed engine bytes; does not assert independent rebuilds or new tests of all ten plugins',
+      'Current staged build records, reviewed package seals, reachable production archive bytes, compiled/extracted legacy asset bytes and reachable fixed frontend assets; does not assert independent rebuilds or new tests of all ten plugins',
     plugins,
     dist,
+    frontendAssets,
     embedded,
     dependencies,
     nsis,
@@ -561,6 +618,7 @@ export async function preparePayload(evidence, output) {
     schema: 1,
     status: 'prepared-pending-installed-verification',
     deliveryReady: false,
+    rendererMode: 'frontend',
     candidateSha: verified.packaging.candidateSha,
     version: verified.packaging.version,
     platform: 'windows-x86_64',
@@ -580,7 +638,7 @@ export async function preparePayload(evidence, output) {
     systemDpiMatrixAccepted: false,
     visualReviewAccepted: false,
     windowsMermaid:
-      'Pinned official 12.2.0 host-private native screen rendering; pure-standard or non-elevated filtered-admin, actual elevated hosts unsupported',
+      'Pinned official 12.2.0 in the existing frontend WebView; opaque script-only frame, native IPC/navigation rejection required, no per-diagram helper. No independent hard JavaScript termination guarantee.',
     export: 'Existing restricted export path; no full Mermaid or Windows DOM/PDF export acceptance',
     plugins: verified.plugins,
     verification: verified.verification,
@@ -987,7 +1045,14 @@ export async function verifyInstalledEvidence(directory, expected) {
   if (product.auditIdentityVersion !== undefined) assert.equal(product.auditIdentityVersion, 1)
   if (product.launches.some((launch) => launch.creationFileTime !== undefined))
     assert(strictLaunches)
-  const ledger = new AuditLedger(
+  const rendererMode = expected.rendererMode ?? 'native'
+  assert(['native', 'frontend'].includes(rendererMode))
+  if (rendererMode === 'frontend') {
+    assert.equal(product.rendererMode, 'frontend')
+    assert.equal(audit.rendererMode, 'frontend')
+  } else assert(product.rendererMode === undefined || product.rendererMode === 'native')
+  const Ledger = rendererMode === 'frontend' ? frontendLedgerClass(AuditLedger) : AuditLedger
+  const ledger = new Ledger(
     installation.actualSid,
     installation.sessionId,
     accountKind,
@@ -1314,6 +1379,7 @@ export async function verifyInstalledGuiEvidence(directory, expected) {
     report,
     byName.get('gui-native-audit.json').bytes,
     byName.get('native-window-events.json').bytes,
+    expected.rendererMode ?? 'native',
   )
   // The outer copy manifest binds each retained child report and screenshot to
   // the bytes read before that exact fresh account/profile was removed.
@@ -1482,6 +1548,7 @@ export async function finalizePayload(evidence, output, installedEvidence, guiEv
     verified.verification,
   )
   const expected = {
+    rendererMode: 'frontend',
     candidateSha: verified.packaging.candidateSha,
     version: verified.packaging.version,
     installerSha256: verified.packaging.installer.sha256,

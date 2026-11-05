@@ -11,12 +11,10 @@ on:
         description: Successful dual-account source acceptance run
         required: true
         type: string
-        default: '41985364078'
       accepted_source_sha:
         description: Exact source commit tested by that run
         required: true
         type: string
-        default: 'a22f8c35c4efc055c534feb907c4aa7add42ee33'
 
 permissions:
   contents: read
@@ -64,8 +62,8 @@ jobs:
       - name: Verify exact candidate, approved ancestor and official engine
         env:
           GH_TOKEN: ${{ github.token }}
-          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '41985364078' }}
-          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || 'a22f8c35c4efc055c534feb907c4aa7add42ee33' }}
+          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '' }}
+          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || '' }}
         run: |
           $ErrorActionPreference = 'Stop'
           $head = @(git rev-parse HEAD)
@@ -75,7 +73,7 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $sourceRun.status -cne 'completed' -or $sourceRun.conclusion -cne 'success' -or
               $sourceRun.head_sha -cne $env:ACCEPTED_SOURCE_SHA -or
               $sourceRun.head_branch -cne 'dot/mermaid-stability-20261104' -or
-              $sourceRun.path -cne '.github/workflows/mermaid-windows-account-compat.yml') { throw 'Exact dual-account source acceptance has not passed' }
+              $sourceRun.path -cne '.github/workflows/mermaid-windows-frontend-compat.yml') { throw 'Exact dual-account source acceptance has not passed' }
           git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
           git merge-base --is-ancestor $env:ACCEPTED_SOURCE_SHA HEAD
@@ -169,8 +167,8 @@ jobs:
         id: packaged
         env:
           GH_TOKEN: ${{ github.token }}
-          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '41985364078' }}
-          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || 'a22f8c35c4efc055c534feb907c4aa7add42ee33' }}
+          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '' }}
+          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || '' }}
         run: |
           ./scripts/ci/build-windows-mermaid-trial.ps1 -AcceptedSourceRunId $env:ACCEPTED_SOURCE_RUN -AcceptedSourceSha $env:ACCEPTED_SOURCE_SHA -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence') -OutputDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-delivery')
       - name: Strict final source gate before installer execution
@@ -227,7 +225,7 @@ jobs:
           foreach ($kind in @('pure-standard', 'filtered-admin')) {
           foreach ($choice in @('enabled', 'disabled', 'same-version', 'startup-failure')) {
             try {
-              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -Binary $record.compiledApplication.path -ExpectedBinarySha256 $record.compiledApplication.sha256 -LifecycleBaselineInstaller $env:MILKUP_LIFECYCLE_BASELINE -MigrationChoice $choice -Installer $record.installer.path -ExpectedInstallerSha256 $record.installer.sha256 -ExpectedVersion $record.version -PackageManifest $manifest -ExpectedPackageManifestSha256 $manifestHash -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-trial-installed-evidence/$kind-$choice") -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind
+              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -RendererMode frontend -Binary $record.compiledApplication.path -ExpectedBinarySha256 $record.compiledApplication.sha256 -LifecycleBaselineInstaller $env:MILKUP_LIFECYCLE_BASELINE -MigrationChoice $choice -Installer $record.installer.path -ExpectedInstallerSha256 $record.installer.sha256 -ExpectedVersion $record.version -PackageManifest $manifest -ExpectedPackageManifestSha256 $manifestHash -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-trial-installed-evidence/$kind-$choice") -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind
             } catch {
               $failures += "$kind/$choice : $($_.Exception.Message)"
               Write-Host "::error::$kind installed-product acceptance failed; original reports retained"

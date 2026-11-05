@@ -48,7 +48,7 @@ $sourceRunJson = @(& gh api ('repos/Auto-Plugin/milkup/actions/runs/' + $Accepte
 if ($LASTEXITCODE -ne 0) { throw 'Cannot verify source acceptance receipt' }
 $sourceReceiptPath = Join-Path $EvidenceDirectory 'source-acceptance-run.json'
 Write-NewJson $sourceReceiptPath (($sourceRunJson -join "`n") | ConvertFrom-Json)
-Checked node @('scripts/ci/verify-mermaid-source-acceptance.mjs', $sourceReceiptPath, $AcceptedSourceRunId, $AcceptedSourceSha)
+Checked node @('scripts/ci/verify-mermaid-source-acceptance.mjs', $sourceReceiptPath, $AcceptedSourceRunId, $AcceptedSourceSha, 'frontend')
 Checked git @('merge-base', '--is-ancestor', $AcceptedSourceSha, $sha)
 Checked git @('diff', '--exit-code', $AcceptedSourceSha, $sha, '--', 'vendor/wry', 'apps/desktop/src-tauri/Cargo.toml', 'apps/desktop/src-tauri/Cargo.lock', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/vite.config.ts', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'packages/core/src', 'packages/view-dom/src', 'plugins/diagrams-worker')
 $dirty = @(git status --porcelain=v1 --untracked-files=all)
@@ -109,12 +109,12 @@ $resources = @([ordered]@{ relativePath = 'file.ico'; bytes = $icon.Length; sha2
 $icons = @($imageProof.files | Where-Object { [IO.Path]::GetFileName($_.path) -ceq 'file.ico' })
 if ($icons.Count -ne 1 -or $icons[0].sha256 -cne $resources[0].sha256 -or $icons[0].bytes -ne $resources[0].bytes) { throw 'Actual installer lacks the exact file icon resource' }
 Write-NewJson (Join-Path $EvidenceDirectory 'installer-input.json') ([ordered]@{
-    schema = 1; candidateSha = $sha; version = $version
+    schema = 1; rendererMode = 'frontend'; candidateSha = $sha; version = $version
     builtBinarySha256 = $compiled.sha256; expectedInstalledBinarySha256 = $extracted.sha256
     resources = $resources; bundledPlugins = @()
 })
 Write-NewJson (Join-Path $EvidenceDirectory 'packaging-record.json') ([ordered]@{
-    schema = 1; candidateSha = $sha; version = $version; platform = 'windows-x86_64'
+    schema = 1; rendererMode = 'frontend'; candidateSha = $sha; version = $version; platform = 'windows-x86_64'
     runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT
     runUrl = "https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     acceptedImplementationBase = 'b139a9891a086685d7e0e9e85472a29a629f7a45'

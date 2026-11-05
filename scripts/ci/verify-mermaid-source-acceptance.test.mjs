@@ -65,11 +65,16 @@ test('both installer workflows forward the accepted receipt into the protected b
     /verify-mermaid-source-acceptance\.mjs', \$sourceReceiptPath, \$AcceptedSourceRunId, \$AcceptedSourceSha/,
   )
   assert.match(builder, /'merge-base', '--is-ancestor', \$AcceptedSourceSha, \$sha/)
-  assert.match(
-    builder,
-    /'diff', '--exit-code', \$AcceptedSourceSha, \$sha, '--', 'apps\/desktop\/src-tauri\/mermaid-engine'/,
-  )
+  assert.match(builder, /'diff', '--exit-code', \$AcceptedSourceSha, \$sha, '--', 'vendor\/wry'/)
   assert.match(builder, /reviewedImplementationBase = \$AcceptedSourceSha/)
   assert.match(builder, /sourceAcceptanceRunId = \[long\]\$AcceptedSourceRunId/)
   assert.doesNotMatch(builder, /a22f8c35|41985364078/)
+})
+
+test('frontend packaging requires an exact successful frontend source workflow, not a native green run', () => {
+  const frontend = { ...receipt, path: '.github/workflows/mermaid-windows-frontend-compat.yml' }
+  verifySourceAcceptance(frontend, runId, sha, 'frontend')
+  assert.throws(() => verifySourceAcceptance(receipt, runId, sha, 'frontend'))
+  assert.throws(() => verifySourceAcceptance(frontend, runId, sha, 'native'))
+  assert.throws(() => verifySourceAcceptance(frontend, runId, sha, 'unknown'))
 })

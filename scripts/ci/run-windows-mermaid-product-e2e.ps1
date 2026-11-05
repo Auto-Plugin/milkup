@@ -372,7 +372,9 @@ function Remove-ExactProfileWithRetry([string]$Sid, $Audit) {
     }
     $Audit.profileDeleted = $true
 }
-function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Version, [string]$BuiltHash) {
+function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Version, [string]$BuiltHash, [string]$ExpectedRenderer = 'native') {
+    if ($ExpectedRenderer -cnotin @('native','frontend')) { throw 'Unknown installer renderer mode' }
+    if ($ExpectedRenderer -ceq 'frontend' -and $Manifest.rendererMode -cne 'frontend') { throw 'Installer frontend identity missing' }
     if ($Manifest.schema -ne 1 -or $Manifest.candidateSha -cne $Commit -or
         $Manifest.version -cne $Version -or $Version -cnotmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' -or
         $Manifest.builtBinarySha256 -cne $BuiltHash -or
@@ -552,7 +554,7 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         $manifest = Read-SmallJson $Spec.packageManifest.path
         $baseline = $Spec.harnessMode -ceq 'gui-regression' -and $Spec.applicationCandidateSha -cne $Spec.candidateSha
         $manifestBuiltHash = $(if ($baseline) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $Spec.binary.sha256 })
-        Assert-InstallationManifest $manifest $Spec.applicationCandidateSha $Spec.expectedVersion $manifestBuiltHash
+        Assert-InstallationManifest $manifest $Spec.applicationCandidateSha $Spec.expectedVersion $manifestBuiltHash $Spec.rendererMode
         $record.bundledPlugins = @($manifest.bundledPlugins)
         if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) {
             Assert-Hash $Spec.lifecycleBaseline.path 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
@@ -950,7 +952,7 @@ try {
             $manifestProof.sha256 -cne $ExpectedPackageManifestSha256) { throw 'Installer or manifest frozen identity mismatch' }
         $manifest = Read-SmallJson $manifestProof.path
         $manifestBuiltHash = $(if ($ApplicationCandidateSha -cne $ExpectedCommit) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $binaryProof.sha256 })
-        Assert-InstallationManifest $manifest $ApplicationCandidateSha $ExpectedVersion $manifestBuiltHash
+        Assert-InstallationManifest $manifest $ApplicationCandidateSha $ExpectedVersion $manifestBuiltHash $RendererMode
         if ($ApplicationCandidateSha -cne $ExpectedCommit -and $manifest.expectedInstalledBinarySha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84') { throw 'Delivered beta.9 installed image identity mismatch' }
     }
     $machineRoots = @(${env:ProgramFiles(x86)}, $env:ProgramFiles) | Where-Object { $_ } | Select-Object -Unique

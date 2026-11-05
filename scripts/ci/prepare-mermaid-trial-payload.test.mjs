@@ -10,6 +10,7 @@ import { deflateSync } from 'node:zlib'
 import { expectedNsisImage } from './verify-nsis-image.mjs'
 import {
   inspectDistArchives,
+  inspectFrontendAssets,
   inspectEmbeddedEngine,
   verifyInstalledEvidence,
   verifyInstalledGuiEvidence,
@@ -1709,4 +1710,34 @@ test('final payload permits only the exact additional 44 GUI evidence files and 
     ),
   )
   assert.throws(() => verifyPayloadInventory([...original, ...gui, gui[0]], { gui: true }))
+})
+
+test('fixed frontend assets require exact bytes and reachable production references', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'milkup-frontend-assets-'))
+  try {
+    await mkdir(path.join(dir, 'assets'))
+    const engine = Buffer.from('reviewed engine'),
+      bootstrap = Buffer.from('fixed frame')
+    const entry = Buffer.from(
+      'const engine="/assets/mermaid-12.2.0.min-sealed.js",frame="/assets/frame-sealed.js";',
+    )
+    await writeFile(path.join(dir, 'assets/entry.js'), entry)
+    await writeFile(path.join(dir, 'assets/mermaid-12.2.0.min-sealed.js'), engine)
+    await writeFile(path.join(dir, 'assets/frame-sealed.js'), bootstrap)
+    const modules = [
+      { name: 'assets/entry.js', sha256: createHash('sha256').update(entry).digest('hex') },
+    ]
+    assert.equal(
+      (await inspectFrontendAssets(dir, modules, { engine, bootstrap })).assets.length,
+      2,
+    )
+    await assert.rejects(
+      inspectFrontendAssets(dir, modules, { engine, bootstrap: Buffer.from('other') }),
+    )
+    await assert.rejects(inspectFrontendAssets(dir, [], { engine, bootstrap }))
+    await writeFile(path.join(dir, 'assets/frame-duplicate.js'), bootstrap)
+    await assert.rejects(inspectFrontendAssets(dir, modules, { engine, bootstrap }))
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })

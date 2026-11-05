@@ -151,3 +151,26 @@ Local checks for this evidence increment:
 Real Windows frontend product/GUI and installed prior-profile migration remain
 required. Old helper run 42104273456 completed successfully but is a different
 architecture and cannot satisfy these frontend gates.
+
+### Installer preparation (not executed)
+
+The installer builder and both installer workflows now require the exact successful
+`mermaid-windows-frontend-compat.yml` receipt. Old helper-run defaults were removed.
+The packaging record, installer manifest, wrapper environment and report retain
+an explicit frontend mode. The finalizer selects the frontend evidence contract
+from the independently prepared package expectation, never from optional report
+fields. Pinned beta.9 preparation remains an explicitly separate legacy phase.
+
+A new asset check binds the reachable production module references to the exact
+official engine and fixed frame source bytes. Local production build inspection:
+engine 5,494,801 bytes, SHA-256
+`a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f`;
+frame 19,948 bytes, SHA-256
+`e4e1d998cf6b024f2be3c39d5c13ed0d4486c4475814d5c7b2a9f7e5f952cf14`.
+These are build-asset checks, not a claim that an installer has run.
+Source/packaging contract tests: 169 passed; wrapper fixtures: 111 passed.
+
+Old helper baseline 42104273456 original final artifact 13453098480 was separately
+read: both product and GUI passed; each account resolved 102/102 SHOW records,
+no observer overflow or unresolved window; idle/busy UI closes exited normally
+with inner cleanup. This remains old-architecture evidence only.

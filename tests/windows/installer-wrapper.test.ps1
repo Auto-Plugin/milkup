@@ -427,6 +427,18 @@ try {
         Assert-True ([IO.File]::ReadAllText($sentinel) -ceq 'untouched') 'Existing installation modified'
     }
 } finally { Remove-Item -LiteralPath $testRoot -Recurse -Force }
+Case 'frontend installer identity cannot silently fall back to a native contract' {
+    $manifest = New-Manifest
+    $rejected = $false
+    try { Assert-InstallationManifest $manifest $commit $version $built 'frontend' } catch { $rejected = $true }
+    Assert-True $rejected 'Missing frontend manifest identity passed'
+    $manifest.rendererMode = 'frontend'
+    Assert-InstallationManifest $manifest $commit $version $built 'frontend'
+    $manifest.rendererMode = 'native'
+    $rejected = $false
+    try { Assert-InstallationManifest $manifest $commit $version $built 'frontend' } catch { $rejected = $true }
+    Assert-True $rejected 'Wrong renderer identity passed'
+}
 $report = @{ status = 'passed'; tests = $results.Count; cases = $results.ToArray(); windowsInstallerExecuted = $false; windowsNativeApisCalled = $false }
 $json = $report | ConvertTo-Json -Depth 8
 if ($OutputPath) { [IO.File]::WriteAllText([IO.Path]::GetFullPath($OutputPath), $json + "`n", [Text.UTF8Encoding]::new($false)) }
