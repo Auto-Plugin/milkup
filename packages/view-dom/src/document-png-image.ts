@@ -76,6 +76,7 @@ export function createOwnedDocumentPngImage(
   let timer: ReturnType<typeof setTimeout> | undefined
   let released = false
   let natural = false
+  let measuredWidth: number | undefined
   let resize: ResizeObserver | undefined
   let layoutFrame: number | undefined
   const ownerWindow = document.defaultView
@@ -123,7 +124,12 @@ export function createOwnedDocumentPngImage(
     const width = element.getBoundingClientRect().width
     if (!Number.isFinite(width) || width <= 0) return
     const narrow = width + 0.5 < value.width
-    if (!narrow && natural) setNatural(false)
+    const resized = measuredWidth !== undefined && Math.abs(width - measuredWidth) > 0.5
+    // A natural toggle may itself trigger one resize callback. Only collapse
+    // back to fit after a later real container resize, which changes the
+    // measured outer width again.
+    if (!narrow && natural && resized) setNatural(false)
+    measuredWidth = width
     element.style.paddingTop = narrow ? `${controlHeight}px` : '0'
     if (controls.hidden === narrow) {
       if (!narrow && document.activeElement === button) viewport.focus({ preventScroll: true })
