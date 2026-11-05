@@ -155,6 +155,24 @@ function New-NativeDictionary([hashtable]$Values) {
     foreach ($key in $Values.Keys) { $dictionary[$key] = $Values[$key] }
     return ,$dictionary
 }
+# Nested callbacks can finish enqueueing before the outer callback. The actual
+# drainer must retain entry order and original timestamps, not completion order.
+$queueObserver = [WindowsMermaidGuiObserver]::new()
+try {
+    $noticeType = [WindowsMermaidGuiObserver].GetNestedType('NativeNotice', [Reflection.BindingFlags]::NonPublic)
+    $queue = [WindowsMermaidGuiObserver].GetField('nativeNotices', $instanceFlags).GetValue($queueObserver)
+    $dequeue = [WindowsMermaidGuiObserver].GetMethod('DequeueNativeNotice', $instanceFlags)
+    foreach ($order in @(3, 2, 1)) {
+        $notice = [Activator]::CreateInstance($noticeType, $true)
+        $notice.Order = [long]$order; $notice.Time = [uint32](100 + $order); $notice.Tick = [long](110 + $order)
+        $queue.Enqueue($notice)
+    }
+    foreach ($order in 1..3) {
+        $notice = $dequeue.Invoke($queueObserver, @())
+        Assert ($notice.Order -eq $order -and $notice.Time -eq (100 + $order) -and $notice.Tick -eq (110 + $order)) 'Nested callback completion reordered or rewrote native evidence'
+    }
+    Assert ($queue.Count -eq 0) 'Ordered native drain duplicated a notice'
+} finally { $queueObserver.Dispose() }
 # Exercise the actual C# journal/reconciler and export its own raw records for
 # independent JavaScript replay. No native API or real desktop is simulated.
 $lifetimeObserver = [WindowsMermaidGuiObserver]::new()

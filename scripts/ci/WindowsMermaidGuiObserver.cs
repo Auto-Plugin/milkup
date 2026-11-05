@@ -57,7 +57,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     int workingGenerationPeak;
     readonly Queue<NativeNotice> nativeNotices = new Queue<NativeNotice>();
     readonly List<Dictionary<string, object>> directChildShows = new List<Dictionary<string, object>>();
-    bool processingNativeNotice;
+    int processingNativeNotice;
 
     [StructLayout(LayoutKind.Sequential)] struct Rect { public int left, top, right, bottom; }
     [StructLayout(LayoutKind.Sequential)] struct Point { public int x, y; }
@@ -507,18 +507,32 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         if (knownWindowShowEvents != all.Count) AddError("One or more SHOW events lack unique native window lifetime proof; absence of consoles is unverified");
     }
     bool HasQueuedBarrier(IntPtr hwnd) { foreach (NativeNotice notice in nativeNotices) if (notice.Hwnd == hwnd && (notice.Kind == CreateEvent || notice.Kind == DestroyEvent)) return true; return false; }
+    NativeNotice DequeueNativeNotice() {
+        var ordered = nativeNotices.ToArray();
+        Array.Sort(ordered, (left, right) => left.Order.CompareTo(right.Order));
+        NativeNotice notice = ordered[0]; nativeNotices.Clear();
+        for (int index = 1; index < ordered.Length; index++) nativeNotices.Enqueue(ordered[index]);
+        return notice;
+    }
     void QueueNativeEvent(uint kind, IntPtr hwnd, uint tid, uint time) {
-        // Save entry order/time before any window interop. Reentrant callbacks
-        // enqueue only; their completion can never reorder the current snapshot.
-        var notice = new NativeNotice { Kind = kind, Hwnd = hwnd, Tid = tid, Time = time, Order = Interlocked.Increment(ref observationSequence), Tick = NativeTick() };
-        lock (gate) { if (nativeNotices.Count + SharedRecordCount() >= MaxEvents) { MarkOverflow("native-event-queue-budget"); return; } nativeNotices.Enqueue(notice); if (processingNativeNotice) return; processingNativeNotice = true; }
+        // Claim the drainer before native interop or taking an STA lock: either
+        // can reenter the hook. Nested callbacks may enqueue before this one,
+        // so select by callback-entry sequence, never by enqueue completion.
+        long order = Interlocked.Increment(ref observationSequence);
+        bool drain = Interlocked.CompareExchange(ref processingNativeNotice, 1, 0) == 0;
         try {
+            var notice = new NativeNotice { Kind = kind, Hwnd = hwnd, Tid = tid, Time = time, Order = order, Tick = NativeTick() };
+            lock (gate) { if (nativeNotices.Count + SharedRecordCount() >= MaxEvents) { MarkOverflow("native-event-queue-budget"); return; } nativeNotices.Enqueue(notice); }
+            if (!drain) return;
             while (true) {
-                lock (gate) { if (nativeNotices.Count == 0) break; notice = nativeNotices.Dequeue(); }
+                lock (gate) {
+                    if (nativeNotices.Count == 0) break;
+                    notice = DequeueNativeNotice();
+                }
                 Observe(notice.Hwnd, notice.Kind == CreateEvent ? "create" : notice.Kind == DestroyEvent ? "destroy" : notice.Kind == ShowEvent ? "show" : "hide", notice.Kind == ShowEvent, false, notice.Time, notice.Tid, notice.Tick, notice.Order);
                 if (notice.Kind == CreateEvent) { lock (gate) ConfirmPendingChildren(notice.Hwnd); }
             }
-        } finally { lock (gate) processingNativeNotice = false; }
+        } finally { if (drain) Interlocked.Exchange(ref processingNativeNotice, 0); }
     }
     void CacheWindow(WindowFact fact, bool destroyed) {
         long key = fact.Handle.ToInt64();
