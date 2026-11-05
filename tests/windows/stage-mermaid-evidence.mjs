@@ -7,6 +7,8 @@ import { syntaxCases } from './mermaid-product-e2e.mjs'
 import { GUI_EVIDENCE_NAMES, validateGuiIdentity } from './mermaid-gui-contract.mjs'
 
 const steps = [
+  '00-prepare-old-plugin-choice',
+  '01-migrated-plugin-choice',
   '01-default-mermaid-preview',
   '02-enable-and-exact-bytes',
   '03-real-edit-save-replacement',
@@ -26,6 +28,7 @@ const screenshots = new Set(
 )
 const diagrams = new Set(
   [
+    'migration-old-enabled',
     '02-enabled',
     '03-edited',
     '04-undone',
@@ -38,6 +41,8 @@ const diagrams = new Set(
 )
 const fixtures = ['ordinary', 'wide', 'c4', 'syntax', 'invalid']
 const metadata = new Set([
+  'migration-synthetic-catalog.json',
+  'migration-synthetic-catalog.log',
   'standard-context.json',
   'standard-child-result.json',
   'mermaid-product-e2e.json',
@@ -63,12 +68,15 @@ const guiEvidence = new Set([
   ...GUI_EVIDENCE_NAMES,
   ...['ordinary', 'wide', 'multi', 'busy'].map((name) => `fixture-gui-${name}.md.log`),
 ])
-const allowed = (name) =>
+const allowedBase = (name) =>
   outer.has(name) ||
   metadata.has(name) ||
   screenshots.has(name) ||
   diagrams.has(name) ||
   guiEvidence.has(name)
+const allowed = (name) =>
+  allowedBase(name) ||
+  (name.startsWith('migration-prepare-') && allowedBase(name.slice('migration-prepare-'.length)))
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 export function stageEvidence(source, destination, candidateSha) {
   assert(/^[a-f0-9]{40}$/.test(candidateSha), 'Exact candidate SHA required')

@@ -7,6 +7,9 @@ import { deflateSync } from 'node:zlib'
 import {
   fixtures,
   validatePreviewModes,
+  validateMigrationReceipt,
+  validateSyntheticMigrationFixture,
+  MIGRATION_BASELINE_SHA256,
   crc32,
   validatePng,
   validateResponsiveDiagram,
@@ -2160,5 +2163,135 @@ test('preview acceptance rejects missing modes, caret relocation and restart-dep
     const bad = structuredClone(good)
     change(bad)
     assert.throws(() => validatePreviewModes(bad))
+  }
+})
+
+test('old profile receipts require the real pinned baseline, same owned account and explicit choice', () => {
+  const expected = {
+    runId: 'owned-run',
+    candidateSha: 'a'.repeat(40),
+    sid: 'S-1-5-21-1-2-3-1003',
+    sessionId: 2,
+    choice: 'disabled',
+  }
+  const receipt = {
+    status: 'passed',
+    runId: expected.runId,
+    candidateSha: expected.candidateSha,
+    context: { actualSid: expected.sid, sessionId: 2 },
+    applicationSha256: MIGRATION_BASELINE_SHA256,
+    launches: [{ closedByUi: true }],
+    migration: {
+      phase: 'prepare',
+      auditContract: 'shipped-beta9-preparation-only',
+      choice: 'disabled',
+      catalog: {
+        pluginId: 'milkup.diagrams',
+        enabled: false,
+        verified: true,
+        approved: true,
+        sourcePath: 'bundled:milkup.diagrams-1.3.0.milkup-plugin',
+        sha256: 'b'.repeat(64),
+      },
+    },
+  }
+  validateMigrationReceipt(receipt, expected)
+  for (const change of [
+    (r) => (r.status = 'failed'),
+    (r) => (r.context.actualSid += '0'),
+    (r) => (r.applicationSha256 = 'c'.repeat(64)),
+    (r) => (r.launches[0].closedByUi = false),
+    (r) => (r.migration.catalog.enabled = true),
+    (r) => (r.migration.catalog.approved = false),
+    (r) => (r.migration.catalog.sourcePath = 'C:/manual.milkup-plugin'),
+  ]) {
+    const bad = structuredClone(receipt)
+    change(bad)
+    assert.throws(() => validateMigrationReceipt(bad, expected))
+  }
+})
+
+test('historical preparation audit is frozen and has no executable main', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const { createHash } = await import('node:crypto')
+  const source = await readFile(new URL('./mermaid-beta9-audit-fixture.mjs', import.meta.url))
+  assert.equal(
+    createHash('sha256').update(source).digest('hex'),
+    '0752db907f7381e95a8f718555fd5f9a0a9edd291b5fd25cf899bca873fd38f1',
+  )
+  assert(!source.toString().includes('export async function main('))
+  const old = await import('./mermaid-beta9-audit-fixture.mjs')
+  assert.equal(typeof old.AuditLedger, 'function')
+})
+
+test('synthetic prior packages bind identity, preserve approvals and cannot impersonate historical evidence', () => {
+  const expected = {
+    runId: 'run',
+    candidateSha: 'candidate',
+    sid: 'isolated-sid',
+    scenario: 'startup-failure',
+    baselineReceiptSha256: 'a'.repeat(64),
+    catalogPath: 'C:\\owned\\catalog-v1.json',
+    contentSha256: 'b'.repeat(64),
+    version: '1.3.0',
+  }
+  const before = {
+    id: 'milkup.diagrams',
+    enabled: true,
+    tombstone: false,
+    pending: null,
+    startAttempt: null,
+    active: {
+      id: 'old',
+      verified: true,
+      approvedFingerprint: 'fingerprint',
+      capabilityFingerprint: 'fingerprint',
+      manifest: { version: '1.3.0' },
+      contentSha256: expected.contentSha256,
+      sourcePath: 'bundled:diagrams.milkup-plugin',
+    },
+  }
+  const after = structuredClone(before)
+  after.active.id = 'synthetic'
+  after.active.contentSha256 = 'c'.repeat(64)
+  after.previous = structuredClone(before.active)
+  const fixture = {
+    ...expected,
+    status: 'passed',
+    scope: 'synthetic-prior-approved-bundle-not-historical-release',
+    catalogSha256: 'd'.repeat(64),
+    before,
+    after,
+  }
+  validateSyntheticMigrationFixture(fixture, expected)
+  for (const mutate of [
+    (f) => {
+      f.scope = 'real-historical-release'
+    },
+    (f) => {
+      f.sid = 'another-account'
+    },
+    (f) => {
+      f.after.enabled = false
+    },
+    (f) => {
+      f.after.active.contentSha256 = f.before.active.contentSha256
+    },
+    (f) => {
+      f.after.active.manifest.version = '2.0.0'
+    },
+    (f) => {
+      f.after.active.approvedFingerprint = null
+    },
+    (f) => {
+      f.after.previous.id = 'unknown'
+    },
+    (f) => {
+      f.after.active.sourcePath = 'local:untrusted'
+    },
+  ]) {
+    const bad = structuredClone(fixture)
+    mutate(bad)
+    assert.throws(() => validateSyntheticMigrationFixture(bad, expected))
   }
 })

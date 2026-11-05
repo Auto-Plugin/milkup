@@ -647,7 +647,7 @@ export function parseExpectedPluginInventory(raw) {
 
 // Read only public card text. Missing versions/layouts and busy cards are still
 // pending; explicit identity, version or enabled-state mismatches cannot pass.
-export function inspectBundledPluginInventory(cards, inventory) {
+export function inspectBundledPluginInventory(cards, inventory, diagramsEnabled = true) {
   validateExpectedPluginInventory(inventory)
   assert(Array.isArray(cards), 'Observed plugin cards required')
   const expected = new Map(inventory.map(({ id, version }) => [id, version]))
@@ -656,7 +656,7 @@ export function inspectBundledPluginInventory(cards, inventory) {
   const observed = cards.map((card) => {
     assert(expected.has(card.id), 'Unexpected bundled plugin: ' + card.id)
     assert(['true', 'false'].includes(card.checked), 'Observed bundled switch state')
-    if (card.id === PLUGIN && card.checked !== 'true') pending = true
+    if (card.id === PLUGIN && card.checked !== String(diagramsEnabled)) pending = true
     if (card.id !== PLUGIN)
       assert.equal(card.checked, 'false', 'Other bundled plugins remain disabled')
     assert([null, 'false', 'true'].includes(card.busy), 'Observed plugin busy state required')
@@ -697,7 +697,7 @@ export function inspectBundledPluginInventory(cards, inventory) {
 export async function waitForBundledPluginInventory(
   readState,
   inventory,
-  { timeoutMs = 30000, pollIntervalMs = 100, guard = () => {} } = {},
+  { timeoutMs = 30000, pollIntervalMs = 100, guard = () => {}, diagramsEnabled = true } = {},
 ) {
   validateExpectedPluginInventory(inventory)
   const deadline = performance.now() + timeoutMs
@@ -705,7 +705,7 @@ export async function waitForBundledPluginInventory(
   while (performance.now() < deadline) {
     guard()
     last = await readState()
-    const observed = inspectBundledPluginInventory(last.cards, inventory)
+    const observed = inspectBundledPluginInventory(last.cards, inventory, diagramsEnabled)
     if (observed) return { observed, state: last }
     const remaining = deadline - performance.now()
     if (remaining > 0) await delay(Math.min(pollIntervalMs, remaining))
@@ -1270,6 +1270,53 @@ async function noLinks(file) {
   assert(samePath(await realpath(file), file), 'Canonical input path')
 }
 
+export const MIGRATION_BASELINE_SHA256 =
+  '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+export function validateMigrationReceipt(receipt, expected) {
+  assert.equal(receipt.status, 'passed')
+  assert.equal(receipt.runId, expected.runId)
+  assert.equal(receipt.candidateSha, expected.candidateSha)
+  assert.equal(receipt.context.actualSid, expected.sid)
+  assert.equal(receipt.context.sessionId, expected.sessionId)
+  assert.equal(receipt.applicationSha256, MIGRATION_BASELINE_SHA256)
+  assert.equal(receipt.migration.phase, 'prepare')
+  assert.equal(receipt.migration.auditContract, 'shipped-beta9-preparation-only')
+  assert.equal(receipt.migration.choice, expected.choice === 'disabled' ? 'disabled' : 'enabled')
+  assert.equal(receipt.launches.length, 1)
+  assert.equal(receipt.launches[0].closedByUi, true)
+  assert.equal(receipt.migration.catalog.enabled, expected.choice !== 'disabled')
+  assert.equal(receipt.migration.catalog.verified, true)
+  assert.equal(receipt.migration.catalog.approved, true)
+  assert.equal(receipt.migration.catalog.pluginId, PLUGIN)
+  assert.match(receipt.migration.catalog.sourcePath, /^bundled:[A-Za-z0-9._-]+\.milkup-plugin$/)
+  assert.match(receipt.migration.catalog.sha256, /^[a-f0-9]{64}$/)
+}
+
+export function validateSyntheticMigrationFixture(fixture, expected) {
+  assert.equal(fixture.status, 'passed')
+  assert.equal(fixture.scope, 'synthetic-prior-approved-bundle-not-historical-release')
+  for (const key of ['runId', 'candidateSha', 'sid', 'scenario', 'baselineReceiptSha256'])
+    assert.equal(fixture[key], expected[key])
+  assert(samePath(fixture.catalogPath, expected.catalogPath))
+  assert.match(fixture.catalogSha256, /^[a-f0-9]{64}$/)
+  const { before, after } = fixture
+  for (const entry of [before, after]) {
+    assert.equal(entry.id, PLUGIN)
+    assert.equal(entry.enabled, true)
+    assert.equal(entry.tombstone, false)
+    assert.equal(entry.pending, null)
+    assert.equal(entry.startAttempt, null)
+    assert.equal(entry.active.verified, true)
+    assert.equal(entry.active.approvedFingerprint, entry.active.capabilityFingerprint)
+    assert.equal(entry.active.manifest.version, expected.version)
+  }
+  assert.deepEqual(after.active.manifest, before.active.manifest)
+  assert.equal(before.active.contentSha256, expected.contentSha256)
+  assert.notEqual(after.active.contentSha256, before.active.contentSha256)
+  assert.equal(after.previous.id, before.active.id)
+  assert.equal(after.active.sourcePath, before.active.sourcePath)
+}
+
 export async function main() {
   assert.equal(
     process.platform,
@@ -1297,6 +1344,13 @@ export async function main() {
   const expectedBinarySha = required('APP_SHA256'),
     runtimeVersion = required('RUNTIME_VERSION'),
     runtimeExe = path.resolve(required('RUNTIME_EXE'))
+  const migrationPhase = process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE ?? 'none'
+  const migrationChoice = process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE
+  assert(['none', 'prepare', 'verify'].includes(migrationPhase))
+  if (migrationPhase !== 'none')
+    assert(['enabled', 'disabled', 'same-version', 'startup-failure'].includes(migrationChoice))
+  if (migrationPhase === 'prepare') assert.equal(expectedBinarySha, MIGRATION_BASELINE_SHA256)
+  const initiallyEnabled = migrationPhase !== 'verify' || migrationChoice !== 'disabled'
   const expectedPluginInventory = parseExpectedPluginInventory(
     process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY,
   )
@@ -1337,13 +1391,71 @@ export async function main() {
   const productData = [
     ...new Set([context.knownFolders.roamingAppData, context.knownFolders.localAppData]),
   ].map((root) => path.join(root, 'app.milkup.desktop'))
+  let migrationReceipt, syntheticFixture
+  if (migrationPhase === 'verify') {
+    const receiptPath = path.resolve(required('MIGRATION_RECEIPT'))
+    assert(
+      within(context.scratchRoot, receiptPath),
+      'Only this new account run may supply a profile receipt',
+    )
+    await noLinks(receiptPath)
+    const receiptBytes = await readFile(receiptPath)
+    assert(receiptBytes.length <= 2 * 1024 * 1024)
+    assert.equal(sha(receiptBytes), required('MIGRATION_RECEIPT_SHA256'))
+    migrationReceipt = JSON.parse(receiptBytes)
+    validateMigrationReceipt(migrationReceipt, {
+      runId,
+      candidateSha,
+      sid: expectedSid,
+      sessionId: expectedSessionId,
+      choice: migrationChoice,
+    })
+    const catalog = migrationReceipt.migration.catalog
+    assert(
+      productData.some((root) =>
+        samePath(catalog.path, path.join(root, 'plugins', 'catalog-v1.json')),
+      ),
+      'Exact native catalog under owned real KnownFolder',
+    )
+    await noLinks(catalog.path)
+    if (['same-version', 'startup-failure'].includes(migrationChoice)) {
+      const fixturePath = path.resolve(required('MIGRATION_SYNTHETIC'))
+      assert(within(evidence, fixturePath), 'Synthetic receipt belongs to this account evidence')
+      await noLinks(fixturePath)
+      const bytes = await readFile(fixturePath)
+      assert(bytes.length <= 2 * 1024 * 1024)
+      assert.equal(sha(bytes), required('MIGRATION_SYNTHETIC_SHA256'))
+      syntheticFixture = JSON.parse(bytes)
+      validateSyntheticMigrationFixture(syntheticFixture, {
+        runId,
+        candidateSha,
+        sid: expectedSid,
+        scenario: migrationChoice,
+        baselineReceiptSha256: sha(receiptBytes),
+        catalogPath: catalog.path,
+        contentSha256: catalog.contentSha256,
+        version: catalog.version,
+      })
+    }
+    assert.equal(
+      sha(await readFile(catalog.path)),
+      syntheticFixture?.catalogSha256 ?? catalog.sha256,
+      'Installer preserved the recorded prior catalog before launch',
+    )
+  }
   for (const directory of productData) {
     const entries = await readdir(directory).catch((error) => {
       if (error.code === 'ENOENT') return []
       throw error
     })
-    assert.equal(entries.length, 0, 'Refuse an existing product profile: ' + directory)
+    if (migrationPhase !== 'verify')
+      assert.equal(entries.length, 0, 'Refuse an existing product profile: ' + directory)
   }
+  const initialInventory = expectedPluginInventory?.map((item) =>
+    item.id === PLUGIN && !initiallyEnabled
+      ? { ...item, version: migrationReceipt.migration.catalog.version }
+      : item,
+  )
   const files = Object.fromEntries(
     Object.entries(fixtures).map(([name, source]) => [
       name,
@@ -1354,10 +1466,26 @@ export async function main() {
     await writeFile(file, bytes, { flag: 'wx' })
     await writeFile(path.join(evidence, `fixture-${name}.md`), bytes, { flag: 'wx' })
   }
-  const ledger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind),
+  const Ledger =
+    migrationPhase === 'prepare'
+      ? (await import('./mermaid-beta9-audit-fixture.mjs')).AuditLedger
+      : AuditLedger
+  const ledger = new Ledger(expectedSid, expectedSessionId, expectedAccountKind),
     driverPort = await freePort()
   const report = {
     status: 'running',
+    ...(migrationPhase === 'none'
+      ? {}
+      : {
+          migration: {
+            phase: migrationPhase,
+            auditContract:
+              migrationPhase === 'prepare' ? 'shipped-beta9-preparation-only' : 'current-candidate',
+            choice: migrationChoice,
+            ...(syntheticFixture ? { syntheticFixture } : {}),
+            preparedReportSha256: process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256,
+          },
+        }),
     startedAt: new Date().toISOString(),
     candidateSha,
     expectedAccountKind,
@@ -2123,280 +2251,375 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     )
     await observeProcesses(false)
     await startProduct('ordinary')
-    await step('01-default-mermaid-preview', async (row) => {
-      await rendered(true)
-      const before = await state()
-      assert.equal(before.dirty, false)
-      await menu()
-      const inventory = expectedPluginInventory
-        ? await waitForBundledPluginInventory(state, expectedPluginInventory, { guard })
-        : null
-      if (inventory) row.bundledPluginsObserved = inventory.observed
-      let current = inventory?.state ?? (await state())
-      const initialCard = current.cards.find((card) => card.id === PLUGIN)
-      assert(initialCard, 'Exact Diagrams card exists after asynchronous catalog readiness')
-      assert.equal(initialCard.checked, 'true', 'Fresh Diagrams previews without a plugin gesture')
-      assert.notEqual(initialCard.busy, 'true', 'Initial Diagrams switch is not busy')
-      assert.equal(initialCard.switchDisabled, false, 'Initial Diagrams switch is actionable')
-      await pointer(`[data-plugin-action="details"][data-plugin-id="${PLUGIN}"]`)
-      current = await state()
-      assert(
-        current.pluginText?.includes('1.3.0'),
-        'Actual reviewed Diagrams version in product UI',
-      )
-      row.pluginDetails = current.pluginText
-      await closeMenu()
-      assert.equal((await state()).version, before.version)
-      assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
-    })
-    let initialImage, editedImage
-    await step('02-enable-and-exact-bytes', async (row) => {
-      const before = await state()
-      await switchPlugin(false)
-      await rendered(false)
-      assert(
-        (await state()).notices.some(
-          (notice) => notice.visible && notice.text.includes('无需重启'),
-        ),
-        'Disabled renderer gives a visible explanation',
-      )
-      await switchPlugin(true)
-      await rendered(true)
-      assert(
-        !(await state()).notices.some(
-          (notice) => notice.visible && notice.text.includes('预览未开启'),
-        ),
-        'Hot enable clears unavailable status',
-      )
-      assert.equal((await state()).version, before.version)
-      assert.equal((await state()).dirty, before.dirty)
-      // Drive the public selector through native keyboard input. Keep the caret
-      // inside the fence: preview must not depend on moving it out of the source.
-      const fenceOffset = fixtures.ordinary.indexOf('flowchart LR')
-      await position(fixtures.ordinary, fenceOffset, 'source')
-      await rendered(false)
-      row.modeTransitions = [{ mode: 'source', cursor: (await state()).cursor, images: 0 }]
-      await pointer('[data-view-mode-selector]')
-      await keys('\uE011\uE015\uE007') // Home, Down, Enter => 渲染.
-      await until(async () => (await state()).mode === 'preview', 'Public rendered mode selector')
-      await rendered(true)
-      let modeState = await state()
-      assert.equal(modeState.cursor, fenceOffset, 'Preview retains the caret inside the fence')
-      await switchPlugin(false)
-      await rendered(false)
-      await switchPlugin(true)
-      await rendered(true)
-      assert.equal((await state()).mode, 'preview', 'Hot enable retains rendered mode')
-      assert.equal(
-        await execute("return document.querySelector('.milkup-editor').dataset.editable"),
-        'false',
-      )
-      assert.equal(
-        await execute("return document.querySelector('.milkup-editor textarea').readOnly"),
-        true,
-      )
-      await keys('X')
-      assert.equal(
-        (await state()).version,
-        before.version,
-        'Rendered mode rejects typing after plugin view replacement',
-      )
-      row.previewReadonlyAfterHotEnable = true
-      row.modeTransitions.push({
-        mode: modeState.mode,
-        cursor: modeState.cursor,
-        images: modeState.images.length,
-      })
-      await position(fixtures.ordinary, fenceOffset, 'live')
-      await rendered(false)
-      modeState = await state()
-      row.modeTransitions.push({ mode: modeState.mode, cursor: modeState.cursor, images: 0 })
-      await position(fixtures.ordinary)
-      await rendered(true)
-      assert.equal((await state()).version, before.version)
-      assert.equal((await state()).dirty, before.dirty)
-      await position(fixtures.ordinary, 2, 'source')
-      await pointer('[data-view-mode-selector]')
-      await keys('\uE011\uE015\uE007')
-      await until(async () => (await state()).mode === 'preview', 'Rendered Markdown mode')
-      assert.equal(
-        await execute(
-          "return document.querySelector('.milkup-heading-marker')?.classList.contains('milkup-marker-hidden')",
-        ),
-        true,
-      )
-      const boldOffset = fixtures.ordinary.indexOf('bold')
-      await position(fixtures.ordinary, boldOffset, 'source')
-      await pointer('[data-view-mode-selector]')
-      await keys('\uE011\uE015\uE007')
-      await until(
-        async () => (await state()).mode === 'preview',
-        'Rendered Markdown retains bold caret',
-      )
-      assert.equal(
-        await execute(
-          "return document.querySelector('.milkup-inline-strong')?.dataset.syntaxVisible",
-        ),
-        'false',
-      )
-      row.markdownPreviewMarkersHidden = true
-      await position(fixtures.ordinary)
-      await rendered(true)
-      row.image = initialImage = await readImage('02-enabled')
-      row.saved = await saved()
-      row.hotEnableWithoutRestart = true
-      row.sourcePreserved = true
-      validatePreviewModes(row)
-    })
-    const offset = fixtures.ordinary.indexOf('Draft'),
-      edited = fixtures.ordinary.slice(0, offset) + 'X' + fixtures.ordinary.slice(offset)
-    await step('03-real-edit-save-replacement', async (row) => {
-      await position(fixtures.ordinary, offset, 'source')
-      await rendered(false)
-      const before = await state()
-      assert(before.source.some((line) => line.visible && line.text.includes('A[Draft 草稿]')))
-      await keys('X')
-      await until(async () => {
-        const s = await state()
-        return s.dirty && s.version === before.version + 1
-      }, 'Real source edit and dirty/version change')
-      row.saved = await saved(edited)
-      await position(edited)
-      await rendered(true)
-      row.image = editedImage = await readImage('03-edited')
-      const editedVersion = (await state()).version
-      await pointer('[data-view-mode-selector]')
-      await keys('\uE011\uE015\uE007')
-      await until(async () => (await state()).mode === 'preview', 'Rendered mode with undo history')
-      await control('z')
-      assert.equal(
-        (await state()).version,
-        editedVersion,
-        'Undo command cannot mutate rendered mode',
-      )
-      assert.equal((await state()).dirty, false)
-      row.previewUndoBlocked = true
-      await position(edited)
-      await rendered(true)
-      assert.notEqual(
-        editedImage.pixelSha256,
-        initialImage.pixelSha256,
-        'Actual edited diagram pixels changed',
-      )
-    })
-    await step('04-undo-exact-original', async (row) => {
-      await position(edited, 0, 'source')
-      await control('z')
-      row.saved = await saved()
-      await position(fixtures.ordinary)
-      await rendered(true)
-      row.image = await readImage('04-undone')
-      assert.equal(
-        row.image.pixelSha256,
-        initialImage.pixelSha256,
-        'Undo restores decoded original pixels',
-      )
-    })
-    await step('05-redo-exact-edit', async (row) => {
-      await position(fixtures.ordinary, 0, 'source')
-      await control('y')
-      row.saved = await saved(edited)
-      await position(edited)
-      await rendered(true)
-      row.image = await readImage('05-redone')
-      assert.equal(
-        row.image.pixelSha256,
-        editedImage.pixelSha256,
-        'Redo restores decoded edited pixels',
-      )
-    })
-    await step('06-disable-and-reenable-in-place', async (row) => {
-      await position(edited, 0, 'source')
-      await control('z')
-      row.saved = await saved()
-      await position(fixtures.ordinary)
-      await rendered(true)
-      await switchPlugin(false)
-      await rendered(false)
-      let current = await state()
-      assert(current.source.some((line) => line.visible && line.text.includes('flowchart LR')))
-      assert.equal(current.dirty, false)
-      await switchPlugin(true)
-      await rendered(true)
-      row.image = await readImage('06-reenabled')
-      assert.equal((await state()).dirty, false)
-      row.saved = await saved()
-    })
-    await closeProduct(true)
-    for (const name of ['wide', 'c4', 'syntax', 'invalid']) {
-      await startProduct(name)
-      await step('07-' + name, async (row) => {
-        if (name === 'syntax') {
-          row.syntaxCases = []
-          for (const example of syntaxCases) {
-            const heading = fixtures.syntax.indexOf('# Syntax ' + example.id + '\n')
-            const from = fixtures.syntax.indexOf('```mermaid', heading)
-            await position(fixtures.syntax, heading)
-            await until(
-              () =>
-                execute(
-                  `const image=document.querySelector('[data-presentation-from="${from}"] img');return !!image&&image.complete&&image.naturalWidth>0&&image.currentSrc.startsWith('blob:')`,
-                ),
-              'Decoded official syntax: ' + example.id,
-              45000,
-            )
-            const image = await readImage('syntax-' + example.id, false, from)
-            row.syntaxCases.push({ id: example.id, from, sourceSha256: sha(example.source), image })
-            await persist()
-          }
-          assert.deepEqual(
-            row.syntaxCases.map((item) => item.id),
-            syntaxCases.map((item) => item.id),
-          )
-        } else if (name === 'invalid') {
-          await until(
-            async () => {
-              const s = await state()
-              return (
-                !s.images.length &&
-                s.notices.some((notice) => notice.visible && notice.text.trim()) &&
-                s.source.some(
-                  (line) => line.visible && line.text.includes('unknownWindowsMermaidGrammar'),
-                )
-              )
-            },
-            'Invalid grammar leaves source and actual diagnostic',
-            45000,
-          )
-          await drain()
-          assert(
-            ledger.verifyAll(product.pid).some(isUnknownGrammarRejection),
-            'Invalid grammar reached owned renderer; timeout/startup failure is not syntax acceptance',
-          )
-        } else {
-          await rendered(true)
-          row.image = await readImage('07-' + name)
-          const current = await state(),
-            image = current.images.find((item) => item.visible)
-          if (name === 'wide') {
-            assert(image.naturalWidth > current.editor.width)
-            row.responsiveLayout = validateResponsiveDiagram(image)
-            assert(image.naturalHeight >= 40)
-          }
-          if (name === 'c4')
-            row.visualReviewRequired =
-              'Read the retained actual C4 PNG for label/arrow separation, readable contrast and bounded blank margin.'
+    if (migrationPhase === 'prepare') {
+      await step('00-prepare-old-plugin-choice', async (row) => {
+        await menu()
+        // waitForPluginCard returns its public observation; read again for exact UI state.
+        const initial = (await state()).cards.find((item) => item.id === PLUGIN)
+        assert(initial && ['true', 'false'].includes(initial.checked))
+        row.initial = initial
+        if (initial.checked === 'false') await switchPlugin(true)
+        else await closeMenu()
+        await rendered(true)
+        row.image = await readImage('migration-old-enabled')
+        if (migrationChoice === 'disabled') {
+          await switchPlugin(false)
+          await rendered(false)
         }
+        row.saved = await saved()
+      })
+      await closeProduct(true)
+      const found = []
+      for (const root of productData) {
+        const file = path.join(root, 'plugins', 'catalog-v1.json')
+        const bytes = await readFile(file).catch((error) => {
+          if (error.code === 'ENOENT') return null
+          throw error
+        })
+        if (!bytes) continue
+        await noLinks(file)
+        assert(bytes.length <= 16 * 1024 * 1024)
+        const entry = JSON.parse(bytes).payload?.entries?.find((item) => item.id === PLUGIN)
+        assert(entry?.active && !entry.pending && !entry.tombstone && !entry.startAttempt)
+        assert.equal(entry.enabled, migrationChoice !== 'disabled')
+        found.push({
+          path: file,
+          sha256: sha(bytes),
+          pluginId: entry.id,
+          enabled: entry.enabled,
+          version: entry.active.manifest.version,
+          contentSha256: entry.active.contentSha256,
+          manifestSha256: entry.active.manifestSha256,
+          sourcePath: entry.active.sourcePath,
+          verified: entry.active.verified,
+          approved: entry.active.approvedFingerprint === entry.active.capabilityFingerprint,
+        })
+      }
+      assert.equal(found.length, 1, 'One durable catalog produced by the real old UI')
+      report.migration.catalog = found[0]
+    } else {
+      await step(
+        migrationPhase === 'verify' ? '01-migrated-plugin-choice' : '01-default-mermaid-preview',
+        async (row) => {
+          await rendered(initiallyEnabled)
+          const before = await state()
+          assert.equal(before.dirty, false)
+          await menu()
+          const inventory = initialInventory
+            ? await waitForBundledPluginInventory(state, initialInventory, {
+                guard,
+                diagramsEnabled: initiallyEnabled,
+              })
+            : null
+          if (inventory) row.bundledPluginsObserved = inventory.observed
+          let current = inventory?.state ?? (await state())
+          const initialCard = current.cards.find((card) => card.id === PLUGIN)
+          assert(initialCard, 'Exact Diagrams card exists after asynchronous catalog readiness')
+          assert.equal(
+            initialCard.checked,
+            String(initiallyEnabled),
+            'Initial Diagrams state preserves the actual profile choice',
+          )
+          assert.notEqual(initialCard.busy, 'true', 'Initial Diagrams switch is not busy')
+          assert.equal(initialCard.switchDisabled, false, 'Initial Diagrams switch is actionable')
+          await pointer(`[data-plugin-action="details"][data-plugin-id="${PLUGIN}"]`)
+          current = await state()
+          assert(
+            current.pluginText?.includes(
+              initiallyEnabled ? '1.3.0' : migrationReceipt.migration.catalog.version,
+            ),
+            'Actual reviewed Diagrams version in product UI',
+          )
+          row.pluginDetails = current.pluginText
+          if (syntheticFixture) {
+            const catalogPath = migrationReceipt.migration.catalog.path
+            await noLinks(catalogPath)
+            const catalogBytes = await readFile(catalogPath)
+            assert(catalogBytes.length <= 16 * 1024 * 1024)
+            const entry = JSON.parse(catalogBytes).payload.entries.find(
+              (item) => item.id === PLUGIN,
+            )
+            assert(
+              entry?.enabled && entry.active?.verified && !entry.pending && !entry.startAttempt,
+            )
+            assert.equal(entry.active.approvedFingerprint, entry.active.capabilityFingerprint)
+            assert.equal(
+              entry.active.manifest.version,
+              syntheticFixture.after.active.manifest.version,
+            )
+            assert.equal(entry.active.contentSha256, syntheticFixture.before.active.contentSha256)
+            assert.notEqual(entry.active.id, syntheticFixture.after.active.id)
+            if (migrationChoice === 'startup-failure')
+              assert(
+                entry.diagnostics.some((note) =>
+                  note.includes('MILKUP_SYNTHETIC_PRIOR_STARTUP_FAILURE'),
+                ),
+                'Actual old startup failed before healthy bundled recovery',
+              )
+            row.migratedCatalog = { sha256: sha(catalogBytes), entry }
+          }
+          await closeMenu()
+          assert.equal((await state()).version, before.version)
+          assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
+        },
+      )
+      let initialImage, editedImage
+      await step('02-enable-and-exact-bytes', async (row) => {
+        const before = await state()
+        if (initiallyEnabled) await switchPlugin(false)
+        await rendered(false)
+        assert(
+          (await state()).notices.some(
+            (notice) => notice.visible && notice.text.includes('无需重启'),
+          ),
+          'Disabled renderer gives a visible explanation',
+        )
+        await switchPlugin(true)
+        await rendered(true)
+        assert(
+          !(await state()).notices.some(
+            (notice) => notice.visible && notice.text.includes('预览未开启'),
+          ),
+          'Hot enable clears unavailable status',
+        )
+        assert.equal((await state()).version, before.version)
+        assert.equal((await state()).dirty, before.dirty)
+        // Drive the public selector through native keyboard input. Keep the caret
+        // inside the fence: preview must not depend on moving it out of the source.
+        const fenceOffset = fixtures.ordinary.indexOf('flowchart LR')
+        await position(fixtures.ordinary, fenceOffset, 'source')
+        await rendered(false)
+        row.modeTransitions = [{ mode: 'source', cursor: (await state()).cursor, images: 0 }]
+        await pointer('[data-view-mode-selector]')
+        await keys('\uE011\uE015\uE007') // Home, Down, Enter => 渲染.
+        await until(async () => (await state()).mode === 'preview', 'Public rendered mode selector')
+        await rendered(true)
+        let modeState = await state()
+        assert.equal(modeState.cursor, fenceOffset, 'Preview retains the caret inside the fence')
+        await switchPlugin(false)
+        await rendered(false)
+        await switchPlugin(true)
+        await rendered(true)
+        assert.equal((await state()).mode, 'preview', 'Hot enable retains rendered mode')
+        assert.equal(
+          await execute("return document.querySelector('.milkup-editor').dataset.editable"),
+          'false',
+        )
+        assert.equal(
+          await execute("return document.querySelector('.milkup-editor textarea').readOnly"),
+          true,
+        )
+        await keys('X')
+        assert.equal(
+          (await state()).version,
+          before.version,
+          'Rendered mode rejects typing after plugin view replacement',
+        )
+        row.previewReadonlyAfterHotEnable = true
+        row.modeTransitions.push({
+          mode: modeState.mode,
+          cursor: modeState.cursor,
+          images: modeState.images.length,
+        })
+        await position(fixtures.ordinary, fenceOffset, 'live')
+        await rendered(false)
+        modeState = await state()
+        row.modeTransitions.push({ mode: modeState.mode, cursor: modeState.cursor, images: 0 })
+        await position(fixtures.ordinary)
+        await rendered(true)
+        assert.equal((await state()).version, before.version)
+        assert.equal((await state()).dirty, before.dirty)
+        await position(fixtures.ordinary, 2, 'source')
+        await pointer('[data-view-mode-selector]')
+        await keys('\uE011\uE015\uE007')
+        await until(async () => (await state()).mode === 'preview', 'Rendered Markdown mode')
+        assert.equal(
+          await execute(
+            "return document.querySelector('.milkup-heading-marker')?.classList.contains('milkup-marker-hidden')",
+          ),
+          true,
+        )
+        const boldOffset = fixtures.ordinary.indexOf('bold')
+        await position(fixtures.ordinary, boldOffset, 'source')
+        await pointer('[data-view-mode-selector]')
+        await keys('\uE011\uE015\uE007')
+        await until(
+          async () => (await state()).mode === 'preview',
+          'Rendered Markdown retains bold caret',
+        )
+        assert.equal(
+          await execute(
+            "return document.querySelector('.milkup-inline-strong')?.dataset.syntaxVisible",
+          ),
+          'false',
+        )
+        row.markdownPreviewMarkersHidden = true
+        await position(fixtures.ordinary)
+        await rendered(true)
+        row.image = initialImage = await readImage('02-enabled')
+        row.saved = await saved()
+        row.hotEnableWithoutRestart = true
+        row.sourcePreserved = true
+        validatePreviewModes(row)
+      })
+      const offset = fixtures.ordinary.indexOf('Draft'),
+        edited = fixtures.ordinary.slice(0, offset) + 'X' + fixtures.ordinary.slice(offset)
+      await step('03-real-edit-save-replacement', async (row) => {
+        await position(fixtures.ordinary, offset, 'source')
+        await rendered(false)
+        const before = await state()
+        assert(before.source.some((line) => line.visible && line.text.includes('A[Draft 草稿]')))
+        await keys('X')
+        await until(async () => {
+          const s = await state()
+          return s.dirty && s.version === before.version + 1
+        }, 'Real source edit and dirty/version change')
+        row.saved = await saved(edited)
+        await position(edited)
+        await rendered(true)
+        row.image = editedImage = await readImage('03-edited')
+        const editedVersion = (await state()).version
+        await pointer('[data-view-mode-selector]')
+        await keys('\uE011\uE015\uE007')
+        await until(
+          async () => (await state()).mode === 'preview',
+          'Rendered mode with undo history',
+        )
+        await control('z')
+        assert.equal(
+          (await state()).version,
+          editedVersion,
+          'Undo command cannot mutate rendered mode',
+        )
+        assert.equal((await state()).dirty, false)
+        row.previewUndoBlocked = true
+        await position(edited)
+        await rendered(true)
+        assert.notEqual(
+          editedImage.pixelSha256,
+          initialImage.pixelSha256,
+          'Actual edited diagram pixels changed',
+        )
+      })
+      await step('04-undo-exact-original', async (row) => {
+        await position(edited, 0, 'source')
+        await control('z')
+        row.saved = await saved()
+        await position(fixtures.ordinary)
+        await rendered(true)
+        row.image = await readImage('04-undone')
+        assert.equal(
+          row.image.pixelSha256,
+          initialImage.pixelSha256,
+          'Undo restores decoded original pixels',
+        )
+      })
+      await step('05-redo-exact-edit', async (row) => {
+        await position(fixtures.ordinary, 0, 'source')
+        await control('y')
+        row.saved = await saved(edited)
+        await position(edited)
+        await rendered(true)
+        row.image = await readImage('05-redone')
+        assert.equal(
+          row.image.pixelSha256,
+          editedImage.pixelSha256,
+          'Redo restores decoded edited pixels',
+        )
+      })
+      await step('06-disable-and-reenable-in-place', async (row) => {
+        await position(edited, 0, 'source')
+        await control('z')
+        row.saved = await saved()
+        await position(fixtures.ordinary)
+        await rendered(true)
+        await switchPlugin(false)
+        await rendered(false)
+        let current = await state()
+        assert(current.source.some((line) => line.visible && line.text.includes('flowchart LR')))
+        assert.equal(current.dirty, false)
+        await switchPlugin(true)
+        await rendered(true)
+        row.image = await readImage('06-reenabled')
         assert.equal((await state()).dirty, false)
         row.saved = await saved()
       })
-      if (name === 'invalid')
-        await step('08-final-disable', async () => {
-          await switchPlugin(false)
-          await rendered(false)
-          await saved()
-        })
       await closeProduct(true)
+      for (const name of ['wide', 'c4', 'syntax', 'invalid']) {
+        await startProduct(name)
+        await step('07-' + name, async (row) => {
+          if (name === 'syntax') {
+            row.syntaxCases = []
+            for (const example of syntaxCases) {
+              const heading = fixtures.syntax.indexOf('# Syntax ' + example.id + '\n')
+              const from = fixtures.syntax.indexOf('```mermaid', heading)
+              await position(fixtures.syntax, heading)
+              await until(
+                () =>
+                  execute(
+                    `const image=document.querySelector('[data-presentation-from="${from}"] img');return !!image&&image.complete&&image.naturalWidth>0&&image.currentSrc.startsWith('blob:')`,
+                  ),
+                'Decoded official syntax: ' + example.id,
+                45000,
+              )
+              const image = await readImage('syntax-' + example.id, false, from)
+              row.syntaxCases.push({
+                id: example.id,
+                from,
+                sourceSha256: sha(example.source),
+                image,
+              })
+              await persist()
+            }
+            assert.deepEqual(
+              row.syntaxCases.map((item) => item.id),
+              syntaxCases.map((item) => item.id),
+            )
+          } else if (name === 'invalid') {
+            await until(
+              async () => {
+                const s = await state()
+                return (
+                  !s.images.length &&
+                  s.notices.some((notice) => notice.visible && notice.text.trim()) &&
+                  s.source.some(
+                    (line) => line.visible && line.text.includes('unknownWindowsMermaidGrammar'),
+                  )
+                )
+              },
+              'Invalid grammar leaves source and actual diagnostic',
+              45000,
+            )
+            await drain()
+            assert(
+              ledger.verifyAll(product.pid).some(isUnknownGrammarRejection),
+              'Invalid grammar reached owned renderer; timeout/startup failure is not syntax acceptance',
+            )
+          } else {
+            await rendered(true)
+            row.image = await readImage('07-' + name)
+            const current = await state(),
+              image = current.images.find((item) => item.visible)
+            if (name === 'wide') {
+              assert(image.naturalWidth > current.editor.width)
+              row.responsiveLayout = validateResponsiveDiagram(image)
+              assert(image.naturalHeight >= 40)
+            }
+            if (name === 'c4')
+              row.visualReviewRequired =
+                'Read the retained actual C4 PNG for label/arrow separation, readable contrast and bounded blank margin.'
+          }
+          assert.equal((await state()).dirty, false)
+          row.saved = await saved()
+        })
+        if (name === 'invalid')
+          await step('08-final-disable', async () => {
+            await switchPlugin(false)
+            await rendered(false)
+            await saved()
+          })
+        await closeProduct(true)
+      }
     }
     await observeProcesses(false)
     ledger.verifyAll()

@@ -11,6 +11,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
     [Parameter(ParameterSetName = 'Parent')][string]$LifecycleBaselineInstaller,
+    [Parameter(ParameterSetName = 'Parent')][ValidateSet('enabled', 'disabled', 'same-version', 'startup-failure', IgnoreCase = $false)][string]$MigrationChoice,
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedInstallerSha256,
     [Parameter(ParameterSetName = 'Parent')][string]$ExpectedVersion,
     [Parameter(ParameterSetName = 'Parent')][string]$PackageManifest,
@@ -130,6 +131,9 @@ function Get-ChildEvidenceNames {
     $steps = @('01-default-mermaid-preview', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-syntax', '07-invalid', '08-final-disable')
     foreach ($step in $steps) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
     foreach ($syntax in @('sequence', 'classDiagram', 'stateDiagram', 'er', 'gantt', 'gitGraph', 'pie', 'journey', 'mindmap', 'timeline', 'xychart', 'architecture')) { $name = 'syntax-' + $syntax + '-diagram.png'; $names.Add($name, $name) }
+    foreach ($step in @('00-prepare-old-plugin-choice', '01-migrated-plugin-choice')) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
+    $names.Add('migration-old-enabled-diagram.png', 'migration-old-enabled-diagram.png')
+    foreach ($name in @('migration-synthetic-catalog.json', 'migration-synthetic-catalog.log')) { $names.Add($name, $name) }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
     foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }
     foreach ($name in @('gui-regression.json', 'gui-native-audit.json', 'native-window-events.json', 'gui-observer-stderr.log', 'gui-idle-product.log', 'gui-busy-product.log', 'gui-console-positive.png', 'gui-native-failure.png', 'gui-ordinary-diagram.png', 'gui-wide-diagram.png', 'gui-multi-diagram.png', 'gui-multi-2-diagram.png')) { $names.Add($name, $name) }
@@ -143,6 +147,7 @@ function Get-ChildEvidenceNames {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }
     foreach ($name in @('lifecycle-progress.log', 'baseline-stdout.log', 'baseline-stderr.log', 'same-version-stdout.log', 'same-version-stderr.log', 'uninstall-stdout.log', 'uninstall-stderr.log')) { $names.Add($name, $name) }
+    foreach ($entry in @($names.GetEnumerator())) { $names.Add('migration-prepare-' + $entry.Key, 'migration-prepare-' + $entry.Value) }
     return ,$names
 }
 function Read-BoundedEvidenceProof([string]$Path, [long]$Limit, [string]$CopyTo = '', $Created = $null) {
@@ -431,6 +436,85 @@ function Write-LifecycleProgress($Spec, [string]$Evidence, [string]$Phase, $Deta
     if ([Text.Encoding]::UTF8.GetByteCount($line) -gt 16KB -or ((Test-Path $target) -and (Get-Item $target).Length -gt 128KB)) { throw 'Lifecycle progress budget exceeded' }
     [IO.File]::AppendAllText($target, $line, [Text.UTF8Encoding]::new($false))
 }
+function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]$Evidence, [string]$Application) {
+    if ($Spec.migrationChoice -cnotin @('enabled', 'disabled', 'same-version', 'startup-failure')) { throw 'Explicit old profile choice required' }
+    Assert-Hash $Application '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+    $oldChoice = $(if ($Spec.migrationChoice -ceq 'disabled') { 'disabled' } else { 'enabled' })
+    $root = Join-Path $Scratch 'migration-prepare'
+    New-OwnedDirectory $root
+    $work = Join-Path $root 'work'; $output = Join-Path $root 'evidence'
+    New-OwnedDirectory $work; New-OwnedDirectory $output
+    $subcontext = [ordered]@{}
+    foreach ($entry in $Context.GetEnumerator()) { $subcontext[$entry.Key] = $entry.Value }
+    $subcontext.work = $work; $subcontext.evidence = $output
+    Write-Json (Join-Path $output 'standard-context.json') $subcontext
+    $variables = @{
+        MILKUP_WINDOWS_MERMAID_APP = $Application
+        MILKUP_WINDOWS_MERMAID_APP_SHA256 = '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+        MILKUP_WINDOWS_MERMAID_EDGE_DRIVER = $Spec.driver.path
+        MILKUP_WINDOWS_MERMAID_WORK = $work; MILKUP_WINDOWS_MERMAID_EVIDENCE = $output
+        MILKUP_WINDOWS_MERMAID_EXPECTED_SID = $Spec.expectedSid
+        MILKUP_WINDOWS_MERMAID_EXPECTED_ACCOUNT_KIND = $Spec.expectedAccountKind
+        MILKUP_WINDOWS_MERMAID_EXPECTED_SESSION_ID = [string]$Spec.expectedSessionId
+        MILKUP_WINDOWS_MERMAID_RUN_ID = $Spec.runId; MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $Spec.candidateSha
+        MILKUP_WINDOWS_MERMAID_RUNTIME_VERSION = $Spec.runtime.version; MILKUP_WINDOWS_MERMAID_RUNTIME_EXE = $Spec.runtime.path
+        MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $Spec.wrapper.path; MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
+        MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE = 'prepare'; MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE = $oldChoice
+        MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY = $null
+        MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT = $null; MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256 = $null
+    }
+    $prior = @{}
+    try {
+        foreach ($entry in $variables.GetEnumerator()) {
+            $prior[$entry.Key] = [Environment]::GetEnvironmentVariable($entry.Key, 'Process')
+            [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process')
+        }
+        Write-LifecycleProgress $Spec $Evidence 'old-profile-ui-prepare-start' @{ choice = $Spec.migrationChoice }
+        $run = [WindowsMermaidStandardUser]::RunNodeHarness($Spec.node.path, $Spec.harness.path, [IO.Path]::GetDirectoryName($Spec.harness.path), (Join-Path $output 'node-stdout.log'), (Join-Path $output 'node-stderr.log'), 180000)
+        Write-LifecycleProgress $Spec $Evidence 'old-profile-ui-prepare-finish' @{ status = $run.status; elapsedMs = $run.elapsedMs }
+        if ($run.status -cne 'passed') { throw "Real old profile preparation failed: $($run.error)" }
+        $reportPath = Join-Path $output 'mermaid-product-e2e.json'
+        $report = Read-SmallJson $reportPath
+        if ($report.status -cne 'passed' -or $report.runId -cne $Spec.runId -or $report.context.actualSid -cne $Spec.expectedSid -or
+            $report.migration.phase -cne 'prepare' -or $report.migration.choice -cne $oldChoice -or
+            $report.applicationSha256 -cne $variables.MILKUP_WINDOWS_MERMAID_APP_SHA256) { throw 'Old profile UI evidence identity mismatch' }
+        $receipt = File-Proof $reportPath
+        if ($Spec.migrationChoice -cin @('same-version', 'startup-failure')) {
+            Assert-Hash $Spec.migrationFixture.path $Spec.migrationFixture.sha256
+            $fixturePath = Join-Path $Evidence 'migration-synthetic-catalog.json'
+            $info = [Diagnostics.ProcessStartInfo]::new()
+            $info.FileName = $Spec.migrationFixture.path; $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+            $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+            foreach ($arg in @($receipt.path, $receipt.sha256, $Spec.migrationChoice, $fixturePath)) { $info.ArgumentList.Add($arg) }
+            Write-LifecycleProgress $Spec $Evidence 'synthetic-prior-catalog-start' @{ scenario = $Spec.migrationChoice; helper = $Spec.migrationFixture }
+            $process = [Diagnostics.Process]::Start($info)
+            $stdout = $process.StandardOutput.ReadToEndAsync(); $stderr = $process.StandardError.ReadToEndAsync()
+            try {
+                if (-not $process.WaitForExit(30000)) { $process.Kill(); $process.WaitForExit(5000) | Out-Null; throw 'Native fixture transaction deadline' }
+                if (-not [Threading.Tasks.Task]::WaitAll(@($stdout, $stderr), 5000)) { throw 'Native fixture output drain deadline' }
+                $exit = $process.ExitCode
+                $text = $stdout.Result + $stderr.Result
+                if ($text.Length -gt 65536) { throw 'Native fixture diagnostic budget exceeded' }
+                [IO.File]::WriteAllText((Join-Path $Evidence 'migration-synthetic-catalog.log'), $text, [Text.UTF8Encoding]::new($false))
+                if ($exit -ne 0) { throw "Native synthetic fixture failed with code $exit" }
+            } finally { $process.Dispose() }
+            $fixture = Read-SmallJson $fixturePath
+            if ($fixture.status -cne 'passed' -or $fixture.sid -cne $Spec.expectedSid -or $fixture.runId -cne $Spec.runId -or
+                $fixture.candidateSha -cne $Spec.candidateSha -or $fixture.scenario -cne $Spec.migrationChoice -or
+                $fixture.baselineReceiptSha256 -cne $receipt.sha256) { throw 'Synthetic prior-generation receipt mismatch' }
+            $receipt['syntheticFixture'] = File-Proof $fixturePath
+            Write-LifecycleProgress $Spec $Evidence 'synthetic-prior-catalog-finish' $receipt.syntheticFixture
+        }
+        return $receipt
+    } finally {
+        foreach ($entry in $prior.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process') }
+        $allowed = Get-ChildEvidenceNames
+        foreach ($file in @(Get-ChildItem -LiteralPath $output -File)) {
+            if (-not $allowed.ContainsKey($file.Name)) { throw ('Undeclared old profile evidence: ' + $file.Name) }
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $Evidence ('migration-prepare-' + $file.Name)) -ErrorAction Stop
+        }
+    }
+}
 function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]$Evidence) {
     $installDirectory = Join-Path $Scratch $(if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) { '安装 生命周期' } else { 'install' })
     Assert-Contained $installDirectory $Scratch
@@ -464,6 +548,7 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
             Write-LifecycleProgress $Spec $Evidence 'baseline-install-finish' @{ status = $record.lifecycle.baselineInstall.status; elapsedMs = $record.lifecycle.baselineInstall.elapsedMs }
             if ($record.lifecycle.baselineInstall.status -cne 'passed') { throw 'Pinned beta.9 baseline installation failed' }
             Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+            if ($Spec.migrationChoice) { $record.lifecycle['migrationPreparation'] = Prepare-RealOldPluginChoice $Spec $Context $Scratch $Evidence (Join-Path $installDirectory 'milkup-desktop.exe') }
             $sentinel = Join-Path $Scratch 'work/升级保留.md'
             [IO.File]::WriteAllText($sentinel, "# 原文 preservation`n中文 English`n", [Text.UTF8Encoding]::new($false))
             $record.lifecycle['documentBefore'] = File-Proof $sentinel
@@ -636,6 +721,16 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_RUNTIME_EXE = $spec.runtime.path
             MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $spec.wrapper.path
             MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
+            MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE = $(if ($spec.migrationChoice) { 'verify' } else { 'none' })
+            MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE = $spec.migrationChoice
+        }
+        if ($spec.migrationChoice) {
+            $variables['MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT'] = $installation.lifecycle.migrationPreparation.path
+            $variables['MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256'] = $installation.lifecycle.migrationPreparation.sha256
+            if ($spec.migrationChoice -cin @('same-version', 'startup-failure')) {
+                $variables['MILKUP_WINDOWS_MERMAID_MIGRATION_SYNTHETIC'] = $installation.lifecycle.migrationPreparation.syntheticFixture.path
+                $variables['MILKUP_WINDOWS_MERMAID_MIGRATION_SYNTHETIC_SHA256'] = $installation.lifecycle.migrationPreparation.syntheticFixture.sha256
+            }
         }
         if ($null -ne $installation) {
             $variables['MILKUP_WINDOWS_MERMAID_INSTALLER_SHA256'] = $spec.installer.sha256
@@ -759,6 +854,7 @@ if ($installerMode) {
 } elseif ($ExpectedInstallerSha256 -or $ExpectedVersion -or $PackageManifest -or $ExpectedPackageManifestSha256) {
     throw 'Installer-only arguments cannot be silently ignored in linked-binary mode'
 }
+if ($MigrationChoice -and -not $LifecycleBaselineInstaller) { throw 'Real migration requires the pinned installed old version' }
 if ($LifecycleBaselineInstaller -and (-not $installerMode -or $HarnessMode -cne 'product')) { throw 'Lifecycle probe requires current-candidate installed product mode' }
 if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
 if (-not $ApplicationCandidateSha) { $ApplicationCandidateSha = $ExpectedCommit }
@@ -865,6 +961,22 @@ try {
         if ((File-Proof $pair[0]).sha256 -cne (File-Proof (Join-Path $code $pair[1])).sha256) { throw 'Frozen staging copy mismatch' }
     }
     $additionalHarnessFiles = @()
+    if ($MigrationChoice) {
+        $source = Join-Path $repository 'tests/windows/mermaid-beta9-audit-fixture.mjs'
+        $destination = Join-Path $code 'mermaid-beta9-audit-fixture.mjs'
+        Assert-PlainPath $source
+        Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
+        if ((File-Proof $source).sha256 -cne (File-Proof $destination).sha256) { throw 'Frozen old preparation contract copy mismatch' }
+        $additionalHarnessFiles += File-Proof $destination
+        if ($MigrationChoice -cin @('same-version', 'startup-failure')) {
+            $source = Join-Path $env:CARGO_TARGET_DIR 'release/milkup-catalog-migration-fixture.exe'
+            $destination = Join-Path $code 'milkup-catalog-migration-fixture.exe'
+            Assert-PlainPath $source
+            Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
+            if ((File-Proof $source).sha256 -cne (File-Proof $destination).sha256) { throw 'Native fixture copy mismatch' }
+            $additionalHarnessFiles += File-Proof $destination
+        }
+    }
     $sourceInventoryProof = $null
     if ($HarnessMode -ceq 'gui-regression') {
         $guiSources = @('tests/windows/mermaid-product-e2e.mjs', 'tests/windows/mermaid-gui-contract.mjs', 'scripts/ci/run-windows-mermaid-gui-observer.ps1', 'scripts/ci/WindowsMermaidGuiObserver.cs')
@@ -960,7 +1072,7 @@ try {
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; harnessMode = $HarnessMode
-        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller
+        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         sourcePluginInventory = $sourceInventoryProof
         binaryRole = $audit.binaryRole; binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
@@ -968,6 +1080,7 @@ try {
         observer = (File-Proof (Join-Path $code 'WindowsMermaidStandardUser.cs'))
         wrapper = (File-Proof (Join-Path $code 'run-windows-mermaid-product-e2e.ps1'))
     }
+    if ($MigrationChoice -cin @('same-version', 'startup-failure')) { $spec['migrationFixture'] = File-Proof (Join-Path $code 'milkup-catalog-migration-fixture.exe') }
     if ($LifecycleBaselineInstaller) { $spec['lifecycleBaseline'] = File-Proof (Join-Path $code 'baseline-installer.exe') }
     if ($installerMode) {
         $spec['installer'] = File-Proof (Join-Path $code 'candidate-installer.exe')
