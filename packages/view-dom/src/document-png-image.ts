@@ -178,12 +178,29 @@ export function createOwnedDocumentPngImage(
     if (Number.isFinite(eventButton) && eventButton > 0) return
     togglePointer(event)
   }
+  // WebDriver's element-click command may produce only the compatibility
+  // click event in WebView2.  Capture that event at the document boundary as
+  // well, because a portal control can be visually hit while its target
+  // listener is skipped by the editor's non-editable preview host.
+  const toggleDocumentClick = (event: Event) => {
+    const target = event.target
+    if (!(target instanceof Node) || !(target === button || button.contains(target))) return
+    if (pointerActivation) {
+      pointerActivation = false
+      clearTimeout(pointerActivationTimer)
+      pointerActivationTimer = undefined
+      event.stopPropagation()
+      return
+    }
+    toggle(event)
+  }
   // WebView2 can deliver the W3C sequence to the document capture path while
   // skipping the detached button's target listeners. Keep the host independent
   // from the preview hit tree and activate from that document-level path too.
   ownerWindow?.document.addEventListener('pointerdown', toggleDocumentPointer, true)
   ownerWindow?.document.addEventListener('pointerup', toggleDocumentPointer, true)
   ownerWindow?.document.addEventListener('mouseup', toggleDocumentPointer, true)
+  ownerWindow?.document.addEventListener('click', toggleDocumentClick, true)
   // Preserve native focus, keyboard activation and scrollbar operation. These
   // controls must not select the Markdown source through the preview wrapper.
   const keepViewportEvent = (event: Event) => {
@@ -207,6 +224,7 @@ export function createOwnedDocumentPngImage(
     ownerWindow?.document.removeEventListener('pointerdown', toggleDocumentPointer, true)
     ownerWindow?.document.removeEventListener('pointerup', toggleDocumentPointer, true)
     ownerWindow?.document.removeEventListener('mouseup', toggleDocumentPointer, true)
+    ownerWindow?.document.removeEventListener('click', toggleDocumentClick, true)
     controls.remove()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
     for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
