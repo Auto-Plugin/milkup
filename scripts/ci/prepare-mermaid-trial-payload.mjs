@@ -979,18 +979,42 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.match(product.runtime.sha256, /^[a-f0-9]{64}$/)
   const closes = verifyInstalledProductCloses(product, true)
   const productPids = new Set(product.launches.map((launch) => launch.productPid))
-  const ledger = new AuditLedger(installation.actualSid, installation.sessionId, accountKind)
+  const strictLaunches = product.auditIdentityVersion === 1
+  if (product.auditIdentityVersion !== undefined) assert.equal(product.auditIdentityVersion, 1)
+  if (product.launches.some((launch) => launch.creationFileTime !== undefined))
+    assert(strictLaunches)
+  const ledger = new AuditLedger(
+    installation.actualSid,
+    installation.sessionId,
+    accountKind,
+    strictLaunches,
+  )
   assert(
     Array.isArray(product.nativeAudit) && product.nativeAudit.length > 0,
     'Real native ownership audit required',
   )
-  for (const event of product.nativeAudit) {
-    assert(
-      productPids.has(event.productPid),
-      'Native audit must belong to a launched installed product',
-    )
-    ledger.accept(event, event.productPid)
-  }
+  if (strictLaunches) {
+    let consumed = 0
+    for (const launch of product.launches) {
+      assert.equal(launch.creationFileTime, launch.identity.creationFileTime)
+      assert.equal(launch.productPid, launch.identity.pid)
+      ledger.registerLaunch(launch)
+      for (const event of product.nativeAudit.filter(
+        (event) =>
+          event.productPid === launch.productPid &&
+          event.productCreationFileTime === launch.creationFileTime,
+      )) {
+        ledger.accept(event, launch.productPid, launch.creationFileTime)
+        consumed++
+      }
+      ledger.closeLaunch(launch)
+    }
+    assert.equal(consumed, product.nativeAudit.length, 'Every event has an exact launch')
+  } else
+    for (const event of product.nativeAudit) {
+      assert(productPids.has(event.productPid))
+      ledger.accept(event, event.productPid)
+    }
   ledger.verifyAll()
   assert(
     product.nativeAudit.some((event) => event.phase === 'started'),
@@ -999,6 +1023,15 @@ export async function verifyInstalledEvidence(directory, expected) {
   const pixels = []
   for (const step of product.steps) {
     assert(step.screenshot, 'Retained actual window screenshot required')
+    if (strictLaunches) {
+      const matches = product.launches.filter(
+        (launch) =>
+          launch.productPid === step.productPid &&
+          launch.creationFileTime === step.productCreationFileTime &&
+          launch.fixture === step.fixture,
+      )
+      assert.equal(matches.length, 1, 'Step belongs to one exact fixture launch')
+    }
     if (
       [
         '02-enable-and-exact-bytes',
@@ -1025,7 +1058,14 @@ export async function verifyInstalledEvidence(directory, expected) {
       assert.equal(png.height, record.height)
       assert.equal(record.fullyDecoded, true)
       assert.equal(record.nonuniform, true)
-      if (record !== step.screenshot) ledger.matchPng(record.native.productPid, png)
+      if (record !== step.screenshot) {
+        if (strictLaunches) {
+          assert.match(record.native.productCreationFileTime ?? '', /^\d+$/)
+          assert.equal(record.native.productCreationFileTime, step.productCreationFileTime)
+          assert.equal(record.native.productPid, step.productPid)
+        }
+        ledger.matchPng(record.native.productPid, png, record.native.productCreationFileTime)
+      }
       pixels.push({ name: record.file, bytes: bytes.length, sha256: png.sha256 })
     }
   }

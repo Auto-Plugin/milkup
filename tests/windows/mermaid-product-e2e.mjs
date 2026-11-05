@@ -990,8 +990,41 @@ export async function settleOwnedProduct({
   return record
 }
 
+export function createLaunchAuditCapture(ledger, record) {
+  const pending = []
+  let bound = false
+  const accept = (value) => {
+    assert.equal(
+      value.productCreationFileTime,
+      undefined,
+      'Native output cannot assert harness launch identity',
+    )
+    if (!ledger.strictLaunches || bound)
+      ledger.accept(value, record.productPid, record.creationFileTime)
+    else {
+      assert(pending.length < 512, 'Bounded pre-identity audit')
+      pending.push(value)
+    }
+  }
+  return {
+    accept,
+    bind() {
+      assert(!bound, 'Launch identity binds once')
+      if (ledger.strictLaunches) ledger.registerLaunch(record)
+      bound = true
+      for (const value of pending) ledger.accept(value, record.productPid, record.creationFileTime)
+      pending.length = 0
+    },
+  }
+}
+
 export class AuditLedger {
-  constructor(expectedSid, expectedSessionId, expectedAccountKind = 'pure-standard', strictLaunches = false) {
+  constructor(
+    expectedSid,
+    expectedSessionId,
+    expectedAccountKind = 'pure-standard',
+    strictLaunches = false,
+  ) {
     this.expectedSid = expectedSid
     assert(
       Number.isSafeInteger(expectedSessionId) && expectedSessionId > 0,
@@ -1011,7 +1044,10 @@ export class AuditLedger {
     const key = `${record.productPid}:${record.creationFileTime}`
     assert(!this.launches.has(key), 'Unique launch identity')
     const old = this.activeLaunches.get(record.productPid)
-    assert(!old || this.launches.get(`${record.productPid}:${old}`).closed, 'Previous generation must close')
+    assert(
+      !old || this.launches.get(`${record.productPid}:${old}`).closed,
+      'Previous generation must close',
+    )
     this.launches.set(key, { ...record, closed: false })
     this.activeLaunches.set(record.productPid, record.creationFileTime)
   }
@@ -1044,12 +1080,23 @@ export class AuditLedger {
     assert(this.events.length < 512, 'Native audit event budget')
     const productCreationFileTime = this.creationFor(productPid, creation)
     if (this.strictLaunches) {
-      assert(!this.launches.get(`${productPid}:${productCreationFileTime}`).closed, 'No events after launch close')
-      assert(value.productCreationFileTime === undefined || value.productCreationFileTime === productCreationFileTime, 'Audit launch identity mismatch')
+      assert(
+        !this.launches.get(`${productPid}:${productCreationFileTime}`).closed,
+        'No events after launch close',
+      )
+      assert(
+        value.productCreationFileTime === undefined ||
+          value.productCreationFileTime === productCreationFileTime,
+        'Audit launch identity mismatch',
+      )
       value = { ...value, productCreationFileTime }
     }
     const key = `${productPid}:${productCreationFileTime ?? ''}:${value.requestId}`
-    const job = this.jobs.get(key) ?? { productPid, productCreationFileTime, requestId: value.requestId }
+    const job = this.jobs.get(key) ?? {
+      productPid,
+      productCreationFileTime,
+      requestId: value.requestId,
+    }
     assert(!job[value.phase], 'No duplicate native audit phase')
     assert(!job.finished, 'No audit event after native completion')
     if (value.phase !== 'admitted')
@@ -1255,8 +1302,9 @@ export class AuditLedger {
     return finish
   }
   pending(productPid, creation) {
-    return [...this.jobs.values()].filter((job) => this.belongs(job, productPid, creation) && !job.finished)
-      .length
+    return [...this.jobs.values()].filter(
+      (job) => this.belongs(job, productPid, creation) && !job.finished,
+    ).length
   }
   verifyAll(productPid, creation) {
     const jobs = [...this.jobs.values()].filter(
@@ -1275,7 +1323,12 @@ export class AuditLedger {
     )
     assert(job, 'Accepted DOM PNG must match a completed owned native render')
     this.verifyFinished(job)
-    return { productPid, ...(this.strictLaunches ? { productCreationFileTime: job.productCreationFileTime } : {}), requestId: job.requestId, pngSha256: png.sha256 }
+    return {
+      productPid,
+      ...(this.strictLaunches ? { productCreationFileTime: job.productCreationFileTime } : {}),
+      requestId: job.requestId,
+      pngSha256: png.sha256,
+    }
   }
 }
 
@@ -1554,7 +1607,12 @@ export async function main() {
     migrationPhase === 'prepare'
       ? (await import('./mermaid-beta9-audit-fixture.mjs')).AuditLedger
       : AuditLedger
-  const ledger = new Ledger(expectedSid, expectedSessionId, expectedAccountKind),
+  const ledger = new Ledger(
+      expectedSid,
+      expectedSessionId,
+      expectedAccountKind,
+      migrationPhase !== 'prepare',
+    ),
     driverPort = await freePort()
   const report = {
     status: 'running',
@@ -1605,6 +1663,7 @@ export async function main() {
     steps: [],
     inputs: [],
     nativeAudit: ledger.events,
+    auditIdentityVersion: ledger.strictLaunches ? 1 : undefined,
     boundaries: [
       'Four self-authored files, not full Mermaid grammar/corpus coverage.',
       'W3C trusted pointer/key actions, public DOM observations and detached image decode only.',
@@ -1734,7 +1793,10 @@ export async function main() {
       identityBirths,
       expectedAccountKind,
     )
-    if (includeProduct && product && launch) launch.creationFileTime = identityBirths.get(product.pid)
+    if (includeProduct && product && launch) {
+      launch.creationFileTime = identityBirths.get(product.pid)
+      launch.identity = values.find((value) => value.pid === product.pid)
+    }
     report.processIdentities.push({ at: new Date().toISOString(), values })
     return values
   }
@@ -1967,7 +2029,15 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     return { file, ...structure, ...decoded, native, visuallyReviewed: false }
   }
   const step = async (name, operation) => {
-    const row = { name, fixture: active, startedAt: new Date().toISOString(), passed: false }
+    const row = {
+      name,
+      fixture: active,
+      startedAt: new Date().toISOString(),
+      passed: false,
+      ...(ledger.strictLaunches
+        ? { productPid: launch.productPid, productCreationFileTime: launch.creationFileTime }
+        : {}),
+    }
     report.steps.push(row)
     try {
       row.before = await state()
@@ -2023,6 +2093,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     }
     report.launches.push(launch)
     const current = launch
+    const auditCapture = createLaunchAuditCapture(ledger, current)
     product.once('exit', (code, signal) =>
       Object.assign(current, {
         exitCode: code,
@@ -2053,7 +2124,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         for (const line of lines)
           if (line.startsWith(AUDIT_PREFIX)) {
             try {
-              ledger.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)), current.productPid)
+              auditCapture.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)))
             } catch (error) {
               fatal = error
             }
@@ -2063,6 +2134,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       stream.on('end', () => consume(decoder.end(), true))
     }
     await observeProcesses()
+    auditCapture.bind()
     await persist()
     current.devToolsVersion = await until(
       async () =>
@@ -2290,7 +2362,15 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       current.removeListener('exit', stopExitQueries)
       stopExitQueries()
       record.closedByUi = record.teardown.closedByUi === true
-      if (record.closedByUi && record.stdioClosedAt) retireClosedProcessIdentity(identityBirths, record)
+      try {
+        if (record.closedByUi && record.stdioClosedAt) {
+          if (ledger.strictLaunches) ledger.closeLaunch(record)
+          retireClosedProcessIdentity(identityBirths, record)
+        }
+      } catch (error) {
+        evidenceErrors.push(error)
+        record.teardown.identityRetirementError = String(error)
+      }
       try {
         await writeFile(
           path.join(evidence, `${record.fixture}-product.log`),

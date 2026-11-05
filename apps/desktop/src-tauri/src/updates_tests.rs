@@ -1080,7 +1080,7 @@ async fn version_gate_download_rechecks_expiry_and_retry_never_uses_expired_byte
     )
     .await
     .unwrap_err();
-    assert!(error.contains("过期"));
+    assert!(error.contains("过期"), "Expected expiry rejection, got: {error}");
     let (_abort, receiver) = watch::channel(false);
     let progress = AtomicBool::new(false);
     assert!(authorized_download(

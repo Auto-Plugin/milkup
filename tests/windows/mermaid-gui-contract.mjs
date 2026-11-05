@@ -1341,18 +1341,51 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
     context.expectedSessionId,
     report.expectedAccountKind,
   )
+  const strictLaunches = report.auditIdentityVersion === 1
+  if (report.auditIdentityVersion !== undefined) assert.equal(report.auditIdentityVersion, 1)
+  if (report.launches.some((launch) => launch.creationFileTime !== undefined))
+    assert(strictLaunches, 'Launch identity contract cannot be stripped')
   const ledger = new AuditLedger(
     context.expectedSid,
     context.expectedSessionId,
     report.expectedAccountKind,
+    strictLaunches,
   )
   const events = JSON.parse(nativeBytes)
   assert.equal(events.length, report.nativeAudit.events)
-  const owned = new Set(report.launches.map((launch) => launch.productPid))
-  assert.equal(owned.size, 2)
-  for (const event of events) {
-    assert(owned.has(event.productPid), 'Audit belongs to a held product from this GUI run')
-    ledger.accept(event, event.productPid)
+  if (strictLaunches) {
+    const identities = new Set()
+    let consumed = 0
+    for (const launch of report.launches) {
+      assert.equal(launch.creationFileTime, launch.identity.creationFileTime)
+      assert.equal(launch.productPid, launch.identity.pid)
+      assert.equal(launch.creationFileTime, launch.windowMetrics.native.creationFileTime)
+      const key = `${launch.productPid}:${launch.creationFileTime}`
+      assert(!identities.has(key), 'Two distinct exact process generations')
+      identities.add(key)
+      ledger.registerLaunch(launch)
+      for (const event of events.filter(
+        (event) =>
+          event.productPid === launch.productPid &&
+          event.productCreationFileTime === launch.creationFileTime,
+      )) {
+        ledger.accept(event, launch.productPid, launch.creationFileTime)
+        consumed++
+      }
+      ledger.closeLaunch(launch)
+    }
+    assert.equal(
+      consumed,
+      events.length,
+      'Every audit event belongs to exactly one known generation',
+    )
+  } else {
+    const owned = new Set(report.launches.map((launch) => launch.productPid))
+    assert.equal(owned.size, 2)
+    for (const event of events) {
+      assert(owned.has(event.productPid), 'Audit belongs to a held product from this GUI run')
+      ledger.accept(event, event.productPid)
+    }
   }
   const jobs = ledger.verifyAll()
   if (validateGuiIdentity(report) === 'current-candidate')
@@ -1363,12 +1396,28 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
       step.finalPng,
       ...(step.decodedImages ?? []),
       ...(step.manyDiagrams ?? []).flatMap((round) => round.visits.map((visit) => visit.png)),
-    ].filter(Boolean))
-      ledger.matchPng(png.nativeMatch.productPid, png)
+    ].filter(Boolean)) {
+      if (strictLaunches) {
+        assert.equal(
+          png.nativeMatch.productCreationFileTime,
+          report.launches[0].creationFileTime,
+          'PNG belongs to the viewed launch',
+        )
+        assert.equal(png.nativeMatch.productPid, report.launches[0].productPid)
+      }
+      ledger.matchPng(png.nativeMatch.productPid, png, png.nativeMatch.productCreationFileTime)
+    }
+    if (strictLaunches && step.close) {
+      const launch = report.launches[step.close.kind === 'busy' ? 1 : 0]
+      assert.equal(step.close.productCreationFileTime, launch.creationFileTime)
+      assert.equal(step.close.productPid, launch.productPid)
+    }
     if (step.close?.kind === 'busy') {
       for (const id of step.close.pendingRequestIds) {
         const job = jobs.find(
-          (item) => item.requestId === id && item.productPid === step.close.productPid,
+          (item) =>
+            item.requestId === id &&
+            ledger.belongs(item, step.close.productPid, step.close.productCreationFileTime),
         )
         assert(job, 'Busy-close overlap refers to a real admitted job of that exact product')
         assert(job.admitted.timestampUnixMs <= Date.parse(step.close.clickedAt))
@@ -1395,8 +1444,11 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
         for (const item of visit.nativeRequestsDuringVisit) {
           const actual = jobs.find(
             (job) =>
-              job.productPid === visit.png.nativeMatch.productPid &&
-              job.requestId === item.requestId,
+              ledger.belongs(
+                job,
+                visit.png.nativeMatch.productPid,
+                visit.png.nativeMatch.productCreationFileTime,
+              ) && job.requestId === item.requestId,
           )
           assert(actual?.finished, 'Visit request must match a completed original native record')
           assert.equal(item.pngSha256, actual.finished.pngSha256 ?? null)

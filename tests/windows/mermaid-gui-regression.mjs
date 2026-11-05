@@ -13,6 +13,7 @@ import { StringDecoder } from 'node:string_decoder'
 import { setTimeout as delay } from 'node:timers/promises'
 import {
   AuditLedger,
+  createLaunchAuditCapture,
   fixtures,
   observe,
   decodeScript,
@@ -498,6 +499,7 @@ export async function main() {
   assert.equal(hash(await readFile(application)), required('APP_SHA256'))
   const report = {
     schema: 1,
+    auditIdentityVersion: 1,
     status: 'running',
     harnessMode: required('HARNESS_MODE'),
     applicationCandidateSha: required('APPLICATION_CANDIDATE_SHA'),
@@ -546,7 +548,7 @@ export async function main() {
       await readFile(new URL('./mermaid-frontend-boundary-probe.mjs', import.meta.url)),
     )
   }
-  const ledger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind)
+  const ledger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind, true)
   const productLogs = new Map()
   const reportFile = path.join(evidence, 'gui-regression.json')
   await writeFile(reportFile, '{}\n', { flag: 'wx' })
@@ -639,7 +641,7 @@ export async function main() {
     })
   const compact = async (started = performance.now()) => {
     const value = await execute(compactObserve)
-    const jobs = [...ledger.jobs.values()].filter((job) => job.productPid === product.pid)
+    const jobs = [...ledger.jobs.values()].filter((job) => ledger.belongs(job, product.pid))
     return {
       ...value,
       imageSources: hash(JSON.stringify(value.imageSources)),
@@ -804,6 +806,7 @@ export async function main() {
     }
     report.launches.push(launch)
     const current = launch
+    const auditCapture = createLaunchAuditCapture(ledger, current)
     productLogs.set(current.productPid, '')
     product.once('error', (error) => {
       fatal = error
@@ -841,7 +844,7 @@ export async function main() {
         for (const line of lines)
           if (line.startsWith(AUDIT_PREFIX)) {
             try {
-              ledger.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)), current.productPid)
+              auditCapture.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)))
             } catch (error) {
               fatal = error
             }
@@ -852,6 +855,7 @@ export async function main() {
     }
     const owned = (await identities()).find((value) => value.pid === product.pid)
     current.identity = owned
+    auditCapture.bind()
     await observer.call('setProduct', {
       pid: product.pid,
       image: application,
@@ -1038,7 +1042,7 @@ export async function main() {
       }
       const priorRequestIds = new Set(
         [...ledger.jobs.values()]
-          .filter((job) => job.productPid === product.pid)
+          .filter((job) => ledger.belongs(job, product.pid))
           .map((job) => job.requestId),
       )
       visit.nativeRequestsBefore = priorRequestIds.size
@@ -1104,7 +1108,9 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       visit.stage = 'stability'
       await persist()
       await stability(visit, 3000, snapshot.imageCount, true)
-      const currentJobs = [...ledger.jobs.values()].filter((job) => job.productPid === product.pid)
+      const currentJobs = [...ledger.jobs.values()].filter((job) =>
+        ledger.belongs(job, product.pid),
+      )
       visit.nativeRequestsAfter = currentJobs.length
       visit.nativeRequestsDuringVisit = currentJobs
         .filter((job) => !priorRequestIds.has(job.requestId))
@@ -1229,6 +1235,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
     const close = (row.close = {
       kind,
       productPid: pid,
+      productCreationFileTime: record.creationFileTime,
       preDrained: false,
       pendingAtClick: 0,
       pendingRequestIds: [],
@@ -1259,7 +1266,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       try {
         await pointer('[data-window-control="close"]', () => {
           close.pendingRequestIds = [...ledger.jobs.values()]
-            .filter((job) => job.productPid === pid && !job.finished)
+            .filter((job) => ledger.belongs(job, pid, record.creationFileTime) && !job.finished)
             .map((job) => job.requestId)
           close.pendingAtClick = close.pendingRequestIds.length
           clickedAt = performance.now()
@@ -1298,6 +1305,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       }))
       close.innerCleanupVerified = true
       validateGuiClose(close, kind)
+      ledger.closeLaunch(record)
       retireClosedProcessIdentity(births, record)
     } catch (error) {
       close.errors.push(String(error))
@@ -1333,10 +1341,20 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       await writeFile(path.join(evidence, `${record.name}-product.log`), encodedLog)
       try {
         const restored = decodeGuiEvidence(encodedLog, 'product-log').toString('utf8')
-        const restoredLedger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind)
+        const restoredLedger = new AuditLedger(
+          expectedSid,
+          expectedSessionId,
+          expectedAccountKind,
+          true,
+        )
+        restoredLedger.registerLaunch(record)
         for (const line of restored.split('\n'))
           if (line.startsWith(AUDIT_PREFIX))
-            restoredLedger.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)), pid)
+            restoredLedger.accept(
+              JSON.parse(line.slice(AUDIT_PREFIX.length)),
+              pid,
+              record.creationFileTime,
+            )
         restoredLedger.verifyAll()
       } catch (error) {
         close.errors.push('Restored product audit: ' + error)

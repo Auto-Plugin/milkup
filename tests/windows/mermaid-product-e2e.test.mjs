@@ -18,6 +18,7 @@ import {
   validateContext,
   validateHostProcessToken,
   AuditLedger,
+  createLaunchAuditCapture,
   validateProcessIdentities,
   retireClosedProcessIdentity,
   isUnknownGrammarRejection,
@@ -2358,14 +2359,27 @@ test('product evidence retains every nested observation within the unchanged coo
   assert.throws(() => serializeProductEvidence(multibyte), /1 MiB/)
 })
 
-
 test('only a normally exited exact process identity with drained stdio can retire', () => {
-  const births = new Map([[10, '100'], [11, '200']])
-  const record = { productPid: 11, creationFileTime: '200', exitCode: 0, signal: null,
-    exitedAt: 'exit', stdioClosedAt: 'closed' }
-  for (const change of [{exitCode: 1}, {signal: 'SIGTERM'}, {exitedAt: null},
-    {stdioClosedAt: null}, {creationFileTime: '201'}]) {
-    assert.throws(() => retireClosedProcessIdentity(births, {...record, ...change}))
+  const births = new Map([
+    [10, '100'],
+    [11, '200'],
+  ])
+  const record = {
+    productPid: 11,
+    creationFileTime: '200',
+    exitCode: 0,
+    signal: null,
+    exitedAt: 'exit',
+    stdioClosedAt: 'closed',
+  }
+  for (const change of [
+    { exitCode: 1 },
+    { signal: 'SIGTERM' },
+    { exitedAt: null },
+    { stdioClosedAt: null },
+    { creationFileTime: '201' },
+  ]) {
+    assert.throws(() => retireClosedProcessIdentity(births, { ...record, ...change }))
     assert.equal(births.get(11), '200')
   }
   retireClosedProcessIdentity(births, record)
@@ -2373,28 +2387,94 @@ test('only a normally exited exact process identity with drained stdio can retir
   assert.throws(() => retireClosedProcessIdentity(births, record))
 })
 
-
 test('launch-scoped audit rejects old-generation PNG and permits only closed PID reuse', () => {
   const ledger = new AuditLedger(sid, 2, 'pure-standard', true)
-  const old = {productPid: 111, creationFileTime: '100'}
-  const next = {productPid: 111, creationFileTime: '200'}
+  const old = { productPid: 111, creationFileTime: '100' }
+  const next = { productPid: 111, creationFileTime: '200' }
   ledger.registerLaunch(old)
   for (const event of successful().events) ledger.accept(event, 111, '100')
   const image = validatePng(png())
   assert.equal(ledger.matchPng(111, image).productCreationFileTime, '100')
   assert.throws(() => ledger.registerLaunch(next), /must close/)
-  for (const changed of [{exitCode: null}, {signal: 'SIGTERM'}, {stdioClosedAt: null}, {creationFileTime: '999'}])
-    assert.throws(() => ledger.closeLaunch({...old, exitCode: 0, signal: null, exitedAt: 'exit', stdioClosedAt: 'closed', ...changed}))
-  ledger.closeLaunch({...old, exitCode: 0, signal: null, exitedAt: 'exit', stdioClosedAt: 'closed'})
+  for (const changed of [
+    { exitCode: null },
+    { signal: 'SIGTERM' },
+    { stdioClosedAt: null },
+    { creationFileTime: '999' },
+  ])
+    assert.throws(() =>
+      ledger.closeLaunch({
+        ...old,
+        exitCode: 0,
+        signal: null,
+        exitedAt: 'exit',
+        stdioClosedAt: 'closed',
+        ...changed,
+      }),
+    )
+  ledger.closeLaunch({
+    ...old,
+    exitCode: 0,
+    signal: null,
+    exitedAt: 'exit',
+    stdioClosedAt: 'closed',
+  })
   ledger.registerLaunch(next)
   assert.throws(() => ledger.matchPng(111, image), /Accepted DOM PNG/)
   assert.equal(ledger.verifyAll(111).length, 0)
   for (const event of successful().events) {
-    assert.throws(() => ledger.accept({...event, productCreationFileTime: '100'}, 111, '200'), /mismatch/)
+    assert.throws(
+      () => ledger.accept({ ...event, productCreationFileTime: '100' }, 111, '200'),
+      /mismatch/,
+    )
     ledger.accept(event, 111, '200')
   }
   assert.equal(ledger.matchPng(111, image).productCreationFileTime, '200')
   assert.equal(ledger.verifyAll().length, 2)
   assert.throws(() => ledger.matchPng(111, image, '999'), /Registered/)
-  assert.throws(() => ledger.registerLaunch({productPid: 112}))
+  assert.throws(() => ledger.registerLaunch({ productPid: 112 }))
+})
+
+test('captured early audit binds once to held creation and survives serialized generation replay', () => {
+  const ledger = new AuditLedger(sid, 2, 'pure-standard', true)
+  const launches = []
+  for (const creationFileTime of ['100', '200']) {
+    const record = { productPid: 111 }
+    const capture = createLaunchAuditCapture(ledger, record)
+    const events = successful().events
+    const before = ledger.events.length
+    capture.accept(events[0])
+    assert.equal(ledger.events.length, before)
+    assert.throws(() => capture.bind(), /creation|match|argument/i)
+    record.creationFileTime = creationFileTime
+    capture.bind()
+    assert.throws(() => capture.bind(), /once/)
+    for (const event of events.slice(1)) capture.accept(event)
+    Object.assign(record, { exitCode: 0, signal: null, exitedAt: 'exit', stdioClosedAt: 'closed' })
+    ledger.closeLaunch(record)
+    launches.push(record)
+  }
+  const serialized = JSON.parse(JSON.stringify(ledger.events))
+  const replay = new AuditLedger(sid, 2, 'pure-standard', true)
+  for (const record of launches) {
+    replay.registerLaunch(record)
+    const events = serialized.filter(
+      (event) => event.productCreationFileTime === record.creationFileTime,
+    )
+    for (const event of events)
+      replay.accept(event, record.productPid, event.productCreationFileTime)
+    replay.closeLaunch(record)
+  }
+  const image = validatePng(png())
+  assert.equal(replay.matchPng(111, image, '100').productCreationFileTime, '100')
+  assert.equal(replay.matchPng(111, image, '200').productCreationFileTime, '200')
+  assert.equal(replay.verifyAll().length, 2)
+  const forged = createLaunchAuditCapture(
+    new AuditLedger(sid, 2, 'pure-standard', true),
+    launches[0],
+  )
+  assert.throws(
+    () => forged.accept({ ...successful().events[0], productCreationFileTime: '100' }),
+    /cannot assert/,
+  )
 })
