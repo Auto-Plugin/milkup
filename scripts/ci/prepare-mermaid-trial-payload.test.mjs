@@ -789,7 +789,7 @@ test('close proof permits the final pending observation and truncated protocol e
   response.truncated = true
   product.launches[1].closeConfirmationProbes = history
   const summary = verifyInstalledProductCloses(product, true)
-  assert.equal(summary.naturalUiCloses, 4)
+  assert.equal(summary.naturalUiCloses, 5)
   assert.equal(summary.independentMonotonicDeadlineRecomputed, false)
   assert.equal(summary.dialogAbsenceInferredFromNullOrExit, false)
   product.launches[1].signal = 'SIGTERM'
