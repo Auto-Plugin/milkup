@@ -296,7 +296,7 @@ for (const windowed of [false, true]) {
     expect(button.textContent).toBe('原始尺寸')
     expect(outer.dataset.documentPngView).toBe('fit')
     const pointer = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
-    expect(button.dispatchEvent(pointer)).toBe(true)
+    expect(button.dispatchEvent(pointer)).toBe(false)
     button.focus()
     const key = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
     expect(button.dispatchEvent(key)).toBe(true)
@@ -358,7 +358,7 @@ for (const windowed of [false, true]) {
     await unchanged(view)
   })
 
-  it(`pointer release toggles a wide PNG when WebView omits compatibility click (${windowed})`, async () => {
+  it(`a long press activates once on click and cancellation does not activate (${windowed})`, async () => {
     const observed = resizeProbe()
     const view = await make(windowed, provider(2100, 126))
     decodes[0]!.resolve()
@@ -369,18 +369,16 @@ for (const windowed of [false, true]) {
     observed.get(outer)!()
     await settle()
 
+    button.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    await new Promise((resolve) => setTimeout(resolve, 1100))
     button.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
-    await settle()
-    expect(outer.dataset.documentPngView).toBe('natural')
-    expect(button.textContent).toBe('适应宽度')
-
-    // A normal browser emits click after pointerup; it must not toggle twice.
+    expect(outer.dataset.documentPngView).toBe('fit')
     button.click()
-    await settle()
     expect(outer.dataset.documentPngView).toBe('natural')
-
-    button.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
-    await settle()
+    button.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    button.dispatchEvent(new Event('pointercancel', { bubbles: true }))
+    expect(outer.dataset.documentPngView).toBe('natural')
+    button.click()
     expect(outer.dataset.documentPngView).toBe('fit')
   })
 

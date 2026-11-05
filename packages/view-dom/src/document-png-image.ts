@@ -167,78 +167,19 @@ export function createOwnedDocumentPngImage(
     if (state !== 'decoded' || controls.hidden) return
     setNatural(!natural)
   }
-  // Some WebView2/WebDriver pointer sequences deliver pointerup/mouseup but
-  // omit the compatibility click for a button nested in a contentEditable=false
-  // preview. Treat the primary pointer release as activation and suppress the
-  // duplicate click when the browser does provide one. Keyboard activation
-  // still goes through the native click event.
-  let pointerActivation = false
-  let pointerActivationTimer: ReturnType<typeof setTimeout> | undefined
-  const togglePointer = (event: Event) => {
-    const eventButton = 'button' in event ? Number((event as { button?: number }).button) : 0
-    if ((Number.isFinite(eventButton) && eventButton > 0) || pointerActivation) return
-    pointerActivation = true
-    clearTimeout(pointerActivationTimer)
-    pointerActivationTimer = setTimeout(() => {
-      pointerActivation = false
-      pointerActivationTimer = undefined
-    }, 1000)
-    toggle(event)
+  // Keep pointer activation from moving editor focus and invalidating the
+  // decoded preview owner before click. Keyboard activation remains native.
+  const preservePointerFocus = (event: MouseEvent) => {
+    if (event.button === 0) event.preventDefault()
+    event.stopPropagation()
   }
   const toggleClick = (event: Event) => {
-    if (pointerActivation) {
-      pointerActivation = false
-      clearTimeout(pointerActivationTimer)
-      pointerActivationTimer = undefined
-      event.stopPropagation()
-      return
-    }
-    toggle(event)
-  }
-  const toggleDocumentPointer = (event: Event) => {
-    const target = event.target
-    const directTarget = target instanceof Node && (target === button || button.contains(target))
-    const point = event as MouseEvent
-    const rect = button.getBoundingClientRect()
-    const coordinateTarget =
-      Number.isFinite(point.clientX) &&
-      Number.isFinite(point.clientY) &&
-      point.clientX >= rect.left &&
-      point.clientX <= rect.right &&
-      point.clientY >= rect.top &&
-      point.clientY <= rect.bottom
-    if (!directTarget && !coordinateTarget) return
-    const eventButton = 'button' in event ? Number((event as { button?: number }).button) : 0
-    if (Number.isFinite(eventButton) && eventButton > 0) return
-    togglePointer(event)
-  }
-  // WebDriver's element-click command may produce only the compatibility
-  // click event in WebView2.  Capture that event at the document boundary as
-  // well, because a portal control can be visually hit while its target
-  // listener is skipped by the editor's non-editable preview host.
-  const toggleDocumentClick = (event: Event) => {
-    const target = event.target
-    if (!(target instanceof Node) || !(target === button || button.contains(target))) return
     button.dataset.documentPngClickCount = String(
       Number(button.dataset.documentPngClickCount ?? 0) + 1,
     )
-    button.dataset.documentPngLastEvent = 'click'
-    if (pointerActivation) {
-      pointerActivation = false
-      clearTimeout(pointerActivationTimer)
-      pointerActivationTimer = undefined
-      event.stopPropagation()
-      return
-    }
     toggle(event)
   }
-  // WebView2 can deliver the W3C sequence to the document capture path while
-  // skipping the detached button's target listeners. Keep the host independent
-  // from the preview hit tree and activate from that document-level path too.
-  ownerWindow?.document.addEventListener('pointerdown', toggleDocumentPointer, true)
-  ownerWindow?.document.addEventListener('pointerup', toggleDocumentPointer, true)
-  ownerWindow?.document.addEventListener('mouseup', toggleDocumentPointer, true)
-  ownerWindow?.document.addEventListener('click', toggleDocumentClick, true)
+  button.addEventListener('mousedown', preservePointerFocus)
   // Preserve native focus, keyboard activation and scrollbar operation. These
   // controls must not select the Markdown source through the preview wrapper.
   const keepViewportEvent = (event: Event) => {
@@ -246,8 +187,6 @@ export function createOwnedDocumentPngImage(
   }
   for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
     button.addEventListener(name, stopControlEvent)
-  button.addEventListener('pointerup', togglePointer)
-  button.addEventListener('mouseup', togglePointer)
   button.addEventListener('click', toggleClick)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
@@ -285,21 +224,14 @@ export function createOwnedDocumentPngImage(
     }
     released = true
     clearTimeout(timer)
-    clearTimeout(pointerActivationTimer)
-    pointerActivation = false
     resize?.disconnect()
     ownerWindow?.removeEventListener('scroll', syncOnScroll, true)
-    ownerWindow?.document.removeEventListener('pointerdown', toggleDocumentPointer, true)
-    ownerWindow?.document.removeEventListener('pointerup', toggleDocumentPointer, true)
-    ownerWindow?.document.removeEventListener('mouseup', toggleDocumentPointer, true)
-    ownerWindow?.document.removeEventListener('click', toggleDocumentClick, true)
     controls.remove()
     if (layoutFrame !== undefined) ownerWindow?.cancelAnimationFrame(layoutFrame)
     for (const name of ['mousedown', 'pointerdown', 'pointerup', 'mouseup', 'keydown', 'keyup'])
       button.removeEventListener(name, stopControlEvent)
-    button.removeEventListener('pointerup', togglePointer)
-    button.removeEventListener('mouseup', togglePointer)
     button.removeEventListener('click', toggleClick)
+    button.removeEventListener('mousedown', preservePointerFocus)
     for (const name of ['mousedown', 'pointerdown', 'click'])
       viewport.removeEventListener(name, keepViewportEvent)
     image.removeEventListener('error', failed)
