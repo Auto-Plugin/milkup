@@ -326,7 +326,7 @@ async function installedFixture(
   const image = { file: 'fixture.png', ...validatePng(bytes), fullyDecoded: true, nonuniform: true }
   await writeFile(path.join(directory, image.file), bytes)
   const expected = {
-    candidateSha: 'a'.repeat(40),
+    candidateSha: 'dbb7c3bf49c9135eb10a695b7f824fff0cc56fe7',
     version: '2.0.0-beta.9',
     expectedAccountKind: accountKind,
     harnessSha256: '8'.repeat(64),

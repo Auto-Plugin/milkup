@@ -8,7 +8,11 @@ import ts from 'typescript'
 import { expectedNsisImage } from './verify-nsis-image.mjs'
 import { parseImports } from './windows-loader-imports.mjs'
 import { publicBuildFile, readPublicPluginBuildInputs } from './public-plugin-build-contract.mjs'
-import { verifyGuiEvidence, GUI_STEPS } from '../../tests/windows/mermaid-gui-contract.mjs'
+import {
+  verifyGuiEvidence,
+  GUI_STEPS,
+  requiresLaunchAudit,
+} from '../../tests/windows/mermaid-gui-contract.mjs'
 import { REVIEWED_MERMAID_PACKAGE } from '../../apps/desktop/src/reviewed-mermaid-package.ts'
 import { assertReviewedMermaidPackage } from '../../plugins/diagrams-worker/scripts/package-seals.mjs'
 import {
@@ -979,7 +983,7 @@ export async function verifyInstalledEvidence(directory, expected) {
   assert.match(product.runtime.sha256, /^[a-f0-9]{64}$/)
   const closes = verifyInstalledProductCloses(product, true)
   const productPids = new Set(product.launches.map((launch) => launch.productPid))
-  const strictLaunches = product.auditIdentityVersion === 1
+  const strictLaunches = requiresLaunchAudit(product, expected.candidateSha)
   if (product.auditIdentityVersion !== undefined) assert.equal(product.auditIdentityVersion, 1)
   if (product.launches.some((launch) => launch.creationFileTime !== undefined))
     assert(strictLaunches)

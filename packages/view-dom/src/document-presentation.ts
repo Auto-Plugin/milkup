@@ -236,6 +236,7 @@ function fragmentKey(fragment: DocumentPresentationFragment): string {
 }
 interface Job {
   readonly key: string
+  readonly viewport: string
   readonly identity: object
   readonly controller: AbortController
   readonly epoch: number
@@ -321,6 +322,15 @@ export class DocumentPresentation {
     this.schedule()
   }
   private readonly scroll = () => {
+    // Revoke only the obsolete consumer immediately. The native owner drains
+    // any started frame; the quiet timer only delays admitting replacement work.
+    if (this.job) {
+      const window = this.window(this.snapshot())
+      if (!window || this.job.viewport !== this.viewportSignature(window)) {
+        this.job.controller.abort()
+        this.job = undefined
+      }
+    }
     clearTimeout(this.scrollQuietTimer)
     this.scrollQuietTimer = setTimeout(this.flushScroll, 300)
     this.scrollLimitTimer ??= setTimeout(this.flushScroll, 900)
@@ -824,6 +834,15 @@ export class DocumentPresentation {
       Math.max(1, Math.floor((this.content.clientWidth || this.root.clientWidth || 800) - padding)),
     )
   }
+  private viewportSignature(window: DocumentPresentationWindow): string {
+    return JSON.stringify([
+      window.from,
+      window.to,
+      window.width,
+      window.visibleFrom,
+      window.visibleTo,
+    ])
+  }
   private sync(): void {
     if (this.scrollQuietTimer !== undefined) return
     this.hasReferencePointer()
@@ -893,6 +912,7 @@ export class DocumentPresentation {
     }
     const job: Job = {
       key,
+      viewport: this.viewportSignature(window),
       identity: current.sourceIdentity,
       controller: new AbortController(),
       epoch: this.epoch,

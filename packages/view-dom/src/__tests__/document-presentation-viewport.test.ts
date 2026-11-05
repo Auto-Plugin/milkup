@@ -257,9 +257,11 @@ it('cancels a superseded window job when returning to an already complete cached
   expect(calls[1]!.from).not.toBe(calls[0]!.from)
   const obsolete = pending!
   f.scroll(40)
-  await settle()
   expect(obsolete.signal.aborted).toBe(true)
+  // Finish B inside the 300 ms quiet window, before the timer can restore A.
   obsolete.finish()
+  for (let i = 0; i < 6; i++) await Promise.resolve()
+  expect(calls).toHaveLength(2)
   await settle()
   f.scroll(40)
   await settle()

@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { createHash, randomBytes } from 'node:crypto'
 import {
   GUI_BASELINE,
+  requiresLaunchAudit,
   encodeGuiEvidence,
   decodeGuiEvidence,
   GUI_STEPS,
@@ -37,8 +38,8 @@ import { syntheticWideInteraction } from './mermaid-gui-test-fixtures.mjs'
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const identity = () => ({
   harnessMode: 'gui-regression',
-  applicationCandidateSha: 'a'.repeat(40),
-  harnessCandidateSha: 'a'.repeat(40),
+  applicationCandidateSha: 'dbb7c3bf49c9135eb10a695b7f824fff0cc56fe7',
+  harnessCandidateSha: 'dbb7c3bf49c9135eb10a695b7f824fff0cc56fe7',
   applicationSha256: 'b'.repeat(64),
 })
 const windowMetrics = (
@@ -1556,8 +1557,8 @@ test('GUI evidence names remain closed, bounded and explicitly separated from or
     mkdirSync(source)
     const gui = Buffer.from(JSON.stringify({ ...identity(), status: 'failed' }))
     const audit = {
-      source: 'a'.repeat(40),
-      applicationCandidateSha: 'a'.repeat(40),
+      source: identity().harnessCandidateSha,
+      applicationCandidateSha: identity().applicationCandidateSha,
       harnessMode: 'gui-regression',
       status: 'failed',
       passwordInLogsFilesArgumentsOrEnvironment: false,
@@ -1890,19 +1891,46 @@ test('retired lifetime history does not consume live event slots and keeps every
   assert.throws(() => validateNativeChildLifetimes(oversized))
 })
 
-
 test('process archive has a distinct versioned bounded capacity', () => {
   const raw = childLifetimeEvidence()
   raw.processArchiveVersion = 1
   for (let i = raw.processes.length; i < 1024; i++)
-    raw.processes.push({pid: 1000, parentPid: 0, creationFileTime: String(1000 + i), image: 'helper.exe'})
+    raw.processes.push({
+      pid: 1000,
+      parentPid: 0,
+      creationFileTime: String(1000 + i),
+      image: 'helper.exe',
+    })
   validateNativeChildLifetimes(raw)
-  for (const mutate of [r => { delete r.processArchiveVersion },
-    r => { r.processArchiveVersion = 2 },
-    r => { r.processes.push({pid: 1000, creationFileTime: '9999'}) },
-    r => { r.processes[1000] = r.processes[999] }]) {
+  for (const mutate of [
+    (r) => {
+      delete r.processArchiveVersion
+    },
+    (r) => {
+      r.processArchiveVersion = 2
+    },
+    (r) => {
+      r.processes.push({ pid: 1000, creationFileTime: '9999' })
+    },
+    (r) => {
+      r.processes[1000] = r.processes[999]
+    },
+  ]) {
     const bad = structuredClone(raw)
     mutate(bad)
     assert.throws(() => validateNativeChildLifetimes(bad))
   }
+})
+
+test('new candidate cannot downgrade audit by stripping identity fields', () => {
+  const current = 'df4c845f7218649d4ad2aa2187887d56f35d0c26'
+  assert.equal(requiresLaunchAudit({ auditIdentityVersion: 1 }, current), true)
+  for (const report of [
+    {},
+    { auditIdentityVersion: 0 },
+    { auditIdentityVersion: 2 },
+    { launches: [{ identity: { creationFileTime: '100' } }] },
+  ])
+    assert.throws(() => requiresLaunchAudit(report, current), /requires exact launch/)
+  assert.equal(requiresLaunchAudit({}, 'dbb7c3bf49c9135eb10a695b7f824fff0cc56fe7'), false)
 })

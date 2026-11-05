@@ -113,6 +113,18 @@ export const GUI_EVIDENCE_NAMES = Object.freeze([
   'gui-multi-2-diagram.png',
 ])
 
+// The historical pre-generation snapshot may be replayed explicitly. New or
+// unknown candidates require generation evidence even if all fields are stripped.
+const LEGACY_AUDIT_CANDIDATE = 'dbb7c3bf49c9135eb10a695b7f824fff0cc56fe7'
+export function requiresLaunchAudit(value, candidateSha) {
+  const strict =
+    candidateSha !== LEGACY_AUDIT_CANDIDATE && candidateSha !== GUI_BASELINE.harnessCandidateSha
+  if (strict)
+    assert.equal(value.auditIdentityVersion, 1, 'Candidate requires exact launch audit identity')
+  else if (value.auditIdentityVersion !== undefined) assert.equal(value.auditIdentityVersion, 1)
+  return strict || value.auditIdentityVersion === 1
+}
+
 export function validateGuiIdentity(value) {
   assert.equal(value.harnessMode, 'gui-regression', 'Explicit GUI-only mode required')
   for (const name of ['harnessCandidateSha', 'applicationCandidateSha'])
@@ -1341,7 +1353,7 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
     context.expectedSessionId,
     report.expectedAccountKind,
   )
-  const strictLaunches = report.auditIdentityVersion === 1
+  const strictLaunches = requiresLaunchAudit(report, report.harnessCandidateSha)
   if (report.auditIdentityVersion !== undefined) assert.equal(report.auditIdentityVersion, 1)
   if (report.launches.some((launch) => launch.creationFileTime !== undefined))
     assert(strictLaunches, 'Launch identity contract cannot be stripped')
