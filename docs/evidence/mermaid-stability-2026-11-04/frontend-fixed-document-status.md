@@ -19,3 +19,7 @@ Browser and production use identical generated document bytes. Vite rejects stal
 Local evidence before Windows: 21 browser tests (including 12 syntax types, two byte-tamper negatives, CSP without refusals on ordinary diagrams, message forgery, bounds/cancellation/retirement); TypeScript; production Vite build; 164 existing packaging/audit tests; 7 frontend seal/audit tests; 6 native tests and Windows-target guard type check. These are not Windows UI acceptance. Installed old-profile upgrade remains gated on a successful exact frontend source candidate. No release.
 
 Limits unchanged: iframe removal is not proof of arbitrary JavaScript hard termination or an OS memory quota; legacy helper source remains compiled but is not the frontend render path. No claim of all Mermaid syntax or full beta.10 acceptance.
+
+## Windows build follow-up
+
+42123551505 / fd341e86 stopped before Rust and all product/GUI tests: the generated-document equality check rejected Windows checkout bytes. Reproduced with Git core.autocrlf=true: both bootstrap and HTML became CRLF and equality/hash failed. Explicit LF attributes now keep the two sealed inputs identical; no normalization or relaxed equality is used at runtime/build validation. The browser suite also passes 21/21 when the actual generated document is served from a different origin, with the parent style nonce policy still active.

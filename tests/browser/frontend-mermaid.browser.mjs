@@ -14,7 +14,7 @@ test(
   { timeout: 120000 },
   async (t) => {
     const output = await mkdtemp(join(tmpdir(), 'milkup-frontend-browser-'))
-    let browser, server
+    let browser, server, documentServer
     try {
       await build({
         configFile: join(root, 'apps/desktop/vite.config.ts'),
@@ -29,6 +29,20 @@ test(
           },
         },
       })
+      // Model the production dedicated local protocol with a distinct origin.
+      // The exact built HTML bytes still execute, with the real opaque sandbox.
+      documentServer = createServer(async (req, res) => {
+        const pathname = new URL(req.url, 'http://localhost').pathname
+        if (!/^\/assets\/frame-[A-Za-z0-9_-]+\.html$/.test(pathname)) {
+          res.writeHead(404)
+          res.end()
+          return
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        res.end(await readFile(resolve(output, '.' + pathname)))
+      })
+      await new Promise((r) => documentServer.listen(0, '127.0.0.1', r))
+      const documentOrigin = `http://127.0.0.1:${documentServer.address().port}`
       server = createServer(async (req, res) => {
         const pathname = new URL(req.url, 'http://localhost').pathname
         if (pathname === '/') {
@@ -40,6 +54,11 @@ test(
           res.end(
             '<!doctype html><html><body><script type="module" src="/fixture.js"></script></body></html>',
           )
+          return
+        }
+        if (/^\/assets\/frame-[A-Za-z0-9_-]+\.html$/.test(pathname)) {
+          res.writeHead(302, { Location: documentOrigin + pathname })
+          res.end()
           return
         }
         const file = resolve(output, '.' + pathname)
@@ -100,7 +119,15 @@ test(
             return route.fulfill({ response, body })
           }
         }
-        if (!url.startsWith(origin + '/') && !url.startsWith('blob:') && !url.startsWith('data:')) {
+        const fixedDocument =
+          url.startsWith(documentOrigin + '/assets/frame-') &&
+          new URL(url).pathname.endsWith('.html')
+        if (
+          !fixedDocument &&
+          !url.startsWith(origin + '/') &&
+          !url.startsWith('blob:') &&
+          !url.startsWith('data:')
+        ) {
           external.push(url)
           return route.abort()
         }
@@ -381,6 +408,7 @@ test(
     } finally {
       await browser?.close()
       if (server) await new Promise((r) => server.close(r))
+      if (documentServer) await new Promise((r) => documentServer.close(r))
       await rm(output, { recursive: true, force: true })
     }
   },
