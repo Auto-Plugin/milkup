@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { spawn, execFile, execFileSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
+import { writeSync } from 'node:fs'
 import { mkdir, readFile, writeFile, lstat, readdir, realpath } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import path from 'node:path'
@@ -474,7 +475,11 @@ export function validateProcessIdentities(
       'Unique expected process identity observation',
     )
     seen.add(value.pid)
-    assert(samePath(value.image, expected.get(value.pid)), 'Exact owned process image')
+    assert.equal(
+      normalized(path.resolve(value.image)),
+      normalized(path.resolve(expected.get(value.pid))),
+      'Exact owned process image',
+    )
     assert.equal(value.stillActive, true)
     validateHostProcessToken(value.token, expectedSid, expectedSessionId, expectedAccountKind)
     assert(
@@ -811,7 +816,7 @@ export async function stopOwnedProductAfterFailure({
     return alreadyExited(error)
   }
   if (!isAlive()) return alreadyExited()
-  verifyIdentity(observation)
+  await verifyIdentity(observation)
   assert.equal(current.pid, expectedPid, 'Fallback still holds the exact owned product')
   assert(isAlive(), 'Exact owned product remains active')
   assert(current.kill(), 'Signal only the identity-verified owned product')
@@ -1321,6 +1326,7 @@ export async function main() {
     productDataDirectories: productData,
     processObserver: { path: processObserver, sha256: sha(await readFile(processObserver)) },
     processIdentities: [],
+    processIdentityAttempts: [],
     launches: [],
     steps: [],
     inputs: [],
@@ -1391,6 +1397,26 @@ export async function main() {
     request('POST', `/session/${session}/execute/async`, { script, args })
   const state = (signal) => executeWithSignal(signal, observe)
   const identityBirths = new Map()
+  const retainIdentityAttempt = async (values, expected, phase) => {
+    assert(report.processIdentityAttempts.length < 64, 'Bounded process identity attempts')
+    report.processIdentityAttempts.push({
+      at: new Date().toISOString(),
+      phase,
+      values,
+      expected: [...expected].map(([pid, image]) => ({
+        pid,
+        image,
+        utf16Hex: Buffer.from(image.slice(0, 2048), 'utf16le').toString('hex'),
+        utf16HexComplete: image.length <= 2048,
+      })),
+      observed: values.map(({ pid, image }) => ({
+        pid,
+        utf16Hex: Buffer.from((image ?? '').slice(0, 2048), 'utf16le').toString('hex'),
+        utf16HexComplete: typeof image === 'string' && image.length <= 2048,
+      })),
+    })
+    await persist()
+  }
   const observeProcesses = async (includeProduct = true) => {
     const expected = new Map([
       [process.pid, process.execPath],
@@ -1411,6 +1437,7 @@ export async function main() {
       { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
     )
     const values = JSON.parse(stdout.replace(/^\uFEFF/, ''))
+    await retainIdentityAttempt(values, expected, 'observe-processes')
     validateProcessIdentities(
       values,
       expected,
@@ -1910,8 +1937,13 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
                 ],
                 { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
               ),
-            verifyIdentity: ({ stdout }) => {
+            verifyIdentity: async ({ stdout }) => {
               const identities = JSON.parse(stdout.replace(/^\uFEFF/, ''))
+              await retainIdentityAttempt(
+                identities,
+                new Map([[productPid, application]]),
+                'fallback-before-validation',
+              )
               validateProcessIdentities(
                 identities,
                 new Map([[productPid, application]]),
@@ -2236,7 +2268,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   await main().catch((error) => {
-    console.error(error.stack ?? String(error))
-    process.exitCode = 1
+    // Reports and bounded teardown have finished. A rejected identity must not
+    // leave this Node coordinator alive on inherited child pipes for 15 minutes.
+    // The enclosing held Job owns any remaining processes; no PID-only kill.
+    writeSync(2, `${error.stack ?? String(error)}\n`)
+    process.exit(1)
   })
 }

@@ -2,6 +2,7 @@
 // browser, product, process observer, PowerShell, Runtime, or Windows task.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import path from 'node:path'
 import { deflateSync } from 'node:zlib'
 import {
   fixtures,
@@ -2075,4 +2076,61 @@ test('a continuation beyond the original deadline cannot dispatch discard before
   assert.equal(result, false)
   assert.equal(dispatched, false)
   assert.equal(querySignal.aborted, true)
+})
+
+test('fallback awaits persisted identity rejection before considering any signal', async () => {
+  let killed = false
+  const current = {
+    pid: 111,
+    exitCode: null,
+    signalCode: null,
+    kill() {
+      killed = true
+      return true
+    },
+  }
+  await assert.rejects(
+    stopOwnedProductAfterFailure({
+      current,
+      expectedPid: 111,
+      observeIdentity: async () => [],
+      verifyIdentity: async () => {
+        await Promise.resolve()
+        throw Error('Identity path mismatch retained')
+      },
+    }),
+    /Identity path mismatch retained/,
+  )
+  assert.equal(killed, false)
+})
+
+test('identity path comparison keeps Chinese characters and exposes mismatched code units', () => {
+  const image = '/fixtures/安装 生命周期/milkup.exe'
+  const row = {
+    pid: 10,
+    image,
+    stillActive: true,
+    creationFileTime: '133900000000000000',
+    token: processToken(),
+  }
+  validateProcessIdentities([row], new Map([[10, image]]), sid, 2, new Map())
+  assert.throws(
+    () =>
+      validateProcessIdentities(
+        [{ ...row, image: '/fixtures/?? 生命周期/milkup.exe' }],
+        new Map([[10, image]]),
+        sid,
+        2,
+        new Map(),
+      ),
+    (error) => {
+      assert.match(error.message, /Exact owned process image/)
+      assert.equal(error.expected, path.resolve(image).replaceAll('\\', '/').toLowerCase())
+      assert.equal(
+        error.actual,
+        path.resolve('/fixtures/?? 生命周期/milkup.exe').replaceAll('\\', '/').toLowerCase(),
+      )
+      return true
+    },
+  )
 })

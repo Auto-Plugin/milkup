@@ -141,7 +141,7 @@ function Get-ChildEvidenceNames {
     foreach ($fixture in @('ordinary', 'wide', 'multi', 'busy')) {
         $name = 'fixture-gui-' + $fixture + '.md'; $names.Add($name, $name + '.log')
     }
-    foreach ($name in @('baseline-stdout.log', 'baseline-stderr.log', 'same-version-stdout.log', 'same-version-stderr.log', 'uninstall-stdout.log', 'uninstall-stderr.log')) { $names.Add($name, $name) }
+    foreach ($name in @('lifecycle-progress.log', 'baseline-stdout.log', 'baseline-stderr.log', 'same-version-stdout.log', 'same-version-stderr.log', 'uninstall-stdout.log', 'uninstall-stderr.log')) { $names.Add($name, $name) }
     return ,$names
 }
 function Read-BoundedEvidenceProof([string]$Path, [long]$Limit, [string]$CopyTo = '', $Created = $null) {
@@ -422,6 +422,14 @@ function Assert-InstallationCoordinator($Spec, $Context) {
         throw 'Installer requires the exact verified non-elevated account kind, SID and interactive session'
     }
 }
+function Write-LifecycleProgress($Spec, [string]$Evidence, [string]$Phase, $Detail = $null) {
+    if (-not ($Spec.Contains('lifecycle') -and $Spec.lifecycle)) { return }
+    $target = Join-Path $Evidence 'lifecycle-progress.log'
+    $record = [ordered]@{ phase = $Phase; utc = [DateTime]::UtcNow.ToString('o'); tick = [Environment]::TickCount64; detail = $Detail }
+    $line = ($record | ConvertTo-Json -Depth 6 -Compress) + "`n"
+    if ([Text.Encoding]::UTF8.GetByteCount($line) -gt 16KB -or ((Test-Path $target) -and (Get-Item $target).Length -gt 128KB)) { throw 'Lifecycle progress budget exceeded' }
+    [IO.File]::AppendAllText($target, $line, [Text.UTF8Encoding]::new($false))
+}
 function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]$Evidence) {
     $installDirectory = Join-Path $Scratch $(if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) { '安装 生命周期' } else { 'install' })
     Assert-Contained $installDirectory $Scratch
@@ -447,15 +455,18 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) {
             Assert-Hash $Spec.lifecycleBaseline.path 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
             $record['lifecycle'] = [ordered]@{ status = 'failed'; baselineVersion = '2.0.0-beta.9'; baselineInstall = $null; sameVersion = $null; uninstall = $null; dataPreserved = $false; automaticRollbackAccepted = $false }
+            Write-LifecycleProgress $Spec $Evidence 'baseline-install-start'
             $record.lifecycle.baselineInstall = [WindowsMermaidStandardUser]::RunOwnedInstaller(
                 $Spec.lifecycleBaseline.path, $installDirectory, $Scratch,
                 (Join-Path $Evidence 'baseline-stdout.log'), (Join-Path $Evidence 'baseline-stderr.log'),
                 $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, 120000)
+            Write-LifecycleProgress $Spec $Evidence 'baseline-install-finish' @{ status = $record.lifecycle.baselineInstall.status; elapsedMs = $record.lifecycle.baselineInstall.elapsedMs }
             if ($record.lifecycle.baselineInstall.status -cne 'passed') { throw 'Pinned beta.9 baseline installation failed' }
             Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
             $sentinel = Join-Path $Scratch 'work/升级保留.md'
             [IO.File]::WriteAllText($sentinel, "# 原文 preservation`n中文 English`n", [Text.UTF8Encoding]::new($false))
             $record.lifecycle['documentBefore'] = File-Proof $sentinel
+            Write-LifecycleProgress $Spec $Evidence 'upgrade-start'
             $record.installerRun = [WindowsMermaidStandardUser]::RunOwnedMaintenance(
                 $Spec.installer.path, $installDirectory, $Scratch,
                 (Join-Path $Evidence 'installer-stdout.log'), (Join-Path $Evidence 'installer-stderr.log'),
@@ -466,6 +477,7 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
             (Join-Path $Evidence 'installer-stdout.log'), (Join-Path $Evidence 'installer-stderr.log'),
             $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, 120000)
         }
+        Write-LifecycleProgress $Spec $Evidence 'candidate-install-finish' @{ status = $record.installerRun.status; elapsedMs = $record.installerRun.elapsedMs }
         if ($record.installerRun.status -cne 'passed' -or $record.installerRun.exitCode -ne 0 -or
             $record.installerRun.identityVerified -ne $true -or
             $record.installerRun.expectedAccountKind -cne $Spec.expectedAccountKind) { throw 'Same-account installer did not complete with verified identity and exit zero' }
@@ -473,10 +485,12 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
             Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') $manifest.expectedInstalledBinarySha256
             Assert-Hash $record.lifecycle.documentBefore.path $record.lifecycle.documentBefore.sha256
             $record.lifecycle['upgradeImageVerified'] = $true
+            Write-LifecycleProgress $Spec $Evidence 'same-version-start'
             $record.lifecycle.sameVersion = [WindowsMermaidStandardUser]::RunOwnedMaintenance(
                 $Spec.installer.path, $installDirectory, $Scratch,
                 (Join-Path $Evidence 'same-version-stdout.log'), (Join-Path $Evidence 'same-version-stderr.log'),
                 $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, $false)
+            Write-LifecycleProgress $Spec $Evidence 'same-version-finish' @{ status = $record.lifecycle.sameVersion.status; elapsedMs = $record.lifecycle.sameVersion.elapsedMs }
             if ($record.lifecycle.sameVersion.status -cne 'passed') { throw 'Same-version replacement failed' }
             Assert-Hash $record.lifecycle.documentBefore.path $record.lifecycle.documentBefore.sha256
         }
@@ -640,9 +654,11 @@ function Invoke-StandardChild {
         foreach ($entry in $variables.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process') }
         $result.startedNode = $true
         $result.status = 'failed'
+        Write-LifecycleProgress $spec $evidence 'product-harness-start'
         $result['nodeRun'] = [WindowsMermaidStandardUser]::RunNodeHarness(
             $spec.node.path, $spec.harness.path, [IO.Path]::GetDirectoryName($spec.harness.path),
             (Join-Path $evidence 'node-stdout.log'), (Join-Path $evidence 'node-stderr.log'), 900000)
+        Write-LifecycleProgress $spec $evidence 'product-harness-finish' @{ status = $result.nodeRun.status; elapsedMs = $result.nodeRun.elapsedMs; error = $result.nodeRun.error }
         $result.startedNode = $result.nodeRun.started
         $result.nodeExitCode = $result.nodeRun.exitCode
         if ($result.nodeRun.status -cne 'passed') { throw "Windows product Node harness failed: $($result.nodeRun.error)" }
@@ -676,10 +692,12 @@ function Invoke-StandardChild {
             $copy = Join-Path $scratch 'owned-uninstaller.exe'
             Copy-Item -LiteralPath $uninstaller -Destination $copy -ErrorAction Stop
             Assert-Hash $copy $installation.lifecycle.uninstaller.sha256
+            Write-LifecycleProgress $spec $evidence 'uninstall-start'
             $installation.lifecycle.uninstall = [WindowsMermaidStandardUser]::RunOwnedMaintenance(
                 $copy, $installation.installDirectory, $scratch,
                 (Join-Path $evidence 'uninstall-stdout.log'), (Join-Path $evidence 'uninstall-stderr.log'),
                 $spec.expectedSid, [uint32]$spec.expectedSessionId, $spec.expectedAccountKind, $true)
+            Write-LifecycleProgress $spec $evidence 'uninstall-finish' @{ status = $installation.lifecycle.uninstall.status; elapsedMs = $installation.lifecycle.uninstall.elapsedMs }
             if ($installation.lifecycle.uninstall.status -cne 'passed') { throw 'Real NSIS uninstall did not exit successfully with verified process identity' }
             $installation.lifecycle['applicationAbsent'] = -not (Test-Path -LiteralPath $installation.installedBinary.path)
             $installation.lifecycle['uninstallerAbsent'] = -not (Test-Path -LiteralPath $uninstaller)

@@ -333,6 +333,9 @@ public static class WindowsMermaidStandardUser
                 var image = new StringBuilder((int)count);
                 Check(QueryFullProcessImageNameW(process, 0, image, ref count), "Observe held process image");
                 record["image"] = image.ToString();
+                string imageText = image.ToString();
+                record["imageNativeUtf16Hex"] = Convert.ToHexString(Encoding.Unicode.GetBytes(imageText.Substring(0, Math.Min(imageText.Length, 2048))));
+                record["imageNativeUtf16HexComplete"] = imageText.Length <= 2048;
                 record["token"] = Token(process);
                 uint code;
                 Check(GetExitCodeProcess(process, out code), "Observe held process liveness");

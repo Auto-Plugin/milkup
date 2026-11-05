@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Invoke-StandardInstallation')
+$wanted = @('Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
