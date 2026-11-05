@@ -4,6 +4,9 @@ import {
 } from '@milkup/core/internal/document-png-image'
 import { imageDecodeDeadlineMs, type OwnedDocumentSvgImage } from './document-svg-image'
 
+let pngInstanceSequence = 0
+const pngTraces = new WeakMap<Document, object[]>()
+
 /** Host-private inert PNG: it never accepts a URL, HTML or a plugin object. */
 export function createOwnedDocumentPngImage(
   document: Document,
@@ -11,6 +14,15 @@ export function createOwnedDocumentPngImage(
   changed: () => void,
   layoutChanged: () => void = () => {},
 ): OwnedDocumentSvgImage {
+  const instance = ++pngInstanceSequence
+  const trace = (kind: string, detail: object = {}) => {
+    const rows = pngTraces.get(document) ?? []
+    rows.push({ at: document.defaultView?.performance.now(), instance, kind, ...detail })
+    if (rows.length > 100) rows.shift()
+    pngTraces.set(document, rows)
+    document.documentElement.dataset.documentPngTrace = JSON.stringify(rows)
+  }
+  trace('create')
   const lease = acquireDocumentPngImage(value)
   const element = document.createElement('span')
   element.style.display = 'inline-block'
@@ -20,6 +32,7 @@ export function createOwnedDocumentPngImage(
   element.style.verticalAlign = 'middle'
   element.contentEditable = 'false'
   element.dataset.documentPngView = 'fit'
+  element.dataset.documentPngInstance = String(instance)
   const controls = document.createElement('span')
   controls.className = 'milkup-document-png-controls'
   // Keep the live control in a document-level host. WebView2 can suppress
@@ -101,6 +114,7 @@ export function createOwnedDocumentPngImage(
     })
   }
   const setNatural = (next: boolean) => {
+    trace('setNatural', { before: natural, next })
     natural = next
     button.dataset.documentPngToggleCount = String(
       Number(button.dataset.documentPngToggleCount ?? 0) + 1,
@@ -131,6 +145,7 @@ export function createOwnedDocumentPngImage(
     const width = element.getBoundingClientRect().width
     if (!Number.isFinite(width) || width <= 0) return
     const narrow = width + 0.5 < value.width
+    trace('measure', { width, previousWidth: measuredWidth, narrow, natural })
     const resized = measuredWidth !== undefined && Math.abs(width - measuredWidth) > 0.5
     // A natural toggle may itself trigger one resize callback. Only collapse
     // back to fit after a later real container resize, which changes the
@@ -148,6 +163,7 @@ export function createOwnedDocumentPngImage(
   const stopControlEvent = (event: Event) => event.stopPropagation()
   const toggle = (event: Event) => {
     event.stopPropagation()
+    trace('toggle', { event: event.type, state, hidden: controls.hidden, natural })
     if (state !== 'decoded' || controls.hidden) return
     setNatural(!natural)
   }
@@ -235,8 +251,38 @@ export function createOwnedDocumentPngImage(
   button.addEventListener('click', toggleClick)
   for (const name of ['mousedown', 'pointerdown', 'click'])
     viewport.addEventListener(name, keepViewportEvent)
+  const traceInput = (event: Event) => {
+    const point = event as MouseEvent
+    const rect = button.getBoundingClientRect()
+    if (!element.isConnected || controls.hidden) return
+    const describe = (target: EventTarget | null) =>
+      target instanceof Element
+        ? `${target.tagName}.${target.className}`.slice(0, 160)
+        : String(target)
+    trace('input', {
+      type: event.type,
+      phase: event.currentTarget === ownerWindow ? 'window' : 'document',
+      target: describe(event.target),
+      path: event.composedPath().slice(0, 8).map(describe),
+      x: point.clientX,
+      y: point.clientY,
+      isTrusted: event.isTrusted,
+      defaultPrevented: event.defaultPrevented,
+      buttonRect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+    })
+  }
+  const inputEvents = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click']
+  for (const name of inputEvents) {
+    ownerWindow?.addEventListener(name, traceInput, true)
+    document.addEventListener(name, traceInput, true)
+  }
   const cleanup = () => {
     if (released) return
+    trace('cleanup', { state, natural })
+    for (const name of inputEvents) {
+      ownerWindow?.removeEventListener(name, traceInput, true)
+      document.removeEventListener(name, traceInput, true)
+    }
     released = true
     clearTimeout(timer)
     clearTimeout(pointerActivationTimer)
