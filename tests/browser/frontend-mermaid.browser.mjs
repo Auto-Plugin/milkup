@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { build } from 'vite'
 import { chromium } from '@playwright/test'
 import { createServer } from 'node:http'
-import { readFile, mkdtemp, rm } from 'node:fs/promises'
+import { readFile, readdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -108,6 +108,50 @@ test(
           })
         }
       })
+      if (process.env.MILKUP_FRONTEND_CORPUS === '1') {
+        await page
+          .frames()
+          .find((f) => f !== page.mainFrame())
+          .evaluate(() => {
+            const original = mermaid.render
+            mermaid.render = async (...args) => {
+              const result = await original(...args)
+              window.testLastSvg = result.svg
+              return result
+            }
+          })
+        await t.test('existing fifty self-authored syntax and layout fixtures', async (st) => {
+          const dir = join(root, 'docs/evidence/mermaid-rebuild-2026-11-03/fixtures')
+          for (const name of (await readdir(dir))
+            .filter(
+              (n) =>
+                n.endsWith('.mmd') &&
+                (!process.env.MILKUP_FRONTEND_CORPUS_FILTER ||
+                  n.startsWith(process.env.MILKUP_FRONTEND_CORPUS_FILTER)),
+            )
+            .sort()) {
+            await st.test(name, async () => {
+              try {
+                const result = await render(await readFile(join(dir, name), 'utf8'))
+                assert(result.bytes > 100)
+                console.log(JSON.stringify({ corpus: name, ...result }))
+              } catch (error) {
+                console.log(
+                  'self-authored-corpus-output-diagnostic',
+                  name,
+                  await page
+                    .frames()
+                    .find((f) => f !== page.mainFrame())
+                    .evaluate(() => window.testLastSvg?.slice(0, 16000)),
+                )
+                await page.evaluate(() => window.frontendMermaidFixture.reset())
+                throw error
+              }
+            })
+          }
+        })
+        await render('flowchart LR\nA-->B')
+      }
       await t.test('opaque script-only frame and source/result message forgery', async () => {
         const element = page.locator('iframe[data-milkup-mermaid-renderer]')
         assert.equal(await element.getAttribute('sandbox'), 'allow-scripts')
@@ -155,6 +199,45 @@ test(
           await assert.rejects(render('this is not a diagram'))
           assert.ok((await render('sequenceDiagram\nA->>B: Recovered')).bytes > 100)
           assert.deepEqual(external, [])
+        },
+      )
+      await t.test(
+        'foreignObject permits inert text only and keeps privileged or interactive content rejected',
+        async () => {
+          const child = page.frames().find((f) => f !== page.mainFrame())
+          for (const markup of [
+            '<input autofocus=""/>',
+            '<div contenteditable="true">bad</div>',
+            '<a href="https://invalid.example/probe">bad</a>',
+            '<iframe src="about:blank"></iframe>',
+            '<img src="https://invalid.example/probe"/>',
+          ]) {
+            await child.evaluate((markup) => {
+              window.originalForPolicyTest = mermaid.render
+              mermaid.render = async () => ({
+                svg:
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="60" viewBox="0 0 100 60"><foreignObject width="100" height="60"><div xmlns="http://www.w3.org/1999/xhtml">' +
+                  markup +
+                  '</div></foreignObject></svg>',
+              })
+            }, markup)
+            try {
+              await assert.rejects(render('flowchart LR\nA-->B'), /unsafe-output/)
+            } finally {
+              await child.evaluate(() => {
+                mermaid.render = window.originalForPolicyTest
+                delete window.originalForPolicyTest
+              })
+            }
+          }
+          assert.deepEqual(external, [])
+          assert(
+            (
+              await render(
+                'eventmodeling\ntf 01 ui Editor\ntf 02 cmd SaveNote\ntf 03 evt NoteSaved',
+              )
+            ).bytes > 100,
+          )
         },
       )
       await t.test(

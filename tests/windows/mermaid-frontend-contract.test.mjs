@@ -156,3 +156,43 @@ test('missing or forged process birth and fabricated hard termination cannot pas
   assert.throws(() => l.matchPng(pid, { sha256: png, bytes: 120 }, '123'))
   assert.throws(() => new Ledger('S-1-5-21-1-2-3-1000', 1, 'pure-standard', false))
 })
+
+test('connection diagnostics retain the exact failed stage and reject exposed frame bridges', () => {
+  const l = fixture()
+  assert.throws(
+    () =>
+      l.accept(
+        event({
+          kind: 'connection',
+          ownerId: owner,
+          stage: 'bridge-inventory',
+          nativeFrameLive: true,
+          failed: false,
+          tauriInternals: true,
+          tauriInvoke: false,
+          wryIpc: false,
+          chromeWebview: true,
+        }),
+        pid,
+        birth,
+      ),
+    /tauriInternals/,
+  )
+  const m = fixture()
+  assert.throws(
+    () =>
+      m.accept(
+        event({
+          kind: 'connection',
+          ownerId: owner,
+          stage: 'main-probe',
+          nativeFrameLive: true,
+          failed: true,
+        }),
+        pid,
+        birth,
+      ),
+    /main-probe/,
+  )
+  assert.equal(m.events[0].stage, 'main-probe')
+})

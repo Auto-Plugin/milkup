@@ -49,6 +49,7 @@ export function createFrontendMermaidOwner(
   let drainTask: Promise<void> | undefined
   let retirement: Promise<void> | undefined
   let frameWasAppended = false
+  let connectionStage = 'frame-load'
   let auditing = false
   let auditChain = Promise.resolve()
   let renderingMessage: ((value: Message) => void) | undefined
@@ -148,6 +149,8 @@ export function createFrontendMermaidOwner(
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
       }
+      connectionStage = 'frame-load'
+      await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
       assertActive(deadline)
       const connected = wait((value) => value.kind === 'connected', deadline)
       frame = document.createElement('iframe')
@@ -186,13 +189,21 @@ export function createFrontendMermaidOwner(
       }
       addEventListener('message', handshake)
       removeHandshake = () => removeEventListener('message', handshake)
-      const policy = `default-src 'none'; script-src 'nonce-${nonce}'; script-src-attr 'none'; style-src 'unsafe-inline'; img-src blob:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'`
+      const policy = `default-src 'none'; script-src 'nonce-${nonce}'; script-src-attr 'none'; style-src 'unsafe-inline'; img-src blob: data:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'`
       const engine = new URL(engineAsset, location.href).href
       const bootstrap = new URL(frameAsset, location.href).href
       frame.srcdoc = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${escape(policy)}"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script nonce="${nonce}" src="${escape(engine)}"></script><script nonce="${nonce}" src="${escape(bootstrap)}" data-owner="${nonce}" data-parent-origin="${escape(location.origin)}"></script></body></html>`
       document.body.append(frame)
       frameWasAppended = true
       const hello = await connected
+      connectionStage = 'bridge-inventory'
+      await audit({
+        kind: 'connection',
+        ownerId: nonce,
+        stage: connectionStage,
+        ...hello.bridge,
+        failed: false,
+      })
       if (
         !hello.bridge ||
         hello.bridge.tauriInternals ||
@@ -202,9 +213,11 @@ export function createFrontendMermaidOwner(
         throw new Error('Privileged bridge exposed to the renderer')
       if (options.nativeGuard) {
         if (!hello.bridge.chromeWebview) throw new Error('Native boundary probe unavailable')
+        connectionStage = 'main-probe'
         const positive = (await guardedInvoke('frontend_mermaid_probe', { nonce }, deadline)) as {
           dispatchedProbes: number
         }
+        connectionStage = 'child-ipc'
         const sent = wait((value) => value.kind === 'probe-sent', deadline)
         port!.postMessage({ kind: 'boundary-probe', nonce })
         await sent
@@ -226,6 +239,7 @@ export function createFrontendMermaidOwner(
           if (proof && proof[1] !== positive.dispatchedProbes)
             throw new Error('Child native dispatch was not rejected')
           if (proof && !navigationSent) {
+            connectionStage = 'child-navigation'
             port!.postMessage({ kind: 'navigation-probe', nonce })
             navigationSent = true
           }
@@ -233,7 +247,12 @@ export function createFrontendMermaidOwner(
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
       } else if (hello.bridge.chromeWebview) throw new Error('Unverified native frame')
-    })().catch((error) => {
+      connectionStage = 'ready'
+      await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
+    })().catch(async (error) => {
+      try {
+        await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: true })
+      } catch {}
       failed = true
       awaiting?.reject(error)
       disposeFrame()

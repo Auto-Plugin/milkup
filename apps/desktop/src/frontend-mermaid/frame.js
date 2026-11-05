@@ -369,10 +369,7 @@
         // This DOM belongs to the opaque frame; it is never inserted in the editor.
         target.innerHTML = rendered.svg
         const svg = target.querySelector('svg')
-        if (
-          !svg ||
-          target.querySelector('script,iframe,object,embed,foreignObject,image,audio,video')
-        )
+        if (!svg || target.querySelector('script,iframe,object,embed,image,audio,video'))
           throw Error('unsafe-output')
         for (const a of svg.querySelectorAll('a')) {
           a.removeAttribute('href')
@@ -382,14 +379,48 @@
         }
         const nodes = [svg, ...svg.querySelectorAll('*')]
         if (nodes.length > 20000) throw Error('output-budget')
-        for (const node of nodes)
+        // Official eventmodeling uses foreignObject text boxes even with
+        // htmlLabels:false. Keep only inert text/layout HTML in this opaque
+        // document; no controls, links, media, scripts or embedded documents.
+        const htmlTextTags = new Set([
+          'div',
+          'span',
+          'p',
+          'br',
+          'b',
+          'strong',
+          'i',
+          'em',
+          'code',
+          'pre',
+          'sub',
+          'sup',
+          'small',
+          's',
+          'del',
+          'u',
+        ])
+        for (const node of nodes) {
+          if (
+            node.namespaceURI !== 'http://www.w3.org/2000/svg' &&
+            (node.namespaceURI !== 'http://www.w3.org/1999/xhtml' ||
+              !htmlTextTags.has(node.localName) ||
+              !node.closest('foreignObject'))
+          )
+            throw Error('unsafe-output')
           for (const attr of node.attributes) {
+            if (
+              node.namespaceURI === 'http://www.w3.org/1999/xhtml' &&
+              !['class', 'style', 'xmlns', 'dir', 'lang'].includes(attr.name)
+            )
+              throw Error('unsafe-output')
             if (
               /^on/i.test(attr.name) ||
               (attr.localName === 'href' && !attr.value.startsWith('#'))
             )
               throw Error('unsafe-output')
           }
+        }
         const serializedPolicy = new XMLSerializer().serializeToString(svg)
         if (
           serializedPolicy.length > 4 * 1024 * 1024 ||
@@ -411,7 +442,18 @@
         const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
           type: 'image/svg+xml',
         })
-        const url = URL.createObjectURL(blob)
+        // Chromium taints canvases for blob SVGs with foreignObject. A bounded
+        // validated SVG data image supports these inert labels without injecting
+        // SVG into the privileged page or using native screenshot/render IPC.
+        const usesHtmlText = !!svg.querySelector('foreignObject')
+        const url = usesHtmlText
+          ? await new Promise((resolve, reject) => {
+              const reader = new FileReader()
+              reader.onload = () => resolve(reader.result)
+              reader.onerror = () => reject(Error('png-failed'))
+              reader.readAsDataURL(blob)
+            })
+          : URL.createObjectURL(blob)
         let png
         try {
           const image = new Image()
@@ -431,7 +473,7 @@
           canvas.width = 0
           canvas.height = 0
         } finally {
-          URL.revokeObjectURL(url)
+          if (!usesHtmlText) URL.revokeObjectURL(url)
         }
         if (png.size > 16 * 1024 * 1024) throw Error('output-budget')
         const bytes = await png.arrayBuffer()

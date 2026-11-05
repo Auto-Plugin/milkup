@@ -174,3 +174,33 @@ Old helper baseline 42104273456 original final artifact 13453098480 was separate
 read: both product and GUI passed; each account resolved 102/102 SHOW records,
 no observer overflow or unresolved window; idle/busy UI closes exited normally
 with inner cleanup. This remains old-architecture evidence only.
+
+### First actual frontend Windows product failure and follow-up
+
+Run 42111470436 / 977735af reached real product execution. Early artifact
+13455550759: both accounts failed the first decoded-PNG assertion. No main probe,
+frame rejection, admission or renderer-start record was emitted; only eventual
+native frame destruction/release was present. This does **not** establish whether
+the failure was script loading, a bridge global, or native probing. Follow-up
+adds closed-field connection-stage and bridge-inventory diagnostics before
+admission; no arbitrary error/source text is logged, and no guard is bypassed.
+Both real UI closes exposed a separate definite bug: exit code 101, Rust panic
+`state() called before manage() for milkup_mermaid_engine::Registry`. The removed
+renderer registry still had two exit hooks. These now check frontend retirement
+instead, preserving refusal to exit while frames/requests remain active.
+
+The extended real Chromium corpus initially rendered 49/50 existing fixtures.
+Official eventmodeling always emits foreignObject HTML text boxes. A separate
+browser experiment confirmed a Blob SVG taints canvas export, while a data SVG
+image supports it. The fix accepts only a closed inert XHTML text/layout subset
+inside foreignObject, with a closed attribute set, and keeps scripts, frames,
+controls, links and media rejected. Validated bounded SVG data images never enter
+the privileged editor DOM; only validated PNG bytes cross the authenticated port.
+CSP permits data images for this rasterization, but scripts/connect/frames/fonts
+remain blocked. This is not permission to run arbitrary HTML or plugin code.
+
+The full 50-fixture corpus plus original cases and security/lifecycle cases then
+passed 71 tests. `frontend-browser-corpus.json` records each corpus PNG hash,
+geometry and the tested fixed-frame hash. Current normal browser suite is 20/20.
+These remain Chromium checks; Windows frontend acceptance is still pending/failing,
+and there is no hard-termination or per-frame OS-memory guarantee.

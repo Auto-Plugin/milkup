@@ -29,6 +29,27 @@ export function frontendLedgerClass(ProcessLedger) {
       assert(this.events.length < 1024, 'Bounded complete frontend evidence')
       const event = { ...value, productCreationFileTime: birth }
       this.events.push(event)
+      if (event.kind === 'connection') {
+        nonce(event.ownerId)
+        assert(
+          [
+            'frame-load',
+            'bridge-inventory',
+            'main-probe',
+            'child-ipc',
+            'child-navigation',
+            'ready',
+          ].includes(event.stage),
+        )
+        assert.equal(event.failed, false, 'Frontend connection failed at ' + event.stage)
+        assert.equal(typeof event.nativeFrameLive, 'boolean')
+        if (event.stage === 'bridge-inventory') {
+          for (const key of ['tauriInternals', 'tauriInvoke', 'wryIpc'])
+            assert.equal(event[key], false, 'Privileged bridge remains exposed: ' + key)
+          assert.equal(event.chromeWebview, true, 'Actual native frame message transport required')
+        }
+        return
+      }
       if (event.kind) {
         assert(
           [

@@ -1179,22 +1179,22 @@ pub fn run() {
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { api, .. } = &event {
                 if app
-                    .state::<milkup_mermaid_engine::Registry>()
-                    .shutdown_and_wait()
+                    .state::<frontend_mermaid_guard::Registry>()
+                    .prepare_exit()
                     .is_err()
                 {
                     api.prevent_exit();
-                    // Normal close reports this through its awaited private
-                    // command. Do not block this fallback on a failed stderr pipe.
+                    // The normal UI close awaits all frontend owner retirement.
+                    // Keep a fallback exit from discarding active output authority.
                 }
             }
             if matches!(event, tauri::RunEvent::Exit) {
                 app.state::<plugin_dom::DomRegistry>().stop_all();
                 // Covers exit paths that do not emit ExitRequested. The normal
-                // close command already awaits this before destroying its window.
+                // UI close already awaits frame destruction before destroying its window.
                 let _ = app
-                    .state::<milkup_mermaid_engine::Registry>()
-                    .shutdown_and_wait();
+                    .state::<frontend_mermaid_guard::Registry>()
+                    .prepare_exit();
             }
         });
 }

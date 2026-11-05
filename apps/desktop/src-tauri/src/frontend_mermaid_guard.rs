@@ -17,6 +17,7 @@ struct Status {
     frames: HashMap<String, bool>,
     frame_proofs: HashMap<String, (u64, u64)>,
     navigation_proofs: HashMap<String, u64>,
+    connection_records: usize,
 }
 
 #[derive(Clone)]
@@ -39,12 +40,78 @@ impl Registry {
             "dispatchedProbes":state.dispatched_probes,"lastBlockedNonce":state.last_blocked_nonce})
     }
 
+    pub fn prepare_exit(&self) -> Result<(), String> {
+        let state = self.0.lock().map_err(|_| "Frontend state unavailable")?;
+        if !state.requests.is_empty() || state.frames.values().any(|live| *live) {
+            return Err("Frontend owners are still active".into());
+        }
+        if let Some(writer) = self.1.as_ref().as_ref() {
+            writer.flush()?;
+        }
+        Ok(())
+    }
+
     pub fn record(&self, value: Value) -> Result<(), String> {
         let writer = self
             .1
             .as_ref()
             .as_ref()
             .ok_or("Frontend audit was not enabled")?;
+        if value["kind"] == "connection" {
+            let object = value.as_object().ok_or("Connection object required")?;
+            let allowed = [
+                "kind",
+                "ownerId",
+                "stage",
+                "tauriInternals",
+                "tauriInvoke",
+                "wryIpc",
+                "chromeWebview",
+                "failed",
+            ];
+            if value.to_string().len() > 512
+                || object.keys().any(|k| !allowed.contains(&k.as_str()))
+            {
+                return Err("Invalid connection metadata".into());
+            }
+            let owner = value["ownerId"]
+                .as_str()
+                .filter(|v| valid_nonce(v))
+                .ok_or("Invalid connection identity")?;
+            if !value["stage"].as_str().is_some_and(|v| {
+                [
+                    "frame-load",
+                    "bridge-inventory",
+                    "main-probe",
+                    "child-ipc",
+                    "child-navigation",
+                    "ready",
+                ]
+                .contains(&v)
+            }) {
+                return Err("Invalid connection stage".into());
+            }
+            for key in [
+                "tauriInternals",
+                "tauriInvoke",
+                "wryIpc",
+                "chromeWebview",
+                "failed",
+            ] {
+                if object.contains_key(key) && !value[key].is_boolean() {
+                    return Err("Invalid connection boolean".into());
+                }
+            }
+            let mut state = self.0.lock().map_err(|_| "Frontend state unavailable")?;
+            state.connection_records += 1;
+            if state.connection_records > 128 {
+                state.failed = true;
+                return Err("Connection audit budget".into());
+            }
+            let mut event = value.clone();
+            event["nativeFrameLive"] = json!(state.frames.get(owner) == Some(&true));
+            return writer.emit(&event);
+        }
         let object = value.as_object().ok_or("Frontend audit object required")?;
         let allowed = [
             "phase",
@@ -346,6 +413,18 @@ mod tests {
     }
     fn event(phase: &str) -> Value {
         json!({"phase":phase,"ownerId":"a".repeat(32),"requestId":"b".repeat(32),"sourceSha256":"c".repeat(64)})
+    }
+    #[test]
+    fn exit_requires_retired_frontend_frames_without_a_legacy_registry() {
+        let registry = ready();
+        assert!(registry.prepare_exit().is_err());
+        registry
+            .0
+            .lock()
+            .unwrap()
+            .frames
+            .insert("a".repeat(32), false);
+        registry.prepare_exit().unwrap();
     }
     #[test]
     fn audit_rejects_unproven_boundary_and_irrelevant_or_nested_metadata() {
