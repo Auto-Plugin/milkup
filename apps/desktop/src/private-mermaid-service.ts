@@ -66,14 +66,17 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     )
     return promise
   }
-  const retire = async () => {
+  const retire = async ({ cancelActive = true }: { readonly cancelActive?: boolean } = {}) => {
     if (!retired) {
       retired = true
-      controller.abort()
       for (const release of [...leases]) release()
     }
+    // Plugin changes revoke publication immediately but let the fixed engine
+    // finish within its existing deadline. Application shutdown can still
+    // escalate an already draining owner to immediate cancellation.
+    if (cancelActive) controller.abort()
     for (const action of failedCleanup.keys()) track(action)
-    track(() => invoke('private_mermaid_retire_owner', { ownerId }))
+    if (cancelActive) track(() => invoke('private_mermaid_retire_owner', { ownerId }))
     // Cancellation acknowledgement is not process/output settlement. Wait for
     // every owned render to finish and enqueue any late output release. Keep
     // the original deadlines; uncertainty remains a retirement failure.
@@ -93,6 +96,7 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
         clearTimeout(timer)
       }
     }
+    if (!cancelActive) track(() => invoke('private_mermaid_retire_owner', { ownerId }))
     while (cleanup.size) await Promise.allSettled([...cleanup])
     const errors = [...failedCleanup.values()]
     if (errors.length) throw new AggregateError(errors, 'Mermaid owner cleanup failed')
@@ -133,7 +137,10 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
       cancelSent = true
       track(() => invoke('private_mermaid_cancel', { ownerId, requestId }))
     }
-    options.signal?.addEventListener('abort', cancel, { once: true })
+    // A view invalidation is not native retirement: stopping a healthy helper
+    // mid-frame makes the strict protocol incomplete. Revoke this consumer's
+    // output immediately via assertActive, but drain admitted native work under
+    // its original deadline. Close and deadline cancellation stay explicit.
     controller.signal.addEventListener('abort', cancel, { once: true })
     const timeout = setTimeout(cancel, Math.max(0, deadline - performance.now()))
     let release: (() => void) | undefined
@@ -214,7 +221,6 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
       }
     } finally {
       clearTimeout(timeout)
-      options.signal?.removeEventListener('abort', cancel)
       controller.signal.removeEventListener('abort', cancel)
       if (!transferred) {
         // Even a malformed response can correspond to an allocated native

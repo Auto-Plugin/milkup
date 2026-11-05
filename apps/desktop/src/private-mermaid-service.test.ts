@@ -149,6 +149,75 @@ describe('host-private Mermaid ownership', () => {
       ).toHaveLength(1)
     },
   )
+  it('drains a superseded view without cancelling the admitted native frame and releases late output', async () => {
+    let complete!: () => void
+    let interrupted = false
+    let nativeFinished = false
+    const { owner, invoke } = fixture(async (command, args) => {
+      if (command === 'private_mermaid_cancel' && !nativeFinished) interrupted = true
+      if (command !== 'private_mermaid_render') return null
+      if (interrupted) throw Error('native admission permanently blocked after truncated protocol')
+      if (nativeFinished) return image(args)
+      return new Promise((resolve) => {
+        complete = () => {
+          nativeFinished = true
+          resolve(image(args))
+        }
+      })
+    })
+    const consumer = new AbortController()
+    const stale = expect(owner.render(request, { signal: consumer.signal })).rejects.toThrow()
+    consumer.abort()
+    await Promise.resolve()
+    expect(
+      invoke.mock.calls.filter(([command]) => command === 'private_mermaid_cancel'),
+    ).toHaveLength(0)
+    complete()
+    await stale
+    const next = await owner.render(request, {})
+    expect(next.fragments[0]?.status).toBe('ready')
+    disposeDocumentPngImages(next)
+    await owner.retire()
+    expect(interrupted).toBe(false)
+    expect(
+      invoke.mock.calls.filter(([command]) => command === 'private_mermaid_release'),
+    ).toHaveLength(2)
+  })
+  it.each([false, true])(
+    'draining plugin retirement supports shutdown escalation=%s',
+    async (escalate) => {
+      let complete!: () => void
+      const { owner, invoke } = fixture(async (command, args) =>
+        command === 'private_mermaid_render'
+          ? new Promise((resolve) => {
+              complete = () => resolve(image(args))
+            })
+          : null,
+      )
+      const rendering = expect(owner.render(request, {})).rejects.toThrow()
+      const drain = owner.retire({ cancelActive: false })
+      await Promise.resolve()
+      expect(
+        invoke.mock.calls.filter(
+          ([command]) =>
+            command === 'private_mermaid_cancel' || command === 'private_mermaid_retire_owner',
+        ),
+      ).toHaveLength(0)
+      const stopping = escalate ? owner.retire({ cancelActive: true }) : undefined
+      await Promise.resolve()
+      expect(invoke.mock.calls.some(([command]) => command === 'private_mermaid_cancel')).toBe(
+        escalate,
+      )
+      complete()
+      await rendering
+      await drain
+      await stopping
+      await expect(owner.render(request, {})).rejects.toThrow()
+      expect(
+        invoke.mock.calls.some(([command]) => command === 'private_mermaid_retire_owner'),
+      ).toBe(true)
+    },
+  )
   it('does not start expired, aborted, unknown-context or export requests', async () => {
     const { invoke, owner } = fixture()
     await expect(owner.render(request, { deadline: performance.now() - 1 })).rejects.toThrow()

@@ -1855,7 +1855,7 @@ export class DesktopPluginManager {
 
   private async settleMermaidOwner(owner: ReturnType<typeof createPrivateMermaidOwner>) {
     this.retiringMermaidOwners.add(owner)
-    await owner.retire()
+    await owner.retire({ cancelActive: this.documentRenderersClosing })
     this.retiringMermaidOwners.delete(owner)
   }
 
