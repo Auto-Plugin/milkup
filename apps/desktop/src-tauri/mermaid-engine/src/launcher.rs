@@ -1723,10 +1723,98 @@ mod token_diagnostic;
 mod tests {
     use super::*;
 
+    fn protocol_test_pipe() -> (
+        File,
+        mpsc::Receiver<Event>,
+        thread::JoinHandle<std::result::Result<(), OutputFailure>>,
+    ) {
+        let (reader, writer) = pipe(true).unwrap();
+        let (tx, rx) = mpsc::channel();
+        let thread = thread::spawn(move || {
+            output_reader(
+                reader,
+                tx,
+                Arc::new(AtomicBool::new(false)),
+                Progress::default(),
+            )
+        });
+        let mut writer = File::from(writer);
+        for frame in [
+            json!({"phase":"ready"}),
+            json!({"status":"ok","pngBytes":3}),
+        ] {
+            let bytes = serde_json::to_vec(&frame).unwrap();
+            writer
+                .write_all(&(bytes.len() as u32).to_le_bytes())
+                .unwrap();
+            writer.write_all(&bytes).unwrap();
+        }
+        writer.write_all(b"png").unwrap();
+        assert!(matches!(
+            rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            Event::Ready(_)
+        ));
+        (writer, rx, thread)
+    }
+
+    #[test]
+    fn png_is_not_published_until_real_pipe_eof() {
+        let (writer, rx, reader) = protocol_test_pipe();
+        assert!(matches!(
+            rx.recv_timeout(Duration::from_millis(80)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        drop(writer);
+        match rx.recv_timeout(Duration::from_secs(1)).unwrap() {
+            Event::Result(_, png, _) => assert_eq!(png, b"png"),
+            _ => panic!("Expected EOF-validated result"),
+        }
+        assert!(reader.join().unwrap().is_ok());
+    }
+
+    #[test]
+    fn trailing_bytes_never_publish_a_result() {
+        let (mut writer, rx, reader) = protocol_test_pipe();
+        writer.write_all(b"unexpected").unwrap();
+        drop(writer);
+        assert!(matches!(
+            rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            Event::Error(_)
+        ));
+        assert_eq!(reader.join().unwrap().err().unwrap().kind, "trailing-data");
+    }
+
+    #[test]
+    fn retained_writer_obeys_original_deadline_and_cancellation() {
+        for cancelled in [false, true] {
+            let (writer, rx, reader) = protocol_test_pipe();
+            let control = Control {
+                cancelled: Arc::new(AtomicBool::new(cancelled)),
+                deadline: Instant::now() + Duration::from_millis(40),
+                unhealthy: Arc::new(AtomicBool::new(false)),
+                cleanup_uncertain: Arc::new(AtomicBool::new(false)),
+            };
+            let failure = recv_controlled(&rx, &control).err().unwrap().to_string();
+            assert!(failure.contains(if cancelled {
+                "cancelled"
+            } else {
+                "original deadline"
+            }));
+            drop(writer);
+            assert!(reader.join().unwrap().is_ok());
+        }
+    }
+
     #[test]
     fn temporary_copy_is_readable_executable_and_write_delete_pinned_without_durable_flush() {
-        let root = std::env::temp_dir().join(format!("milkup-copy-contract-{}-{}", std::process::id(),
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let root = std::env::temp_dir().join(format!(
+            "milkup-copy-contract-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         fs::create_dir(&root).unwrap();
         let source = std::env::current_exe().unwrap();
         let destination = root.join("copy-tests.exe");
@@ -1737,8 +1825,14 @@ mod tests {
         assert_eq!(fs::read(&source).unwrap(), fs::read(&destination).unwrap());
         assert!(OpenOptions::new().write(true).open(&destination).is_err());
         assert!(fs::remove_file(&destination).is_err());
-        assert!(pinned_copy(&source, &destination).is_err(), "Never replace an existing copy");
-        let output = std::process::Command::new(&destination).arg("--list").output().unwrap();
+        assert!(
+            pinned_copy(&source, &destination).is_err(),
+            "Never replace an existing copy"
+        );
+        let output = std::process::Command::new(&destination)
+            .arg("--list")
+            .output()
+            .unwrap();
         assert!(output.status.success());
         assert!(!output.stdout.is_empty());
         drop(pins);
@@ -1747,15 +1841,24 @@ mod tests {
 
     #[test]
     fn temporary_copy_rejects_bytes_changed_before_destination_pin() {
-        let root = std::env::temp_dir().join(format!("milkup-copy-tamper-{}-{}", std::process::id(),
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        let root = std::env::temp_dir().join(format!(
+            "milkup-copy-tamper-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
         fs::create_dir(&root).unwrap();
         let source = root.join("source");
         let destination = root.join("copy");
         fs::write(&source, b"exact original bytes").unwrap();
         let error = pinned_copy_observed(&source, &destination, |phase| {
-            if phase == "copyWriteHandleClosedTickMs" { fs::write(&destination, b"tampered").unwrap(); }
-        }).unwrap_err();
+            if phase == "copyWriteHandleClosedTickMs" {
+                fs::write(&destination, b"tampered").unwrap();
+            }
+        })
+        .unwrap_err();
         assert!(error.to_string().contains("differs from the pinned source"));
         fs::remove_dir_all(root).unwrap();
     }
