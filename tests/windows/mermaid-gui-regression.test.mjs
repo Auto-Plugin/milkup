@@ -1545,3 +1545,38 @@ test('natural view observation duration satisfies the shared stability contract'
   )
   assert.throws(() => validateStableSamples(samples(2000), { durationMs: 2000, imageCount: 1 }))
 })
+
+test('child SHOW may await later root CREATE only with matching retained native identity', () => {
+  const raw = childLifetimeEvidence()
+  const [root, child] = raw.windowLifetimes
+  child.create.sequence = 1
+  child.create.nativeEventUptimeMs32 = child.create.nativeTick = 100
+  child.create.callbackTick = 101
+  const show = raw.childShowEvidence[0]
+  show.sequence = 3
+  show.nativeEventUptimeMs32 = show.nativeTick = 110
+  show.callbackTick = 111
+  show.proof.capturedAtTick = 112
+  root.create.sequence = 4
+  root.create.nativeEventUptimeMs32 = root.create.nativeTick = 120
+  root.create.callbackTick = 121
+  root.confirmation.sequence = 5
+  root.confirmation.callbackTick = 122
+  child.confirmation.sequence = 6
+  child.confirmation.callbackTick = 123
+  root.retirement.sequence = child.retirement.sequence = 8
+  child.id = 1
+  root.id = 2
+  child.confirmation.rootLifeId = child.retirement.parentLifeId = 2
+  show.lifeId = 1
+  raw.windowLifetimes = [child, root]
+  assert(validateNativeChildLifetimes(raw))
+  for (const field of ['pid', 'processCreationFileTime', 'threadCreationFileTime']) {
+    const wrongIdentity = structuredClone(raw)
+    wrongIdentity.childShowEvidence[0].proof[field] = field === 'pid' ? 999 : '9999'
+    assert.throws(() => validateNativeChildLifetimes(wrongIdentity))
+  }
+  const unconfirmed = structuredClone(raw)
+  unconfirmed.windowLifetimes[0].confirmation = null
+  assert.throws(() => validateNativeChildLifetimes(unconfirmed))
+})

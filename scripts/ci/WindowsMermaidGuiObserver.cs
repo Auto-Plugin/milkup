@@ -172,8 +172,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     }
     sealed class WindowLife {
         public long Id, Generation; public IntPtr Hwnd; public NativeIdentity Identity;
-        public Dictionary<string, object> Create, Confirmation, Retirement; public long? Released;
-        public Dictionary<string, object> Record() { return new Dictionary<string, object> { { "id", Id }, { "hwnd", HandleText(Hwnd) }, { "generation", Generation }, { "create", Create }, { "confirmation", Confirmation }, { "retirement", Retirement }, { "proofReleasedAtTick", Released } }; }
+        public Dictionary<string, object> Create, Confirmation, Retirement, PendingConfirmation, DirectDestroy; public long? Released;
+        public Dictionary<string, object> Record() { return new Dictionary<string, object> { { "id", Id }, { "hwnd", HandleText(Hwnd) }, { "generation", Generation }, { "create", Create }, { "confirmation", Confirmation }, { "pendingConfirmation", PendingConfirmation }, { "retirement", Retirement }, { "directDestroy", DirectDestroy }, { "proofReleasedAtTick", Released } }; }
     }
     sealed class NativeNotice { public IntPtr Hwnd; public uint Kind, Time, Tid; public long Order, Tick; }
     static void Check(bool result, string operation) { if (!result) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
@@ -333,6 +333,11 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     void ReleaseLife(WindowLife life, long tick) { if (life.Released.HasValue) return; if (life.Identity != null) { life.Identity.Dispose(); life.Identity = null; } life.Released = tick; }
     void ExpireRetiredLives(long tick) {
         foreach (WindowLife life in windowLives) if (!life.Released.HasValue && life.Retirement != null && tick - Number(life.Retirement, "callbackTick") > 2000) ReleaseLife(life, tick);
+        // Cache hints do not prove historical identity. Discard only dead child
+        // hints; immutable CREATE/SHOW evidence and any held proof remain intact.
+        var deadChildren = new List<long>();
+        foreach (var pair in previous) if (pair.Value.KnownChild && !IsWindow(pair.Value.Handle)) deadChildren.Add(pair.Key);
+        foreach (long key in deadChildren) previous.Remove(key);
     }
     void RetireLife(WindowLife life, Dictionary<string, object> source, string reason, long? parent) {
         if (life == null || life.Retirement != null) return;
@@ -348,6 +353,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         source["processingWindow"] = WindowDiagnostic(hwnd);
         source["eventKind"] = kind;
         WindowLife prior = CurrentLife(hwnd);
+        if (kind == "destroy" && prior != null && prior.DirectDestroy == null) prior.DirectDestroy = new Dictionary<string, object>(source);
         if (kind == "create") {
             // Every CREATE is a barrier, even when HWND/class cannot be read.
             RetireLife(prior, source, "new-create", null);
@@ -363,13 +369,34 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             foreach (WindowLife child in windowLives) if (child.Confirmation != null && child.Confirmation["rootLifeId"] != null && Number(child.Confirmation, "rootLifeId") == prior.Id) RetireLife(child, source, "parent-destroy", prior.Id);
         }
     }
+    void CapturePendingConfirmation(WindowLife life, IntPtr hwnd, IntPtr root, string klass, uint pid, uint tid) {
+        if (life.PendingConfirmation != null || life.Identity != null || life.Confirmation != null || life.Retirement != null) return;
+        NativeIdentity identity = OpenIdentity(tid, pid);
+        if (identity == null) return;
+        try {
+            uint againPid; uint againTid = GetWindowThreadProcessId(hwnd, out againPid);
+            if (!IsWindow(hwnd) || againPid != pid || againTid != tid || GetAncestor(hwnd, 2) != root || ClassName(hwnd) != klass || CurrentLife(hwnd) != life || HasQueuedBarrier(hwnd)) return;
+            life.PendingConfirmation = new Dictionary<string, object> { { "sequence", Interlocked.Increment(ref observationSequence) }, { "callbackTick", NativeTick() }, { "className", klass }, { "rootHwnd", HandleText(root) }, { "pid", pid }, { "threadId", tid }, { "processCreationFileTime", identity.Fact.Creation.ToString() }, { "threadCreationFileTime", identity.ThreadBirth.ToString() }, { "doubleReadMatched", true } };
+            life.Identity = identity; identity = null;
+        } finally { if (identity != null) identity.Dispose(); }
+    }
+    void ConfirmPendingChildren(IntPtr root) {
+        WindowLife parent = CurrentLife(root);
+        if (parent == null || parent.Confirmation == null || parent.Retirement != null) return;
+        foreach (WindowLife life in windowLives.ToArray()) {
+            if (life.PendingConfirmation != null && life.Confirmation == null && life.Retirement == null && !life.Released.HasValue && (string)life.PendingConfirmation["rootHwnd"] == HandleText(root)) ConfirmWindowLife(life.Hwnd, true);
+        }
+    }
     WindowLife ConfirmWindowLife(IntPtr hwnd, bool allowChild) {
         WindowLife life = CurrentLife(hwnd);
         if (life == null || life.Retirement != null || life.Released.HasValue) return null;
         uint pid, tid = GetWindowThreadProcessId(hwnd, out pid); IntPtr root = GetAncestor(hwnd, 2); string klass = ClassName(hwnd);
         if (tid == 0 || tid != Convert.ToUInt32(life.Create["eventThreadId"]) || pid == 0 || root == IntPtr.Zero || klass.Length == 0 || !IsWindow(hwnd) || (root != hwnd && (!allowChild || IsConsoleClass(klass)))) return null;
         WindowLife rootLife = root == hwnd ? null : ConfirmWindowLife(root, false);
-        if (root != hwnd && rootLife == null) return null;
+        if (root != hwnd && rootLife == null) {
+            CapturePendingConfirmation(life, hwnd, root, klass, pid, tid);
+            return null;
+        }
         if (life.Confirmation != null) {
             if ((string)life.Confirmation["className"] != klass || (string)life.Confirmation["rootHwnd"] != HandleText(root) || !Object.Equals(life.Confirmation["rootLifeId"], rootLife == null ? null : (object)rootLife.Id) || ReadHeldIdentity(life, tid) == null) return null;
             return life;
@@ -379,9 +406,14 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         try {
             uint againPid; uint againTid = GetWindowThreadProcessId(hwnd, out againPid);
             if (!IsWindow(hwnd) || againPid != pid || againTid != tid || GetAncestor(hwnd, 2) != root || ClassName(hwnd) != klass || CurrentLife(hwnd) != life || life.Retirement != null || HasQueuedBarrier(hwnd) || HasQueuedBarrier(root) || (rootLife != null && (CurrentLife(root) != rootLife || rootLife.Retirement != null))) return null;
+            if (life.PendingConfirmation != null) {
+                var pending = life.PendingConfirmation;
+                if ((string)pending["className"] != klass || (string)pending["rootHwnd"] != HandleText(root) || life.Identity == null || ReadHeldIdentity(life, tid) == null || life.Identity.ThreadBirth != identity.ThreadBirth || life.Identity.Fact.Creation != identity.Fact.Creation || life.Identity.Fact.Pid != pid) return null;
+            }
             long tick = NativeTick();
             RememberProcess(identity.Fact);
             life.Confirmation = new Dictionary<string, object> { { "sequence", Interlocked.Increment(ref observationSequence) }, { "callbackTick", tick }, { "className", klass }, { "rootHwnd", HandleText(root) }, { "rootLifeId", rootLife == null ? null : (object)rootLife.Id }, { "pid", pid }, { "processCreationFileTime", identity.Fact.Creation.ToString() }, { "threadId", tid }, { "threadCreationFileTime", identity.ThreadBirth.ToString() }, { "doubleReadMatched", true } };
+            if (life.Identity != null) life.Identity.Dispose();
             life.Identity = identity; identity = null; return life;
         } finally { if (identity != null) identity.Dispose(); }
     }
@@ -420,6 +452,22 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         }
         return true;
     }
+    Dictionary<string, object> CapturePostParentDestroy(WindowLife life, uint tid) {
+        if (life.Confirmation == null || life.Retirement == null || (string)life.Retirement["reason"] != "parent-destroy") return null;
+        WindowLife root = windowLives.Find(item => item.Id == Number(life.Retirement, "parentLifeId"));
+        if (root == null || root.Confirmation == null || CurrentLife(life.Hwnd) != life || CurrentLife(root.Hwnd) != root) return null;
+        var childFirst = WindowDiagnostic(life.Hwnd); var rootFirst = WindowDiagnostic(root.Hwnd);
+        var childProof = ReadHeldIdentity(life, tid); var rootProof = ReadHeldIdentity(root, Convert.ToUInt32(root.Confirmation["threadId"]));
+        var childSecond = WindowDiagnostic(life.Hwnd); var rootSecond = WindowDiagnostic(root.Hwnd);
+        bool matched = childProof != null && rootProof != null && !HasQueuedBarrier(life.Hwnd) && !HasQueuedBarrier(root.Hwnd) && CurrentLife(life.Hwnd) == life && CurrentLife(root.Hwnd) == root;
+        foreach (var pair in new[] { new[] { childFirst, childSecond, life.Confirmation }, new[] { rootFirst, rootSecond, root.Confirmation } }) {
+            matched = matched && Object.Equals(pair[0]["isWindow"], true) && Object.Equals(pair[1]["isWindow"], true);
+            foreach (string key in new[] { "pid", "threadId", "className", "rootHwnd" }) matched = matched && Object.Equals(pair[0][key], pair[1][key]) && Object.Equals(pair[0][key], pair[2][key]);
+        }
+        // Supplemental evidence only. It cannot extend a retired generation or
+        // change the strict reconciler's decision.
+        return new Dictionary<string, object> { { "childLifeId", life.Id }, { "rootLifeId", root.Id }, { "childFirst", childFirst }, { "childSecond", childSecond }, { "rootFirst", rootFirst }, { "rootSecond", rootSecond }, { "childProof", childProof }, { "rootProof", rootProof }, { "doubleReadMatched", matched }, { "endSequence", observationSequence } };
+    }
     Dictionary<string, object> NewChildShow(IntPtr hwnd, uint time, uint tid, long tick, long order, string scope) {
         var record = NativeEventRecord(order, time, tick, tid);
         record["processingWindow"] = WindowDiagnostic(hwnd);
@@ -430,11 +478,15 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         // Do not choose the newest HWND generation. Exactly one retained
         // identity may supply a proof; final reconciliation also checks time.
         Dictionary<string, object> proof = null; int matches = 0;
-        foreach (WindowLife life in windowLives) if (life.Hwnd == hwnd && life.Confirmation != null && (life.Confirmation["rootLifeId"] == null) == (scope == "root") && !life.Released.HasValue && Convert.ToUInt32(life.Confirmation["threadId"]) == tid) {
+        foreach (WindowLife life in windowLives) if (life.Hwnd == hwnd && (life.Confirmation != null || life.PendingConfirmation != null) && !life.Released.HasValue) {
+            var observed = life.Confirmation ?? life.PendingConfirmation;
+            if (((string)observed["rootHwnd"] == HandleText(hwnd)) != (scope == "root") || Convert.ToUInt32(observed["threadId"]) != tid) continue;
             Dictionary<string, object> candidate = ReadHeldIdentity(life, tid);
             if (candidate != null) { matches++; proof = candidate; }
         }
         if (matches == 1) record["proof"] = proof;
+        WindowLife current = CurrentLife(hwnd);
+        if (current != null) record["postParentDestroy"] = CapturePostParentDestroy(current, tid);
         return record;
     }
     void RecordPendingChildShow(IntPtr hwnd, uint time, uint tid, long tick, long order) {
@@ -464,6 +516,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             while (true) {
                 lock (gate) { if (nativeNotices.Count == 0) break; notice = nativeNotices.Dequeue(); }
                 Observe(notice.Hwnd, notice.Kind == CreateEvent ? "create" : notice.Kind == DestroyEvent ? "destroy" : notice.Kind == ShowEvent ? "show" : "hide", notice.Kind == ShowEvent, false, notice.Time, notice.Tid, notice.Tick, notice.Order);
+                if (notice.Kind == CreateEvent) { lock (gate) ConfirmPendingChildren(notice.Hwnd); }
             }
         } finally { lock (gate) processingNativeNotice = false; }
     }
