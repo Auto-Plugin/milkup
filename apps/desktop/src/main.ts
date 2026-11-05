@@ -53,6 +53,7 @@ import {
   MemoryDocumentSource,
   MemoryTextDocument,
   Selection,
+  transactionChangesDocument,
 } from '@milkup/core'
 import type { ActionDefinition, ActionPermission, Command, Editor, Transaction } from '@milkup/core'
 import {
@@ -1259,7 +1260,8 @@ const desktopPluginEditor: Editor = {
     return state
   },
   dispatch(transaction: Transaction): void {
-    if (isDocumentReadonly()) throw new PluginEditingError('readonly')
+    if (isDocumentReadonly() && transactionChangesDocument(transaction))
+      throw new PluginEditingError('readonly')
     if (isDocumentBusy() || isDocumentSaving() || closeConfirmOpen || view?.isComposing)
       throw new PluginEditingError('busy')
     // Legacy serialized transactions have no native CAS or source-view queue.
@@ -1289,10 +1291,10 @@ const desktopPluginEditor: Editor = {
 /** Bind legacy command writes to the document and save destination at invocation. */
 function createDesktopLegacyCommandEditor(): Editor {
   const expected = getDesktopEditingCurrent()
-  const assertCurrent = (): void => {
+  const assertCurrent = (writesDocument = true): void => {
     const current = getDesktopEditingCurrent()
     if (!current || !expected) throw new PluginEditingError('stale')
-    if (current.readonly) throw new PluginEditingError('readonly')
+    if (current.readonly && writesDocument) throw new PluginEditingError('readonly')
     if (current.busy) throw new PluginEditingError('busy')
     if (
       current.identity !== expected.identity ||
@@ -1310,7 +1312,7 @@ function createDesktopLegacyCommandEditor(): Editor {
       return desktopPluginEditor.state
     },
     dispatch(transaction) {
-      assertCurrent()
+      assertCurrent(transactionChangesDocument(transaction))
       desktopPluginEditor.dispatch(transaction)
     },
     command(command) {
@@ -2652,7 +2654,7 @@ function createEditorView(): EditorView {
           },
         }),
     dispatch: (transaction: Transaction) => {
-      if (isDocumentReadonly() && transaction.changes && !transaction.changes.empty) return
+      if (isDocumentReadonly() && transactionChangesDocument(transaction)) return
       if (view !== nextView || isDocumentBusy() || isDocumentInputLocked() || closeConfirmOpen) {
         return
       }

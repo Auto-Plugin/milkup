@@ -50,6 +50,57 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
   const cleanup = new Set<Promise<unknown>>()
   const failedCleanup = new Map<() => Promise<unknown>, unknown>()
   let retired = false
+  let nativeBusy = false
+  const waiting = new Set<{ start(): boolean; reject(error: Error): void }>()
+  const reserveNative = (
+    assertActive: () => void,
+    signal: AbortSignal | undefined,
+    deadline: number,
+  ): Promise<void> =>
+    new Promise((resolve, reject) => {
+      // One admitted native frame plus at most seven waiting consumers, matching
+      // the native job budget. Aborted waiting consumers leave immediately.
+      if (waiting.size >= 7) {
+        reject(new Error('Mermaid pending request budget exceeded'))
+        return
+      }
+      let timer: ReturnType<typeof setTimeout>
+      const clear = () => {
+        waiting.delete(item)
+        clearTimeout(timer)
+        signal?.removeEventListener('abort', abort)
+      }
+      const item = {
+        start: () => {
+          clear()
+          try {
+            assertActive()
+          } catch (error) {
+            reject(error)
+            return false
+          }
+          nativeBusy = true
+          resolve()
+          return true
+        },
+        reject: (error: Error) => {
+          clear()
+          reject(error)
+        },
+      }
+      const abort = () => item.reject(new DocumentPresentationError('aborted'))
+      waiting.add(item)
+      signal?.addEventListener('abort', abort, { once: true })
+      timer = setTimeout(
+        () => item.reject(new DocumentPresentationError('timeout')),
+        Math.max(0, deadline - performance.now()),
+      )
+      if (signal?.aborted) abort()
+    })
+  const releaseNative = () => {
+    nativeBusy = false
+    for (const item of waiting) if (item.start()) break
+  }
   const track = (action: () => Promise<unknown>) => {
     const promise = Promise.resolve().then(action)
     // Keep cleanup failures observable to the manager's existing retirement chain.
@@ -69,6 +120,7 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
   const retire = async ({ cancelActive = true }: { readonly cancelActive?: boolean } = {}) => {
     if (!retired) {
       retired = true
+      for (const item of waiting) item.reject(new DocumentPresentationError('revoked'))
       for (const release of [...leases]) release()
     }
     // Plugin changes revoke publication immediately but let the fixed engine
@@ -132,8 +184,10 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     })
     active.set(settled, deadline)
     let cancelSent = false
+    let nativeStarted = false
+    let nativeReserved = false
     const cancel = () => {
-      if (cancelSent) return
+      if (cancelSent || !nativeStarted) return
       cancelSent = true
       track(() => invoke('private_mermaid_cancel', { ownerId, requestId }))
     }
@@ -146,7 +200,11 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     let release: (() => void) | undefined
     let transferred = false
     try {
+      if (nativeBusy) await reserveNative(assertActive, options.signal, deadline)
+      else nativeBusy = true
+      nativeReserved = true
       assertActive()
+      nativeStarted = true
       const response = (await invoke('private_mermaid_render', {
         request: {
           requestId,
@@ -230,6 +288,7 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
       }
       active.delete(settled)
       settle()
+      if (nativeReserved) releaseNative()
     }
   }
   return Object.freeze({ render, retire })

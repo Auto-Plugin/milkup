@@ -218,6 +218,126 @@ describe('host-private Mermaid ownership', () => {
       ).toBe(true)
     },
   )
+  it('discards nine invalidated queued views before native admission and renders the latest', async () => {
+    let complete!: () => void
+    let calls = 0
+    const { owner, invoke } = fixture(async (command, args) => {
+      if (command !== 'private_mermaid_render') return null
+      calls++
+      if (calls > 1) return image(args)
+      return new Promise((resolve) => {
+        complete = () => resolve(image(args))
+      })
+    })
+    const firstSignal = new AbortController()
+    const first = expect(owner.render(request, { signal: firstSignal.signal })).rejects.toThrow()
+    firstSignal.abort()
+    const discarded: Promise<unknown>[] = []
+    for (let index = 0; index < 9; index++) {
+      const signal = new AbortController()
+      discarded.push(expect(owner.render(request, { signal: signal.signal })).rejects.toThrow())
+      signal.abort()
+    }
+    const latest = owner.render(request, {})
+    await Promise.all(discarded)
+    expect(calls).toBe(1)
+    expect(invoke.mock.calls.some(([command]) => command === 'private_mermaid_cancel')).toBe(false)
+    complete()
+    await first
+    const result = await latest
+    expect(calls).toBe(2)
+    expect(result.fragments[0]?.status).toBe('ready')
+    disposeDocumentPngImages(result)
+  })
+  it('keeps queued deadlines and never admits expired work after the active frame drains', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      let complete!: () => void
+      const { owner, invoke } = fixture(async (command, args) =>
+        command === 'private_mermaid_render'
+          ? new Promise((resolve) => {
+              complete = () => resolve(image(args))
+            })
+          : null,
+      )
+      const active = owner.render(request, { deadline: 1000 })
+      const queued = expect(owner.render(request, { deadline: 50 })).rejects.toThrow('timeout')
+      await vi.advanceTimersByTimeAsync(51)
+      await queued
+      expect(
+        invoke.mock.calls.filter(([command]) => command === 'private_mermaid_render'),
+      ).toHaveLength(1)
+      expect(invoke.mock.calls.some(([command]) => command === 'private_mermaid_cancel')).toBe(
+        false,
+      )
+      complete()
+      disposeDocumentPngImages(await active)
+      await owner.retire()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+  it('a draining native frame retains its original timeout and reports failed shutdown escalation', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      let finish!: () => void
+      let failStop = true
+      const { owner } = fixture(async (command, args) => {
+        if (command === 'private_mermaid_render')
+          return new Promise((resolve) => {
+            finish = () => resolve(image(args))
+          })
+        if (
+          failStop &&
+          ['private_mermaid_cancel', 'private_mermaid_retire_owner'].includes(command)
+        )
+          throw Error('injected native stop failure')
+        return null
+      })
+      const signal = new AbortController()
+      const rendering = expect(
+        owner.render(request, { signal: signal.signal, deadline: 100 }),
+      ).rejects.toThrow()
+      signal.abort()
+      const draining = expect(owner.retire({ cancelActive: false })).rejects.toThrow(
+        'original deadline',
+      )
+      await vi.advanceTimersByTimeAsync(101)
+      await draining
+      const closing = expect(owner.retire()).rejects.toThrow('original deadline')
+      await vi.advanceTimersByTimeAsync(1)
+      await closing
+      finish()
+      await rendering
+      await expect(owner.retire()).rejects.toThrow('cleanup failed')
+      failStop = false
+      await expect(owner.retire()).resolves.toBeUndefined()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+  it('retirement preserves a late discarded lease release failure until actual release succeeds', async () => {
+    let finish!: () => void
+    let failRelease = true
+    const { owner } = fixture(async (command, args) => {
+      if (command === 'private_mermaid_render')
+        return new Promise((resolve) => {
+          finish = () => resolve(image(args))
+        })
+      if (command === 'private_mermaid_release' && failRelease)
+        throw Error('injected late lease release failure')
+      return null
+    })
+    const signal = new AbortController()
+    const rendering = expect(owner.render(request, { signal: signal.signal })).rejects.toThrow()
+    signal.abort()
+    const draining = expect(owner.retire({ cancelActive: false })).rejects.toThrow('cleanup failed')
+    finish()
+    await rendering
+    await draining
+    failRelease = false
+    await expect(owner.retire()).resolves.toBeUndefined()
+  })
   it('does not start expired, aborted, unknown-context or export requests', async () => {
     const { invoke, owner } = fixture()
     await expect(owner.render(request, { deadline: performance.now() - 1 })).rejects.toThrow()

@@ -2415,6 +2415,28 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           before.version,
           'Rendered mode rejects typing after plugin view replacement',
         )
+        // Observe the real native clipboard event after target handlers; never
+        // dispatch a synthetic copy or substitute the application's selection.
+        await execute(`window.__milkupReadonlyCopy=null;window.addEventListener('copy',event=>{
+          window.__milkupReadonlyCopy={isTrusted:event.isTrusted,defaultPrevented:event.defaultPrevented,
+            text:event.clipboardData?.getData('text/plain')??null};
+        },{once:true});return true`)
+        await control('a')
+        await control('c')
+        row.previewCopy = await until(
+          () => execute('return window.__milkupReadonlyCopy'),
+          'Native copy after preview Ctrl+A',
+        )
+        assert.equal(row.previewCopy.isTrusted, true)
+        assert.equal(row.previewCopy.defaultPrevented, true)
+        assert.equal(
+          row.previewCopy.text,
+          fixtures.ordinary,
+          'Preview select-all copies exact Markdown',
+        )
+        await control('x')
+        assert.equal((await state()).version, before.version, 'Cut cannot mutate preview selection')
+        assert.equal((await state()).dirty, before.dirty)
         row.previewReadonlyAfterHotEnable = true
         row.modeTransitions.push({
           mode: modeState.mode,
@@ -2455,6 +2477,24 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         )
         row.markdownPreviewMarkersHidden = true
         await position(fixtures.ordinary)
+        await rendered(true)
+        row.repeatedInvalidations = []
+        for (let iteration = 0; iteration < 9; iteration++) {
+          await control('1')
+          const sourceState = await state()
+          assert.equal(sourceState.mode, 'source')
+          await control('2')
+          const liveState = await state()
+          assert.equal(liveState.mode, 'live')
+          assert.equal(liveState.version, before.version)
+          row.repeatedInvalidations.push({
+            iteration,
+            sourceMode: sourceState.mode,
+            restoredMode: liveState.mode,
+            version: liveState.version,
+            at: Date.now(),
+          })
+        }
         await rendered(true)
         row.image = initialImage = await readImage('02-enabled')
         row.saved = await saved()
