@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process'
 
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url))
 execFileSync(process.execPath, ['scripts/check-versions.mjs'], { cwd: workspaceRoot })
+execFileSync(process.execPath, ['scripts/frontend-mermaid-document.mjs'], { cwd: workspaceRoot })
 const appVersion = JSON.parse(readFileSync(`${workspaceRoot}/package.json`, 'utf8')).version
 const sdkVersion = JSON.parse(
   readFileSync(`${workspaceRoot}/packages/plugin-sdk/package.json`, 'utf8'),

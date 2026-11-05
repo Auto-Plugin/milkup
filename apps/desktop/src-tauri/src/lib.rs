@@ -24,6 +24,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 mod appearance_theme;
 mod appearance_theme_store;
 mod frontend_mermaid_guard;
+mod frontend_mermaid_document;
 mod frontend_mermaid_audit;
 mod native_search;
 pub mod output;
@@ -1033,6 +1034,16 @@ fn frontend_mermaid_audit_flush(registry: State<frontend_mermaid_guard::Registry
 
 pub fn run() {
     tauri::Builder::default()
+        .register_uri_scheme_protocol("milkup-mermaid", |_context, request| {
+            let allowed = frontend_mermaid_document::allowed_request(request.method().as_str(), &request.uri().to_string());
+            tauri::http::Response::builder()
+                .status(if allowed { 200 } else { 404 })
+                .header("Content-Type", "text/html; charset=utf-8")
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Cache-Control", "no-store")
+                .body(if allowed { frontend_mermaid_document::HTML } else { &[] })
+                .expect("Fixed response headers")
+        })
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
         .manage(frontend_mermaid_guard::Registry::default())
         .manage(SidecarRegistry::default())

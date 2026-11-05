@@ -9,7 +9,7 @@ import {
   disposeDocumentPngImages,
 } from '@milkup/core/internal/document-png-image'
 import engineAsset from '../src-tauri/mermaid-engine/assets/mermaid-12.2.0.min.js?url'
-import frameAsset from './frontend-mermaid/frame.js?url'
+import frameAsset from './frontend-mermaid/frame.html?url'
 
 export interface FrontendMermaidOwner {
   render(
@@ -32,8 +32,6 @@ type Message = {
   bridge?: Record<string, boolean>
 }
 const token = () => crypto.randomUUID().replaceAll('-', '')
-const escape = (s: string) =>
-  s.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;')
 
 /** Only the pinned host engine runs in this owner. Plugins cannot provide code,
  * HTML, URLs, callbacks, config objects or image authority. */
@@ -204,7 +202,6 @@ export function createFrontendMermaidOwner(
         'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f',
         deadline,
       )
-      const bootstrap = new URL(frameAsset, location.href).href
       connectionStage = 'frame-load'
       await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
       assertActive(deadline)
@@ -258,8 +255,11 @@ export function createFrontendMermaidOwner(
       }
       addEventListener('message', handshake)
       removeHandshake = () => removeEventListener('message', handshake)
-      const policy = `default-src 'none'; script-src 'nonce-${nonce}'; script-src-attr 'none'; style-src 'unsafe-inline'; img-src blob: data:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'`
-      frame.srcdoc = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${escape(policy)}"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script nonce="${nonce}" src="${escape(bootstrap)}" data-owner="${nonce}" data-parent-origin="${escape(location.origin)}"></script></body></html>`
+      // A separate fixed document has its own CSP. srcdoc inherits Tauri's
+      // main-page style nonces, which reject Mermaid's generated styles.
+      frame.src = options.nativeGuard
+        ? `http://milkup-mermaid.localhost/renderer.html#${nonce}`
+        : `${new URL(frameAsset, location.href).href}#${nonce}`
       document.body.append(frame)
       frameWasAppended = true
       await connected

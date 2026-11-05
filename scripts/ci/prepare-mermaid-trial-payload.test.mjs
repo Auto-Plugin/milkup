@@ -1719,11 +1719,11 @@ test('fixed frontend assets require exact bytes and reachable production referen
     const engine = Buffer.from('reviewed engine'),
       bootstrap = Buffer.from('fixed frame')
     const entry = Buffer.from(
-      'const engine="/assets/mermaid-12.2.0.min-sealed.js",frame="/assets/frame-sealed.js";',
+      'const engine="/assets/mermaid-12.2.0.min-sealed.js",frame="/assets/frame-sealed.html";',
     )
     await writeFile(path.join(dir, 'assets/entry.js'), entry)
     await writeFile(path.join(dir, 'assets/mermaid-12.2.0.min-sealed.js'), engine)
-    await writeFile(path.join(dir, 'assets/frame-sealed.js'), bootstrap)
+    await writeFile(path.join(dir, 'assets/frame-sealed.html'), bootstrap)
     const modules = [
       { name: 'assets/entry.js', sha256: createHash('sha256').update(entry).digest('hex') },
     ]
@@ -1735,7 +1735,7 @@ test('fixed frontend assets require exact bytes and reachable production referen
       inspectFrontendAssets(dir, modules, { engine, bootstrap: Buffer.from('other') }),
     )
     await assert.rejects(inspectFrontendAssets(dir, [], { engine, bootstrap }))
-    await writeFile(path.join(dir, 'assets/frame-duplicate.js'), bootstrap)
+    await writeFile(path.join(dir, 'assets/frame-duplicate.html'), bootstrap)
     await assert.rejects(inspectFrontendAssets(dir, modules, { engine, bootstrap }))
   } finally {
     await rm(dir, { recursive: true, force: true })

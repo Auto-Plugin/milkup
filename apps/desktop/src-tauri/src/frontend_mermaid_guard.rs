@@ -325,10 +325,10 @@ fn classify_load_console(entry: &Value) -> Option<Value> {
         "error":entry["level"]=="error", "resourceLoadFailure":text.contains("Failed to load resource")}))
 }
 
-fn cancel_frame_navigation(owned: bool, uri: &str) -> bool {
+fn cancel_frame_navigation(owner: Option<&str>, uri: &str, already_started: bool) -> bool {
     // Unrelated application/automation frames are not Mermaid owners. They
     // receive no Mermaid port or source and cannot earn an owner proof.
-    owned && uri != "about:srcdoc"
+    owner.is_some_and(|nonce| already_started || uri != format!("{}#{}", crate::frontend_mermaid_document::FRAME_URI, nonce))
 }
 
 fn valid_nonce(value: &str) -> bool {
@@ -409,14 +409,16 @@ pub fn install(
                     let navigation_registry = created_registry.clone();
                     let navigation_nonce = created_nonce.clone();
                     let mut navigation_token = 0;
+                    let initial_navigation_started = std::cell::Cell::new(false);
                     frame.add_NavigationStarting(&FrameNavigationStartingEventHandler::create(Box::new(move |_, args| {
                         let Some(args) = args else { return Ok(()); };
                         let mut uri = PWSTR::null();
                         args.Uri(&mut uri)?;
                         let uri = take_pwstr(uri);
-                        let cancelled = cancel_frame_navigation(navigation_nonce.is_some(), &uri);
+                        let cancelled = cancel_frame_navigation(navigation_nonce.as_deref(), &uri, initial_navigation_started.get());
+                        if navigation_nonce.is_some() && !cancelled { initial_navigation_started.set(true); }
                         navigation_registry.lifecycle(frame_id, &navigation_nonce, "navigation-start", json!({
-                            "uriKind": if uri=="about:srcdoc" {"srcdoc"} else if uri=="about:blank" {"blank"} else {"other"},
+                            "uriKind": if uri.starts_with(crate::frontend_mermaid_document::FRAME_URI) {"fixed-document"} else if uri=="about:blank" {"blank"} else {"other"},
                             "cancelled":cancelled
                         }));
                         if cancelled {
@@ -539,11 +541,17 @@ mod tests {
     }
     #[test]
     fn navigation_policy_only_applies_to_exact_owned_frames() {
-        assert!(!cancel_frame_navigation(false, "about:blank"));
-        assert!(!cancel_frame_navigation(false, "https://example.invalid"));
-        assert!(!cancel_frame_navigation(true, "about:srcdoc"));
-        assert!(cancel_frame_navigation(true, "about:blank"));
-        assert!(cancel_frame_navigation(true, "https://example.invalid"));
+        let nonce = "a".repeat(32);
+        let uri = format!("{}#{}", crate::frontend_mermaid_document::FRAME_URI, nonce);
+        assert!(!cancel_frame_navigation(None, "about:blank", false));
+        assert!(!cancel_frame_navigation(None, "https://example.invalid", false));
+        assert!(!cancel_frame_navigation(Some(&nonce), &uri, false));
+        assert!(cancel_frame_navigation(Some(&nonce), &uri, true));
+        assert!(cancel_frame_navigation(Some(&nonce), crate::frontend_mermaid_document::FRAME_URI, false));
+        assert!(cancel_frame_navigation(Some("wrong"), &uri, false));
+        assert!(cancel_frame_navigation(Some(&nonce), "about:srcdoc", false));
+        assert!(cancel_frame_navigation(Some(&nonce), "about:blank", false));
+        assert!(cancel_frame_navigation(Some(&nonce), "https://example.invalid", false));
     }
     #[test]
     fn exit_requires_retired_frontend_frames_without_a_legacy_registry() {

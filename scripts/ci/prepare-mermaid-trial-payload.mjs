@@ -1,3 +1,4 @@
+import { fixedFrameDocument } from '../frontend-mermaid-document.mjs'
 import { frontendLedgerClass } from '../../tests/windows/mermaid-frontend-contract.mjs'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -201,7 +202,7 @@ export async function inspectFrontendAssets(dist, modules, expected) {
   const records = []
   for (const [kind, pattern] of [
     ['engine', /^mermaid-12\.2\.0\.min-[A-Za-z0-9_-]+\.js$/],
-    ['bootstrap', /^frame-[A-Za-z0-9_-]+\.js$/],
+    ['bootstrap', /^frame-[A-Za-z0-9_-]+\.html$/],
   ]) {
     const found = names.filter((name) => pattern.test(name))
     assert.equal(found.length, 1, 'Exactly one pinned ' + kind + ' frontend asset')
@@ -466,13 +467,28 @@ async function verifyInputs(evidence) {
     })
   }
   const dist = await inspectDistArchives(path.join(checkout, 'apps/desktop/dist'), plugins)
+  const fixedDocument = await plainBytes(
+    path.join(checkout, 'apps/desktop/src/frontend-mermaid/frame.html'),
+  )
+  const fixedBootstrap = await plainBytes(
+    path.join(checkout, 'apps/desktop/src/frontend-mermaid/frame.js'),
+  )
+  assert.equal(
+    fixedDocument.toString('utf8'),
+    fixedFrameDocument(fixedBootstrap.toString('utf8')),
+    'Fixed renderer document is stale or altered',
+  )
+  assert(
+    compiled.includes(fixedDocument) && extracted.includes(fixedDocument),
+    'Native fixed document bytes must match packaged frontend document',
+  )
   const frontendAssets = await inspectFrontendAssets(
     path.join(checkout, 'apps/desktop/dist'),
     dist.modules,
     {
       engine,
       bootstrap: await plainBytes(
-        path.join(checkout, 'apps/desktop/src/frontend-mermaid/frame.js'),
+        path.join(checkout, 'apps/desktop/src/frontend-mermaid/frame.html'),
       ),
     },
   )

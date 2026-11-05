@@ -34,7 +34,8 @@ test(
         if (pathname === '/') {
           res.writeHead(200, {
             'Content-Type': 'text/html',
-            'Content-Security-Policy': "script-src 'self' blob:; object-src 'none'",
+            'Content-Security-Policy':
+              "script-src 'self' blob:; style-src 'self' 'nonce-test'; object-src 'none'",
           })
           res.end(
             '<!doctype html><html><body><script type="module" src="/fixture.js"></script></body></html>',
@@ -50,7 +51,11 @@ test(
         try {
           res.writeHead(200, {
             'Content-Type':
-              extname(file) === '.js' ? 'application/javascript' : 'application/octet-stream',
+              extname(file) === '.js'
+                ? 'application/javascript'
+                : extname(file) === '.html'
+                  ? 'text/html; charset=utf-8'
+                  : 'application/octet-stream',
           })
           res.end(await readFile(file))
         } catch {
@@ -67,11 +72,15 @@ test(
       })
       const page = await browser.newPage()
       const external = []
+      const cspErrors = []
       let tamperEngine = false
       let forbidChildAssetRequests = false
       let childAssetRequests = 0
       page.on('console', (m) => {
-        if (m.type() === 'error') console.log('browser error:', m.text().slice(0, 500))
+        if (m.type() === 'error') {
+          if (/content security policy/i.test(m.text())) cspErrors.push(m.text().slice(0, 500))
+          console.log('browser error:', m.text().slice(0, 500))
+        }
       })
       page.on('pageerror', (e) => console.log('page error:', e.message.slice(0, 500)))
       await page.route('**/*', async (route) => {
@@ -134,6 +143,7 @@ test(
         },
       )
       await t.test('ordinary and twelve official syntax fixtures', async (st) => {
+        cspErrors.length = 0
         for (const item of [
           { id: 'flow', source: 'flowchart LR\nA[Hello] --> B[World]' },
           ...syntaxCases,
@@ -141,6 +151,7 @@ test(
           await st.test(item.id, async () => {
             try {
               const result = await render(item.source)
+              assert.deepEqual(cspErrors, [], 'Fixed document styles and scripts must satisfy CSP')
               assert.ok(result.bytes > 100, item.id)
               assert.ok(result.width > 0 && result.height > 0, item.id)
               console.log(JSON.stringify({ case: item.id, ...result }))

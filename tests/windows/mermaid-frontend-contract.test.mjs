@@ -1,8 +1,41 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import {
+  fixedFrameDocument,
+  verifyFixedFrameDocument,
+} from '../../scripts/frontend-mermaid-document.mjs'
 import { AuditLedger } from './mermaid-product-e2e.mjs'
 import { frontendLedgerClass, FRONTEND_RENDERER } from './mermaid-frontend-contract.mjs'
 const Ledger = frontendLedgerClass(AuditLedger)
+test('fixed document seals exact bootstrap and engine without inheriting main-page styles', () => {
+  const source = readFileSync(
+    new URL('../../apps/desktop/src/frontend-mermaid/frame.js', import.meta.url),
+    'utf8',
+  )
+  const document = verifyFixedFrameDocument()
+  assert.equal(document, fixedFrameDocument(source))
+  assert.notEqual(document, fixedFrameDocument(source + '\n'))
+  assert.throws(() => fixedFrameDocument('</script><script>untrusted()</script>'))
+  for (const bytes of [
+    Buffer.from(source),
+    readFileSync(
+      new URL(
+        '../../apps/desktop/src-tauri/mermaid-engine/assets/mermaid-12.2.0.min.js',
+        import.meta.url,
+      ),
+    ),
+  ]) {
+    assert(
+      document.includes("'sha256-" + createHash('sha256').update(bytes).digest('base64') + "'"),
+    )
+  }
+  assert(document.includes("style-src 'unsafe-inline'"))
+  assert(document.includes("connect-src 'none'"))
+  assert(!document.includes("script-src 'unsafe-inline'"))
+  assert(!document.includes('allow-same-origin'))
+})
 const owner = 'a'.repeat(32),
   request = 'b'.repeat(32),
   source = 'c'.repeat(64),

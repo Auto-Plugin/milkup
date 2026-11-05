@@ -272,9 +272,11 @@
     return { width, height, box }
   }
 
-  const script = document.currentScript
-  const nonce = script.dataset.owner
-  const parentOrigin = script.dataset.parentOrigin
+  // The fixed document's fragment survives cross-site navigation without
+  // relying on browser persistence of window.name. It never contains source.
+  const nonce = location.hash.slice(1)
+  if (!/^[a-f0-9]{32}$/.test(nonce) || parent === window) return
+  const parentOrigin = new URL(document.referrer).origin
   let attached = false
   let busy = false
   const handshake = (event) => {
@@ -326,7 +328,7 @@
             throw Error('Fixed engine identity')
           engineUrl = URL.createObjectURL(new Blob([data.bytes], { type: 'text/javascript' }))
           engineScript = document.createElement('script')
-          engineScript.nonce = nonce
+          engineScript.integrity = 'sha256-qKam+AWwdKgmGiglyG+ZyAVKyzs19Qu34kpPnyw8O58='
           engineScript.src = engineUrl
           await new Promise((resolve, reject) => {
             engineScript.onload = resolve
