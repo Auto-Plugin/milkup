@@ -495,7 +495,9 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
     Array.isArray(raw.windowLifetimes) && raw.windowLifetimes.length <= (archived ? 8192 : 2048),
   )
   assert(Array.isArray(raw.childShowEvidence) && raw.childShowEvidence.length <= 128)
-  assert(Array.isArray(raw.processes) && raw.processes.length <= 256)
+  const archivedProcesses = raw.processArchiveVersion === 1
+  if (raw.processArchiveVersion !== undefined) assert.equal(raw.processArchiveVersion, 1)
+  assert(Array.isArray(raw.processes) && raw.processes.length <= (archivedProcesses ? 1024 : 256))
   assert(Array.isArray(raw.events) && raw.events.length <= 2048)
   const total = raw.events.length + raw.windowLifetimes.length + raw.childShowEvidence.length
   if (archived)

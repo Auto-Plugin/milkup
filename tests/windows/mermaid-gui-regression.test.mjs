@@ -1889,3 +1889,20 @@ test('retired lifetime history does not consume live event slots and keeps every
   oversized.windowLifetimes = Array(8193).fill(raw.windowLifetimes[0])
   assert.throws(() => validateNativeChildLifetimes(oversized))
 })
+
+
+test('process archive has a distinct versioned bounded capacity', () => {
+  const raw = childLifetimeEvidence()
+  raw.processArchiveVersion = 1
+  for (let i = raw.processes.length; i < 1024; i++)
+    raw.processes.push({pid: 1000, parentPid: 0, creationFileTime: String(1000 + i), image: 'helper.exe'})
+  validateNativeChildLifetimes(raw)
+  for (const mutate of [r => { delete r.processArchiveVersion },
+    r => { r.processArchiveVersion = 2 },
+    r => { r.processes.push({pid: 1000, creationFileTime: '9999'}) },
+    r => { r.processes[1000] = r.processes[999] }]) {
+    const bad = structuredClone(raw)
+    mutate(bad)
+    assert.throws(() => validateNativeChildLifetimes(bad))
+  }
+})
