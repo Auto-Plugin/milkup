@@ -19,6 +19,7 @@ import {
   decodeWebDriverResponse,
   validateContext,
   validateProcessIdentities,
+  retireClosedProcessIdentity,
   validatePng,
   validateResponsiveDiagram,
   parseExpectedPluginInventory,
@@ -673,6 +674,7 @@ export async function main() {
       births,
       expectedAccountKind,
     )
+    if (includeProduct && product && launch) launch.creationFileTime = births.get(product.pid)
     report.processIdentities.push({ at: new Date().toISOString(), values })
     return values
   }
@@ -1296,6 +1298,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       }))
       close.innerCleanupVerified = true
       validateGuiClose(close, kind)
+      retireClosedProcessIdentity(births, record)
     } catch (error) {
       close.errors.push(String(error))
     } finally {

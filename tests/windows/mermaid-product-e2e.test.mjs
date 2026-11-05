@@ -19,6 +19,7 @@ import {
   validateHostProcessToken,
   AuditLedger,
   validateProcessIdentities,
+  retireClosedProcessIdentity,
   isUnknownGrammarRejection,
   waitForUnknownGrammarRejection,
   observe,
@@ -2355,4 +2356,19 @@ test('product evidence retains every nested observation within the unchanged coo
   const multibyte = { data: '界'.repeat(Math.ceil(MAX_PRODUCT_REPORT_BYTES / 3)) }
   assert(JSON.stringify(multibyte).length < MAX_PRODUCT_REPORT_BYTES)
   assert.throws(() => serializeProductEvidence(multibyte), /1 MiB/)
+})
+
+
+test('only a normally exited exact process identity with drained stdio can retire', () => {
+  const births = new Map([[10, '100'], [11, '200']])
+  const record = { productPid: 11, creationFileTime: '200', exitCode: 0, signal: null,
+    exitedAt: 'exit', stdioClosedAt: 'closed' }
+  for (const change of [{exitCode: 1}, {signal: 'SIGTERM'}, {exitedAt: null},
+    {stdioClosedAt: null}, {creationFileTime: '201'}]) {
+    assert.throws(() => retireClosedProcessIdentity(births, {...record, ...change}))
+    assert.equal(births.get(11), '200')
+  }
+  retireClosedProcessIdentity(births, record)
+  assert.deepEqual([...births], [[10, '100']])
+  assert.throws(() => retireClosedProcessIdentity(births, record))
 })

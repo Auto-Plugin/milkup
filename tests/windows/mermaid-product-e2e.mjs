@@ -507,6 +507,16 @@ export function validateContext(
   return context
 }
 
+export function retireClosedProcessIdentity(births, record) {
+  assert.equal(record.exitCode, 0)
+  assert.equal(record.signal, null)
+  assert(record.exitedAt && record.stdioClosedAt, 'Observed exit and stdio EOF required')
+  assert.match(record.creationFileTime ?? '', /^\d+$/)
+  assert.equal(births.get(record.productPid), record.creationFileTime, 'Exact launch identity')
+  births.delete(record.productPid)
+  record.identityRetiredAfterExit = true
+}
+
 export function validateProcessIdentities(
   values,
   expected,
@@ -1686,6 +1696,7 @@ export async function main() {
       identityBirths,
       expectedAccountKind,
     )
+    if (includeProduct && product && launch) launch.creationFileTime = identityBirths.get(product.pid)
     report.processIdentities.push({ at: new Date().toISOString(), values })
     return values
   }
@@ -2241,6 +2252,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       current.removeListener('exit', stopExitQueries)
       stopExitQueries()
       record.closedByUi = record.teardown.closedByUi === true
+      if (record.closedByUi && record.stdioClosedAt) retireClosedProcessIdentity(identityBirths, record)
       try {
         await writeFile(
           path.join(evidence, `${record.fixture}-product.log`),
