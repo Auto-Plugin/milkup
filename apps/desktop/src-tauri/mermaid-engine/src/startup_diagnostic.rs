@@ -13,6 +13,7 @@ pub(crate) const STARTUP_PHASES: &[&str] = &[
     "environment-callback-failed",
     "controller-call-start",
     "controller-call-returned",
+    "controller-pump-alive",
     "controller-callback-ok",
     "controller-callback-failed",
     "controls-installed",

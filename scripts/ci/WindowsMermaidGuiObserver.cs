@@ -178,7 +178,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         public Dictionary<string, object> Create, Confirmation, Retirement, PendingConfirmation, DirectDestroy; public long? Released;
         public Dictionary<string, object> Record() { return new Dictionary<string, object> { { "id", Id }, { "hwnd", HandleText(Hwnd) }, { "generation", Generation }, { "create", Create }, { "confirmation", Confirmation }, { "pendingConfirmation", PendingConfirmation }, { "retirement", Retirement }, { "directDestroy", DirectDestroy }, { "proofReleasedAtTick", Released } }; }
     }
-    sealed class NativeNotice { public IntPtr Hwnd; public uint Kind, Time, Tid; public long Order, Tick; }
+    sealed class NativeNotice { public IntPtr Hwnd; public uint Kind, Time, Tid; public long Order, Tick; public Dictionary<string, object> CallbackWindow; }
     static void Check(bool result, string operation) { if (!result) throw new Win32Exception(Marshal.GetLastWin32Error(), operation); }
     static string Bounded(string text, int limit) { return text == null ? "" : text.Length <= limit ? text : text.Substring(0, limit); }
     static string HandleText(IntPtr value) { return "0x" + value.ToInt64().ToString("x"); }
@@ -567,6 +567,10 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         bool drain = Interlocked.CompareExchange(ref processingNativeNotice, 1, 0) == 0;
         try {
             var notice = new NativeNotice { Kind = kind, Hwnd = hwnd, Tid = tid, Time = time, Order = order, Tick = NativeTick() };
+            // Diagnostic only: observe before waiting on our queue/STA lock.
+            // Reentrant callbacks retain their entry sequence; this snapshot
+            // never confirms a window lifetime or authorizes a SHOW event.
+            if (kind == ShowEvent || kind == DestroyEvent) notice.CallbackWindow = WindowDiagnostic(hwnd);
             lock (gate) { if (nativeNotices.Count >= MaxEvents) { MarkOverflow("native-event-queue-budget"); return; } nativeNotices.Enqueue(notice); }
             if (!drain) return;
             while (true) {
@@ -574,7 +578,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
                     if (nativeNotices.Count == 0) break;
                     notice = DequeueNativeNotice();
                 }
-                Observe(notice.Hwnd, notice.Kind == CreateEvent ? "create" : notice.Kind == DestroyEvent ? "destroy" : notice.Kind == ShowEvent ? "show" : "hide", notice.Kind == ShowEvent, false, notice.Time, notice.Tid, notice.Tick, notice.Order);
+                Observe(notice.Hwnd, notice.Kind == CreateEvent ? "create" : notice.Kind == DestroyEvent ? "destroy" : notice.Kind == ShowEvent ? "show" : "hide", notice.Kind == ShowEvent, false, notice.Time, notice.Tid, notice.Tick, notice.Order, notice.CallbackWindow);
                 if (notice.Kind == CreateEvent) { lock (gate) ConfirmPendingChildren(notice.Hwnd); }
             }
         } finally { if (drain) Interlocked.Exchange(ref processingNativeNotice, 0); }
@@ -649,7 +653,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         string identity = HandleText(hwnd) + ":" + pid + ":" + creation;
         return new WindowFact { Handle = hwnd, Pid = pid, ThreadId = windowThread, Class = klass, Title = title.ToString(), Visible = IsWindowVisible(hwnd), Cloaked = hr >= 0 ? (uint?)cloaked : null, Rect = rect, Creation = creation, Identity = identity, Process = process, Baseline = baselineVisible.Contains(identity) };
     }
-    void Observe(IntPtr hwnd, string kind, bool showEvent, bool baseline, uint? nativeEventTime = null, uint eventThread = 0, long? entryTick = null, long? entryOrder = null) {
+    void Observe(IntPtr hwnd, string kind, bool showEvent, bool baseline, uint? nativeEventTime = null, uint eventThread = 0, long? entryTick = null, long? entryOrder = null, Dictionary<string, object> callbackWindow = null) {
         if (hwnd == IntPtr.Zero) return;
         long callbackTick = entryTick ?? NativeTick();
         long order = entryOrder ?? (nativeEventTime.HasValue ? Interlocked.Increment(ref observationSequence) : 0);
@@ -657,7 +661,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             lock (gate) {
                 if (nativeDiagnostics.Count < 4096) {
                     var diagnostic = NativeEventRecord(order, nativeEventTime.Value, callbackTick, eventThread);
-                    diagnostic["eventKind"] = kind; diagnostic["processingWindow"] = WindowDiagnostic(hwnd);
+                    diagnostic["eventKind"] = kind; diagnostic["callbackWindow"] = callbackWindow; diagnostic["processingWindow"] = WindowDiagnostic(hwnd);
                     nativeDiagnostics.Add(diagnostic);
                 } else nativeDiagnosticsTruncated = true;
             }

@@ -1699,6 +1699,15 @@ function liveTeardownEvidence() {
   return raw
 }
 
+test('a callback-entry snapshot cannot replace missing window lifetime continuity', () => {
+  const raw = liveTeardownEvidence()
+  const show = raw.childShowEvidence[0]
+  show.callbackWindow = structuredClone(show.postParentDestroy.childFirst)
+  show.postParentDestroy.childFirst.isWindow = false
+  show.postParentDestroy.childSecond.isWindow = false
+  assert.throws(() => validateNativeChildLifetimes(raw))
+})
+
 test('parent teardown requires live child/root identity continuity and a subsequent direct child DESTROY', () => {
   assert(validateNativeChildLifetimes(liveTeardownEvidence()))
   const failures = [

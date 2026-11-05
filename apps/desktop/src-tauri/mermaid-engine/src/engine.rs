@@ -32,7 +32,8 @@ use windows::{
 
 // Fixed metadata only. The two completion handlers below are FnOnce handlers:
 // webview2-com takes their closure before invoking it, including on reentry.
-// This run therefore emits at most 17 lines; even 24 maximum-width lines fit
+// Each resource phase and the delayed controller heartbeat emit at most once.
+// Even 24 maximum-width lines fit
 // below 2 KiB, within the launcher's unchanged 16 KiB aggregate stderr limit.
 use crate::startup_diagnostic::startup_phase_line;
 
@@ -58,6 +59,13 @@ unsafe fn bounded_string(ptr: PWSTR, max: usize) -> windows::core::Result<String
     answer.ok_or_else(|| E_FAIL.into())
 }
 fn pump<T>(rx: &mpsc::Receiver<T>, deadline: Instant) -> Result<T> {
+    pump_observed(rx, deadline, || {})
+}
+fn pump_observed<T>(
+    rx: &mpsc::Receiver<T>,
+    deadline: Instant,
+    mut progress: impl FnMut(),
+) -> Result<T> {
     loop {
         match rx.try_recv() {
             Ok(result) => return Ok(result),
@@ -67,6 +75,7 @@ fn pump<T>(rx: &mpsc::Receiver<T>, deadline: Instant) -> Result<T> {
         if Instant::now() >= deadline {
             return Err("Native helper deadline reached".into());
         }
+        progress();
         unsafe {
             let mut message = MSG::default();
             while PeekMessageW(&mut message, None, 0, 0, PM_REMOVE).as_bool() {
@@ -215,7 +224,14 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
         controller_call.as_ref().err().map(|error| error.code().0),
     );
     controller_call?;
-    let controller = pump(&rx, init_deadline)??;
+    let controller_wait_started = Instant::now();
+    let mut controller_heartbeat = false;
+    let controller = pump_observed(&rx, init_deadline, || {
+        if !controller_heartbeat && controller_wait_started.elapsed() >= Duration::from_secs(1) {
+            controller_heartbeat = true;
+            startup_phase(startup_started, "controller-pump-alive", None);
+        }
+    })??;
     let view = unsafe { controller.CoreWebView2()? };
     unsafe {
         controller.SetBounds(RECT {
@@ -283,11 +299,25 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
             let mut raw = PWSTR::null();
             request.Method(&mut raw)?;
             let method = bounded_string(raw, 32)?;
-            let resource_bit = if uri == allowed_index { 1 } else if uri == allowed_bundle { 2 } else { 0 };
+            let resource_bit = if uri == allowed_index {
+                1
+            } else if uri == allowed_bundle {
+                2
+            } else {
+                0
+            };
             let first_resource = resource_bit != 0 && resource_seen.get() & resource_bit == 0;
             if first_resource {
                 resource_seen.set(resource_seen.get() | resource_bit);
-                startup_phase(startup_started, if resource_bit == 1 { "index-request" } else { "bundle-request" }, None);
+                startup_phase(
+                    startup_started,
+                    if resource_bit == 1 {
+                        "index-request"
+                    } else {
+                        "bundle-request"
+                    },
+                    None,
+                );
             }
             let (body, mime, status) = if method == "GET" && uri == allowed_index {
                 (index.as_bytes(), "text/html; charset=utf-8", 200)
@@ -314,7 +344,15 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
             args.SetResponse(&response)
                 .unwrap_or_else(|_| fatal_control("Cannot install fixed resource response"));
             if first_resource {
-                startup_phase(startup_started, if resource_bit == 1 { "index-response" } else { "bundle-response" }, None);
+                startup_phase(
+                    startup_started,
+                    if resource_bit == 1 {
+                        "index-response"
+                    } else {
+                        "bundle-response"
+                    },
+                    None,
+                );
             }
         }
         Ok(())
