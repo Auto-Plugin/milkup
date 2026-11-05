@@ -1172,6 +1172,48 @@ async function guiInstalledFixture(t, options = {}) {
     report.steps.find((row) => row.name === 'multi-diagram'),
     { decodedImages: [decoded, decoded], samples: samples(10000, 2) },
   )
+  const manyPngs = Array.from({ length: 12 }, (_, index) => {
+    const imageBytes = png(1201 + index, 60)
+    const image = {
+      ...validatePng(imageBytes),
+      fullyDecoded: true,
+      nonuniform: true,
+      nativeMatch: { productPid: 111 },
+    }
+    native.push(
+      ...native
+        .filter((event) => event.requestId === 'gui0')
+        .map((event) => ({
+          ...structuredClone(event),
+          requestId: 'gui-many-' + index,
+          ...(event.phase === 'finished'
+            ? { pngBytes: imageBytes.length, pngSha256: image.sha256 }
+            : {}),
+        })),
+    )
+    return image
+  })
+  report.steps.find((row) => row.name === 'multi-diagram').manyDiagrams = [
+    'many',
+    'manyScroll',
+  ].map((name) => ({
+    name,
+    exactBytesUnchanged: true,
+    sourceOffsets: Array.from({ length: 12 }, (_, index) => index * 30),
+    visits: [...Array(12).keys(), 0, 11, 0].map((diagram, index) => {
+      const geometry = 'synthetic many-diagram geometry',
+        digest = hash(Buffer.from(geometry))
+      return {
+        diagram,
+        from: diagram * 30,
+        png: manyPngs[diagram],
+        imageCount: 1,
+        wheelInputs: [{ deltaY: index === 12 || index === 14 ? -300 : 300 }],
+        geometryTable: { [digest]: geometry },
+        samples: samples(3000, 1).map((sample) => ({ ...sample, geometry: digest })),
+      }
+    }),
+  }))
   report.steps.find((row) => row.name === 'idle-close').close = close('idle')
   report.steps.find((row) => row.name === 'busy-close').close = close('busy')
   const initialInventory = installation.bundledPlugins.map(({ id, version }) => ({
@@ -1449,6 +1491,9 @@ for (const scenario of [
   'not-really-inflight',
   'wrong-account',
   'missing-second-png',
+  'missing-many-diagrams',
+  'missing-ninth-diagram',
+  'unmatched-many-native',
   'copied-png-drift',
   'raw-native-drift',
   'raw-window-drift',
@@ -1603,6 +1648,11 @@ for (const scenario of [
     if (scenario === 'window-product-still-live')
       f.windows.trackedProducts[0].heldProcessSignaledAtStop = false
     if (scenario === 'wrong-capture-hash') f.report.screenshotProofs[0].sha256 = '0'.repeat(64)
+    const many = f.report.steps.find((row) => row.name === 'multi-diagram')
+    if (scenario === 'missing-many-diagrams') delete many.manyDiagrams
+    if (scenario === 'missing-ninth-diagram') many.manyDiagrams[0].visits.splice(8, 1)
+    if (scenario === 'unmatched-many-native')
+      many.manyDiagrams[0].visits[8].png.nativeMatch.productPid = 999
     await f.save()
     if (scenario === 'missing-natural-view-screenshot')
       await rm(path.join(f.directory, 'gui-wide-natural-window.png'))
