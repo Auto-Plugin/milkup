@@ -117,6 +117,46 @@ for (const windowed of [false, true]) {
     await settle()
     return view
   }
+  it(`keeps preview read-only and Markdown markers hidden after renderer refresh (${windowed})`, async () => {
+    const base = provider()
+    const empty = {
+      provide: async (...args: Parameters<DocumentPresentationConfig['provide']>) => ({
+        ...(await base.provide(...args)),
+        result: { complete: true, fragments: [] },
+      }),
+    }
+    const text = '# Heading **bold**\n\nText'
+    const view = await make('preview', empty, text)
+    view.setEditable(true)
+    if (view instanceof SourceDocumentView) await view.revealSelection(1, Selection.cursor(14))
+    else view.updateState(new EditorState({ doc: view.state.doc, selection: Selection.cursor(14) }))
+    view.inputDOM.focus()
+    view.setDocumentPresentation(undefined)
+    view.setDocumentPresentation(empty)
+    await settle()
+    expect(view.inputDOM.readOnly).toBe(true)
+    expect(view.dom.dataset.editable).toBe('false')
+    expect(
+      view.contentDOM
+        .querySelector('.milkup-heading-marker')
+        ?.classList.contains('milkup-marker-hidden'),
+    ).toBe(true)
+    expect(
+      view.contentDOM.querySelector('.milkup-inline-strong')?.getAttribute('data-syntax-visible'),
+    ).toBe('false')
+    view.inputDOM.value = 'X'
+    view.inputDOM.dispatchEvent(
+      new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'X' }),
+    )
+    await settle()
+    if (view instanceof EditorView) expect(view.state.doc.text).toBe(text)
+    view.setMode('live')
+    await settle()
+    expect(view.inputDOM.readOnly).toBe(false)
+    expect(
+      view.contentDOM.querySelector('.milkup-inline-strong')?.getAttribute('data-syntax-visible'),
+    ).toBe('true')
+  })
   it('keeps rendering visible with the caret inside content in preview mode', async () => {
     const view = await make('preview')
     if (view instanceof SourceDocumentView) await view.revealSelection(1, Selection.cursor(2))

@@ -705,6 +705,10 @@ function invalidateDesktopSaveLocation(): void {
   editingSavedPath = session.file?.path
 }
 
+function isDocumentReadonly(): boolean {
+  return session.readonly || session.viewMode === 'preview'
+}
+
 function getDesktopEditingCurrent(): DesktopEditingCurrent | undefined {
   const editor = sourceView ?? view
   if (!editor || documentPresentation === 'custom-view') return undefined
@@ -745,7 +749,7 @@ function getDesktopEditingCurrent(): DesktopEditingCurrent | undefined {
     selection: sourceView?.selection ?? state.selection,
     selectionRevision: currentSelectionRevision,
     saveLocationGeneration,
-    readonly: session.readonly,
+    readonly: isDocumentReadonly(),
     busy:
       isDocumentBusy() ||
       isDocumentSaving() ||
@@ -1255,7 +1259,7 @@ const desktopPluginEditor: Editor = {
     return state
   },
   dispatch(transaction: Transaction): void {
-    if (session.readonly) throw new PluginEditingError('readonly')
+    if (isDocumentReadonly()) throw new PluginEditingError('readonly')
     if (isDocumentBusy() || isDocumentSaving() || closeConfirmOpen || view?.isComposing)
       throw new PluginEditingError('busy')
     // Legacy serialized transactions have no native CAS or source-view queue.
@@ -1325,12 +1329,18 @@ function createDesktopLegacyCommandEditor(): Editor {
 }
 
 function applyEditHistory(direction: 'undo' | 'redo'): boolean {
+  if (isDocumentReadonly()) return false
   const activeSourceView = sourceView
   if (activeSourceView) {
     const documentId = session.documentId
     void activeSourceView
       .runAfterPendingEdits(async () => {
-        if (sourceView !== activeSourceView || session.documentId !== documentId) return
+        if (
+          sourceView !== activeSourceView ||
+          session.documentId !== documentId ||
+          isDocumentReadonly()
+        )
+          return
         if (largeDocumentPreview?.editSession) {
           await applyLargeEditHistoryBatch(direction)
         } else {
@@ -1353,6 +1363,7 @@ function applyEditHistory(direction: 'undo' | 'redo'): boolean {
 }
 
 function applyMemoryEditHistory(direction: 'undo' | 'redo'): boolean {
+  if (isDocumentReadonly()) return false
   if (!(direction === 'undo' ? state.history.canUndo : state.history.canRedo)) return false
   state = direction === 'undo' ? state.undo() : state.redo()
   session = recordDocumentTransaction(session, {
@@ -2542,6 +2553,10 @@ function bindEditorViewClipboard(editorView: EditorView): void {
   })
 
   editorView.inputDOM.addEventListener('cut', (event) => {
+    if (isDocumentReadonly()) {
+      event.preventDefault()
+      return
+    }
     if (copySelectionToClipboard(event)) {
       event.preventDefault()
       runDesktopAction('document.cutSelection')
@@ -2621,7 +2636,11 @@ function createEditorView(): EditorView {
     state,
     mode: session.viewMode,
     editable:
-      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
+      session.viewMode !== 'preview' &&
+      !isDocumentReadonly() &&
+      !isDocumentBusy() &&
+      !isDocumentInputLocked() &&
+      !closeConfirmOpen,
     controlledRenderers: createDesktopControlledRenderers(),
     markdownSyntax: desktopPluginManager.state().contributions.markdownSyntax,
     ...(currentOpenPolicy.virtualViewport === undefined
@@ -2633,6 +2652,7 @@ function createEditorView(): EditorView {
           },
         }),
     dispatch: (transaction: Transaction) => {
+      if (isDocumentReadonly() && transaction.changes && !transaction.changes.empty) return
       if (view !== nextView || isDocumentBusy() || isDocumentInputLocked() || closeConfirmOpen) {
         return
       }
@@ -2705,7 +2725,7 @@ function refreshPluginContributionsInViews(): void {
     sourceView?.setMode(session.viewMode)
     sourceView?.setEditable(
       session.viewMode !== 'preview' &&
-        !session.readonly &&
+        !isDocumentReadonly() &&
         !isDocumentBusy() &&
         !isDocumentInputLocked() &&
         !closeConfirmOpen,
@@ -2785,7 +2805,7 @@ function applyMemorySourceView(): void {
     sourceView.setMode(session.viewMode)
     sourceView.setEditable(
       session.viewMode !== 'preview' &&
-        !session.readonly &&
+        !isDocumentReadonly() &&
         !isDocumentBusy() &&
         !isDocumentInputLocked() &&
         !closeConfirmOpen,
@@ -2811,7 +2831,11 @@ function applyMemorySourceView(): void {
     source,
     mode: session.viewMode,
     editable:
-      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
+      session.viewMode !== 'preview' &&
+      !isDocumentReadonly() &&
+      !isDocumentBusy() &&
+      !isDocumentInputLocked() &&
+      !closeConfirmOpen,
     onEdit: (edit) => applyMemorySourceEdit(edit),
     markdownContextLines: 24,
     backgroundMarkdownWarmup: true,
@@ -2869,7 +2893,11 @@ async function applyLargeSourceView(): Promise<void> {
     source: largeDocumentPreview.source,
     mode: session.viewMode,
     editable:
-      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
+      session.viewMode !== 'preview' &&
+      !isDocumentReadonly() &&
+      !isDocumentBusy() &&
+      !isDocumentInputLocked() &&
+      !closeConfirmOpen,
     onEdit: (edit) => applyLargeSourceEdit(edit),
     markdownContextLines: 24,
     backgroundMarkdownWarmup: true,
@@ -4836,7 +4864,7 @@ function canReplaceSearch(): boolean {
   return (
     searchOpen &&
     !nativeReplacement &&
-    !session.readonly &&
+    !isDocumentReadonly() &&
     !isDocumentBusy() &&
     !isDocumentSaving() &&
     !closeConfirmOpen &&
@@ -5469,19 +5497,19 @@ function renderSession(): void {
     }
   }
   appRoot.dataset.emptyDocument = String(!largeDocumentPreview && state.doc.length === 0)
-  appRoot.dataset.readonly = String(session.readonly)
+  appRoot.dataset.readonly = String(isDocumentReadonly())
   appRoot.dataset.loading = loadingState.phase
   appRoot.dataset.saving = String(saving)
   view?.setEditable(
     session.viewMode !== 'preview' &&
-      !session.readonly &&
+      !isDocumentReadonly() &&
       !isDocumentBusy() &&
       !isDocumentInputLocked() &&
       !closeConfirmOpen,
   )
   sourceView?.setEditable(
     session.viewMode !== 'preview' &&
-      !session.readonly &&
+      !isDocumentReadonly() &&
       !isDocumentBusy() &&
       !isDocumentInputLocked() &&
       !closeConfirmOpen &&
@@ -6028,7 +6056,7 @@ function summarizeActiveBenchmarkDocument(): Record<string, unknown> {
     documentId: session.documentId,
     path: session.file?.path,
     dirty: session.dirty,
-    readonly: session.readonly,
+    readonly: isDocumentReadonly(),
     viewMode: session.viewMode,
     scaleMode: currentOpenPolicy.featurePolicy.mode,
     renderStrategy: currentOpenPolicy.renderStrategy,

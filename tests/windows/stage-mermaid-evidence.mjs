@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { syntaxCases } from './mermaid-product-e2e.mjs'
 import { GUI_EVIDENCE_NAMES, validateGuiIdentity } from './mermaid-gui-contract.mjs'
 
 const steps = [
@@ -14,6 +15,7 @@ const steps = [
   '06-disable-and-reenable-in-place',
   '07-wide',
   '07-c4',
+  '07-syntax',
   '07-invalid',
   '08-final-disable',
 ]
@@ -23,11 +25,18 @@ const screenshots = new Set(
   ),
 )
 const diagrams = new Set(
-  ['02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4'].map(
-    (name) => name + '-diagram.png',
-  ),
+  [
+    '02-enabled',
+    '03-edited',
+    '04-undone',
+    '05-redone',
+    '06-reenabled',
+    '07-wide',
+    '07-c4',
+    ...syntaxCases.map(({ id }) => 'syntax-' + id),
+  ].map((name) => name + '-diagram.png'),
 )
-const fixtures = ['ordinary', 'wide', 'c4', 'invalid']
+const fixtures = ['ordinary', 'wide', 'c4', 'syntax', 'invalid']
 const metadata = new Set([
   'standard-context.json',
   'standard-child-result.json',

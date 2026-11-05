@@ -219,7 +219,13 @@ class Catalog implements DesktopPluginCatalog {
 }
 
 describe('private fixed Mermaid package authorization', () => {
-  async function renderer(contentHash = '1'.repeat(64), bundled = false, catalog = new Catalog()) {
+  async function renderer(
+    contentHash = '1'.repeat(64),
+    bundled = false,
+    catalog = new Catalog(),
+    failOldStartup = false,
+  ) {
+    let loads = 0
     const invoke = vi.fn(async (command: string) => {
       if (command === 'private_mermaid_render') throw Error('native-probe')
       return null
@@ -257,15 +263,18 @@ describe('private fixed Mermaid package authorization', () => {
         selectManifestPath: async () => undefined,
         readManifestText: async () => JSON.stringify(pkg),
       },
-      loadModule: async () => ({
-        module: {
-          runtimeHost: 'isolated',
-          activate: () => ({
-            documentRenderers: { diagram: () => ({ complete: true, fragments: [] }) },
-          }),
-        },
-        dispose: () => {},
-      }),
+      loadModule: async () => {
+        if (failOldStartup && loads++ === 0) throw new Error('old worker startup failed')
+        return {
+          module: {
+            runtimeHost: 'isolated',
+            activate: () => ({
+              documentRenderers: { diagram: () => ({ complete: true, fragments: [] }) },
+            }),
+          },
+          dispose: () => {},
+        }
+      },
     })
     await manager.ready
     if (!bundled) await manager.installManifestPath('/test.milkup-plugin')
@@ -331,6 +340,17 @@ describe('private fixed Mermaid package authorization', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('recovers a previously enabled bundled package after its old worker fails to start', async () => {
+    vi.stubGlobal('crypto', webcrypto)
+    const first = await renderer('1'.repeat(64), true)
+    const repaired = await renderer('3'.repeat(64), true, first.catalog, true)
+    expect(repaired.manager.state().records[0]?.enabled).toBe(true)
+    expect(repaired.catalog.snapshot.entries[0]?.active?.contentSha256).toBe('3'.repeat(64))
+    expect(repaired.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+    expect(repaired.catalog.events).toContain('markFailed')
+    await repaired.manager.disable('test.lifecycle')
+    vi.unstubAllGlobals()
+  })
   it('reports an unreviewed package instead of silently using the limited worker', async () => {
     vi.stubGlobal('crypto', webcrypto)
     const s = await renderer('2'.repeat(64))

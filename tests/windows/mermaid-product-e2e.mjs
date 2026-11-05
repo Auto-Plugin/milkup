@@ -13,7 +13,39 @@ import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { StringDecoder } from 'node:string_decoder'
 
+export const syntaxCases = Object.freeze([
+  { id: 'sequence', source: 'sequenceDiagram\nReader->>Editor: Write\nEditor-->>Reader: Saved\n' },
+  { id: 'classDiagram', source: 'classDiagram\nclass Note {\n  +String title\n  +save()\n}\n' },
+  {
+    id: 'stateDiagram',
+    source: 'stateDiagram-v2\n[*] --> Draft\nDraft --> Saved\nSaved --> [*]\n',
+  },
+  { id: 'er', source: 'erDiagram\nPERSON ||--o{ NOTE : writes\n' },
+  {
+    id: 'gantt',
+    source:
+      'gantt\ndateFormat YYYY-MM-DD\ntodayMarker off\nsection Work\nDraft :a1, 2026-01-01, 2d\nReview :after a1, 1d\n',
+  },
+  { id: 'gitGraph', source: 'gitGraph\ncommit\nbranch review\ncheckout review\ncommit\n' },
+  { id: 'pie', source: 'pie\n"Draft" : 3\n"Done" : 7\n' },
+  {
+    id: 'journey',
+    source: 'journey\ntitle Writing\nsection Work\nDraft: 3: Writer\nReview: 5: Reader\n',
+  },
+  { id: 'mindmap', source: 'mindmap\n  root((Notes))\n    Draft\n    Review\n' },
+  { id: 'timeline', source: 'timeline\ntitle Releases\n2025 : Draft\n2026 : Review\n' },
+  { id: 'xychart', source: 'xychart\nx-axis [One, Two]\ny-axis "Count" 0 --> 10\nbar [3, 7]\n' },
+  {
+    id: 'architecture',
+    source:
+      'architecture-beta\nservice store(database)[Notes]\nservice app(server)[Editor]\nstore:R -- L:app\n',
+  },
+])
+
 export const fixtures = Object.freeze({
+  syntax: syntaxCases
+    .map(({ id, source }) => '# Syntax ' + id + '\n\n```mermaid\n' + source + '\n```\n\n')
+    .join(''),
   ordinary: [
     '# Windows Mermaid 中文😀',
     '',
@@ -22,7 +54,7 @@ export const fixtures = Object.freeze({
     'A[Draft 草稿] --> B[Review 审阅]',
     '```',
     '',
-    'Outside é 👩🏽‍💻',
+    'Outside é 👩🏽‍💻 **bold**',
     '',
   ].join('\r\n'),
   wide: [
@@ -79,6 +111,8 @@ export function validatePreviewModes(row) {
   assert.equal(live.images, 0, 'Mixed mode keeps the focused fence editable')
   assert.equal(row.hotEnableWithoutRestart, true)
   assert.equal(row.sourcePreserved, true)
+  assert.equal(row.previewReadonlyAfterHotEnable, true)
+  assert.equal(row.markdownPreviewMarkersHidden, true)
 }
 
 export const unwrapWebDriverValue = (response) =>
@@ -492,6 +526,14 @@ export function validateProcessIdentities(
       'Unique expected process identity observation',
     )
     seen.add(value.pid)
+    if (value.imageNativeUtf16HexComplete === true) {
+      assert.match(value.imageNativeUtf16Hex, /^(?:[a-fA-F0-9]{4})+$/)
+      assert.equal(
+        Buffer.from(value.imageNativeUtf16Hex, 'hex').toString('utf16le'),
+        value.image,
+        'Native image path survives observer JSON encoding exactly',
+      )
+    }
     assert.equal(
       normalized(path.resolve(value.image)),
       normalized(path.resolve(expected.get(value.pid))),
@@ -1658,9 +1700,18 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       expected ? 'Actual decoded PNG in editor' : 'Source fallback without image',
       45000,
     )
-  const readImage = async (name, screenshot = false) => {
+  const readImage = async (name, screenshot = false, from) => {
     const supplied = screenshot ? await request('GET', `/session/${session}/screenshot`) : null
-    const result = await executeAsync(decodeScript, supplied)
+    const script =
+      from === undefined
+        ? decodeScript
+        : decodeScript.replace(
+            "const images=[...document.querySelectorAll('[data-document-presentation] img')];",
+            "const images=[...document.querySelectorAll('[data-document-presentation] img')].filter(e=>Number(e.closest('[data-document-presentation]').dataset.presentationFrom)===" +
+              from +
+              ');',
+          )
+    const result = await executeAsync(script, supplied)
     assert.equal(result.ok, true, result.error)
     const { base64, ...decoded } = result.value,
       bytes = Buffer.from(base64, 'base64')
@@ -2131,6 +2182,26 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       await rendered(true)
       let modeState = await state()
       assert.equal(modeState.cursor, fenceOffset, 'Preview retains the caret inside the fence')
+      await switchPlugin(false)
+      await rendered(false)
+      await switchPlugin(true)
+      await rendered(true)
+      assert.equal((await state()).mode, 'preview', 'Hot enable retains rendered mode')
+      assert.equal(
+        await execute("return document.querySelector('.milkup-editor').dataset.editable"),
+        'false',
+      )
+      assert.equal(
+        await execute("return document.querySelector('.milkup-editor textarea').readOnly"),
+        true,
+      )
+      await keys('X')
+      assert.equal(
+        (await state()).version,
+        before.version,
+        'Rendered mode rejects typing after plugin view replacement',
+      )
+      row.previewReadonlyAfterHotEnable = true
       row.modeTransitions.push({
         mode: modeState.mode,
         cursor: modeState.cursor,
@@ -2144,6 +2215,33 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       await rendered(true)
       assert.equal((await state()).version, before.version)
       assert.equal((await state()).dirty, before.dirty)
+      await position(fixtures.ordinary, 2, 'source')
+      await pointer('[data-view-mode-selector]')
+      await keys('\uE011\uE015\uE007')
+      await until(async () => (await state()).mode === 'preview', 'Rendered Markdown mode')
+      assert.equal(
+        await execute(
+          "return document.querySelector('.milkup-heading-marker')?.classList.contains('milkup-marker-hidden')",
+        ),
+        true,
+      )
+      const boldOffset = fixtures.ordinary.indexOf('bold')
+      await position(fixtures.ordinary, boldOffset, 'source')
+      await pointer('[data-view-mode-selector]')
+      await keys('\uE011\uE015\uE007')
+      await until(
+        async () => (await state()).mode === 'preview',
+        'Rendered Markdown retains bold caret',
+      )
+      assert.equal(
+        await execute(
+          "return document.querySelector('.milkup-inline-strong')?.dataset.syntaxVisible",
+        ),
+        'false',
+      )
+      row.markdownPreviewMarkersHidden = true
+      await position(fixtures.ordinary)
+      await rendered(true)
       row.image = initialImage = await readImage('02-enabled')
       row.saved = await saved()
       row.hotEnableWithoutRestart = true
@@ -2166,6 +2264,20 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       await position(edited)
       await rendered(true)
       row.image = editedImage = await readImage('03-edited')
+      const editedVersion = (await state()).version
+      await pointer('[data-view-mode-selector]')
+      await keys('\uE011\uE015\uE007')
+      await until(async () => (await state()).mode === 'preview', 'Rendered mode with undo history')
+      await control('z')
+      assert.equal(
+        (await state()).version,
+        editedVersion,
+        'Undo command cannot mutate rendered mode',
+      )
+      assert.equal((await state()).dirty, false)
+      row.previewUndoBlocked = true
+      await position(edited)
+      await rendered(true)
       assert.notEqual(
         editedImage.pixelSha256,
         initialImage.pixelSha256,
@@ -2216,10 +2328,32 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       row.saved = await saved()
     })
     await closeProduct(true)
-    for (const name of ['wide', 'c4', 'invalid']) {
+    for (const name of ['wide', 'c4', 'syntax', 'invalid']) {
       await startProduct(name)
       await step('07-' + name, async (row) => {
-        if (name === 'invalid') {
+        if (name === 'syntax') {
+          row.syntaxCases = []
+          for (const example of syntaxCases) {
+            const heading = fixtures.syntax.indexOf('# Syntax ' + example.id + '\n')
+            const from = fixtures.syntax.indexOf('```mermaid', heading)
+            await position(fixtures.syntax, heading)
+            await until(
+              () =>
+                execute(
+                  `const image=document.querySelector('[data-presentation-from="${from}"] img');return !!image&&image.complete&&image.naturalWidth>0&&image.currentSrc.startsWith('blob:')`,
+                ),
+              'Decoded official syntax: ' + example.id,
+              45000,
+            )
+            const image = await readImage('syntax-' + example.id, false, from)
+            row.syntaxCases.push({ id: example.id, from, sourceSha256: sha(example.source), image })
+            await persist()
+          }
+          assert.deepEqual(
+            row.syntaxCases.map((item) => item.id),
+            syntaxCases.map((item) => item.id),
+          )
+        } else if (name === 'invalid') {
           await until(
             async () => {
               const s = await state()

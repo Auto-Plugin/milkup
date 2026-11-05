@@ -15,6 +15,7 @@ import {
   AuditLedger,
   assertCleanCloseConfirmation,
   fixtures,
+  syntaxCases,
   unwrapWebDriverValue,
   validateAccountKind,
   validateContext,
@@ -40,6 +41,7 @@ const stepNames = [
   '06-disable-and-reenable-in-place',
   '07-wide',
   '07-c4',
+  '07-syntax',
   '07-invalid',
   '08-final-disable',
 ]
@@ -549,7 +551,7 @@ export async function preparePayload(evidence, output) {
   for (const [name, bytes] of verified.archives)
     await writeFile(path.join(output, 'plugins', name), bytes, { flag: 'wx' })
   await writeJson(path.join(output, 'plugins.json'), verified.plugins, true)
-  for (const name of ['ordinary', 'wide', 'c4', 'invalid'])
+  for (const name of ['ordinary', 'wide', 'c4', 'syntax', 'invalid'])
     await writeFile(path.join(output, 'samples', name + '.md'), fixtures[name], { flag: 'wx' })
   const manifest = {
     schema: 1,
@@ -640,11 +642,13 @@ function verifyBoundedCloseResponse(value) {
 
 /** Recheck the frozen harness's actual owned-exit acceptance. The report does
  * not expose its original monotonic deadline, so do not invent one from dates. */
-export function verifyInstalledProductCloses(product) {
+export function verifyInstalledProductCloses(product, requireSyntax = false) {
   assert(Array.isArray(product.launches))
   assert.deepEqual(
     product.launches.map((launch) => launch.fixture),
-    ['ordinary', 'wide', 'c4', 'invalid'],
+    requireSyntax
+      ? ['ordinary', 'wide', 'c4', 'syntax', 'invalid']
+      : ['ordinary', 'wide', 'c4', 'invalid'],
   )
   const expectedPhases = [
     'native-drain',
@@ -940,6 +944,14 @@ export async function verifyInstalledEvidence(directory, expected) {
     'An installed product step failed',
   )
   validatePreviewModes(product.steps[1])
+  const syntax = product.steps.find((step) => step.name === '07-syntax')
+  assert.deepEqual(
+    syntax?.syntaxCases?.map((item) => item.id),
+    syntaxCases.map((item) => item.id),
+    'Complete official syntax cases required',
+  )
+  for (const [index, item] of syntax.syntaxCases.entries())
+    assert.equal(item.sourceSha256, hash(syntaxCases[index].source))
   const observedPlugins = product.steps[0].bundledPluginsObserved
   assert(Array.isArray(observedPlugins), 'Actual initial bundled-plugin switch states required')
   assert.deepEqual(
@@ -965,7 +977,7 @@ export async function verifyInstalledEvidence(directory, expected) {
     'Existing installed Evergreen selected by reviewed wrapper; no runtime installation',
   )
   assert.match(product.runtime.sha256, /^[a-f0-9]{64}$/)
-  const closes = verifyInstalledProductCloses(product)
+  const closes = verifyInstalledProductCloses(product, true)
   const productPids = new Set(product.launches.map((launch) => launch.productPid))
   const ledger = new AuditLedger(installation.actualSid, installation.sessionId, accountKind)
   assert(
@@ -999,7 +1011,11 @@ export async function verifyInstalledEvidence(directory, expected) {
       ].includes(step.name)
     )
       assert(step.image, 'Retained actual native diagram PNG required')
-    for (const record of [step.screenshot, step.image].filter(Boolean)) {
+    for (const record of [
+      step.screenshot,
+      step.image,
+      ...(step.syntaxCases ?? []).map((item) => item.image),
+    ].filter(Boolean)) {
       assert(safeName(record.file) && record.file.endsWith('.png'))
       const bytes = await plainBytes(path.join(directory, record.file), 32 * 1024 * 1024)
       const png = validatePng(bytes, 32 * 1024 * 1024)
@@ -1009,7 +1025,7 @@ export async function verifyInstalledEvidence(directory, expected) {
       assert.equal(png.height, record.height)
       assert.equal(record.fullyDecoded, true)
       assert.equal(record.nonuniform, true)
-      if (record === step.image) ledger.matchPng(record.native.productPid, png)
+      if (record !== step.screenshot) ledger.matchPng(record.native.productPid, png)
       pixels.push({ name: record.file, bytes: bytes.length, sha256: png.sha256 })
     }
   }

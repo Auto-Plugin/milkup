@@ -657,6 +657,22 @@ export class DesktopPluginManager {
         }
       }
       reservedMigrationComplete = true
+      // Capture the durable enabled intent before a failed old startup marks
+      // execution disabled. Explicit disables, unapproved legacy records and
+      // interrupted trials are never treated as migration consent.
+      const enabledBeforeRestore = new Set(
+        snapshot.entries
+          .filter(
+            (entry) =>
+              entry.enabled &&
+              !entry.tombstone &&
+              !entry.startAttempt &&
+              !entry.pending &&
+              entry.active?.verified &&
+              entry.active.approvedFingerprint === entry.active.capabilityFingerprint,
+          )
+          .map((entry) => entry.id),
+      )
       for (const entry of snapshot.entries) {
         if (this.reservedPluginIds.has(entry.id)) continue
         if (entry.pending?.phase === 'trial') {
@@ -707,7 +723,7 @@ export class DesktopPluginManager {
             // Only an existing enabled choice can migrate automatically. Disabled,
             // removed, failed, and legacy unapproved records require user intent.
             if (
-              existing.enabled &&
+              (existing.enabled || enabledBeforeRestore.has(existing.id)) &&
               !existing.tombstone &&
               !existing.pending &&
               !existing.startAttempt &&

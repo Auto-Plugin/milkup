@@ -185,7 +185,10 @@ export class SourceDocumentView {
   >()
   private tableStarts: readonly number[] = []
   private mode: ViewMode
-  private editable: boolean
+  private requestedEditable: boolean
+  private get editable(): boolean {
+    return this.requestedEditable && this.mode !== 'preview'
+  }
   private taskTogglePending = false
   private navigationRevision = 0
   private destroyed = false
@@ -517,7 +520,7 @@ export class SourceDocumentView {
     this.ownerDocument = config.document ?? config.parent.ownerDocument
     this.currentSource = config.source
     this.mode = config.mode ?? 'source'
-    this.editable = config.editable ?? false
+    this.requestedEditable = config.editable ?? false
     this.onEdit = config.onEdit
     this.onFocusNavigation = config.onFocusNavigation
     this.onDocumentNavigation = config.onDocumentNavigation
@@ -559,6 +562,7 @@ export class SourceDocumentView {
     this.cursorLayerDOM = this.ownerDocument.createElement('div')
     this.cursorLayerDOM.className = 'milkup-cursor-layer'
     this.inputDOM = createInputProxy(this.ownerDocument)
+    this.inputDOM.readOnly = !this.editable
     this.dom.append(this.contentDOM)
     this.dom.append(this.searchLayerDOM)
     this.dom.append(this.selectionLayerDOM)
@@ -811,13 +815,13 @@ export class SourceDocumentView {
 
   setEditable(editable: boolean): void {
     if (!editable) this.imagePaste.abort()
-    if (this.editable === editable) {
+    if (this.requestedEditable === editable) {
       return
     }
 
-    this.editable = editable
-    this.dom.dataset.editable = String(editable)
-    this.inputDOM.readOnly = !editable
+    this.requestedEditable = editable
+    this.dom.dataset.editable = String(this.editable)
+    this.inputDOM.readOnly = !this.editable
     // Saving can rerender the window while editing is locked. Restore the
     // existing caret on unlock even when no text or selection changes follow.
     this.renderCursor()
@@ -843,6 +847,9 @@ export class SourceDocumentView {
     this.presentationReadRevision += 1
     this.presentationFenceReads.clear()
     this.mode = mode
+    if (mode === 'preview') this.imagePaste.abort()
+    this.dom.dataset.editable = String(this.editable)
+    this.inputDOM.readOnly = !this.editable
     this.measuredHeights.clear()
     this.dom.dataset.mode = mode
     void this.renderVisibleWindow()
@@ -1464,7 +1471,10 @@ export class SourceDocumentView {
           .map((line) =>
             renderLiveLine(this.ownerDocument, line, blocks, {
               cursorPosition: this.cursorPosition,
-              selection: this.currentSelection(),
+              selection:
+                this.mode === 'preview'
+                  ? Selection.cursor(Number.MAX_SAFE_INTEGER)
+                  : this.currentSelection(),
               editable: this.editable,
             }),
           ),
@@ -2526,7 +2536,10 @@ export class SourceDocumentView {
           .querySelector(`.milkup-line[data-line="${editedLine.number}"]`)
           ?.replaceWith(
             renderLiveLine(this.ownerDocument, line, parsed.root.children ?? [], {
-              selection: this.currentSelection(),
+              selection:
+                this.mode === 'preview'
+                  ? Selection.cursor(Number.MAX_SAFE_INTEGER)
+                  : this.currentSelection(),
               editable: this.editable,
             }),
           )
@@ -2627,7 +2640,10 @@ export class SourceDocumentView {
       lines = parsed.window.lines.map((line) =>
         renderLiveLine(this.ownerDocument, line, blocks, {
           cursorPosition: this.cursorPosition,
-          selection: this.currentSelection(),
+          selection:
+            this.mode === 'preview'
+              ? Selection.cursor(Number.MAX_SAFE_INTEGER)
+              : this.currentSelection(),
           editable: this.editable,
         }),
       )
@@ -3682,7 +3698,10 @@ export class SourceDocumentView {
     return line
       ? renderLiveLine(this.ownerDocument, line, parsed.root.children ?? [], {
           cursorPosition: this.cursorPosition,
-          selection: this.currentSelection(),
+          selection:
+            this.mode === 'preview'
+              ? Selection.cursor(Number.MAX_SAFE_INTEGER)
+              : this.currentSelection(),
           editable: this.editable,
         })
       : undefined

@@ -123,12 +123,13 @@ function Plain-Files([string]$Root) {
 function Get-ChildEvidenceNames {
     $names = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
     foreach ($name in @('standard-context.json', 'standard-child-result.json', 'mermaid-product-e2e.json', 'node-stdout.log', 'node-stderr.log', 'edgedriver-native.log', 'edgedriver-stdio.log', 'installation-result.json', 'installed-binary-comparison.json', 'installed-binary-comparison-stderr.log', 'installer-stdout.log', 'installer-stderr.log')) { $names.Add($name, $name) }
-    foreach ($fixture in @('ordinary', 'wide', 'c4', 'invalid')) {
+    foreach ($fixture in @('ordinary', 'wide', 'c4', 'syntax', 'invalid')) {
         $names.Add($fixture + '-product.log', $fixture + '-product.log')
         foreach ($prefix in @('fixture-', 'saved-')) { $name = $prefix + $fixture + '.md'; $names.Add($name, $name + '.log') }
     }
-    $steps = @('01-default-mermaid-preview', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-invalid', '08-final-disable')
+    $steps = @('01-default-mermaid-preview', '02-enable-and-exact-bytes', '03-real-edit-save-replacement', '04-undo-exact-original', '05-redo-exact-edit', '06-disable-and-reenable-in-place', '07-wide', '07-c4', '07-syntax', '07-invalid', '08-final-disable')
     foreach ($step in $steps) { foreach ($suffix in @('-window.png', '-failure-window.png')) { $names.Add($step + $suffix, $step + $suffix) } }
+    foreach ($syntax in @('sequence', 'classDiagram', 'stateDiagram', 'er', 'gantt', 'gitGraph', 'pie', 'journey', 'mindmap', 'timeline', 'xychart', 'architecture')) { $name = 'syntax-' + $syntax + '-diagram.png'; $names.Add($name, $name) }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
     foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }
     foreach ($name in @('gui-regression.json', 'gui-native-audit.json', 'native-window-events.json', 'gui-observer-stderr.log', 'gui-idle-product.log', 'gui-busy-product.log', 'gui-console-positive.png', 'gui-native-failure.png', 'gui-ordinary-diagram.png', 'gui-wide-diagram.png', 'gui-multi-diagram.png', 'gui-multi-2-diagram.png')) { $names.Add($name, $name) }
@@ -730,6 +731,9 @@ function Invoke-StandardChild {
 }
 
 if ($InspectProcesses) {
+    # Node decodes UTF-8; a fresh non-elevated PowerShell can inherit an OEM
+    # console encoding. Escape every non-ASCII JSON character at this boundary.
+    [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
     Assert-HostedCandidate
     Import-Observer (Join-Path $PSScriptRoot 'WindowsMermaidStandardUser.cs')
     if ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $env:MILKUP_WINDOWS_MERMAID_EXPECTED_SID) { throw 'Process observation requires the exact standard coordinator SID' }
@@ -740,7 +744,7 @@ if ($InspectProcesses) {
         $current.token.sessionId -ne [uint32]$env:MILKUP_WINDOWS_MERMAID_EXPECTED_SESSION_ID) { throw 'Process observation requires the exact expected account kind and session' }
     $records = [WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]($ProcessIds.Split(',')))
     foreach ($record in $records) { $record['expectedAccountKind'] = $env:MILKUP_WINDOWS_MERMAID_EXPECTED_ACCOUNT_KIND }
-    ConvertTo-Json -InputObject @($records) -Depth 12 -Compress
+    ConvertTo-Json -InputObject @($records) -Depth 12 -Compress -EscapeHandling EscapeNonAscii
     exit 0
 }
 if ($Child) { Invoke-StandardChild; exit 1 }

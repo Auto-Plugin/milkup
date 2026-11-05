@@ -25,7 +25,7 @@ import {
   GUI_STEPS,
   validateNativeDpiObservation,
 } from '../../tests/windows/mermaid-gui-contract.mjs'
-import { crc32, validatePng } from '../../tests/windows/mermaid-product-e2e.mjs'
+import { crc32, validatePng, syntaxCases } from '../../tests/windows/mermaid-product-e2e.mjs'
 import { syntheticWideInteraction } from '../../tests/windows/mermaid-gui-test-fixtures.mjs'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
@@ -540,6 +540,7 @@ async function installedFixture(
     '06-disable-and-reenable-in-place',
     '07-wide',
     '07-c4',
+    '07-syntax',
     '07-invalid',
     '08-final-disable',
   ]
@@ -562,7 +563,7 @@ async function installedFixture(
       { phase: 'started', requestId: 'r1', productPid: 111, ...ownership },
       { phase: 'finished', requestId: 'r1', productPid: 111, ...completion },
     ],
-    launches: ['ordinary', 'wide', 'c4', 'invalid'].map((fixture, index) =>
+    launches: ['ordinary', 'wide', 'c4', 'syntax', 'invalid'].map((fixture, index) =>
       cleanLaunch(fixture, 111 + index),
     ),
   }
@@ -573,8 +574,15 @@ async function installedFixture(
       { mode: 'live', cursor: 35, images: 0 },
     ],
     hotEnableWithoutRestart: true,
+    previewReadonlyAfterHotEnable: true,
+    markdownPreviewMarkersHidden: true,
     sourcePreserved: true,
   })
+  product.steps.find((step) => step.name === '07-syntax').syntaxCases = syntaxCases.map((item) => ({
+    id: item.id,
+    sourceSha256: hash(item.source),
+    image: { ...image, native: { productPid: 111 } },
+  }))
   product.steps[0].bundledPluginsObserved = expected.bundledPlugins.map((item) => ({
     id: item.id,
     version: item.version,
@@ -761,7 +769,9 @@ function responseHistory(value, decision, status = 200) {
 }
 test('close proof permits the final pending observation and truncated protocol evidence only with actual owned exit', () => {
   const product = {
-    launches: ['ordinary', 'wide', 'c4', 'invalid'].map((name, i) => cleanLaunch(name, 111 + i)),
+    launches: ['ordinary', 'wide', 'c4', 'syntax', 'invalid'].map((name, i) =>
+      cleanLaunch(name, 111 + i),
+    ),
   }
   product.launches[0].closeConfirmationProbes = {
     retainedLimit: 32,
@@ -778,12 +788,12 @@ test('close proof permits the final pending observation and truncated protocol e
   response.text = response.text.slice(0, 2048)
   response.truncated = true
   product.launches[1].closeConfirmationProbes = history
-  const summary = verifyInstalledProductCloses(product)
+  const summary = verifyInstalledProductCloses(product, true)
   assert.equal(summary.naturalUiCloses, 4)
   assert.equal(summary.independentMonotonicDeadlineRecomputed, false)
   assert.equal(summary.dialogAbsenceInferredFromNullOrExit, false)
   product.launches[1].signal = 'SIGTERM'
-  assert.throws(() => verifyInstalledProductCloses(product))
+  assert.throws(() => verifyInstalledProductCloses(product, true))
 })
 for (const scenario of [
   'raw-positive-dialog',
@@ -800,7 +810,9 @@ for (const scenario of [
 ]) {
   test(`installed close gate rejects ${scenario}`, () => {
     const product = {
-      launches: ['ordinary', 'wide', 'c4', 'invalid'].map((name, i) => cleanLaunch(name, 111 + i)),
+      launches: ['ordinary', 'wide', 'c4', 'syntax', 'invalid'].map((name, i) =>
+        cleanLaunch(name, 111 + i),
+      ),
     }
     const launch = product.launches[0]
     launch.closeConfirmationProbes = responseHistory(false, 'no-visible-unsaved-dialog')
@@ -824,7 +836,7 @@ for (const scenario of [
     if (scenario === 'fallback') launch.teardown.outerTerminationRequired = true
     if (scenario === 'native-not-clean')
       launch.teardown.phases[0].result.innerCleanupVerified = false
-    assert.throws(() => verifyInstalledProductCloses(product))
+    assert.throws(() => verifyInstalledProductCloses(product, true))
   })
 }
 for (const scenario of [

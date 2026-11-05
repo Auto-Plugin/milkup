@@ -164,7 +164,10 @@ export class EditorView {
   private hasDraggedSelection = false
   private suppressNextClick = false
   private mode: ViewMode
-  private editable: boolean
+  private requestedEditable: boolean
+  private get editable(): boolean {
+    return this.requestedEditable && this.mode !== 'preview'
+  }
   private destroyed = false
   private asyncInputGeneration = 0
   private readonly imagePaste: ImagePasteSession
@@ -265,7 +268,7 @@ export class EditorView {
     this.controlledRenderers = Object.freeze([...(config.controlledRenderers ?? [])])
     this.externalDispatch = config.dispatch
     this.mode = config.mode ?? 'source'
-    this.editable = config.editable ?? true
+    this.requestedEditable = config.editable ?? true
     this.virtualViewport = resolveVirtualViewportState(config.virtualViewport)
     this.dom = this.ownerDocument.createElement('div')
     this.dom.className = 'milkup-editor'
@@ -283,6 +286,7 @@ export class EditorView {
     this.cursorLayerDOM = this.ownerDocument.createElement('div')
     this.cursorLayerDOM.className = 'milkup-cursor-layer'
     this.inputDOM = createInputProxy(this.ownerDocument)
+    this.inputDOM.readOnly = !this.editable
     this.dom.append(this.contentDOM)
     this.dom.append(this.searchLayerDOM)
     this.dom.append(this.selectionLayerDOM)
@@ -526,6 +530,9 @@ export class EditorView {
 
     const scrollTop = this.dom.scrollTop
     this.mode = mode
+    if (mode === 'preview') this.imagePaste.abort()
+    this.dom.dataset.editable = String(this.editable)
+    this.inputDOM.readOnly = !this.editable
     this.dom.dataset.mode = mode
     this.render()
     this.dom.scrollTop = scrollTop
@@ -537,19 +544,19 @@ export class EditorView {
 
   setEditable(editable: boolean): void {
     if (!editable) this.imagePaste.abort()
-    if (this.editable === editable) {
+    if (this.requestedEditable === editable) {
       return
     }
 
     if (!editable) this.asyncInputGeneration += 1
-    this.editable = editable
-    this.dom.dataset.editable = String(editable)
-    this.inputDOM.readOnly = !editable
+    this.requestedEditable = editable
+    this.dom.dataset.editable = String(this.editable)
+    this.inputDOM.readOnly = !this.editable
     if (this.mode === 'live') {
       this.renderSelectionChangedLines(this.currentState, this.currentState)
       this.renderSelectionAndCursor()
     }
-    syncTaskAvailability(this.contentDOM, editable)
+    syncTaskAvailability(this.contentDOM, this.editable)
   }
 
   positionToRect(pos: number, metrics?: Partial<ViewMetrics>): ViewRect {
@@ -2052,9 +2059,12 @@ function renderMarkdownLine(
   lineNumber: number,
   options: RenderMarkdownLinesOptions = {},
 ): HTMLElement {
+  // Hide Markdown markers in rendered mode without changing the real caret.
+  const selection = mode === 'preview' ? Selection.cursor(state.doc.length + 1) : state.selection
   const line = state.doc.line(lineNumber)
   const lineDOM = createLineElement(document, line.number, line.from, line.to)
-  lineDOM.classList.add(`milkup-line-${mode}`)
+  lineDOM.classList.add('milkup-line-live')
+  if (mode === 'preview') lineDOM.classList.add('milkup-line-preview')
   applyBlockDecorations(lineDOM, blocks, line.from, line.to)
   const renderedPluginLine = renderControlledRendererLine(
     document,
@@ -2093,7 +2103,7 @@ function renderMarkdownLine(
       ...renderBlockLineDecorations(
         document,
         state.doc.text,
-        state.selection,
+        selection,
         heading,
         line.from,
         line.to,
@@ -2108,7 +2118,7 @@ function renderMarkdownLine(
       ...renderBlockLineDecorations(
         document,
         state.doc.text,
-        state.selection,
+        selection,
         blockquoteLine,
         line.from,
         line.to,
@@ -2124,7 +2134,7 @@ function renderMarkdownLine(
       ...renderTableRowDecorations(
         document,
         state.doc.text,
-        state.selection,
+        selection,
         tableRow,
         line.from,
         line.to,
@@ -2133,14 +2143,9 @@ function renderMarkdownLine(
   } else if (table) {
     lineDOM.classList.add('milkup-table-delimiter')
     lineDOM.replaceChildren(
-      ...renderHiddenBlockMarkerLine(
-        document,
-        state.doc.text,
-        state.selection,
-        line.from,
-        line.to,
-        { hidden: true },
-      ),
+      ...renderHiddenBlockMarkerLine(document, state.doc.text, selection, line.from, line.to, {
+        hidden: true,
+      }),
     )
   } else if (listItem) {
     lineDOM.classList.toggle('milkup-block-list', !isUnfinishedBulletMarker(line.text))
@@ -2148,16 +2153,16 @@ function renderMarkdownLine(
       ...renderListItemLineDecorations(
         document,
         state.doc.text,
-        state.selection,
+        selection,
         listItem,
         line.from,
         line.to,
-        options.editable !== false,
+        mode !== 'preview' && options.editable !== false,
       ),
     )
   } else {
     lineDOM.replaceChildren(
-      ...renderInlineDecorations(document, state.doc.text, state.selection, line.from, line.to),
+      ...renderInlineDecorations(document, state.doc.text, selection, line.from, line.to),
     )
   }
 

@@ -627,7 +627,7 @@ const successful = (changes = {}) => {
 }
 
 test('four self-authored fixture bytes retain CRLF and Unicode without normalization', () => {
-  assert.deepEqual(Object.keys(fixtures), ['ordinary', 'wide', 'c4', 'invalid'])
+  assert.deepEqual(Object.keys(fixtures), ['syntax', 'ordinary', 'wide', 'c4', 'invalid'])
   assert(fixtures.ordinary.includes('中文😀\r\n') && fixtures.ordinary.includes('é 👩🏽‍💻'))
   assert.equal(fixtures.ordinary.replaceAll('\r\n', '').includes('\n'), false)
   assert(!fixtures.wide.includes('\r'))
@@ -2145,6 +2145,8 @@ test('preview acceptance rejects missing modes, caret relocation and restart-dep
       { mode: 'live', cursor: 35, images: 0 },
     ],
     hotEnableWithoutRestart: true,
+    previewReadonlyAfterHotEnable: true,
+    markdownPreviewMarkersHidden: true,
     sourcePreserved: true,
   }
   validatePreviewModes(good)
