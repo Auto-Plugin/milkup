@@ -78,6 +78,15 @@ function Assert-Contained([string]$Path, [string]$Root) {
     $prefix = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
     if (-not $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw 'Path is outside its newly owned root' }
 }
+# Keep absent optional inputs absent in the actual child environment. On current
+# Windows/.NET, empty string is an existing value and is not equivalent to null.
+function Set-ProcessEnvironmentValue([string]$Name, [AllowNull()][object]$Value) {
+    if ($null -eq $Value) {
+        [Environment]::SetEnvironmentVariable($Name, $null, 'Process')
+    } else {
+        [Environment]::SetEnvironmentVariable($Name, [string]$Value, 'Process')
+    }
+}
 function New-OwnedDirectory([string]$Path) {
     if (Test-Path -LiteralPath $Path) { throw "Refusing to reuse a directory: $Path" }
     New-Item -ItemType Directory -Path $Path -ErrorAction Stop | Out-Null
@@ -467,7 +476,7 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
     try {
         foreach ($entry in $variables.GetEnumerator()) {
             $prior[$entry.Key] = [Environment]::GetEnvironmentVariable($entry.Key, 'Process')
-            [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process')
+            Set-ProcessEnvironmentValue $entry.Key $entry.Value
         }
         Write-LifecycleProgress $Spec $Evidence 'old-profile-ui-prepare-start' @{ choice = $Spec.migrationChoice }
         $run = [WindowsMermaidStandardUser]::RunNodeHarness($Spec.node.path, $Spec.harness.path, [IO.Path]::GetDirectoryName($Spec.harness.path), (Join-Path $output 'node-stdout.log'), (Join-Path $output 'node-stderr.log'), 180000)
@@ -507,7 +516,7 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
         }
         return $receipt
     } finally {
-        foreach ($entry in $prior.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process') }
+        foreach ($entry in $prior.GetEnumerator()) { Set-ProcessEnvironmentValue $entry.Key $entry.Value }
         $allowed = Get-ChildEvidenceNames
         foreach ($file in @(Get-ChildItem -LiteralPath $output -File)) {
             if (-not $allowed.ContainsKey($file.Name)) { throw ('Undeclared old profile evidence: ' + $file.Name) }
@@ -747,7 +756,7 @@ function Invoke-StandardChild {
             $inventory = @($sourceInventory.plugins | ForEach-Object { @{ id = $_.id; version = $_.version } })
             $variables['MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY'] = ConvertTo-Json -InputObject $inventory -Depth 4 -Compress
         }
-        foreach ($entry in $variables.GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key, [string]$entry.Value, 'Process') }
+        foreach ($entry in $variables.GetEnumerator()) { Set-ProcessEnvironmentValue $entry.Key $entry.Value }
         $result.startedNode = $true
         $result.status = 'failed'
         Write-LifecycleProgress $spec $evidence 'product-harness-start'

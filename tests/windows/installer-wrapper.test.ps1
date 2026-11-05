@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
+$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
@@ -20,6 +20,39 @@ function Assert-True([bool]$Value, [string]$Message) { if (-not $Value) { throw 
 function Case([string]$Name, [scriptblock]$Body) {
     & $Body
     $results.Add(@{ name = $Name; passed = $true })
+}
+Case 'actual child receives absent optional inventory after null removal, not an empty string' {
+    $name = 'MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY'
+    $prior = [Environment]::GetEnvironmentVariable($name, 'Process')
+    try {
+        Set-ProcessEnvironmentValue $name 'stale inherited value'
+        Set-ProcessEnvironmentValue $name $null
+        $json = & node -e 'process.stdout.write(JSON.stringify({present:Object.hasOwn(process.env,"MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY"),value:process.env.MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY??null}))'
+        Assert-True ($LASTEXITCODE -eq 0) 'Environment probe child failed'
+        $child = $json | ConvertFrom-Json
+        Assert-True (-not $child.present -and $null -eq $child.value) 'Null became an empty or inherited child input'
+        Set-ProcessEnvironmentValue $name ''
+        $json = & node -e 'process.stdout.write(JSON.stringify({present:Object.hasOwn(process.env,"MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY"),value:process.env.MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY??null}))'
+        Assert-True ($LASTEXITCODE -eq 0) 'Empty environment probe child failed'
+        $child = $json | ConvertFrom-Json
+        # Older runtimes may remove an empty value. Either behavior must remain
+        # distinguishable from nonempty JSON; the strict Node parser is unchanged.
+        Assert-True (($child.present -and $child.value -ceq '') -or (-not $child.present -and $null -eq $child.value)) 'Empty forwarding produced an unexpected value'
+        Write-Host ('MILKUP_OPTIONAL_ENV_PROBE ' + (@{ nullRemoved = $true; emptyPresent = $child.present; emptyValue = $child.value } | ConvertTo-Json -Compress))
+        $inventory = '[{"id":"milkup.diagrams","version":"1.3.0"}]'
+        Set-ProcessEnvironmentValue $name $inventory
+        $json = & node -e 'process.stdout.write(JSON.stringify(process.env.MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY))'
+        Assert-True ($LASTEXITCODE -eq 0) 'Nonempty environment probe child failed'
+        Assert-True (($json | ConvertFrom-Json) -ceq $inventory) 'Nonempty inventory changed during child forwarding'
+    } finally { Set-ProcessEnvironmentValue $name $prior }
+}
+Case 'migration preparation uses the null-preserving setter for install and restoration' {
+    $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Prepare-RealOldPluginChoice' }, $true))
+    Assert-True ($node.Count -eq 1) 'Missing actual migration preparation function'
+    $body = $node[0].Extent.Text
+    Assert-True ($body.Contains('MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY = $null')) 'Old preparation inherited the new package inventory'
+    Assert-True (([regex]::Matches($body, 'Set-ProcessEnvironmentValue \$entry.Key \$entry.Value')).Count -eq 2) 'Preparation or restoration bypassed null-preserving forwarding'
+    Assert-True (-not $body.Contains('[string]$entry.Value')) 'Preparation reintroduced empty-string coercion'
 }
 $commit = 'a' * 40; $built = 'b' * 64; $image = 'c' * 64; $version = '2.0.0-beta.8'
 function New-Manifest {
