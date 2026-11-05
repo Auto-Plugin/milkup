@@ -91,7 +91,7 @@ function provider(from = 0, to = 5): DocumentPresentationConfig {
 }
 for (const windowed of [false, true]) {
   async function make(
-    mode: 'source' | 'live' = 'live',
+    mode: 'source' | 'live' | 'preview' = 'live',
     config = provider(),
     text = '$a/b$ 中文😀 tail',
   ) {
@@ -117,6 +117,17 @@ for (const windowed of [false, true]) {
     await settle()
     return view
   }
+  it('keeps rendering visible with the caret inside content in preview mode', async () => {
+    const view = await make('preview')
+    if (view instanceof SourceDocumentView) await view.revealSelection(1, Selection.cursor(2))
+    else view.updateState(new EditorState({ doc: view.state.doc, selection: Selection.cursor(2) }))
+    view.inputDOM.focus()
+    await settle()
+    expect(view.contentDOM.querySelector('[data-document-presentation]')).not.toBeNull()
+    view.setMode('source')
+    await settle()
+    expect(view.contentDOM.querySelector('[data-document-presentation]')).toBeNull()
+  })
   function largeVectorProvider(targetText = () => 'Reading target'): DocumentPresentationConfig {
     const base = provider()
     return {

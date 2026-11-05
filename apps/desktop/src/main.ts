@@ -552,7 +552,7 @@ app.innerHTML = `
         <button type="button" class="statusbar-button" data-sidebar-toggle aria-label="${messages.buttons.sidebar}" title="${messages.buttons.sidebar}">
           ${iconSvg(PanelLeft)}
         </button>
-        <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
+        <select data-view-mode-selector aria-label="文档模式"><option value="source">源码</option><option value="preview">渲染</option><option value="live">混合</option></select><button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
       <span class="statusbar-notice" data-notice role="status" aria-live="polite" hidden></span>
       <span class="recovery-status" data-recovery-status role="status" hidden></span>
@@ -1907,6 +1907,12 @@ appRoot.querySelector('[data-menu-panel="about"]')?.addEventListener('click', (e
   else if (action === 'install') void installApplicationUpdate()
 })
 
+app
+  .querySelector<HTMLSelectElement>('[data-view-mode-selector]')
+  ?.addEventListener('change', (event) => {
+    const mode = (event.target as HTMLSelectElement).value
+    if (isViewMode(mode)) setViewMode(mode)
+  })
 app.querySelector<HTMLButtonElement>('[data-mode-toggle]')?.addEventListener('click', () => {
   runDesktopAction('view.setMode', { mode: getNextViewMode(session.viewMode) })
 })
@@ -2341,9 +2347,16 @@ function createDesktopActions(): readonly ActionDefinition[] {
         setViewMode(viewMode)
       },
     },
-    ...(['source', 'live', 'toggle'] as const).map((mode): ActionDefinition => ({
+    ...(['source', 'preview', 'live', 'toggle'] as const).map((mode): ActionDefinition => ({
       id: `view.${mode}`,
-      title: mode === 'source' ? '源码模式' : mode === 'live' ? '实时模式' : '切换编辑模式',
+      title:
+        mode === 'source'
+          ? '源码模式'
+          : mode === 'live'
+            ? '混合模式'
+            : mode === 'preview'
+              ? '渲染模式'
+              : '切换编辑模式',
       category: 'view',
       permissions: ['view:write'],
       risk: 'safe',
@@ -2665,7 +2678,11 @@ function refreshPluginContributionsInViews(): void {
   if (action === 'preserve-large-source') {
     sourceView?.setMode(session.viewMode)
     sourceView?.setEditable(
-      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
+      session.viewMode !== 'preview' &&
+        !session.readonly &&
+        !isDocumentBusy() &&
+        !isDocumentInputLocked() &&
+        !closeConfirmOpen,
     )
     sourceView?.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
@@ -2741,7 +2758,11 @@ function applyMemorySourceView(): void {
     sourceView.updateSource(source)
     sourceView.setMode(session.viewMode)
     sourceView.setEditable(
-      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
+      session.viewMode !== 'preview' &&
+        !session.readonly &&
+        !isDocumentBusy() &&
+        !isDocumentInputLocked() &&
+        !closeConfirmOpen,
     )
     sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
@@ -5063,7 +5084,7 @@ function formatCharacterCount(): string {
 }
 
 function getNextViewMode(mode: ViewMode): SessionViewMode {
-  return mode === 'source' ? 'live' : 'source'
+  return mode === 'source' ? 'preview' : mode === 'preview' ? 'live' : 'source'
 }
 
 function isPrimaryShortcut(event: KeyboardEvent): boolean {
@@ -5426,10 +5447,15 @@ function renderSession(): void {
   appRoot.dataset.loading = loadingState.phase
   appRoot.dataset.saving = String(saving)
   view?.setEditable(
-    !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
+    session.viewMode !== 'preview' &&
+      !session.readonly &&
+      !isDocumentBusy() &&
+      !isDocumentInputLocked() &&
+      !closeConfirmOpen,
   )
   sourceView?.setEditable(
-    !session.readonly &&
+    session.viewMode !== 'preview' &&
+      !session.readonly &&
       !isDocumentBusy() &&
       !isDocumentInputLocked() &&
       !closeConfirmOpen &&
@@ -5590,7 +5616,9 @@ function updateModeToggle(mode: ViewMode): void {
     return
   }
 
-  const label = mode === 'source' ? messages.buttons.source : messages.buttons.live
+  const selector = app?.querySelector<HTMLSelectElement>('[data-view-mode-selector]')
+  if (selector) selector.value = mode
+  const label = mode === 'source' ? '源码' : mode === 'preview' ? '渲染' : '混合'
   button.setAttribute('aria-label', label)
   button.title = label
   button.dataset.mode = mode
@@ -5606,7 +5634,7 @@ function setText(selector: string, value: string): void {
 }
 
 function isViewMode(value: string | undefined): value is SessionViewMode {
-  return value === 'source' || value === 'live'
+  return value === 'source' || value === 'live' || value === 'preview'
 }
 
 function getRequiredDocumentId(action: FileAction): string {

@@ -62,7 +62,7 @@ export interface DocumentPresentationConfig {
   readonly onNavigate?: (target: DocumentPresentationTarget) => void | Promise<void>
 }
 export interface PresentationSnapshot {
-  readonly mode: 'live' | 'source'
+  readonly mode: 'live' | 'source' | 'preview'
   readonly sourceIdentity: object
   readonly sourceVersion: number
   readonly documentVersion?: number
@@ -347,7 +347,7 @@ export class DocumentPresentation {
       !element ||
       !this.content.contains(element) ||
       !referenceTargets.has(element) ||
-      snapshot.mode !== 'live'
+      snapshot.mode === 'source'
     )
       return
     this.referencePointer = {
@@ -384,7 +384,7 @@ export class DocumentPresentation {
       this.stopped ||
       this.config !== pointer.config ||
       !this.content.contains(pointer.element) ||
-      current.mode !== 'live' ||
+      current.mode === 'source' ||
       current.sourceIdentity !== before.sourceIdentity ||
       current.sourceVersion !== before.sourceVersion ||
       current.documentVersion !== before.documentVersion ||
@@ -524,7 +524,7 @@ export class DocumentPresentation {
       !event.isComposing &&
       event.target === this.root.querySelector('.milkup-input-proxy') &&
       this.content.contains(navigation.element) &&
-      current.mode === 'live' &&
+      current.mode !== 'source' &&
       current.sourceIdentity === before.sourceIdentity &&
       current.sourceVersion === before.sourceVersion &&
       sameSelection(current.selection, before.selection)
@@ -558,7 +558,7 @@ export class DocumentPresentation {
     const current = this.snapshot()
     if (
       !this.config ||
-      current.mode !== 'live' ||
+      current.mode === 'source' ||
       !this.cache ||
       this.cache.identity !== current.sourceIdentity ||
       this.cache.documentVersion !== current.documentVersion ||
@@ -636,7 +636,7 @@ export class DocumentPresentation {
       this.job = undefined
     }
     if (
-      current.mode !== 'live' ||
+      current.mode === 'source' ||
       !this.config ||
       (this.cache &&
         (this.cache.identity !== current.sourceIdentity ||
@@ -811,7 +811,7 @@ export class DocumentPresentation {
       this.preparationFailures = undefined
       this.clearCache()
     }
-    if (!this.config || current.mode !== 'live') {
+    if (!this.config || current.mode === 'source') {
       this.clearCache()
       this.job?.controller.abort()
       this.job = undefined
@@ -965,7 +965,7 @@ export class DocumentPresentation {
             this.job ||
             this.config !== config ||
             this.epoch !== job.epoch ||
-            latest.mode !== 'live' ||
+            latest.mode === 'source' ||
             latest.sourceIdentity !== job.identity ||
             latest.sourceVersion !== current.sourceVersion ||
             latest.documentVersion !== current.documentVersion ||
@@ -1016,7 +1016,7 @@ export class DocumentPresentation {
       job.epoch === this.epoch &&
       current.sourceIdentity === job.identity &&
       current.documentVersion === job.documentVersion &&
-      current.mode === 'live' &&
+      current.mode !== 'source' &&
       this.config !== undefined &&
       sameSelection(job.selection, current.selection) &&
       String(current.sourceVersion) === job.key.split(':')[0]
@@ -1031,7 +1031,7 @@ export class DocumentPresentation {
     // At the top, keep the new notice visible instead of scrolling it above the viewport;
     // browsers that already anchor the insertion need no additional correction.
     const anchor =
-      !this.painting && !this.stopped && before.mode === 'live' && this.root.scrollTop > 0
+      !this.painting && !this.stopped && before.mode !== 'source' && this.root.scrollTop > 0
         ? this.captureScrollAnchor(before.selection)
         : undefined
     this.content.dataset.documentPresentationStatus = 'fallback'
@@ -1075,11 +1075,11 @@ export class DocumentPresentation {
     const cache = this.cache
     const config = this.config
     const epoch = this.epoch
-    const eligible = config !== undefined && before.mode === 'live' && !this.stopped
+    const eligible = config !== undefined && before.mode !== 'source' && !this.stopped
     const reusable =
       cache !== undefined &&
       config !== undefined &&
-      before.mode === 'live' &&
+      before.mode !== 'source' &&
       cache.identity === before.sourceIdentity &&
       cache.documentVersion === before.documentVersion &&
       cache.key.startsWith(`${before.sourceVersion}:`) &&
@@ -1389,6 +1389,7 @@ export class DocumentPresentation {
         end = Math.max(selectionAnchor, head)
       const candidates = response.result.fragments.filter(
         (fragment) =>
+          context.mode === 'preview' ||
           fragment.status === 'error' ||
           !(start <= fragment.to && end >= fragment.from) ||
           (fragment.layout === 'block' &&

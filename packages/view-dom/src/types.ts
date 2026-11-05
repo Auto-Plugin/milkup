@@ -4,7 +4,7 @@ import type { EditorPresentation } from './presentation'
 import type { AssetProvider } from '@milkup/assets'
 import type { EmptyPasteHandler, ImagePasteHandler, ImageResolver } from './image-presentation'
 
-export type ViewMode = 'source' | 'live'
+export type ViewMode = 'source' | 'live' | 'preview'
 
 export interface Decoration extends TextRange {
   readonly className?: string

@@ -703,8 +703,30 @@ export class DesktopPluginManager {
           }
           const existing = this.catalogEntry(archive.manifest.id)
           // Repair pre-beta3 empty failed receipts; preserve installations and explicit removals.
-          if (existing && (existing.active || existing.pending || existing.tombstone)) continue
+          if (existing && (existing.active || existing.pending || existing.tombstone)) {
+            // Only an existing enabled choice can migrate automatically. Disabled,
+            // removed, failed, and legacy unapproved records require user intent.
+            if (
+              existing.enabled &&
+              !existing.tombstone &&
+              !existing.pending &&
+              !existing.startAttempt &&
+              archive.manifest.id === this.privateMermaid?.reviewed.pluginId
+            ) {
+              const offer = this.bundledUpgrade(existing)
+              if (offer)
+                await this.runPluginLifecycle(existing.id, async () => {
+                  await this.stageBundledUpgrade(this.requireCatalogEntry(existing.id), offer)
+                  await this.activateReviewedBundledMermaid(existing.id)
+                })
+            }
+            continue
+          }
           await this.installManifestPath(path)
+          if (!existing && archive.manifest.id === this.privateMermaid?.reviewed.pluginId)
+            await this.runPluginLifecycle(archive.manifest.id, () =>
+              this.activateReviewedBundledMermaid(archive.manifest.id),
+            )
         } catch (error) {
           this.recordInstallFailure(path, error)
         }
@@ -713,6 +735,32 @@ export class DesktopPluginManager {
       this.managerDiagnostics.push('Native plugin catalog unavailable: ' + String(error))
       if (!reservedMigrationComplete) throw new ReservedPluginMigrationError(error)
     }
+  }
+  private async activateReviewedBundledMermaid(pluginId: string): Promise<void> {
+    const reviewed = this.privateMermaid?.reviewed
+    const entry = this.requireCatalogEntry(pluginId)
+    const pending = entry.pending
+    const generation = pending?.generation
+    if (
+      !reviewed ||
+      !pending ||
+      pending.phase !== 'prepared' ||
+      entry.tombstone ||
+      !generation ||
+      generation.verified ||
+      !generation.sourcePath.startsWith('bundled:') ||
+      generation.manifestSha256 !== reviewed.manifestSha256 ||
+      generation.contentSha256 !== reviewed.contentSha256 ||
+      JSON.stringify(generation.manifest.permissions) !== JSON.stringify(['document:read'])
+    )
+      throw new Error('随应用图表插件身份不匹配，未自动启用；请在插件详情中检查或更新。')
+    await this.catalogTransition(pluginId, {
+      type: 'approve',
+      transactionId: pending.transactionId,
+      fingerprint: generation.capabilityFingerprint,
+    })
+    await this.enableCatalogInstance(pluginId)
+    this.invalidatePresentation?.()
   }
   private publishCatalogInstance(
     pluginId: string,
@@ -1754,6 +1802,22 @@ export class DesktopPluginManager {
           throw new Error('Private Mermaid activation was revoked')
         }
         return result
+      }
+      const message =
+        'Mermaid 预览不可用：当前图表插件未完成注册，或与应用内官方引擎版本不匹配。请在插件详情中更新图表插件并重新启用；源码已保留。'
+      return {
+        complete: true,
+        fragments: [
+          {
+            from: request.from,
+            to: request.to,
+            layout: 'block',
+            status: 'error',
+            message,
+            accessibleText: message,
+            content: { type: 'code', children: [{ type: 'text', text: request.source }] },
+          },
+        ],
       }
     }
     return this.runtime.renderDocument(pluginId, rendererId, request, options)

@@ -219,8 +219,7 @@ class Catalog implements DesktopPluginCatalog {
 }
 
 describe('private fixed Mermaid package authorization', () => {
-  async function renderer(contentHash = '1'.repeat(64)) {
-    const catalog = new Catalog()
+  async function renderer(contentHash = '1'.repeat(64), bundled = false, catalog = new Catalog()) {
     const invoke = vi.fn(async (command: string) => {
       if (command === 'private_mermaid_render') throw Error('native-probe')
       return null
@@ -242,6 +241,9 @@ describe('private fixed Mermaid package authorization', () => {
       permissions: ['document:read'],
       milkupVersion: '2.0.0',
       pluginSdkVersion: '0.3.7',
+      ...(bundled
+        ? { bundledPackagePaths: async () => ['bundled:test.lifecycle-1.3.0.milkup-plugin'] }
+        : {}),
       privateMermaid: {
         invoke,
         reviewed: {
@@ -266,7 +268,7 @@ describe('private fixed Mermaid package authorization', () => {
       }),
     })
     await manager.ready
-    await manager.installManifestPath('/test.milkup-plugin')
+    if (!bundled) await manager.installManifestPath('/test.milkup-plugin')
     const source = '```mermaid\nflowchart LR\nA-->B\n```\n'
     const request = {
       documentId: 'auth-test',
@@ -297,6 +299,30 @@ describe('private fixed Mermaid package authorization', () => {
     }
     return { manager, invoke, request, catalog }
   }
+  it('starts only the reviewed fresh bundled renderer and preserves a later explicit disable across restart', async () => {
+    vi.stubGlobal('crypto', webcrypto)
+    const first = await renderer('1'.repeat(64), true)
+    expect(first.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+    await first.manager.disable('test.lifecycle')
+    const reopened = await renderer('1'.repeat(64), true, first.catalog)
+    expect(reopened.manager.state().records[0]?.enabled).toBe(false)
+    expect(reopened.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(false)
+    await reopened.manager.enableFromUserIntent('test.lifecycle')
+    expect(reopened.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+    await reopened.manager.disable('test.lifecycle')
+    vi.unstubAllGlobals()
+  })
+  it('reports an unreviewed package instead of silently using the limited worker', async () => {
+    vi.stubGlobal('crypto', webcrypto)
+    const s = await renderer('2'.repeat(64))
+    await s.manager.enableFromUserIntent('test.lifecycle')
+    const result = await s.manager.renderDocument('test.lifecycle', 'diagram', s.request)
+    expect(result.fragments[0]?.status).toBe('error')
+    expect(result.fragments[0]?.message).toContain('不匹配')
+    expect(s.invoke).not.toHaveBeenCalled()
+    await s.manager.disable('test.lifecycle')
+    vi.unstubAllGlobals()
+  })
   it('requires committed activation and exact code seals, while export retains the plugin path', async () => {
     vi.stubGlobal('crypto', webcrypto)
     const s = await renderer()

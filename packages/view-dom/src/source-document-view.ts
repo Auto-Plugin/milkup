@@ -313,7 +313,7 @@ export class SourceDocumentView {
       !this.onEdit ||
       this.composing ||
       this.destroyed ||
-      this.mode !== 'live' ||
+      this.mode === 'source' ||
       this.taskTogglePending ||
       this.pendingVisibleEdit ||
       this.activeVisibleEditTasks.size > 0
@@ -335,7 +335,7 @@ export class SourceDocumentView {
         if (
           !this.editable ||
           this.destroyed ||
-          this.mode !== 'live' ||
+          this.mode === 'source' ||
           this.composing ||
           source !== this.currentSource ||
           version !== source.version ||
@@ -821,7 +821,7 @@ export class SourceDocumentView {
     // Saving can rerender the window while editing is locked. Restore the
     // existing caret on unlock even when no text or selection changes follow.
     this.renderCursor()
-    if (this.mode === 'live')
+    if (this.mode !== 'source')
       void this.renderLiveSyntaxAroundPositions(this.cursorPosition, this.cursorPosition).then(
         () => {
           if (this.destroyed) return
@@ -887,7 +887,7 @@ export class SourceDocumentView {
     // carets. A host selection must notify exactly once in all of those cases.
     this.dom.dispatchEvent(new Event('milkup-selection-change'))
 
-    if (this.mode === 'live') {
+    if (this.mode !== 'source') {
       const source = this.currentSource,
         version = source.version,
         selectionRevision = this.selectionGeneration
@@ -965,7 +965,7 @@ export class SourceDocumentView {
       0,
       this.currentSource.length ?? target.main.anchor,
     )
-    if (this.mode === 'live')
+    if (this.mode !== 'source')
       await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
     assertCurrent()
     if (
@@ -1039,7 +1039,7 @@ export class SourceDocumentView {
     const renderMode = this.mode
     const presentationReadRevision = this.presentationReadRevision
     const rendered =
-      this.mode === 'live'
+      this.mode !== 'source'
         ? await this.renderLiveLineWindow(request)
         : await this.renderSourceLineWindow(request)
 
@@ -1241,7 +1241,7 @@ export class SourceDocumentView {
     }
   }
   private measureTableRows(): void {
-    if (this.mode !== 'live') return
+    if (this.mode === 'source') return
     for (const row of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
       const height = row.getBoundingClientRect().height
       if (
@@ -1419,7 +1419,7 @@ export class SourceDocumentView {
     let parsed = await this.parseLiveWindow(fromLine, toLine)
     const current = () =>
       !this.destroyed &&
-      this.mode === 'live' &&
+      this.mode !== 'source' &&
       source === this.currentSource &&
       version === source.version &&
       revision === this.presentationReadRevision
@@ -1531,7 +1531,7 @@ export class SourceDocumentView {
     const parsed = await pending
     return parsed &&
       !this.destroyed &&
-      this.mode === 'live' &&
+      this.mode !== 'source' &&
       source === this.currentSource &&
       version === source.version &&
       revision === this.presentationReadRevision &&
@@ -1631,7 +1631,7 @@ export class SourceDocumentView {
     const window = this.renderedSourceWindow
     const range = this.currentSelection().main
     if (
-      this.mode !== 'live' ||
+      this.mode === 'source' ||
       !window ||
       range.from < window.from ||
       range.to > window.to ||
@@ -1650,7 +1650,7 @@ export class SourceDocumentView {
 
   runTableCommand(command: TableCommand): Promise<void> {
     return this.trackVisibleEditTask(async () => {
-      if (this.mode === 'live') return this.applyTableCommand(command)
+      if (this.mode !== 'source') return this.applyTableCommand(command)
       if (!this.editable || this.composing) return
       const revision = this.selectionRevision
       const context = await this.readEditingContext()
@@ -1835,7 +1835,7 @@ export class SourceDocumentView {
     this.cancelMarkdownWarmup()
     if (
       !this.backgroundMarkdownWarmup ||
-      this.mode !== 'live' ||
+      this.mode === 'source' ||
       (this.renderedSourceWindow?.text.length ?? 0) > 65_536
     ) {
       return
@@ -2153,7 +2153,7 @@ export class SourceDocumentView {
       targetLineNumber = verticalMove.lineNumber
     }
 
-    if (this.mode === 'live') {
+    if (this.mode !== 'source') {
       const forward = direction === 'right' || direction === 'down'
       const visited = new Set<number>()
       while (!visited.has(next)) {
@@ -2396,7 +2396,7 @@ export class SourceDocumentView {
       !this.onEdit ||
       this.composing ||
       this.destroyed ||
-      this.mode !== 'live' ||
+      this.mode === 'source' ||
       this.taskTogglePending ||
       this.pendingVisibleEdit ||
       this.activeVisibleEditTasks.size > 0
@@ -2427,7 +2427,7 @@ export class SourceDocumentView {
         if (
           !this.editable ||
           this.destroyed ||
-          this.mode !== 'live' ||
+          this.mode === 'source' ||
           source !== this.currentSource ||
           version !== source.version ||
           revision !== this.editRevision
@@ -2538,7 +2538,7 @@ export class SourceDocumentView {
       this.renderSelection()
       this.renderCursor()
       const commit = this.queueVisibleEditCommit(edit)
-      if (this.mode === 'live') {
+      if (this.mode !== 'source') {
         void commit
           .then(async () => {
             if (editRevision !== this.editRevision) {
@@ -2612,7 +2612,7 @@ export class SourceDocumentView {
   ): Promise<void> {
     let lines: readonly HTMLElement[]
 
-    if (this.mode === 'live') {
+    if (this.mode !== 'source') {
       const parsed = await parseMarkdownWindow(
         {
           documentId: `${this.currentSource.documentId}:optimistic`,
@@ -2860,7 +2860,7 @@ export class SourceDocumentView {
     this.cursorPosition = position
     this.selectionAnchor = event.shiftKey ? this.selectionAnchor : position
 
-    if (this.mode === 'live') {
+    if (this.mode !== 'source') {
       void this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
     }
 
@@ -2896,7 +2896,7 @@ export class SourceDocumentView {
     this.selectionAnchor = this.dragAnchor
     this.cursorPosition = position
 
-    if (this.mode === 'live') {
+    if (this.mode !== 'source') {
       await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
     }
 
@@ -2959,7 +2959,7 @@ export class SourceDocumentView {
       this.selectionAnchor = this.cursorPosition
     }
 
-    if (this.mode === 'live') {
+    if (this.mode !== 'source') {
       await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
     }
     this.renderSelection()
@@ -3535,7 +3535,7 @@ export class SourceDocumentView {
     previousPosition: number,
     nextPosition: number,
   ): Promise<void> {
-    if (this.mode !== 'live') {
+    if (this.mode === 'source') {
       return
     }
 
@@ -3569,7 +3569,7 @@ export class SourceDocumentView {
       selectionRevision = this.selectionGeneration,
       editable = this.editable
     const replacement =
-      this.mode === 'live'
+      this.mode !== 'source'
         ? await this.renderSingleLiveLine(lineNumber)
         : await this.renderSingleSourceLine(lineNumber)
 
