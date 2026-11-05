@@ -85,6 +85,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     [DllImport("user32.dll", SetLastError = true)] static extern IntPtr SetWinEventHook(uint first, uint last, IntPtr module, WinEvent callback, uint process, uint thread, uint flags);
     [DllImport("user32.dll", SetLastError = true)] static extern bool UnhookWinEvent(IntPtr hook);
     [DllImport("user32.dll")] static extern bool PeekMessageW(out Message message, IntPtr hwnd, uint min, uint max, uint remove);
+    [DllImport("user32.dll", SetLastError = true)] static extern uint MsgWaitForMultipleObjectsEx(uint count, IntPtr handles, uint milliseconds, uint wakeMask, uint flags);
     [DllImport("user32.dll")] static extern bool TranslateMessage(ref Message message);
     [DllImport("user32.dll")] static extern IntPtr DispatchMessageW(ref Message message);
     [DllImport("user32.dll", SetLastError = true)] static extern bool EnumWindows(EnumWindow callback, IntPtr data);
@@ -645,19 +646,29 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             Check(hook != IntPtr.Zero, "Install out-of-context window event hook");
             ScanProcesses(); Enumerate(true);
             processSampler = new Thread(SampleProcesses) { IsBackground = true, Name = "Milkup GUI process identity sampler" }; processSampler.Start(); ready.Set();
+            long nextWindowPoll = NativeTick();
             while (!stopping) {
                 Message message;
                 int drained = 0;
                 while (drained++ < 512 && PeekMessageW(out message, IntPtr.Zero, 0, 0, 1)) { TranslateMessage(ref message); DispatchMessageW(ref message); }
-                Enumerate(false);
-                lock (gate) ExpireRetiredLives(NativeTick());
+                long now = NativeTick();
+                if (now >= nextWindowPoll) {
+                    Enumerate(false);
+                    lock (gate) ExpireRetiredLives(NativeTick());
+                    nextWindowPoll = NativeTick() + 25;
+                }
                 if (positiveDetected && positiveActive && !positiveCaptureAttempted) {
                     positiveCaptureAttempted = true; try { CaptureDesktop("gui-console-positive.png"); lock (gate) positiveCaptureComplete = true; } catch (Exception error) { AddError("Positive screenshot: " + error.Message); }
                 }
                 if (productPhase && !failureCaptureAttempted && (visibleProductConsoles.Count + visibleUnknownConsoles.Count > 0)) {
                     failureCaptureAttempted = true; try { CaptureDesktop("gui-native-failure.png"); } catch (Exception error) { AddError("Failure screenshot: " + error.Message); }
                 }
-                Thread.Sleep(25);
+                // WinEvents are dispatched by this message thread. A fixed sleep
+                // postpones CREATE/SHOW snapshots until short-lived HWNDs vanish.
+                // Wake for queued input immediately; keep the existing 25ms poll.
+                uint remaining = (uint)Math.Max(0L, Math.Min(25L, nextWindowPoll - NativeTick()));
+                uint wake = MsgWaitForMultipleObjectsEx(0, IntPtr.Zero, remaining, 0x04FF, 0x0004);
+                Check(wake != 0xffffffff, "Wait for native window events");
             }
             Message finalMessage;
             int finalCount = 0;
