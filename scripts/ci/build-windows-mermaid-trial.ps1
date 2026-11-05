@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$EvidenceDirectory,
-    [Parameter(Mandatory)][string]$OutputDirectory
+    [Parameter(Mandatory)][string]$OutputDirectory,
+    [Parameter(Mandatory)][string]$AcceptedSourceRunId,
+    [Parameter(Mandatory)][string]$AcceptedSourceSha
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -41,7 +43,14 @@ $head = @(git rev-parse HEAD)
 if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong packaging candidate' }
 $sha = $head[0].Trim()
 Checked git @('merge-base', '--is-ancestor', 'b139a9891a086685d7e0e9e85472a29a629f7a45', $sha)
-Checked git @('diff', '--exit-code', 'a22f8c35c4efc055c534feb907c4aa7add42ee33', $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'packages/core/src', 'packages/view-dom/src', 'plugins/diagrams-worker')
+if ($AcceptedSourceRunId -cnotmatch '^[1-9][0-9]*$' -or $AcceptedSourceSha -cnotmatch '^[a-f0-9]{40}$') { throw 'Invalid exact source acceptance identity' }
+$sourceRunJson = @(& gh api ('repos/Auto-Plugin/milkup/actions/runs/' + $AcceptedSourceRunId))
+if ($LASTEXITCODE -ne 0) { throw 'Cannot verify source acceptance receipt' }
+$sourceReceiptPath = Join-Path $EvidenceDirectory 'source-acceptance-run.json'
+Write-NewJson $sourceReceiptPath (($sourceRunJson -join "`n") | ConvertFrom-Json)
+Checked node @('scripts/ci/verify-mermaid-source-acceptance.mjs', $sourceReceiptPath, $AcceptedSourceRunId, $AcceptedSourceSha)
+Checked git @('merge-base', '--is-ancestor', $AcceptedSourceSha, $sha)
+Checked git @('diff', '--exit-code', $AcceptedSourceSha, $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'packages/core/src', 'packages/view-dom/src', 'plugins/diagrams-worker')
 $dirty = @(git status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Packaging requires a strictly clean checkout' }
 Checked node @('scripts/check-versions.mjs')
@@ -109,8 +118,8 @@ Write-NewJson (Join-Path $EvidenceDirectory 'packaging-record.json') ([ordered]@
     runId = $env:GITHUB_RUN_ID; runAttempt = $env:GITHUB_RUN_ATTEMPT
     runUrl = "https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
     acceptedImplementationBase = 'b139a9891a086685d7e0e9e85472a29a629f7a45'
-    reviewedImplementationBase = 'a22f8c35c4efc055c534feb907c4aa7add42ee33'
-    sourceAcceptanceRunId = 41985364078
+    reviewedImplementationBase = $AcceptedSourceSha
+    sourceAcceptanceRunId = [long]$AcceptedSourceRunId
     installer = $installer; compiledApplication = $compiled; extractedApplication = $extracted
     dependencies = $dependencies; buildHostOsVersion = [Environment]::OSVersion.VersionString
     nsisInstallMode = 'currentUser'; webviewInstallMode = 'skip'; existingEvergreenRequired = $true

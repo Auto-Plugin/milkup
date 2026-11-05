@@ -113,7 +113,7 @@ jobs:
           $sevenZip = (Get-Command 7z -ErrorAction Stop | Select-Object -First 1).Source
           & $sevenZip i
           if ($LASTEXITCODE -ne 0) { throw 'Existing archive inspector unavailable' }
-          node --test scripts/ci/verify-nsis-image.test.mjs scripts/ci/inspect-mermaid-windows-dependencies.test.mjs tests/windows/stage-mermaid-evidence.test.mjs
+          node --test scripts/ci/verify-mermaid-source-acceptance.test.mjs scripts/ci/verify-nsis-image.test.mjs scripts/ci/inspect-mermaid-windows-dependencies.test.mjs tests/windows/stage-mermaid-evidence.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Packaging evidence regressions failed' }
       - name: Restore locked dependencies and stage the exact reviewed plugins
         run: |
@@ -167,8 +167,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot retain source state' }
       - name: Build release NSIS and inspect exact engine and plugin payloads
         id: packaged
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '41985364078' }}
+          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || 'a22f8c35c4efc055c534feb907c4aa7add42ee33' }}
         run: |
-          ./scripts/ci/build-windows-mermaid-trial.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence') -OutputDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-delivery')
+          ./scripts/ci/build-windows-mermaid-trial.ps1 -AcceptedSourceRunId $env:ACCEPTED_SOURCE_RUN -AcceptedSourceSha $env:ACCEPTED_SOURCE_SHA -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence') -OutputDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-delivery')
       - name: Strict final source gate before installer execution
         id: source_gate
         if: always()
@@ -238,4 +242,7 @@ jobs:
           name: mermaid-installer-lifecycle-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 7
           if-no-files-found: error
-          path: ${{ runner.temp }}/mermaid-trial-installed-evidence/
+          path: |
+            ${{ runner.temp }}/mermaid-trial-installed-evidence/
+            ${{ runner.temp }}/mermaid-trial-build-evidence/*.json
+            ${{ runner.temp }}/mermaid-trial-build-evidence/*.log
