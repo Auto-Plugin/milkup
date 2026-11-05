@@ -1580,3 +1580,152 @@ test('child SHOW may await later root CREATE only with matching retained native 
   unconfirmed.windowLifetimes[0].confirmation = null
   assert.throws(() => validateNativeChildLifetimes(unconfirmed))
 })
+
+function liveTeardownEvidence() {
+  const raw = childLifetimeEvidence()
+  const [root, child] = raw.windowLifetimes
+  for (const life of [root, child])
+    Object.assign(life.retirement, {
+      sequence: 4,
+      nativeEventUptimeMs32: 130,
+      nativeTick: 130,
+      callbackTick: 130,
+    })
+  const show = raw.childShowEvidence[0]
+  Object.assign(show, {
+    sequence: 5,
+    nativeEventUptimeMs32: 150,
+    nativeTick: 150,
+    callbackTick: 150,
+  })
+  show.proof.capturedAtTick = 155
+  const snapshot = (life) => ({
+    hwnd: life.hwnd,
+    isWindow: true,
+    beginTick: 155,
+    endTick: 155,
+    ...Object.fromEntries(
+      ['className', 'rootHwnd', 'pid', 'threadId'].map((k) => [k, life.confirmation[k]]),
+    ),
+  })
+  const rootProof = structuredClone(show.proof)
+  for (const key of ['pid', 'threadId', 'processCreationFileTime', 'threadCreationFileTime'])
+    rootProof[key] = root.confirmation[key]
+  for (const key of ['pid', 'processCreationFileTime', 'threadCreationFileTime'])
+    rootProof.currentThread[key] = rootProof[key]
+  show.postParentDestroy = {
+    childLifeId: child.id,
+    rootLifeId: root.id,
+    doubleReadMatched: true,
+    endSequence: 6,
+    childFirst: snapshot(child),
+    childSecond: snapshot(child),
+    rootFirst: snapshot(root),
+    rootSecond: snapshot(root),
+    childProof: structuredClone(show.proof),
+    rootProof,
+  }
+  child.directDestroy = {
+    sequence: 8,
+    nativeEventUptimeMs32: 155,
+    nativeTick: 155,
+    callbackTick: 156,
+    eventThreadId: child.confirmation.threadId,
+    eventKind: 'destroy',
+    processingWindow: { hwnd: child.hwnd },
+  }
+  return raw
+}
+
+test('parent teardown requires live child/root identity continuity and a subsequent direct child DESTROY', () => {
+  assert(validateNativeChildLifetimes(liveTeardownEvidence()))
+  const failures = [
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy = null
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.childSecond.isWindow = false
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.rootSecond.isWindow = false
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.childSecond.pid++
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.rootSecond.className = 'ConsoleWindowClass'
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.rootProof.threadCreationFileTime = '9999'
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.childProof.currentThread.pid++
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.rootProof.heldThreadWait.result = 0
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.endSequence = 8
+    },
+    (raw) => {
+      raw.windowLifetimes[1].directDestroy = null
+    },
+    (raw) => {
+      raw.windowLifetimes[1].directDestroy.eventThreadId++
+    },
+    (raw) => {
+      raw.windowLifetimes[1].directDestroy.processingWindow.hwnd = '0x99'
+    },
+    (raw) => {
+      raw.windowLifetimes[1].directDestroy.sequence = 5
+    },
+    (raw) => {
+      raw.windowLifetimes[1].directDestroy.nativeTick =
+        raw.windowLifetimes[1].directDestroy.nativeEventUptimeMs32 = 154
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.childFirst.beginTick = 149
+    },
+    (raw) => {
+      raw.childShowEvidence[0].postParentDestroy.rootSecond.rootHwnd = '0x99'
+    },
+  ]
+  for (const invalidate of failures) {
+    const raw = liveTeardownEvidence()
+    invalidate(raw)
+    assert.throws(() => validateNativeChildLifetimes(raw))
+  }
+  for (const ownerIndex of [0, 1]) {
+    const raw = liveTeardownEvidence()
+    const original = raw.windowLifetimes[ownerIndex]
+    const barrier = {
+      sequence: 7,
+      nativeEventUptimeMs32: 155,
+      nativeTick: 155,
+      callbackTick: 155,
+      eventThreadId: original.create.eventThreadId,
+    }
+    raw.windowLifetimes.push({
+      id: 3,
+      hwnd: original.hwnd,
+      generation: 2,
+      create: barrier,
+      confirmation: null,
+      retirement: null,
+      proofReleasedAtTick: raw.observationStoppedAtTick,
+    })
+    raw.workingGenerationPeak = 3
+    raw.sharedRecordCount++
+    assert.throws(
+      () => validateNativeChildLifetimes(raw),
+      'A same-tick child or root CREATE cannot borrow the previous identity',
+    )
+    const later = structuredClone(raw)
+    const next = later.windowLifetimes[2].create
+    next.nativeEventUptimeMs32 = next.nativeTick = next.callbackTick = 160
+    assert(
+      validateNativeChildLifetimes(later),
+      'A later generation cannot invalidate an earlier completed double read',
+    )
+  }
+})

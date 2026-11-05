@@ -577,6 +577,106 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
     ...directShows.map((event) => ({ show: event.windowLifeShow, event })),
   ]
   let childCount = 0
+  function teardownContinuity(life, show) {
+    const observed = show.postParentDestroy
+    if (!observed) return false
+    try {
+      const root = lives.get(observed.rootLifeId)
+      assert.equal(observed.doubleReadMatched, true)
+      assert.equal(observed.childLifeId, life.id)
+      assert(life.confirmation && root?.confirmation)
+      assert.equal(root.confirmation.rootLifeId, null)
+      assert.equal(life.confirmation.rootLifeId, root.id)
+      assert.equal(life.retirement?.reason, 'parent-destroy')
+      assert.equal(life.retirement.parentLifeId, root.id)
+      assert.equal(root.retirement?.reason, 'destroy')
+      sameEventTime(life.retirement, root.retirement)
+      const destroy = life.directDestroy
+      assert(destroy)
+      time(destroy)
+      assert.equal(destroy.eventKind, 'destroy')
+      assert.equal(destroy.eventThreadId, life.confirmation.threadId)
+      assert.equal(hwnd(destroy.processingWindow.hwnd), hwnd(life.hwnd))
+      let end = 0
+      for (const [owner, first, second, proof] of [
+        [life, observed.childFirst, observed.childSecond, observed.childProof],
+        [root, observed.rootFirst, observed.rootSecond, observed.rootProof],
+      ]) {
+        assert(first && second && proof)
+        for (const snapshot of [first, second]) {
+          assert.equal(snapshot.isWindow, true)
+          assert.equal(hwnd(snapshot.hwnd), hwnd(owner.hwnd))
+          for (const field of ['className', 'rootHwnd', 'pid', 'threadId'])
+            assert.equal(snapshot[field], owner.confirmation[field])
+          integer(
+            snapshot.beginTick,
+            'Live snapshot starts after SHOW callback',
+            show.callbackTick,
+            stopped,
+          )
+          integer(
+            snapshot.endTick,
+            'Live snapshot completes after all reads',
+            snapshot.beginTick,
+            stopped,
+          )
+        }
+        assert(second.beginTick >= first.endTick)
+        identity(proof)
+        for (const field of [
+          'pid',
+          'threadId',
+          'processCreationFileTime',
+          'threadCreationFileTime',
+        ])
+          assert.equal(proof[field], owner.confirmation[field])
+        assert.equal(proof.heldThreadVerified, true)
+        assert.equal(proof.heldProcessVerified, true)
+        for (const field of ['heldThreadWait', 'heldProcessWait']) {
+          assert.equal(proof[field]?.result, 258)
+          assert.equal(proof[field].exitFileTime, null)
+        }
+        assert.equal(proof.currentThread?.status, 'same-identity')
+        assert.equal(proof.currentThread.win32Error ?? null, null)
+        for (const field of ['pid', 'processCreationFileTime', 'threadCreationFileTime'])
+          assert.equal(proof.currentThread[field], proof[field])
+        integer(
+          proof.capturedAtTick,
+          'Held identity read lies inside live double read',
+          first.beginTick,
+          second.endTick,
+        )
+        if (owner.proofReleasedAtTick !== null)
+          assert(proof.capturedAtTick <= owner.proofReleasedAtTick)
+        end = Math.max(end, second.endTick)
+      }
+      integer(observed.endSequence, 'Completed live snapshot order', show.sequence)
+      assert(life.create.sequence < show.sequence && root.retirement.sequence < show.sequence)
+      assert(observed.endSequence < destroy.sequence)
+      assert(
+        life.create.nativeTick !== null &&
+          root.retirement.nativeTick !== null &&
+          destroy.nativeTick !== null,
+      )
+      assert(
+        life.create.nativeTick <= show.nativeTick && root.retirement.nativeTick <= show.nativeTick,
+      )
+      assert(show.nativeTick <= end && end <= destroy.nativeTick)
+      assert(end - root.retirement.nativeTick <= 2000 && destroy.nativeTick - end <= 2000)
+      for (const owner of [life, root])
+        assert(
+          !(byHwnd.get(hwnd(owner.hwnd)) ?? []).some(
+            (other) =>
+              other.id !== owner.id &&
+              other.create.sequence > owner.create.sequence &&
+              (other.create.nativeTick === null || other.create.nativeTick <= end),
+          ),
+        )
+      return true
+    } catch {
+      return false
+    }
+  }
   for (const { show, event } of shows) {
     assert(show && typeof show === 'object', 'Original window SHOW evidence required')
     assert(['child', 'root'].includes(show.scope), 'Explicit child or root SHOW scope required')
@@ -643,6 +743,7 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
     const candidates = (byHwnd.get(hwnd(show.hwnd)) ?? []).filter((life) => {
       const confirmation = life.confirmation,
         retirement = life.retirement
+      const teardown = teardownContinuity(life, show)
       if (
         !confirmation ||
         (show.scope === 'child'
@@ -654,8 +755,12 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
         life.create.nativeTick === null ||
         !retirement ||
         retirement.nativeTick === null ||
-        !(life.create.nativeTick <= show.nativeTick && show.nativeTick < retirement.nativeTick) ||
-        !(life.create.sequence < show.sequence && show.sequence < retirement.sequence) ||
+        (!teardown &&
+          !(
+            life.create.nativeTick <= show.nativeTick && show.nativeTick < retirement.nativeTick
+          )) ||
+        (!teardown &&
+          !(life.create.sequence < show.sequence && show.sequence < retirement.sequence)) ||
         !(
           life.create.nativeTick <= confirmation.callbackTick &&
           confirmation.callbackTick < retirement.nativeTick
@@ -672,7 +777,8 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
       const root = show.scope === 'root' ? life : lives.get(confirmation.rootLifeId)
       if (
         root.create.nativeTick === null ||
-        (root.retirement &&
+        (!teardown &&
+          root.retirement &&
           (root.retirement.nativeTick === null || show.nativeTick >= root.retirement.nativeTick))
       )
         return false

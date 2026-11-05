@@ -209,6 +209,34 @@ try {
         return [bool]$matchLife.Invoke($lifetimeObserver, $arguments)
     }
     Assert (Test-ExactLife) 'A uniquely measured child lifetime rejected its in-interval late SHOW'
+    $originalShow = $show
+    $liveChildProof = [Collections.Generic.Dictionary[string, object]]::new($proof)
+    $liveChildProof['capturedAtTick'] = [long]250
+    $liveChildProof['heldThreadWait'] = New-NativeDictionary @{ result = [uint32]258; exitFileTime = $null }
+    $liveRootProof = [Collections.Generic.Dictionary[string, object]]::new($liveChildProof)
+    foreach ($key in @('pid', 'threadId', 'processCreationFileTime', 'threadCreationFileTime')) { $liveRootProof[$key] = $rootLife.Confirmation[$key] }
+    $liveRootProof['currentThread'] = New-NativeDictionary @{ status = 'same-identity'; pid = [uint32]100; processCreationFileTime = '1000'; threadCreationFileTime = '1010' }
+    function New-LiveSnapshot($life) {
+        $snapshot = New-NativeDictionary @{ hwnd = ('0x' + $life.Hwnd.ToInt64().ToString('x')); isWindow = $true; beginTick = [long]250; endTick = [long]250 }
+        foreach ($key in @('pid', 'threadId', 'className', 'rootHwnd')) { $snapshot[$key] = $life.Confirmation[$key] }
+        return ,$snapshot
+    }
+    $post = New-NativeDictionary @{ childLifeId = [long]2; rootLifeId = [long]1; doubleReadMatched = $true; endSequence = [long]8; childFirst = (New-LiveSnapshot $childLife); childSecond = (New-LiveSnapshot $childLife); rootFirst = (New-LiveSnapshot $rootLife); rootSecond = (New-LiveSnapshot $rootLife); childProof = $liveChildProof; rootProof = $liveRootProof }
+    $show = New-NativeDictionary @{ id = [long]2; hwnd = '0x11'; sequence = [long]7; nativeEventUptimeMs32 = [uint32]240; nativeTick = [long]240; callbackTick = [long]240; eventThreadId = [uint32]12; scope = 'child'; proof = $liveChildProof; postParentDestroy = $post }
+    $childLife.DirectDestroy = New-NativeDictionary @{ sequence = [long]10; nativeEventUptimeMs32 = [uint32]250; nativeTick = [long]250; callbackTick = [long]250; eventThreadId = [uint32]12; eventKind = 'destroy'; processingWindow = (New-NativeDictionary @{ hwnd = '0x11' }) }
+    Assert (Test-ExactLife) 'Live teardown continuity with subsequent same-tick child DESTROY was rejected'
+    $post['childSecond']['isWindow'] = $false
+    Assert (-not (Test-ExactLife)) 'Child disappearing during double read was accepted'
+    $post['childSecond']['isWindow'] = $true
+    $post['rootSecond']['className'] = 'ConsoleWindowClass'
+    Assert (-not (Test-ExactLife)) 'Changed root identity was accepted'
+    $post['rootSecond']['className'] = 'Tauri Window'
+    $childLife.DirectDestroy['sequence'] = [long]7
+    Assert (-not (Test-ExactLife)) 'DESTROY preceding completion of live reads was accepted'
+    $childLife.DirectDestroy = $null
+    Assert (-not (Test-ExactLife)) 'Missing direct child destruction boundary was accepted'
+    $show = $originalShow
+
     $show['nativeTick'] = [long]110
     Assert (Test-ExactLife) 'Same-tick CREATE/SHOW with exact FIFO entry order and an actual in-generation snapshot was rejected'
     $show['nativeTick'] = [long]109

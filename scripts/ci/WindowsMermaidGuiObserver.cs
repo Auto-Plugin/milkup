@@ -271,8 +271,8 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     // Processing-time snapshots are diagnostic only, never event-time identity proof.
     static Dictionary<string, object> WindowDiagnostic(IntPtr hwnd) {
         long begin = NativeTick(); uint pid; uint tid = GetWindowThreadProcessId(hwnd, out pid);
-        bool live = IsWindow(hwnd); IntPtr parent = GetParent(hwnd), root = GetAncestor(hwnd, 2);
-        return new Dictionary<string, object> { { "beginTick", begin }, { "endTick", NativeTick() }, { "hwnd", HandleText(hwnd) }, { "isWindow", live }, { "parentHwnd", HandleText(parent) }, { "rootHwnd", HandleText(root) }, { "pid", pid }, { "threadId", tid }, { "className", Bounded(ClassName(hwnd), 256) } };
+        bool live = IsWindow(hwnd); IntPtr parent = GetParent(hwnd), root = GetAncestor(hwnd, 2); string klass = Bounded(ClassName(hwnd), 256);
+        return new Dictionary<string, object> { { "beginTick", begin }, { "endTick", NativeTick() }, { "hwnd", HandleText(hwnd) }, { "isWindow", live }, { "parentHwnd", HandleText(parent) }, { "rootHwnd", HandleText(root) }, { "pid", pid }, { "threadId", tid }, { "className", klass } };
     }
     static Dictionary<string, object> IdentityWait(IntPtr handle, bool thread, out long birth) {
         birth = 0; uint wait = WaitForSingleObject(handle, 0); long exit, kernel, user;
@@ -435,9 +435,40 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             && Number(life.Create, "sequence") < Number(show, "sequence") && Number(show, "sequence") < Number(life.Retirement, "sequence")
             && Number(life.Confirmation, "callbackTick") >= Number(life.Create, "nativeTick") && Number(life.Confirmation, "callbackTick") < Number(life.Retirement, "nativeTick");
     }
+    bool LiveTeardownContinuity(WindowLife life, Dictionary<string, object> show) {
+        object value;
+        if (!show.TryGetValue("postParentDestroy", out value)) return false;
+        var observed = value as Dictionary<string, object>;
+        if (observed == null || !Object.Equals(observed["doubleReadMatched"], true) || life.Confirmation == null || life.Retirement == null || life.DirectDestroy == null || (string)life.Retirement["reason"] != "parent-destroy" || Number(observed, "childLifeId") != life.Id) return false;
+        WindowLife root = windowLives.Find(item => item.Id == Number(observed, "rootLifeId"));
+        if (root == null || root.Confirmation == null || root.Retirement == null || root.Confirmation["rootLifeId"] != null || (string)root.Retirement["reason"] != "destroy" || Number(life.Confirmation, "rootLifeId") != root.Id || Number(life.Retirement, "parentLifeId") != root.Id || Number(life.Retirement, "sequence") != Number(root.Retirement, "sequence")) return false;
+        if (life.Create["nativeTick"] == null || show["nativeTick"] == null || life.DirectDestroy["nativeTick"] == null || root.Retirement["nativeTick"] == null) return false;
+        if ((string)life.DirectDestroy["eventKind"] != "destroy" || (string)((Dictionary<string, object>)life.DirectDestroy["processingWindow"])["hwnd"] != HandleText(life.Hwnd) || Number(life.Confirmation, "callbackTick") >= Number(root.Retirement, "nativeTick") || Number(life.Confirmation, "sequence") >= Number(root.Retirement, "sequence")) return false;
+        long end = 0;
+        foreach (var pair in new[] { new object[] { life, "childFirst", "childSecond", "childProof" }, new object[] { root, "rootFirst", "rootSecond", "rootProof" } }) {
+            var owner = (WindowLife)pair[0]; var confirmation = owner.Confirmation;
+            var first = observed[(string)pair[1]] as Dictionary<string, object>; var second = observed[(string)pair[2]] as Dictionary<string, object>; var proof = observed[(string)pair[3]] as Dictionary<string, object>;
+            if (first == null || second == null || proof == null || !Object.Equals(first["isWindow"], true) || !Object.Equals(second["isWindow"], true) || (string)first["hwnd"] != HandleText(owner.Hwnd) || (string)second["hwnd"] != HandleText(owner.Hwnd)) return false;
+            foreach (string key in new[] { "className", "rootHwnd", "pid", "threadId" }) if (!Object.Equals(first[key], confirmation[key]) || !Object.Equals(second[key], confirmation[key])) return false;
+            foreach (string key in new[] { "pid", "threadId", "processCreationFileTime", "threadCreationFileTime" }) if (!Object.Equals(proof[key], confirmation[key])) return false;
+            if (!Object.Equals(proof["heldThreadVerified"], true) || !Object.Equals(proof["heldProcessVerified"], true) || Number((Dictionary<string, object>)proof["heldThreadWait"], "result") != 258 || Number((Dictionary<string, object>)proof["heldProcessWait"], "result") != 258 || (string)((Dictionary<string, object>)proof["currentThread"])["status"] != "same-identity") return false;
+            var current = (Dictionary<string, object>)proof["currentThread"];
+            foreach (string key in new[] { "pid", "processCreationFileTime", "threadCreationFileTime" }) if (!Object.Equals(current[key], proof[key])) return false;
+            if (owner.Released.HasValue && Number(proof, "capturedAtTick") > owner.Released.Value) return false;
+            if (Number(first, "beginTick") < Number(show, "callbackTick") || Number(first, "endTick") < Number(first, "beginTick") || Number(second, "beginTick") < Number(first, "endTick") || Number(second, "endTick") < Number(second, "beginTick") || Number(proof, "capturedAtTick") < Number(first, "beginTick") || Number(proof, "capturedAtTick") > Number(second, "endTick")) return false;
+            end = Math.Max(end, Number(second, "endTick"));
+        }
+        long native = Number(show, "nativeTick"), lastOrder = Number(observed, "endSequence");
+        if (!(Number(life.Create, "sequence") < Number(show, "sequence") && Number(root.Retirement, "sequence") < Number(show, "sequence") && Number(show, "sequence") <= lastOrder && lastOrder < Number(life.DirectDestroy, "sequence")) || Number(life.Create, "nativeTick") > native || Number(root.Retirement, "nativeTick") > native || native > end || end > Number(life.DirectDestroy, "nativeTick") || end - Number(root.Retirement, "nativeTick") > 2000 || Number(life.DirectDestroy, "nativeTick") - end > 2000 || Number(life.DirectDestroy, "eventThreadId") != Number(life.Confirmation, "threadId")) return false;
+        foreach (WindowLife other in windowLives) {
+            foreach (WindowLife owner in new[] { life, root }) if (other.Hwnd == owner.Hwnd && other.Id != owner.Id && Number(other.Create, "sequence") > Number(owner.Create, "sequence") && (other.Create["nativeTick"] == null || Number(other.Create, "nativeTick") <= end)) return false;
+        }
+        return true;
+    }
     bool MatchesLifeProof(WindowLife life, Dictionary<string, object> show, bool allowRoot = false) {
         var proof = show["proof"] as Dictionary<string, object>;
-        if (!StrictLifetimeInterval(life, show) || proof == null || life.Hwnd != new IntPtr(Convert.ToInt64(((string)show["hwnd"]).Substring(2), 16)) || (life.Released.HasValue && Number(proof, "capturedAtTick") > life.Released.Value)) return false;
+        bool teardown = LiveTeardownContinuity(life, show);
+        if ((!StrictLifetimeInterval(life, show) && !teardown) || proof == null || life.Hwnd != new IntPtr(Convert.ToInt64(((string)show["hwnd"]).Substring(2), 16)) || (life.Released.HasValue && Number(proof, "capturedAtTick") > life.Released.Value)) return false;
         if (IsConsoleClass((string)life.Confirmation["className"])) return false;
         bool isRoot = life.Confirmation["rootLifeId"] == null;
         if (isRoot != allowRoot) return false;
@@ -445,7 +476,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         WindowLife root = isRoot ? life : windowLives.Find(item => item.Id == Number(life.Confirmation, "rootLifeId"));
         if (root == null || root.Confirmation == null || root.Create["nativeTick"] == null || root.Confirmation["rootLifeId"] != null) return false;
         long native = Number(show, "nativeTick");
-        if (root.Retirement != null && (root.Retirement["nativeTick"] == null || native >= Number(root.Retirement, "nativeTick"))) return false;
+        if (!teardown && root.Retirement != null && (root.Retirement["nativeTick"] == null || native >= Number(root.Retirement, "nativeTick"))) return false;
         foreach (WindowLife other in windowLives) {
             if (other.Hwnd == life.Hwnd && other.Id != life.Id && Number(other.Create, "sequence") > Number(life.Create, "sequence") && (other.Create["nativeTick"] == null || Number(other.Create, "nativeTick") <= native)) return false;
             if (other.Hwnd == root.Hwnd && other.Id != root.Id && Number(other.Create, "sequence") > Number(root.Create, "sequence") && (other.Create["nativeTick"] == null || Number(other.Create, "nativeTick") <= native)) return false;
@@ -501,7 +532,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             WindowLife match = null; int count = 0;
             bool isRoot = (string)show["scope"] == "root";
             foreach (WindowLife life in windowLives) if (MatchesLifeProof(life, show, isRoot)) { match = life; count++; }
-            if (count == 1) { show["status"] = isRoot ? "resolved-root" : "resolved-child"; show["lifeId"] = match.Id; show["reason"] = "Unique strict native interval, CREATE barriers and held PID/TID births verified"; knownWindowShowEvents++; if (!isRoot) knownChildShowEvents++; }
+            if (count == 1) { show["status"] = isRoot ? "resolved-root" : "resolved-child"; show["lifeId"] = match.Id; show["reason"] = LiveTeardownContinuity(match, show) ? "Live parent/child double reads, held births, CREATE barriers and direct child DESTROY prove teardown continuity" : "Unique strict native interval, CREATE barriers and held PID/TID births verified"; knownWindowShowEvents++; if (!isRoot) knownChildShowEvents++; }
             else { show["status"] = "unresolved"; show["lifeId"] = null; show["reason"] = count > 1 ? "Multiple native child lifetimes match; identity remains ambiguous" : "Strict native lifetime/retirement, CREATE barrier or fresh identity proof missing"; }
         }
         if (knownWindowShowEvents != all.Count) AddError("One or more SHOW events lack unique native window lifetime proof; absence of consoles is unverified");
