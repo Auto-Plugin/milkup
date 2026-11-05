@@ -302,3 +302,28 @@ try {
     Assert ($retiredLives[0].Released -eq 4 -and $retiredLives[0].Create['sequence'] -eq 2) 'Unconfirmed release discarded or rewrote its original CREATE barrier'
 } finally { $retiredBudget.Dispose() }
 [pscustomobject]@{ passed = $true; csharpCompiled = $true; powershellParsed = $true; pointerBytes = [IntPtr]::Size; inputBytes = $expectedInput; startupInfoExBytes = $expectedStartup; nativeWindowsExecution = $false } | ConvertTo-Json -Compress
+
+# Exercise the real PowerShell writer and Node decoder, including a report that
+# exceeded the former raw-size gate. No records or identity fields are removed.
+$codecTokens = $null; $codecErrors = $null
+$codecAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $RepositoryRoot 'scripts/ci/run-windows-mermaid-gui-observer.ps1'), [ref]$codecTokens, [ref]$codecErrors)
+$codecFunction = $codecAst.Find({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Save-NativeReport' }, $true)
+Invoke-Expression $codecFunction.Extent.Text
+$EvidenceDirectory = Join-Path ([IO.Path]::GetTempPath()) ('milkup-codec-' + [guid]::NewGuid().ToString('N'))
+[IO.Directory]::CreateDirectory($EvidenceDirectory) | Out-Null
+try {
+    $script:identityContext = @{ codecTest = $true }
+    $codecReport = @{ events = @(1..5000 | ForEach-Object { @{ sequence = $_; proof = ('identity' * 90) } }); childShowEvidence = @(); complete = $true }
+    $null = Save-NativeReport $codecReport
+    $codecCheck = @'
+const assert=require('node:assert/strict'),fs=require('node:fs'),url=require('node:url');
+(async()=>{const {decodeGuiEvidence}=await import(url.pathToFileURL(process.argv[1]));
+const bytes=fs.readFileSync(process.argv[2]);const raw=decodeGuiEvidence(bytes,'window');
+assert(raw.length>2*1024*1024);assert(bytes.length<2*1024*1024);
+assert.equal(JSON.parse(raw).events.length,5000);assert.equal(JSON.parse(raw).events[4999].sequence,5000);
+})().catch(e=>{console.error(e);process.exitCode=1});
+'@
+    & node -e $codecCheck (Join-Path $RepositoryRoot 'tests/windows/mermaid-gui-contract.mjs') (Join-Path $EvidenceDirectory 'native-window-events.json')
+    Assert ($LASTEXITCODE -eq 0) 'PowerShell/Node lossless evidence round trip failed'
+    Rejects { Save-NativeReport @{ events = @(); padding = ('x' * 9MB) } } 'Expanded report above hard limit was accepted'
+} finally { Remove-Item -LiteralPath $EvidenceDirectory -Recurse -Force }

@@ -1,6 +1,80 @@
 import assert from 'node:assert/strict'
+import { gzipSync, gunzipSync } from 'node:zlib'
 import { createHash } from 'node:crypto'
 import { AuditLedger, validateContext } from './mermaid-product-e2e.mjs'
+
+// Lossless evidence container. Stored-file budgets stay unchanged; decoded work
+// has an independent hard bound before decompression and before JSON parsing.
+export function encodeGuiEvidence(raw, kind) {
+  raw = Buffer.from(raw)
+  const limit = kind === 'window' ? 8 * 1024 * 1024 : 2 * 1024 * 1024
+  assert(['window', 'product-log'].includes(kind) && raw.length <= limit)
+  const packed = gzipSync(raw)
+  const chunks = []
+  for (let offset = 0; offset < packed.length; offset += 65536) {
+    const bytes = packed.subarray(offset, offset + 65536)
+    chunks.push({
+      index: chunks.length,
+      bytes: bytes.length,
+      sha256: evidenceHash(bytes),
+      data: bytes.toString('base64'),
+    })
+  }
+  const value = {
+    encoding: 'milkup-gzip-chunks-v1',
+    kind,
+    rawBytes: raw.length,
+    rawSha256: evidenceHash(raw),
+    newlineCount: raw.filter((byte) => byte === 10).length,
+    recordCount:
+      kind === 'window'
+        ? windowRecordCount(JSON.parse(raw))
+        : raw.filter((byte) => byte === 10).length,
+    packedBytes: packed.length,
+    chunkCount: chunks.length,
+    chunks,
+  }
+  const result = Buffer.from(JSON.stringify(value))
+  assert(result.length <= (kind === 'window' ? 2 * 1024 * 1024 : 512 * 1024))
+  return result
+}
+const evidenceHash = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const windowRecordCount = (value) =>
+  (value.events?.length ?? 0) + (value.childShowEvidence?.length ?? 0)
+export function decodeGuiEvidence(bytes, kind) {
+  bytes = Buffer.from(bytes)
+  const storedLimit = kind === 'window' ? 2 * 1024 * 1024 : 512 * 1024
+  assert(['window', 'product-log'].includes(kind) && bytes.length <= storedLimit)
+  const value = JSON.parse(bytes)
+  // Historical plain JSON window reports retain their original size limit.
+  if (kind === 'window' && value.encoding === undefined) return bytes
+  assert.equal(value.encoding, 'milkup-gzip-chunks-v1')
+  assert.equal(value.kind, kind)
+  const rawLimit = kind === 'window' ? 8 * 1024 * 1024 : 2 * 1024 * 1024
+  assert(Number.isSafeInteger(value.rawBytes) && value.rawBytes >= 0 && value.rawBytes <= rawLimit)
+  assert(Array.isArray(value.chunks) && value.chunks.length > 0 && value.chunks.length <= 32)
+  assert.equal(value.chunkCount, value.chunks.length)
+  const packed = Buffer.concat(
+    value.chunks.map((chunk, index) => {
+      assert.equal(chunk.index, index)
+      assert(typeof chunk.data === 'string' && chunk.data.length <= 87384)
+      const data = Buffer.from(chunk.data, 'base64')
+      assert.equal(data.toString('base64'), chunk.data)
+      assert(data.length > 0 && data.length <= 65536)
+      assert.equal(data.length, chunk.bytes)
+      assert.equal(evidenceHash(data), chunk.sha256)
+      return data
+    }),
+  )
+  assert.equal(packed.length, value.packedBytes)
+  const raw = gunzipSync(packed, { maxOutputLength: rawLimit })
+  assert.equal(raw.length, value.rawBytes)
+  assert.equal(evidenceHash(raw), value.rawSha256)
+  const lines = raw.filter((byte) => byte === 10).length
+  assert.equal(lines, value.newlineCount)
+  assert.equal(kind === 'window' ? windowRecordCount(JSON.parse(raw)) : lines, value.recordCount)
+  return raw
+}
 
 export const GUI_BASELINE = Object.freeze({
   applicationCandidateSha: 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4',
@@ -1294,7 +1368,7 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
       }
     }
   }
-  const windows = JSON.parse(windowBytes)
+  const windows = JSON.parse(decodeGuiEvidence(windowBytes, 'window'))
   validateNativeWindowEvidence(windows, report.observerSummary, {
     allowLegacyDesktopBounds: validateGuiIdentity(report) === 'delivered-beta9-baseline',
     allowLegacyChildLifetimes: validateGuiIdentity(report) === 'delivered-beta9-baseline',

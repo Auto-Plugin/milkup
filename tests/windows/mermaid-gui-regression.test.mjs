@@ -3,9 +3,11 @@ import assert from 'node:assert/strict'
 import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import {
   GUI_BASELINE,
+  encodeGuiEvidence,
+  decodeGuiEvidence,
   GUI_STEPS,
   GUI_EVIDENCE_NAMES,
   validateGuiIdentity,
@@ -1787,4 +1789,69 @@ test('parent teardown requires live child/root identity continuity and a subsequ
       'A later generation cannot invalidate an earlier completed double read',
     )
   }
+})
+
+test('bounded lossless evidence rejects missing chunks, truncation, hashes, counts and expanded overflow', () => {
+  for (const [kind, raw] of [
+    ['product-log', Buffer.from('native audit record\n'.repeat(40000))],
+    ['product-log', randomBytes(200000)],
+    [
+      'window',
+      Buffer.from(
+        JSON.stringify({
+          events: Array.from({ length: 5000 }, (_, i) => ({ i, proof: 'identity'.repeat(90) })),
+          childShowEvidence: [],
+        }),
+      ),
+    ],
+  ]) {
+    const encoded = encodeGuiEvidence(raw, kind)
+    assert.deepEqual(decodeGuiEvidence(encoded, kind), raw)
+    assert.throws(() => decodeGuiEvidence(encoded.subarray(0, encoded.length - 1), kind))
+    for (const mutate of [
+      (v) => v.chunks.pop(),
+      (v) => {
+        v.chunks[0].index++
+      },
+      (v) => {
+        v.chunks[0].data = v.chunks[0].data.slice(0, -4)
+      },
+      (v) => {
+        v.chunks[0].sha256 = '0'.repeat(64)
+      },
+      (v) => {
+        v.rawSha256 = '0'.repeat(64)
+      },
+      (v) => {
+        v.rawBytes++
+      },
+      (v) => {
+        v.recordCount++
+      },
+      (v) => {
+        v.newlineCount++
+      },
+      (v) => {
+        v.rawBytes = 9 * 1024 * 1024
+      },
+    ]) {
+      const value = JSON.parse(encoded)
+      mutate(value)
+      assert.throws(() => decodeGuiEvidence(Buffer.from(JSON.stringify(value)), kind))
+    }
+  }
+  assert.throws(() => encodeGuiEvidence(Buffer.alloc(2 * 1024 * 1024 + 1), 'product-log'))
+  assert.throws(() => decodeGuiEvidence(Buffer.alloc(2 * 1024 * 1024 + 1), 'window'))
+})
+
+test('compressed evidence cannot conceal decompression beyond its independent bound', () => {
+  const encoded = JSON.parse(
+    encodeGuiEvidence(
+      Buffer.from(JSON.stringify({ events: [], padding: 'x'.repeat(3 * 1024 * 1024) })),
+      'window',
+    ),
+  )
+  encoded.kind = 'product-log'
+  encoded.rawBytes = 1
+  assert.throws(() => decodeGuiEvidence(Buffer.from(JSON.stringify(encoded)), 'product-log'))
 })

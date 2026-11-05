@@ -29,6 +29,8 @@ import {
 } from './mermaid-product-e2e.mjs'
 import {
   GUI_STEPS,
+  encodeGuiEvidence,
+  decodeGuiEvidence,
   validateGuiIdentity,
   validateStableSamples,
   validateGuiClose,
@@ -821,7 +823,7 @@ export async function main() {
       const consume = (text, final = false) => {
         if (
           Buffer.byteLength(productLogs.get(current.productPid)) + Buffer.byteLength(text) >
-          512 * 1024
+          2 * 1024 * 1024
         ) {
           report.logOverflow = true
           return
@@ -1025,8 +1027,15 @@ export async function main() {
     proof.sourceOffsets = offsets
     for (const diagram of [...offsets.keys(), 0, 11, 0]) {
       const from = offsets[diagram]
-      const visit = { diagram, from, wheelInputs: [] }
+      const visit = {
+        diagram,
+        from,
+        wheelInputs: [],
+        startedAt: new Date().toISOString(),
+        stage: 'seek',
+      }
       proof.visits.push(visit)
+      await persist()
       await until(
         async () => {
           const target = await execute(
@@ -1070,7 +1079,13 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
         'Real scroll reaches decoded diagram ' + (diagram + 1),
         60000,
       )
+      visit.stage = 'settle'
+      visit.seekFinishedAt = new Date().toISOString()
+      await persist()
       const snapshot = await settle(null)
+      visit.stage = 'decode'
+      visit.settledAt = new Date().toISOString()
+      await persist()
       const index = await execute(
         `return [...document.querySelectorAll('[data-document-presentation] img')].findIndex(e=>Number(e.closest('[data-document-presentation]').dataset.presentationFrom)===arguments[0]);`,
         from,
@@ -1078,7 +1093,11 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       assert(index >= 0, 'Requested diagram remains mounted after settling')
       visit.png = (await decodeImages(name, snapshot.imageCount, [index]))[0]
       visit.imageCount = snapshot.imageCount
+      visit.stage = 'stability'
+      await persist()
       await stability(visit, 3000, snapshot.imageCount, true)
+      visit.stage = 'complete'
+      visit.finishedAt = new Date().toISOString()
       await persist()
     }
     proof.exactBytesUnchanged = await exactBytes(name)
@@ -1289,7 +1308,18 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
         }
         session = undefined
       }
-      await writeFile(path.join(evidence, `${record.name}-product.log`), productLogs.get(pid) ?? '')
+      const encodedLog = encodeGuiEvidence(productLogs.get(pid) ?? '', 'product-log')
+      await writeFile(path.join(evidence, `${record.name}-product.log`), encodedLog)
+      try {
+        const restored = decodeGuiEvidence(encodedLog, 'product-log').toString('utf8')
+        const restoredLedger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind)
+        for (const line of restored.split('\n'))
+          if (line.startsWith(AUDIT_PREFIX))
+            restoredLedger.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)), pid)
+        restoredLedger.verifyAll()
+      } catch (error) {
+        close.errors.push('Restored product audit: ' + error)
+      }
       if (record.stdioClosedAt) productLogs.delete(pid)
       product = undefined
       launch = undefined
@@ -1300,6 +1330,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
   const step = async (name, action) => {
     const row = { name, status: 'running', startedAt: new Date().toISOString() }
     report.steps.push(row)
+    await persist()
     await observer.call('phase', { name })
     try {
       await action(row)
@@ -1552,7 +1583,12 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
     try {
       if (fatal) throw fatal
       validateNativeWindowEvidence(
-        JSON.parse(await readFile(path.join(evidence, 'native-window-events.json'), 'utf8')),
+        JSON.parse(
+          decodeGuiEvidence(
+            await readFile(path.join(evidence, 'native-window-events.json')),
+            'window',
+          ),
+        ),
         report.observerSummary,
       )
       if (report.status !== 'blocked') {

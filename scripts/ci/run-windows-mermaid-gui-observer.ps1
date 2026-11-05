@@ -50,7 +50,25 @@ function Assert-IdentityContext {
 function Save-NativeReport($Report) {
     $Report['identityContext'] = $script:identityContext
     $bytes = [Text.UTF8Encoding]::new($false).GetBytes((ConvertTo-Json -InputObject $Report -Depth 20 -Compress))
-    if ($bytes.Length -gt 2MB) { throw 'Native window report exceeds 2 MiB budget' }
+    if ($bytes.Length -gt 8MB) { throw 'Decoded native window report exceeds 8 MiB budget' }
+    $memory = [IO.MemoryStream]::new()
+    $gzip = [IO.Compression.GZipStream]::new($memory, [IO.Compression.CompressionLevel]::Optimal, $true)
+    try { $gzip.Write($bytes, 0, $bytes.Length) } finally { $gzip.Dispose() }
+    $packed = $memory.ToArray(); $memory.Dispose()
+    $chunks = @()
+    for ($offset = 0; $offset -lt $packed.Length; $offset += 65536) {
+        $length = [Math]::Min(65536, $packed.Length - $offset)
+        $part = [byte[]]::new($length); [Array]::Copy($packed, $offset, $part, 0, $length)
+        $chunks += @{ index = $chunks.Count; bytes = $length; sha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($part)).ToLowerInvariant(); data = [Convert]::ToBase64String($part) }
+    }
+    $records = 0
+    foreach ($key in @('events', 'childShowEvidence')) { if ($Report.ContainsKey($key)) { $records += @($Report[$key]).Count } }
+    $container = @{ encoding = 'milkup-gzip-chunks-v1'; kind = 'window'; rawBytes = $bytes.Length;
+        rawSha256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant();
+        newlineCount = 0; recordCount = $records;
+        packedBytes = $packed.Length; chunkCount = $chunks.Count; chunks = $chunks }
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes((ConvertTo-Json -InputObject $container -Depth 20 -Compress))
+    if ($bytes.Length -gt 2MB) { throw 'Encoded native window report exceeds 2 MiB budget' }
     $destination = Join-Path $EvidenceDirectory 'native-window-events.json'
     $stream = [IO.FileStream]::new($destination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
     try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
