@@ -893,8 +893,9 @@ fn launch(
     system: &Path,
     profile: &Profile,
     job: &Job,
+    observe: impl FnMut(&'static str),
 ) -> Result<Spawned> {
-    launch_entry(
+    launch_entry_observed(
         exe,
         runtime,
         state,
@@ -902,6 +903,7 @@ fn launch(
         profile,
         job,
         FixedChildEntry::Renderer,
+        observe,
     )
 }
 fn launch_entry(
@@ -913,6 +915,14 @@ fn launch_entry(
     job: &Job,
     entry: FixedChildEntry,
 ) -> Result<Spawned> {
+    launch_entry_observed(exe, runtime, state, system, profile, job, entry, |_| {})
+}
+fn launch_entry_observed(
+    exe: &Path, runtime: &Path, state: &Path, system: &Path,
+    profile: &Profile, job: &Job, entry: FixedChildEntry,
+    mut observe: impl FnMut(&'static str),
+) -> Result<Spawned> {
+    observe("launchPathValidationStartedTickMs");
     for path in [exe, runtime, state, system] {
         if !path.is_absolute()
             || path
@@ -923,6 +933,7 @@ fn launch_entry(
             return Err("Invalid fixed-helper native path".into());
         }
     }
+    observe("launchPipesStartedTickMs");
     let (input, child_input) = pipe(false)?;
     let (output, child_output) = pipe(true)?;
     let (error, child_error) = pipe(true)?;
@@ -938,7 +949,9 @@ fn launch_entry(
         Reserved: 0,
     };
     let raw_job = job.0.as_raw_handle();
+    observe("launchAttributesStartedTickMs");
     let attrs = Attributes::new(&caps, &raw_job, &handles)?;
+    observe("launchEnvironmentStartedTickMs");
     let mut startup = STARTUPINFOEXW::default();
     startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
     startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
@@ -977,7 +990,8 @@ fn launch_entry(
         state.display(), state.display(), system.display(), drive, system_root.display(), state.display(), state.display(), state.display(), system_root.display());
     let environment: Vec<u16> = environment.encode_utf16().collect();
     let mut info = PROCESS_INFORMATION::default();
-    check(unsafe {
+    observe("createProcessStartedTickMs");
+    let created = check(unsafe {
         CreateProcessW(
             application.as_ptr(),
             command.as_mut_ptr(),
@@ -993,7 +1007,9 @@ fn launch_entry(
             &startup.StartupInfo,
             &mut info,
         )
-    })?;
+    });
+    observe("createProcessReturnedTickMs");
+    created?;
     // Close the parent copies of child endpoints before returning. Descendant
     // writer copies, if any, are not observed or presumed closed by this action.
     drop(child_input);
@@ -1346,7 +1362,9 @@ pub fn run(runtime: &Path, input: &Value, control: &Control) -> Result<RunOutput
             input: mut child_input,
             output: child_output,
             error: child_error,
-        } = launch(&exe, &runtime, &state, &system, profile, job)?;
+        } = launch(&exe, &runtime, &state, &system, profile, job, |phase| {
+            report["nativeDiagnosticTimeline"][phase] = json!(diagnostic_tick_ms());
+        })?;
         report["nativeDiagnosticTimeline"]["parentChildPipeCopiesClosedByTickMs"] =
             json!(diagnostic_tick_ms());
         // Preserve the actual creation handle through the outcome, including

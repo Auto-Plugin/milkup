@@ -257,6 +257,7 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
     let allowed_index = index_url.clone();
     let allowed_bundle = bundle_url.clone();
     let log = events.clone();
+    let resource_seen = std::cell::Cell::new(0u8);
     let handler = WebResourceRequestedEventHandler::create(Box::new(move |_, args| {
         let args =
             args.unwrap_or_else(|| fatal_control("Missing required browser event arguments"));
@@ -282,6 +283,12 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
             let mut raw = PWSTR::null();
             request.Method(&mut raw)?;
             let method = bounded_string(raw, 32)?;
+            let resource_bit = if uri == allowed_index { 1 } else if uri == allowed_bundle { 2 } else { 0 };
+            let first_resource = resource_bit != 0 && resource_seen.get() & resource_bit == 0;
+            if first_resource {
+                resource_seen.set(resource_seen.get() | resource_bit);
+                startup_phase(startup_started, if resource_bit == 1 { "index-request" } else { "bundle-request" }, None);
+            }
             let (body, mime, status) = if method == "GET" && uri == allowed_index {
                 (index.as_bytes(), "text/html; charset=utf-8", 200)
             } else if method == "GET" && uri == allowed_bundle {
@@ -306,6 +313,9 @@ pub fn run(runtime: &Path, private: &Path) -> Result<()> {
             )?;
             args.SetResponse(&response)
                 .unwrap_or_else(|_| fatal_control("Cannot install fixed resource response"));
+            if first_resource {
+                startup_phase(startup_started, if resource_bit == 1 { "index-response" } else { "bundle-response" }, None);
+            }
         }
         Ok(())
     }));
