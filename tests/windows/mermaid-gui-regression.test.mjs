@@ -1943,3 +1943,18 @@ test('new candidate cannot downgrade audit by stripping identity fields', () => 
     assert.throws(() => requiresLaunchAudit(report, current), /requires exact launch/)
   assert.equal(requiresLaunchAudit({}, 'dbb7c3bf49c9135eb10a695b7f824fff0cc56fe7'), false)
 })
+
+test('frontend GUI mode is externally selected and cannot downgrade after stripping fields', () => {
+  const report = passing()
+  report.rendererMode = 'frontend'
+  report.frontendCleanupVerified = true
+  report.nativeCleanupVerified = false
+  assert.equal(validateGuiReport(report, 'frontend').status, 'passed')
+  assert.throws(() => validateGuiReport(report))
+  delete report.rendererMode
+  assert.throws(() => validateGuiReport(report, 'frontend'))
+  report.rendererMode = 'frontend'
+  delete report.frontendCleanupVerified
+  report.nativeCleanupVerified = true
+  assert.throws(() => validateGuiReport(report, 'frontend'))
+})

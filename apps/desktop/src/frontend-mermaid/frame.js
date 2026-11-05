@@ -4,7 +4,6 @@
   'use strict'
   const MAX_AXIS = 8192
   const MAX_PIXELS = 16777216
-  const frame = () => new Promise((resolve) => requestAnimationFrame(resolve))
   const finiteBox = (box) =>
     box &&
     [box.x, box.y, box.width, box.height].every(Number.isFinite) &&
@@ -307,6 +306,11 @@
         port.postMessage({ kind: 'probe-sent', nonce })
         return
       }
+      if (data.kind === 'navigation-probe') {
+        location.replace('about:blank')
+        port.postMessage({ kind: 'navigation-sent', nonce })
+        return
+      }
       if (data.kind !== 'render' || busy) return
       busy = true
       const requestId = data.requestId
@@ -359,6 +363,7 @@
         })
         await document.fonts.ready
         stage = 'mermaid-render'
+        port.postMessage({ kind: 'rendering', nonce, requestId })
         const rendered = await mermaid.render('frontend-diagram', data.source, target)
         stage = 'svg-output'
         // This DOM belongs to the opaque frame; it is never inserted in the editor.
@@ -396,7 +401,6 @@
           if (!/^#[A-Za-z0-9_-]+$/.test(url)) throw Error('external-output-resource')
         }
         await document.fonts.ready
-        await frame()
         improveC4NodeContrast(svg)
         liftC4Labels(svg, background, data.theme)
         const { width, height } = measureNaturalOutput(svg, target)
@@ -442,7 +446,12 @@
           kind: 'error',
           nonce,
           requestId,
-          code: 'render-failed',
+          code:
+            stage === 'mermaid-render' &&
+            (error?.name === 'UnknownDiagramError' ||
+              String(error?.message).startsWith('No diagram type detected'))
+              ? 'unknown-diagram'
+              : 'render-failed',
           stage,
           reason: [
             'unsafe-output',

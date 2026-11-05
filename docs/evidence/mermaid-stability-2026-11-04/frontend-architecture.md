@@ -97,3 +97,57 @@ Linux Chromium 的脚本检查使用模拟父桥，只证明诊断可执行及�
 - 诊断框架、计时器、端口和 WebDriver 主框架恢复已确认。未测试生产引擎资源加载、外部网络请求、硬内存上限或任意死循环。管理员 GUI 在启用插件前的窗口测量处失败，探针未运行，不计通过。
 
 因此，直接 SVG 的可行性判断保持不变；当前 opaque iframe 尚不能被批准为现有安全边界的等价替换。独立无命令桥的 raw WebView 仍需原型及完整测试，而可信固定引擎继续在现有受限 helper 内运行的故障修复可以独立推进。
+
+## Frontend evidence contract added 2026-11-05
+
+The candidate now has a separate `mermaid-windows-frontend-compat.yml` workflow.
+It runs the same full two-account product and GUI scenarios, including twelve
+scrolling diagrams and normal idle/busy closes, with an explicit externally
+selected `frontend` contract. Native-renderer audit lines cause failure. No
+helper ownership, AppContainer or Job proof is fabricated for this architecture.
+The original audit filenames are retained as compatibility filenames; records
+identify `frontend-mermaid-12.2.0` and are bound to PID + native creation FILETIME.
+
+Before the frame receives document source, the actual production owner requires:
+
+1. Its top-level read-only native probe to dispatch successfully.
+2. The actual child `chrome.webview.postMessage` attempt to be observed and
+   rejected on that exact native frame, without a new probe dispatch.
+3. A subsequent child `about:blank` navigation attempt to receive a native
+   cancellation record for the same frame. The frame must then render using its
+   existing authenticated MessagePort; a lost document cannot produce a pass.
+
+The native frame identity comes from FrameCreated and the original nonce name,
+not a caller-provided PID or a JavaScript timeout. The vendored Wry root IPC
+handler subscribes only to root WebMessageReceived; frame messages are never
+forwarded by the guard. See Microsoft's [frame event documentation](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2frame2?view=webview2-1.0.4258.31).
+This describes implementation and required evidence, **not an already passed
+Windows bridge test**.
+
+Opt-in bounded native diagnostics receive metadata only (phase, request/owner
+IDs, source/PNG hashes, geometry and closed error codes), never Mermaid source.
+Request admission, actual renderer entry, completion, native FrameDestroyed and
+zero pending requests are checked before final acceptance. The native writer
+has a bounded queue and a bounded flush barrier. Missing records fail closed.
+Retirement is idempotent. `hardTerminationProven` is explicitly false: frame
+removal revokes publication authority, not arbitrary JavaScript CPU execution.
+This design has no per-frame OS memory quota and no claim that a malicious
+synchronous renderer hang can be killed independently of the application.
+
+Local checks for this evidence increment:
+
+- Actual bundled frontend assets in Chromium: 19 tests passed, including twelve
+  syntax types, correct-nonce forged window messages, malicious configuration,
+  queued cancellation/deadline, bounded admission and repeated retirement.
+- Node account/product/GUI/evidence fixtures: 312 passed before the additional
+  explicit frontend downgrade negative test; that added test also passed.
+- PowerShell wrapper contracts: 110 installation fixtures and 57 account fixtures
+  passed locally; these do not execute Windows installers or native APIs.
+- Two actual Rust metadata-contract tests passed on Linux; the actual guard and
+  tests passed Windows-target type checking. Full desktop Windows linking cannot
+  run in this Linux environment because MSVC `lib.exe` is absent.
+- Desktop TypeScript passed after the evidence integration.
+
+Real Windows frontend product/GUI and installed prior-profile migration remain
+required. Old helper run 42104273456 completed successfully but is a different
+architecture and cannot satisfy these frontend gates.

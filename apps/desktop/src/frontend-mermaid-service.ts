@@ -4,7 +4,10 @@ import {
   type DocumentPresentationRequest,
   type DocumentPresentationResult,
 } from '@milkup/core'
-import { createDocumentPngImage } from '@milkup/core/internal/document-png-image'
+import {
+  createDocumentPngImage,
+  disposeDocumentPngImages,
+} from '@milkup/core/internal/document-png-image'
 import engineAsset from '../src-tauri/mermaid-engine/assets/mermaid-12.2.0.min.js?url'
 import frameAsset from './frontend-mermaid/frame.js?url'
 
@@ -19,6 +22,7 @@ type GuardInvoke = (command: string, args?: Record<string, unknown>) => Promise<
 type Message = {
   kind: string
   nonce: string
+  code?: string
   reason?: string
   stage?: string
   requestId?: string
@@ -42,7 +46,24 @@ export function createFrontendMermaidOwner(
   let frame: HTMLIFrameElement | undefined
   let port: MessagePort | undefined
   let connection: Promise<void> | undefined
-  let busy = false
+  let drainTask: Promise<void> | undefined
+  let retirement: Promise<void> | undefined
+  let frameWasAppended = false
+  let auditing = false
+  let auditChain = Promise.resolve()
+  let renderingMessage: ((value: Message) => void) | undefined
+  const digest = async (bytes: Uint8Array<ArrayBuffer>) =>
+    Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)))
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('')
+  const audit = (event: Record<string, unknown>) => {
+    if (!auditing) return Promise.resolve()
+    auditChain = auditChain.then(async () => {
+      await guardedInvoke('frontend_mermaid_audit', { event }, performance.now() + 2000)
+    })
+    void auditChain.catch(() => undefined)
+    return auditChain
+  }
   let awaiting:
     | { test(value: Message): boolean; resolve(value: Message): void; reject(error: unknown): void }
     | undefined
@@ -117,9 +138,13 @@ export function createFrontendMermaidOwner(
           )) as {
             ready?: boolean
             failed?: boolean
+            auditEnabled?: boolean
           }
           if (status.failed) throw new Error('Frontend frame guard unavailable')
-          if (status.ready) break
+          if (status.ready) {
+            auditing = status.auditEnabled === true
+            break
+          }
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
       }
@@ -148,6 +173,7 @@ export function createFrontendMermaidOwner(
         port = channel.port1
         port.onmessage = ({ data }: MessageEvent<Message>) => {
           if (!data || data.nonce !== nonce || retired || failed) return
+          if (data.kind === 'rendering') renderingMessage?.(data)
           if (awaiting?.test(data)) awaiting.resolve(data)
         }
         port.start()
@@ -165,6 +191,7 @@ export function createFrontendMermaidOwner(
       const bootstrap = new URL(frameAsset, location.href).href
       frame.srcdoc = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${escape(policy)}"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script nonce="${nonce}" src="${escape(engine)}"></script><script nonce="${nonce}" src="${escape(bootstrap)}" data-owner="${nonce}" data-parent-origin="${escape(location.origin)}"></script></body></html>`
       document.body.append(frame)
+      frameWasAppended = true
       const hello = await connected
       if (
         !hello.bridge ||
@@ -181,6 +208,7 @@ export function createFrontendMermaidOwner(
         const sent = wait((value) => value.kind === 'probe-sent', deadline)
         port!.postMessage({ kind: 'boundary-probe', nonce })
         await sent
+        let navigationSent = false
         while (true) {
           assertActive(deadline)
           const status = (await guardedInvoke(
@@ -190,11 +218,18 @@ export function createFrontendMermaidOwner(
           )) as {
             ready: boolean
             dispatchedProbes: number
-            lastBlockedNonce: string
+            frameProofs: Record<string, [number, number]>
+            navigationProofs: Record<string, number>
           }
-          if (!status.ready || status.dispatchedProbes !== positive.dispatchedProbes)
+          if (!status.ready) throw new Error('Child native dispatch was not rejected')
+          const proof = status.frameProofs[nonce]
+          if (proof && proof[1] !== positive.dispatchedProbes)
             throw new Error('Child native dispatch was not rejected')
-          if (status.lastBlockedNonce === nonce) break
+          if (proof && !navigationSent) {
+            port!.postMessage({ kind: 'navigation-probe', nonce })
+            navigationSent = true
+          }
+          if (proof && (status.navigationProofs[nonce] ?? 0) > 0) break
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
       } else if (hello.bridge.chromeWebview) throw new Error('Unverified native frame')
@@ -204,18 +239,17 @@ export function createFrontendMermaidOwner(
       disposeFrame()
       throw error
     }))
-  const drain = async () => {
-    if (busy) return
-    busy = true
-    try {
-      for (const entry of pending) {
-        pending.delete(entry)
-        await entry.start()
+  const drain = () =>
+    (drainTask ??= (async () => {
+      try {
+        for (const entry of pending) {
+          pending.delete(entry)
+          await entry.start()
+        }
+      } finally {
+        drainTask = undefined
       }
-    } finally {
-      busy = false
-    }
-  }
+    })())
   return {
     render(value, settings) {
       const request = copyDocumentPresentationRequest(value)
@@ -247,6 +281,10 @@ export function createFrontendMermaidOwner(
           },
           start: async () => {
             clearTimeout(queuedTimer)
+            let base: Record<string, unknown> | undefined
+            let finish: Record<string, unknown> = { status: 'error', errorCode: 'render-failed' }
+            let output: DocumentPresentationResult | undefined
+            let failure: unknown
             try {
               assertActive(deadline, settings.signal)
               if (
@@ -270,6 +308,17 @@ export function createFrontendMermaidOwner(
               await connect(deadline)
               assertActive(deadline, settings.signal)
               const requestId = token()
+              const sourceSha256 = await digest(new TextEncoder().encode(source))
+              const admission = { ownerId: nonce, requestId, sourceSha256 }
+              await audit({ ...admission, phase: 'admitted' })
+              base = admission
+              assertActive(deadline, settings.signal)
+              let started = false
+              renderingMessage = (value) => {
+                if (value.requestId !== requestId || started) return
+                started = true
+                void audit({ ...base, phase: 'started' })
+              }
               const response = wait(
                 (data) => data.requestId === requestId && ['result', 'error'].includes(data.kind),
                 deadline,
@@ -283,19 +332,29 @@ export function createFrontendMermaidOwner(
                 theme: request.theme === 'dark' ? 'dark' : 'default',
               })
               const result = await response
-              assertActive(deadline, settings.signal)
-              if (result.kind !== 'result' || !(result.bytes instanceof ArrayBuffer))
+              if (result.kind === 'error') {
+                finish = {
+                  status: 'error',
+                  errorCode:
+                    result.code === 'unknown-diagram' ? 'unknown-diagram' : 'render-failed',
+                  errorStage: result.stage,
+                }
                 throw new Error(
                   'Mermaid frontend render failed: ' + result.stage + '/' + result.reason,
                 )
+              }
+              assertActive(deadline, settings.signal)
+              if (!started || !(result.bytes instanceof ArrayBuffer))
+                throw new DocumentPresentationError('invalid-output')
+              const bytes = new Uint8Array(result.bytes)
               const content = createDocumentPngImage({
-                bytes: new Uint8Array(result.bytes),
+                bytes,
                 width: result.width!,
                 height: result.height!,
                 title: 'Mermaid 图表',
                 release() {},
               })
-              resolve({
+              output = {
                 complete: true,
                 fragments: [
                   {
@@ -307,12 +366,44 @@ export function createFrontendMermaidOwner(
                     content,
                   },
                 ],
-              })
+              }
+              finish = {
+                status: 'ready',
+                pngSha256: await digest(bytes),
+                pngBytes: bytes.length,
+                width: result.width,
+                height: result.height,
+              }
             } catch (error) {
-              reject(error)
+              failure = error
+              if (retired || settings.signal?.aborted) finish = { status: 'cancelled' }
+              else if (error instanceof DocumentPresentationError && error.code === 'timeout')
+                finish = { status: 'timeout' }
             } finally {
+              renderingMessage = undefined
+              if (base) {
+                try {
+                  await audit({
+                    ...base,
+                    phase: 'finished',
+                    ...finish,
+                    consumerAborted: settings.signal?.aborted === true || retired,
+                  })
+                } catch (error) {
+                  failure = error
+                }
+              }
               settings.signal?.removeEventListener('abort', abort)
             }
+            try {
+              assertActive(deadline, settings.signal)
+            } catch (error) {
+              failure ??= error
+            }
+            if (failure || !output) {
+              if (output) disposeDocumentPngImages(output)
+              reject(failure ?? new DocumentPresentationError('invalid-output'))
+            } else resolve(output)
           },
         }
         settings.signal?.addEventListener('abort', abort, { once: true })
@@ -321,15 +412,38 @@ export function createFrontendMermaidOwner(
         void drain()
       })
     },
-    async retire() {
-      retired = true
-      const error = new DocumentPresentationError('revoked')
-      awaiting?.reject(error)
-      for (const entry of pending) entry.reject(error)
-      pending.clear()
-      disposeFrame()
-      // Removal revokes output authority. It is not advertised as arbitrary-JS
-      // hard termination or an operating-system memory quota.
+    retire() {
+      return (retirement ??= (async () => {
+        retired = true
+        const error = new DocumentPresentationError('revoked')
+        awaiting?.reject(error)
+        for (const entry of pending) entry.reject(error)
+        pending.clear()
+        disposeFrame()
+        await drainTask
+        if (auditing && frameWasAppended) {
+          await auditChain
+          const retirementDeadline = performance.now() + 2500
+          while (true) {
+            const status = (await guardedInvoke(
+              'frontend_mermaid_guard_status',
+              undefined,
+              retirementDeadline,
+            )) as { frames: Record<string, boolean> }
+            if (status.frames[nonce] === false) break
+            if (performance.now() >= retirementDeadline)
+              throw new Error('Frontend frame destruction was not observed')
+            await new Promise((resolve) => setTimeout(resolve, 10))
+          }
+          await guardedInvoke(
+            'frontend_mermaid_audit_flush',
+            { ownerId: nonce },
+            retirementDeadline,
+          )
+        }
+        // Removal revokes output authority. It is not advertised as arbitrary-JS
+        // hard termination or an operating-system memory quota.
+      })())
     },
   }
 }

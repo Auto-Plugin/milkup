@@ -5,9 +5,14 @@ import {
   documentPngResourceStats,
 } from '../../packages/core/src/document-png-image'
 let owner = createFrontendMermaidOwner()
+const requests = new Map<string, { controller: AbortController; result: Promise<unknown> }>()
 Object.assign(window, {
   frontendMermaidFixture: {
-    async render(body: string, theme = 'light') {
+    async render(
+      body: string,
+      theme = 'light',
+      settings: { signal?: AbortSignal; deadline?: number } = {},
+    ) {
       const source = '```mermaid\n' + body + '\n```\n'
       const result = await owner.render(
         {
@@ -37,7 +42,7 @@ Object.assign(window, {
           target: 'screen',
           width: 640,
         },
-        {},
+        settings,
       )
       const content = result.fragments[0].content
       const lease = acquireDocumentPngImage(content)
@@ -55,6 +60,23 @@ Object.assign(window, {
         lease.dispose()
         disposeDocumentPngImages(result)
       }
+    },
+    start(id: string, body: string, timeoutMs = 10000) {
+      const controller = new AbortController()
+      const result = this.render(body, 'light', {
+        signal: controller.signal,
+        deadline: performance.now() + timeoutMs,
+      }).then(
+        (value) => ({ status: 'ready', value }),
+        (error) => ({ status: 'rejected', code: error.code ?? null, message: String(error) }),
+      )
+      requests.set(id, { controller, result })
+    },
+    cancel(id: string) {
+      requests.get(id)!.controller.abort()
+    },
+    result(id: string) {
+      return requests.get(id)!.result
     },
     async reset() {
       await owner.retire()

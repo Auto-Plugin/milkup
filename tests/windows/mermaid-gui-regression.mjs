@@ -1,3 +1,4 @@
+import { frontendLedgerClass, FRONTEND_AUDIT_PREFIX } from './mermaid-frontend-contract.mjs'
 // Explicit, opt-in GUI regression. The existing product harness and its default
 // acceptance are unchanged. This entry point is also usable against one pinned
 // delivered beta.9 image; application and harness identities are never conflated.
@@ -497,7 +498,12 @@ export async function main() {
   ])
     await plain(file)
   assert.equal(hash(await readFile(application)), required('APP_SHA256'))
+  const rendererMode = required('RENDERER_MODE')
+  assert(['native', 'frontend'].includes(rendererMode))
+  const Ledger = rendererMode === 'frontend' ? frontendLedgerClass(AuditLedger) : AuditLedger
+  const auditPrefix = rendererMode === 'frontend' ? FRONTEND_AUDIT_PREFIX : AUDIT_PREFIX
   const report = {
+    rendererMode,
     schema: 1,
     auditIdentityVersion: 1,
     status: 'running',
@@ -548,7 +554,7 @@ export async function main() {
       await readFile(new URL('./mermaid-frontend-boundary-probe.mjs', import.meta.url)),
     )
   }
-  const ledger = new AuditLedger(expectedSid, expectedSessionId, expectedAccountKind, true)
+  const ledger = new Ledger(expectedSid, expectedSessionId, expectedAccountKind, true)
   const productLogs = new Map()
   const reportFile = path.join(evidence, 'gui-regression.json')
   await writeFile(reportFile, '{}\n', { flag: 'wx' })
@@ -841,14 +847,17 @@ export async function main() {
         }
         const lines = pending.split('\n')
         pending = final ? '' : lines.pop()
-        for (const line of lines)
-          if (line.startsWith(AUDIT_PREFIX)) {
+        for (const line of lines) {
+          if (rendererMode === 'frontend' && line.startsWith(AUDIT_PREFIX))
+            fatal = Error('Native rendering is forbidden in frontend acceptance')
+          if (line.startsWith(auditPrefix)) {
             try {
-              auditCapture.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)))
+              auditCapture.accept(JSON.parse(line.slice(auditPrefix.length)))
             } catch (error) {
               fatal = error
             }
           }
+        }
       }
       stream.on('data', (bytes) => consume(decoder.write(bytes)))
       stream.on('end', () => consume(decoder.end(), true))
@@ -1298,6 +1307,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       close.signal = current.signalCode
       assert.equal(close.exitCode, 0)
       assert.equal(close.signal, null)
+      if (rendererMode === 'frontend') ledger.verifyReleased(pid, record.creationFileTime)
       close.nativeRequests = ledger.verifyAll(pid).map((job) => ({
         requestId: job.requestId,
         successful: job.finished.successful,
@@ -1341,21 +1351,17 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       await writeFile(path.join(evidence, `${record.name}-product.log`), encodedLog)
       try {
         const restored = decodeGuiEvidence(encodedLog, 'product-log').toString('utf8')
-        const restoredLedger = new AuditLedger(
-          expectedSid,
-          expectedSessionId,
-          expectedAccountKind,
-          true,
-        )
+        const restoredLedger = new Ledger(expectedSid, expectedSessionId, expectedAccountKind, true)
         restoredLedger.registerLaunch(record)
         for (const line of restored.split('\n'))
-          if (line.startsWith(AUDIT_PREFIX))
+          if (line.startsWith(auditPrefix))
             restoredLedger.accept(
-              JSON.parse(line.slice(AUDIT_PREFIX.length)),
+              JSON.parse(line.slice(auditPrefix.length)),
               pid,
               record.creationFileTime,
             )
         restoredLedger.verifyAll()
+        if (rendererMode === 'frontend') restoredLedger.verifyReleased(pid, record.creationFileTime)
       } catch (error) {
         close.errors.push('Restored product audit: ' + error)
       }
@@ -1585,9 +1591,14 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
     }
     try {
       const jobs = ledger.verifyAll()
-      if (report.identityKind === 'current-candidate')
-        for (const job of jobs) validateCurrentNativeResourceProof(job)
-      report.nativeCleanupVerified = true
+      if (rendererMode === 'frontend') {
+        ledger.verifyReleased()
+        report.frontendCleanupVerified = true
+      } else {
+        if (report.identityKind === 'current-candidate')
+          for (const job of jobs) validateCurrentNativeResourceProof(job)
+        report.nativeCleanupVerified = true
+      }
     } catch (error) {
       report.errors.push('Native final verification: ' + error)
     }
@@ -1631,7 +1642,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
         report.observerSummary,
       )
       if (report.status !== 'blocked') {
-        validateGuiReport(report)
+        validateGuiReport(report, rendererMode)
         assert.deepEqual(report.errors, [])
         report.status = 'passed'
         await persist()
@@ -1639,6 +1650,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
           report,
           await readFile(path.join(evidence, 'gui-native-audit.json')),
           await readFile(path.join(evidence, 'native-window-events.json')),
+          rendererMode,
         )
       }
     } catch (error) {

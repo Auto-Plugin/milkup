@@ -8,6 +8,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('product', 'gui-regression', IgnoreCase = $false)][string]$HarnessMode = 'product',
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$ApplicationCandidateSha,
     [Parameter(ParameterSetName = 'Parent')][switch]$FrontendBoundaryProbe,
+    [Parameter(ParameterSetName = 'Parent')][ValidateSet('native','frontend', IgnoreCase = $false)][string]$RendererMode = 'native',
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
     [Parameter(ParameterSetName = 'Parent')][string]$LifecycleBaselineInstaller,
@@ -474,6 +475,7 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
         MILKUP_WINDOWS_MERMAID_RUN_ID = $Spec.runId; MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $Spec.candidateSha
         MILKUP_WINDOWS_MERMAID_RUNTIME_VERSION = $Spec.runtime.version; MILKUP_WINDOWS_MERMAID_RUNTIME_EXE = $Spec.runtime.path
         MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $Spec.wrapper.path; MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
+        MILKUP_WINDOWS_MERMAID_RENDERER_MODE = 'native'
         MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE = 'prepare'; MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE = $oldChoice
         MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY = $null
         MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT = $null; MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256 = $null
@@ -660,6 +662,7 @@ function Invoke-StandardChild {
     if ($spec.schema -ne 1 -or $spec.runId -cnotmatch '^[a-f0-9]{32}$' -or
         $spec.expectedSid -cnotmatch '^S-1-5-21-\d+-\d+-\d+-\d+$' -or
         $spec.candidateSha -cne $env:GITHUB_SHA -or $spec.expectedSessionId -le 0) { throw 'Invalid immutable child specification' }
+    if ($spec.rendererMode -cnotin @('native','frontend')) { throw 'Explicit renderer mode required' }
     if ($spec.harnessMode -cnotin @('product', 'gui-regression') -or $spec.applicationCandidateSha -cnotmatch '^[a-f0-9]{40}$' -or
         ($spec.harnessMode -ceq 'product' -and $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Invalid separated harness/application identity' }
     if ($spec.frontendBoundaryProbe -and ($spec.harnessMode -cne 'gui-regression' -or $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
@@ -728,6 +731,7 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_EXPECTED_SESSION_ID = [string]$spec.expectedSessionId
             MILKUP_WINDOWS_MERMAID_RUN_ID = $spec.runId
             MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $spec.candidateSha
+            MILKUP_WINDOWS_MERMAID_RENDERER_MODE = $spec.rendererMode
             MILKUP_WINDOWS_MERMAID_HARNESS_MODE = $spec.harnessMode
             MILKUP_WINDOWS_MERMAID_FRONTEND_BOUNDARY_PROBE = $(if ($spec.frontendBoundaryProbe) { '1' } else { '0' })
             MILKUP_WINDOWS_MERMAID_HARNESS_CANDIDATE_SHA = $spec.candidateSha
@@ -776,6 +780,7 @@ function Invoke-StandardChild {
         $reportName = $(if ($spec.harnessMode -ceq 'gui-regression') { 'gui-regression.json' } else { 'mermaid-product-e2e.json' })
         $report = Read-SmallJson (Join-Path $evidence $reportName)
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
+        if ($report.rendererMode -cne $spec.rendererMode) { throw 'Renderer acceptance mode mismatch' }
         if ($spec.harnessMode -ceq 'gui-regression' -and ($report.applicationCandidateSha -cne $spec.applicationCandidateSha -or
             $report.harnessCandidateSha -cne $spec.candidateSha -or $report.harnessMode -cne 'gui-regression')) { throw 'GUI report did not bind the separate application and harness identities' }
         if ($null -ne $installation) {
@@ -902,7 +907,7 @@ $harnessLeaf = $(if ($HarnessMode -ceq 'gui-regression') { 'mermaid-gui-regressi
 $harness = Join-Path $repository ('tests/windows/' + $harnessLeaf)
 $audit = [ordered]@{
     schema = 1; status = 'failed'; source = $ExpectedCommit; runId = $env:GITHUB_RUN_ID; localRunId = $runId
-    expectedAccountKind = $AccountKind; harnessMode = $HarnessMode; applicationCandidateSha = $ApplicationCandidateSha
+    expectedAccountKind = $AccountKind; rendererMode = $RendererMode; harnessMode = $HarnessMode; applicationCandidateSha = $ApplicationCandidateSha
     mode = $(if ($installerMode) { 'nsis-current-user' } else { 'linked-binary' }); installation = $null
     installedDirectoryRemoved = $null
     attempt = $env:GITHUB_RUN_ATTEMPT; runtime = $null; binary = $null; driver = $null; runnerContext = $null
@@ -976,6 +981,12 @@ try {
         if ((File-Proof $pair[0]).sha256 -cne (File-Proof (Join-Path $code $pair[1])).sha256) { throw 'Frozen staging copy mismatch' }
     }
     $additionalHarnessFiles = @()
+    $frontendContractSource = Join-Path $repository 'tests/windows/mermaid-frontend-contract.mjs'
+    $frontendContractDestination = Join-Path $code 'mermaid-frontend-contract.mjs'
+    Assert-PlainPath $frontendContractSource
+    Copy-Item -LiteralPath $frontendContractSource -Destination $frontendContractDestination -ErrorAction Stop
+    if ((File-Proof $frontendContractSource).sha256 -cne (File-Proof $frontendContractDestination).sha256) { throw 'Frontend contract staging mismatch' }
+    $additionalHarnessFiles += File-Proof $frontendContractDestination
     if ($MigrationChoice) {
         $source = Join-Path $repository 'tests/windows/mermaid-beta9-audit-fixture.mjs'
         $destination = Join-Path $code 'mermaid-beta9-audit-fixture.mjs'
@@ -1086,7 +1097,7 @@ try {
     $spec = [ordered]@{
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
-        candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; harnessMode = $HarnessMode
+        candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; rendererMode = $RendererMode; harnessMode = $HarnessMode
         frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         sourcePluginInventory = $sourceInventoryProof

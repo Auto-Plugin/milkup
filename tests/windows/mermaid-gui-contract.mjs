@@ -1,3 +1,4 @@
+import { frontendLedgerClass } from './mermaid-frontend-contract.mjs'
 import assert from 'node:assert/strict'
 import { gzipSync, gunzipSync } from 'node:zlib'
 import { createHash } from 'node:crypto'
@@ -1231,7 +1232,15 @@ export function validateWideInteraction(interaction, png) {
   return true
 }
 
-export function validateGuiReport(report) {
+export function validateGuiReport(report, expectedRenderer = 'native') {
+  assert(['native', 'frontend'].includes(expectedRenderer))
+  if (expectedRenderer === 'frontend')
+    assert.equal(report.rendererMode, 'frontend', 'Explicit externally bound frontend contract')
+  else
+    assert(
+      report.rendererMode === undefined || report.rendererMode === 'native',
+      'Frontend evidence cannot use the native contract',
+    )
   assert.equal(report.schema, 1)
   validateGuiIdentity(report)
   if (report.frontendBoundaryProbeRequested) {
@@ -1328,7 +1337,8 @@ export function validateGuiReport(report) {
   validateGuiClose(report.steps.find((item) => item.name === 'idle-close').close, 'idle')
   validateGuiClose(report.steps.find((item) => item.name === 'busy-close').close, 'busy')
   validateGuiObserver(report.observerSummary)
-  assert.equal(report.nativeCleanupVerified, true)
+  if (expectedRenderer === 'frontend') assert.equal(report.frontendCleanupVerified, true)
+  else assert.equal(report.nativeCleanupVerified, true)
   assert.equal(report.logOverflow, false)
   return {
     status: 'passed',
@@ -1336,13 +1346,13 @@ export function validateGuiReport(report) {
   }
 }
 
-export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
+export function verifyGuiEvidence(report, nativeBytes, windowBytes, expectedRenderer = 'native') {
   assert.equal(report.status, 'passed', 'Failed baselines cannot become passing GUI evidence')
   assert(
     Buffer.byteLength(windowBytes) <= 2 * 1024 * 1024,
     'Native window evidence retains its 2 MiB limit',
   )
-  validateGuiReport(report)
+  validateGuiReport(report, expectedRenderer)
   const digest = (bytes) => createHash('sha256').update(bytes).digest('hex')
   assert.equal(digest(nativeBytes), report.nativeAudit.sha256)
   assert.equal(digest(windowBytes), report.nativeWindowEvidence.sha256)
@@ -1357,7 +1367,8 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
   if (report.auditIdentityVersion !== undefined) assert.equal(report.auditIdentityVersion, 1)
   if (report.launches.some((launch) => launch.creationFileTime !== undefined))
     assert(strictLaunches, 'Launch identity contract cannot be stripped')
-  const ledger = new AuditLedger(
+  const Ledger = expectedRenderer === 'frontend' ? frontendLedgerClass(AuditLedger) : AuditLedger
+  const ledger = new Ledger(
     context.expectedSid,
     context.expectedSessionId,
     report.expectedAccountKind,
@@ -1400,7 +1411,8 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
     }
   }
   const jobs = ledger.verifyAll()
-  if (validateGuiIdentity(report) === 'current-candidate')
+  if (expectedRenderer === 'frontend') ledger.verifyReleased()
+  else if (validateGuiIdentity(report) === 'current-candidate')
     for (const job of jobs) validateCurrentNativeResourceProof(job)
   for (const step of report.steps) {
     for (const png of [

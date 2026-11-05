@@ -1,0 +1,158 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { AuditLedger } from './mermaid-product-e2e.mjs'
+import { frontendLedgerClass, FRONTEND_RENDERER } from './mermaid-frontend-contract.mjs'
+const Ledger = frontendLedgerClass(AuditLedger)
+const owner = 'a'.repeat(32),
+  request = 'b'.repeat(32),
+  source = 'c'.repeat(64),
+  png = 'd'.repeat(64)
+const birth = '134383703131466830',
+  pid = 100
+const launch = (creationFileTime = birth) => ({
+  productPid: pid,
+  creationFileTime,
+  exitCode: 0,
+  signal: null,
+  exitedAt: '2026-11-05',
+  stdioClosedAt: '2026-11-05',
+})
+function fixture() {
+  const ledger = new Ledger('S-1-5-21-1-2-3-1000', 1, 'pure-standard', true)
+  ledger.registerLaunch(launch())
+  return ledger
+}
+const event = (v) => ({ renderer: FRONTEND_RENDERER, productPid: pid, timestampUnixMs: 1000, ...v })
+function boundary(l, b = birth) {
+  l.accept(event({ kind: 'main-probe-dispatched', nonce: owner, dispatchedProbes: 1 }), pid, b)
+  l.accept(
+    event({
+      kind: 'frame-ipc-rejected',
+      nonce: owner,
+      dispatchedProbes: 1,
+      blockedMessages: 1,
+      forwardedToTauri: false,
+      createdFrameNameMatched: true,
+    }),
+    pid,
+    b,
+  )
+  l.accept(
+    event({
+      kind: 'frame-navigation-rejected',
+      nonce: owner,
+      cancelled: true,
+      aboutBlank: true,
+      blockedNavigations: 1,
+    }),
+    pid,
+    b,
+  )
+}
+const base = { ownerId: owner, requestId: request, sourceSha256: source }
+function ready(l, b = birth) {
+  boundary(l, b)
+  l.accept(
+    event({
+      ...base,
+      phase: 'admitted',
+      nativeBridgeRejected: true,
+      blockedMessages: 1,
+      dispatchedProbes: 1,
+      blockedNavigations: 1,
+    }),
+    pid,
+    b,
+  )
+  l.accept(event({ ...base, phase: 'started' }), pid, b)
+  l.accept(
+    event({
+      ...base,
+      phase: 'finished',
+      status: 'ready',
+      consumerAborted: false,
+      pngSha256: png,
+      pngBytes: 120,
+      width: 20,
+      height: 20,
+    }),
+    pid,
+    b,
+  )
+}
+function release(l, b = birth) {
+  l.accept(
+    event({
+      kind: 'owner-released',
+      nonce: owner,
+      frameDestroyed: true,
+      pendingRequests: 0,
+      hardTerminationProven: false,
+    }),
+    pid,
+    b,
+  )
+}
+test('frontend evidence binds actual rejection, PNG, release and exact reusable PID generations', () => {
+  const l = fixture()
+  ready(l)
+  release(l)
+  l.closeLaunch(launch())
+  assert.equal(l.matchPng(pid, { sha256: png, bytes: 120 }, birth).renderer, FRONTEND_RENDERER)
+  const next = '134383703131466831'
+  l.registerLaunch(launch(next))
+  assert.throws(() => l.matchPng(pid, { sha256: png, bytes: 120 }, next))
+  ready(l, next)
+  release(l, next)
+  l.closeLaunch(launch(next))
+  assert.equal(l.verifyAll().length, 2)
+})
+test('missing native bridge proof, dispatched child, navigation and unclosed old generation fail', () => {
+  const l = fixture()
+  assert.throws(() =>
+    l.accept(event({ ...base, phase: 'admitted', nativeBridgeRejected: true }), pid, birth),
+  )
+  const m = fixture()
+  m.accept(event({ kind: 'main-probe-dispatched', nonce: owner, dispatchedProbes: 1 }), pid, birth)
+  assert.throws(() =>
+    m.accept(
+      event({
+        kind: 'frame-ipc-rejected',
+        nonce: owner,
+        dispatchedProbes: 2,
+        blockedMessages: 1,
+        forwardedToTauri: false,
+        createdFrameNameMatched: true,
+      }),
+      pid,
+      birth,
+    ),
+  )
+  const n = fixture()
+  assert.throws(() => n.registerLaunch(launch('134383703131466831')))
+  ready(n)
+  assert.throws(() => n.closeLaunch(launch()))
+  assert.throws(() => n.matchPng(pid, { sha256: 'e'.repeat(64), bytes: 120 }, birth))
+})
+test('missing or forged process birth and fabricated hard termination cannot pass', () => {
+  const l = fixture()
+  ready(l)
+  assert.throws(() =>
+    l.accept(
+      event({
+        kind: 'owner-released',
+        nonce: owner,
+        frameDestroyed: true,
+        pendingRequests: 0,
+        hardTerminationProven: true,
+      }),
+      pid,
+      birth,
+    ),
+  )
+  assert.throws(() =>
+    l.accept(event({ ...base, phase: 'started', productCreationFileTime: '123' }), pid, birth),
+  )
+  assert.throws(() => l.matchPng(pid, { sha256: png, bytes: 120 }, '123'))
+  assert.throws(() => new Ledger('S-1-5-21-1-2-3-1000', 1, 'pure-standard', false))
+})

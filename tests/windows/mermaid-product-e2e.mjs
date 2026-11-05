@@ -12,6 +12,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 import { StringDecoder } from 'node:string_decoder'
+import { frontendLedgerClass, FRONTEND_AUDIT_PREFIX } from './mermaid-frontend-contract.mjs'
 
 export const syntaxCases = Object.freeze([
   { id: 'sequence', source: 'sequenceDiagram\nReader->>Editor: Write\nEditor-->>Reader: Saved\n' },
@@ -1629,10 +1630,19 @@ export async function main() {
     await writeFile(file, bytes, { flag: 'wx' })
     await writeFile(path.join(evidence, `fixture-${name}.md`), bytes, { flag: 'wx' })
   }
+  const rendererMode =
+    migrationPhase === 'prepare' ? 'native' : process.env.MILKUP_WINDOWS_MERMAID_RENDERER_MODE
+  assert(
+    ['native', 'frontend'].includes(rendererMode),
+    'Explicit renderer acceptance mode required',
+  )
+  const auditPrefix = rendererMode === 'frontend' ? FRONTEND_AUDIT_PREFIX : AUDIT_PREFIX
   const Ledger =
     migrationPhase === 'prepare'
       ? (await import('./mermaid-beta9-audit-fixture.mjs')).AuditLedger
-      : AuditLedger
+      : rendererMode === 'frontend'
+        ? frontendLedgerClass(AuditLedger)
+        : AuditLedger
   const ledger = new Ledger(
       expectedSid,
       expectedSessionId,
@@ -1642,6 +1652,7 @@ export async function main() {
     driverPort = await freePort()
   const report = {
     status: 'running',
+    rendererMode,
     ...(migrationPhase === 'none'
       ? {}
       : {
@@ -2154,14 +2165,17 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         }
         const lines = pending.split('\n')
         pending = final ? '' : lines.pop()
-        for (const line of lines)
-          if (line.startsWith(AUDIT_PREFIX)) {
+        for (const line of lines) {
+          if (rendererMode === 'frontend' && line.startsWith(AUDIT_PREFIX))
+            fatal = Error('Native renderer dispatch is forbidden in frontend acceptance')
+          if (line.startsWith(auditPrefix)) {
             try {
-              auditCapture.accept(JSON.parse(line.slice(AUDIT_PREFIX.length)))
+              auditCapture.accept(JSON.parse(line.slice(auditPrefix.length)))
             } catch (error) {
               fatal = error
             }
           }
+        }
       }
       stream.on('data', (bytes) => consume(decoder.write(bytes)))
       stream.on('end', () => consume(decoder.end(), true))
@@ -2371,6 +2385,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         verifyNative: () => {
           if (fatal) throw fatal
           assert.equal(logOverflow, false, 'Complete native diagnostics after stdio drain')
+          if (rendererMode === 'frontend')
+            ledger.verifyReleased(productPid, record.creationFileTime)
           record.nativeJobs = summarizeNative()
           return { admittedJobs: record.nativeJobs.length, innerCleanupVerified: true }
         },

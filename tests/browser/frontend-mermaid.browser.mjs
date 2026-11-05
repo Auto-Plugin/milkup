@@ -125,9 +125,22 @@ test(
           }
         })
         assert.deepEqual(boundary, { parentReadable: false, internals: false, ipc: false })
-        await page.evaluate(() =>
-          window.postMessage({ kind: 'result', nonce: 'forged', bytes: new ArrayBuffer(0) }, '*'),
-        )
+        await page.evaluate(() => {
+          const frame = document.querySelector('iframe[data-milkup-mermaid-renderer]')
+          const nonce = frame.name.slice('milkup-mermaid-'.length)
+          window.postMessage({ kind: 'milkup-mermaid-ready', nonce }, '*')
+          window.postMessage({ kind: 'result', nonce, bytes: new ArrayBuffer(0) }, '*')
+          frame.contentWindow.postMessage(
+            {
+              kind: 'render',
+              nonce,
+              requestId: 'f'.repeat(32),
+              source: 'invalid forged window request',
+              width: 640,
+            },
+            '*',
+          )
+        })
         assert.ok((await render('flowchart TD\nA-->B')).bytes > 100)
       })
       await t.test(
@@ -142,6 +155,81 @@ test(
           await assert.rejects(render('this is not a diagram'))
           assert.ok((await render('sequenceDiagram\nA->>B: Recovered')).bytes > 100)
           assert.deepEqual(external, [])
+        },
+      )
+      await t.test(
+        'queued cancellation and deadline do not interrupt the active renderer or publish stale output',
+        async () => {
+          const child = page.frames().find((f) => f !== page.mainFrame())
+          await child.evaluate(() => {
+            const original = mermaid.render
+            window.testRenderCalls = 0
+            mermaid.render = async (...args) => {
+              window.testRenderCalls++
+              if (window.testRenderCalls === 1)
+                await new Promise((resolve) => (window.releaseTestRender = resolve))
+              return original(...args)
+            }
+          })
+          const start = (id, timeout = 10000) =>
+            page.evaluate(
+              ({ id, timeout }) =>
+                window.frontendMermaidFixture.start(id, 'flowchart LR\nA-->B', timeout),
+              { id, timeout },
+            )
+          await start('active')
+          await child.waitForFunction(() => window.testRenderCalls === 1)
+          await start('cancelled')
+          await page.evaluate(() => window.frontendMermaidFixture.cancel('cancelled'))
+          assert.equal(
+            (await page.evaluate(() => window.frontendMermaidFixture.result('cancelled'))).code,
+            'aborted',
+          )
+          await start('expired', 50)
+          assert.equal(
+            (await page.evaluate(() => window.frontendMermaidFixture.result('expired'))).code,
+            'timeout',
+          )
+          await page.evaluate(() => window.frontendMermaidFixture.cancel('active'))
+          assert.equal(
+            (await page.evaluate(() => window.frontendMermaidFixture.result('active'))).code,
+            'aborted',
+          )
+          await start('latest')
+          await child.evaluate(() => window.releaseTestRender())
+          assert.equal(
+            (await page.evaluate(() => window.frontendMermaidFixture.result('latest'))).status,
+            'ready',
+          )
+          assert.equal(await child.evaluate(() => window.testRenderCalls), 2)
+        },
+      )
+      await t.test(
+        'bounded admission and repeated retirement revoke all queued results',
+        async () => {
+          const child = page.frames().find((f) => f !== page.mainFrame())
+          await child.evaluate(() => {
+            mermaid.render = () => new Promise(() => {})
+          })
+          await page.evaluate(() => {
+            for (let i = 0; i < 10; i++)
+              window.frontendMermaidFixture.start('bound' + i, 'flowchart LR\nA-->B')
+          })
+          const overflow = await page.evaluate(() => window.frontendMermaidFixture.result('bound9'))
+          assert.equal(overflow.status, 'rejected')
+          assert.match(overflow.message, /budget/)
+          await page.evaluate(() =>
+            Promise.all([
+              window.frontendMermaidFixture.close(),
+              window.frontendMermaidFixture.close(),
+            ]),
+          )
+          for (let i = 0; i < 9; i++)
+            assert.equal(
+              (await page.evaluate((i) => window.frontendMermaidFixture.result('bound' + i), i))
+                .status,
+              'rejected',
+            )
         },
       )
       const cleanup = await page.evaluate(() => window.frontendMermaidFixture.close())

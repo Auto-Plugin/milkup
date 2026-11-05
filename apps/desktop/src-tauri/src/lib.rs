@@ -24,6 +24,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 mod appearance_theme;
 mod appearance_theme_store;
 mod frontend_mermaid_guard;
+mod frontend_mermaid_audit;
 mod native_search;
 pub mod output;
 mod piece_tree;
@@ -1025,6 +1026,11 @@ fn frontend_mermaid_probe(
     registry.probe(&nonce)
 }
 
+#[tauri::command]
+fn frontend_mermaid_audit(registry: State<frontend_mermaid_guard::Registry>, event: serde_json::Value) -> Result<(), String> { registry.record(event) }
+#[tauri::command]
+fn frontend_mermaid_audit_flush(registry: State<frontend_mermaid_guard::Registry>, owner_id: String) -> Result<(), String> { registry.flush(&owner_id) }
+
 pub fn run() {
     tauri::Builder::default()
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
@@ -1066,6 +1072,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             frontend_mermaid_guard_status,
             frontend_mermaid_probe,
+            frontend_mermaid_audit,
+            frontend_mermaid_audit_flush,
             appearance_theme::appearance_theme_load,
             appearance_theme::appearance_theme_read_candidate,
             appearance_theme::appearance_theme_commit_candidate,
