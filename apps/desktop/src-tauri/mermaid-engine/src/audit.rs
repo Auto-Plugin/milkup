@@ -540,6 +540,7 @@ fn native_diagnostic_timeline(value: &Value) -> Value {
         "copyDestinationCreatedTickMs",
         "copyBytesWrittenTickMs",
         "copySyncFinishedTickMs",
+        "copyVolatileWritesCompletedTickMs",
         "copyWriteHandleClosedTickMs",
         "copyDestinationPinnedTickMs",
         "copyByteComparisonFinishedTickMs",

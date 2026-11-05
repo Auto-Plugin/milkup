@@ -49,6 +49,9 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
   const active = new Map<Promise<void>, number>()
   const cleanup = new Set<Promise<unknown>>()
   const failedCleanup = new Map<() => Promise<unknown>, unknown>()
+  let requestSequence = 0
+  let contentSequence = 0
+  const contentIds = new Map<string, number>()
   let retired = false
   let nativeBusy = false
   const waiting = new Set<{ start(): boolean; reject(error: Error): void }>()
@@ -178,6 +181,22 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     const body = block.contentRanges[0]!
     const source = request.source.slice(body.from - request.from, body.to - request.from)
     const requestId = token()
+    const sequence = ++requestSequence
+    const contentKey = JSON.stringify([source, request.width, request.theme, request.target])
+    let contentId = contentIds.get(contentKey)
+    if (contentId === undefined) {
+      contentId = ++contentSequence
+      if (contentIds.size >= 8) contentIds.delete(contentIds.keys().next().value!)
+      contentIds.set(contentKey, contentId)
+    }
+    const events: { phase: string; tickMs: number }[] = []
+    const trace = (phase: string) => {
+      if (!events.some((event) => event.phase === phase))
+        events.push({ phase, tickMs: Math.round(performance.now()) })
+    }
+    trace('created')
+    const viewAborted = () => trace('view-aborted')
+    options.signal?.addEventListener('abort', viewAborted, { once: true })
     let settle!: () => void
     const settled = new Promise<void>((resolve) => {
       settle = resolve
@@ -186,25 +205,33 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
     let cancelSent = false
     let nativeStarted = false
     let nativeReserved = false
-    const cancel = () => {
+    const cancel = (reason = 'settlement-cancel') => {
       if (cancelSent || !nativeStarted) return
       cancelSent = true
+      trace(reason)
       track(() => invoke('private_mermaid_cancel', { ownerId, requestId }))
     }
     // A view invalidation is not native retirement: stopping a healthy helper
     // mid-frame makes the strict protocol incomplete. Revoke this consumer's
     // output immediately via assertActive, but drain admitted native work under
     // its original deadline. Close and deadline cancellation stay explicit.
-    controller.signal.addEventListener('abort', cancel, { once: true })
-    const timeout = setTimeout(cancel, Math.max(0, deadline - performance.now()))
+    const ownerCancelled = () => cancel('owner-cancel')
+    controller.signal.addEventListener('abort', ownerCancelled, { once: true })
+    const timeout = setTimeout(
+      () => cancel('deadline-cancel'),
+      Math.max(0, deadline - performance.now()),
+    )
     let release: (() => void) | undefined
     let transferred = false
     try {
-      if (nativeBusy) await reserveNative(assertActive, options.signal, deadline)
-      else nativeBusy = true
+      if (nativeBusy) {
+        trace('queued')
+        await reserveNative(assertActive, options.signal, deadline)
+      } else nativeBusy = true
       nativeReserved = true
       assertActive()
       nativeStarted = true
+      trace('native-dispatched')
       const response = (await invoke('private_mermaid_render', {
         request: {
           requestId,
@@ -216,6 +243,7 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
           remainingMs: Math.max(1, Math.floor(deadline - performance.now())),
         },
       })) as NativeImage
+      trace('native-settled')
       // A recognizable owned lease must be released even if the rest is invalid.
       if (response && response.ownerId === ownerId && opaque(response.leaseId)) {
         let released = false
@@ -279,13 +307,31 @@ export function createPrivateMermaidOwner(invoke: PrivateMermaidInvoke) {
       }
     } finally {
       clearTimeout(timeout)
-      controller.signal.removeEventListener('abort', cancel)
+      controller.signal.removeEventListener('abort', ownerCancelled)
+      options.signal?.removeEventListener('abort', viewAborted)
+      if (nativeStarted) trace('native-settled')
       if (!transferred) {
         // Even a malformed response can correspond to an allocated native
         // output. Cancellation uses only our known request/owner identities.
         cancel()
         release?.()
       }
+      trace('finished')
+      track(() =>
+        invoke('private_mermaid_trace', {
+          trace: {
+            requestId,
+            ownerId,
+            sequence,
+            contentSequence: contentId,
+            sourceVersion: request.version,
+            selectionAnchor: request.selection.anchor,
+            selectionHead: request.selection.head,
+            published: transferred,
+            events,
+          },
+        }),
+      )
       active.delete(settled)
       settle()
       if (nativeReserved) releaseNative()

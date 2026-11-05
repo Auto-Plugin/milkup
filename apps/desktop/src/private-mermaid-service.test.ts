@@ -338,6 +338,86 @@ describe('host-private Mermaid ownership', () => {
     failRelease = false
     await expect(owner.retire()).resolves.toBeUndefined()
   })
+  it('correlates superseded native work and queued views without recording source text', async () => {
+    let finish!: () => void
+    const { owner, invoke } = fixture(async (command, args) => {
+      if (command === 'private_mermaid_render')
+        return new Promise((resolve) => {
+          finish = () => resolve(image(args))
+        })
+      return null
+    })
+    const firstSignal = new AbortController()
+    const first = expect(owner.render(request, { signal: firstSignal.signal })).rejects.toThrow()
+    const secondSignal = new AbortController()
+    const second = expect(owner.render(request, { signal: secondSignal.signal })).rejects.toThrow()
+    secondSignal.abort()
+    await second
+    firstSignal.abort()
+    finish()
+    await first
+    await owner.retire()
+    const traces = invoke.mock.calls
+      .filter(([command]) => command === 'private_mermaid_trace')
+      .map(([, args]) => args.trace as any)
+      .sort((a, b) => a.sequence - b.sequence)
+    expect(traces).toHaveLength(2)
+    expect(traces[0].contentSequence).toBe(traces[1].contentSequence)
+    expect(traces[0].events.map((event: any) => event.phase)).toEqual([
+      'created',
+      'native-dispatched',
+      'view-aborted',
+      'native-settled',
+      'settlement-cancel',
+      'finished',
+    ])
+    expect(traces[1].events.map((event: any) => event.phase)).toEqual([
+      'created',
+      'queued',
+      'view-aborted',
+      'finished',
+    ])
+    expect(traces.every((trace) => !trace.published)).toBe(true)
+    expect(JSON.stringify(traces)).not.toContain('flowchart')
+    const dispatched = invoke.mock.calls.find(
+      ([command]) => command === 'private_mermaid_render',
+    )![1]
+    expect(traces[0].requestId).toBe((dispatched.request as any).requestId)
+  })
+  it('normal preview recovers after an expired native preparation settles, without extending its deadline', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] })
+    try {
+      let finish!: () => void
+      let calls = 0
+      const { owner, invoke } = fixture(async (command, args) => {
+        if (command !== 'private_mermaid_render') return null
+        if (++calls === 1)
+          return new Promise((_resolve, reject) => {
+            finish = () => reject(Error('native preparation deadline'))
+          })
+        return image(args)
+      })
+      const first = expect(owner.render(request, { deadline: 100 })).rejects.toThrow()
+      await vi.advanceTimersByTimeAsync(101)
+      expect(
+        invoke.mock.calls.filter(([command]) => command === 'private_mermaid_cancel'),
+      ).toHaveLength(1)
+      finish()
+      await first
+      const result = await owner.render(request, { deadline: performance.now() + 1000 })
+      expect(result.fragments[0]?.status).toBe('ready')
+      disposeDocumentPngImages(result)
+      await owner.retire()
+      const traces = invoke.mock.calls
+        .filter(([command]) => command === 'private_mermaid_trace')
+        .map(([, args]) => args.trace as any)
+      expect(traces[0].events.some((event: any) => event.phase === 'deadline-cancel')).toBe(true)
+      expect(traces[0].published).toBe(false)
+      expect(traces[1].published).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
   it('does not start expired, aborted, unknown-context or export requests', async () => {
     const { invoke, owner } = fixture()
     await expect(owner.render(request, { deadline: performance.now() - 1 })).rejects.toThrow()

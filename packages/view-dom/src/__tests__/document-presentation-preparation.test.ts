@@ -116,10 +116,18 @@ it('resumes settled host preparation after its deadline without viewport or sele
   expect(provide).toHaveBeenCalledTimes(1)
   await vi.advanceTimersByTimeAsync(10_000)
   expect(provide.mock.calls[0]![1].signal.aborted).toBe(true)
+  expect(document.querySelector('[data-document-presentation-notice]')?.textContent).toContain(
+    '超时',
+  )
+  expect(document.querySelector('.milkup-line')?.textContent).toBe('body')
   await vi.advanceTimersByTimeAsync(999)
   expect(provide).toHaveBeenCalledTimes(1)
   await vi.advanceTimersByTimeAsync(1)
   expect(provide).toHaveBeenCalledTimes(2)
+  expect(
+    document.querySelector('[data-document-presentation-notice]')?.textContent ?? '',
+  ).not.toContain('超时')
+  expect(document.querySelector('.milkup-line')?.textContent).toBe('body')
 })
 it('bounds repeated identical preparation timeouts and permits an explicit refresh', async () => {
   const provide = vi.fn<DocumentPresentationConfig['provide']>(

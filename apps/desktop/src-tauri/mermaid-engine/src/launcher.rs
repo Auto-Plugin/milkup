@@ -734,8 +734,12 @@ fn pinned_copy_observed(
     observe("copyDestinationCreatedTickMs");
     std::io::copy(&mut original, &mut copy)?;
     observe("copyBytesWrittenTickMs");
-    copy.sync_all()?;
-    observe("copySyncFinishedTickMs");
+    // This is a one-render temporary executable, never a persisted artifact.
+    // Completed writes followed by close/reopen and the pinned byte comparison
+    // below establish the bytes actually selected for execution. Forcing these
+    // disposable bytes to durable media can block beyond the render deadline.
+    // Do not reuse the path after a crash, or skip either write/delete pin.
+    observe("copyVolatileWritesCompletedTickMs");
     drop(copy);
     observe("copyWriteHandleClosedTickMs");
     let copy = OpenOptions::new()
@@ -1718,6 +1722,43 @@ mod token_diagnostic;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn temporary_copy_is_readable_executable_and_write_delete_pinned_without_durable_flush() {
+        let root = std::env::temp_dir().join(format!("milkup-copy-contract-{}-{}", std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        fs::create_dir(&root).unwrap();
+        let source = std::env::current_exe().unwrap();
+        let destination = root.join("copy-tests.exe");
+        let mut phases = Vec::new();
+        let pins = pinned_copy_observed(&source, &destination, |phase| phases.push(phase)).unwrap();
+        assert!(phases.contains(&"copyVolatileWritesCompletedTickMs"));
+        assert_eq!(phases.last(), Some(&"copyByteComparisonFinishedTickMs"));
+        assert_eq!(fs::read(&source).unwrap(), fs::read(&destination).unwrap());
+        assert!(OpenOptions::new().write(true).open(&destination).is_err());
+        assert!(fs::remove_file(&destination).is_err());
+        assert!(pinned_copy(&source, &destination).is_err(), "Never replace an existing copy");
+        let output = std::process::Command::new(&destination).arg("--list").output().unwrap();
+        assert!(output.status.success());
+        assert!(!output.stdout.is_empty());
+        drop(pins);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn temporary_copy_rejects_bytes_changed_before_destination_pin() {
+        let root = std::env::temp_dir().join(format!("milkup-copy-tamper-{}-{}", std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+        fs::create_dir(&root).unwrap();
+        let source = root.join("source");
+        let destination = root.join("copy");
+        fs::write(&source, b"exact original bytes").unwrap();
+        let error = pinned_copy_observed(&source, &destination, |phase| {
+            if phase == "copyWriteHandleClosedTickMs" { fs::write(&destination, b"tampered").unwrap(); }
+        }).unwrap_err();
+        assert!(error.to_string().contains("differs from the pinned source"));
+        fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn owned_path_absence_requires_explicit_not_found() {

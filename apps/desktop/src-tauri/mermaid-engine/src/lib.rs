@@ -10,6 +10,9 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
+mod frontend_trace;
+pub use frontend_trace::{record_frontend_trace, FrontendTrace};
+
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub const MAX_OUTPUT: usize = 16 * 1024 * 1024;
 const MAX_JOBS: usize = 8;

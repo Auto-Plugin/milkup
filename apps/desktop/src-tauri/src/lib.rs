@@ -1034,6 +1034,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             private_mermaid::private_mermaid_render,
+            private_mermaid::private_mermaid_trace,
             private_mermaid::private_mermaid_cancel,
             private_mermaid::private_mermaid_release,
             private_mermaid::private_mermaid_retire_owner,

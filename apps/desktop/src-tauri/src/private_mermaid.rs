@@ -84,3 +84,10 @@ pub async fn private_mermaid_shutdown(app: AppHandle, window: WebviewWindow) -> 
         .await
         .map_err(|error| error.to_string())?
 }
+
+/// Private host telemetry; it grants no renderer or filesystem authority.
+#[tauri::command]
+pub fn private_mermaid_trace(window: WebviewWindow, trace: milkup_mermaid_engine::FrontendTrace) -> Result<(), String> {
+    caller(&window)?;
+    milkup_mermaid_engine::record_frontend_trace(trace)
+}

@@ -1617,7 +1617,25 @@ export async function main() {
   const execute = (script, ...args) => executeWithSignal(undefined, script, ...args)
   const executeAsync = (script, ...args) =>
     request('POST', `/session/${session}/execute/async`, { script, args })
-  const state = (signal) => executeWithSignal(signal, observe)
+  const state = async (signal) => {
+    const value = await executeWithSignal(signal, observe)
+    const row = report.steps.at(-1)
+    if (row && !row.finishedAt) {
+      const sample = {
+        mode: value.mode,
+        loading: value.loading,
+        images: value.images.length,
+        notices: value.notices.filter((notice) => notice.visible).map((notice) => notice.text),
+      }
+      const samples = (row.previewObservationTimeline ??= [])
+      const last = samples.at(-1)
+      if (!last || JSON.stringify(last.state) !== JSON.stringify(sample)) {
+        assert(samples.length < 128, 'Preview observation timeline exceeded its evidence budget')
+        samples.push({ at: new Date().toISOString(), state: sample })
+      }
+    }
+    return value
+  }
   const identityBirths = new Map()
   const retainIdentityAttempt = async (values, expected, phase) => {
     assert(report.processIdentityAttempts.length < 64, 'Bounded process identity attempts')
