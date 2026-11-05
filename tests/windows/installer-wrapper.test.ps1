@@ -231,6 +231,30 @@ Case 'retain exact installer evidence names without admitting executables' {
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('milkup-installer-wrapper-regression-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 try {
+    Case 'bounded compact report round trips all observations at exactly 1 MiB' {
+        $file = Join-Path $testRoot 'bounded-report.json'
+        $prefix = '{"status":"passed","nativeAudit":[{"phase":"finished","resourceReleaseProven":true}],"padding":"'
+        $suffix = '"}' + "`n"
+        $padding = 1MB - [Text.Encoding]::UTF8.GetByteCount($prefix + $suffix)
+        [IO.File]::WriteAllText($file, $prefix + ('x' * $padding) + $suffix, [Text.UTF8Encoding]::new($false))
+        $read = Read-SmallJson $file
+        Assert-True ($read.status -ceq 'passed' -and $read.nativeAudit.Count -eq 1 -and $read.nativeAudit[0].resourceReleaseProven) 'Complete proof was not retained'
+        Assert-True ($read.padding.Length -eq $padding) 'Evidence was truncated'
+    }
+    Case 'reject one byte over the same 1 MiB report budget' {
+        $file = Join-Path $testRoot 'bounded-report.json'
+        [IO.File]::AppendAllText($file, ' ', [Text.UTF8Encoding]::new($false))
+        $rejected = $false
+        try { Read-SmallJson $file | Out-Null } catch { $rejected = $_.Exception.Message -clike '*exceeds its budget*' }
+        Assert-True $rejected 'Oversized report accepted'
+    }
+    Case 'reject truncated compact report even with a passed prefix' {
+        $file = Join-Path $testRoot 'truncated-report.json'
+        [IO.File]::WriteAllText($file, '{"status":"passed","nativeAudit":[{"phase":"finished"', [Text.UTF8Encoding]::new($false))
+        $rejected = $false
+        try { Read-SmallJson $file | Out-Null } catch { $rejected = $true }
+        Assert-True $rejected 'Truncated evidence accepted'
+    }
     $scratch = Join-Path $testRoot 'scratch'; $evidence = Join-Path $testRoot 'evidence'
     New-Item -ItemType Directory -Path $scratch, $evidence | Out-Null
     $sid = 'S-1-5-21-11-22-33-1003'

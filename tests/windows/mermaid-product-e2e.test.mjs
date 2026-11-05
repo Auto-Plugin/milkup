@@ -6,6 +6,8 @@ import path from 'node:path'
 import { deflateSync } from 'node:zlib'
 import {
   fixtures,
+  serializeProductEvidence,
+  MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
   validateMigrationReceipt,
   validateSyntheticMigrationFixture,
@@ -2333,4 +2335,24 @@ test('unknown-grammar gate waits through an empty startup ledger and pending nat
       waitForUnknownGrammarRejection({ pending: () => 0, verifyAll: () => [failed] }, 111),
       /timeout\/startup failure is not syntax acceptance/,
     )
+})
+
+test('product evidence retains every nested observation within the unchanged coordinator byte budget', () => {
+  const record = {
+    status: 'passed',
+    steps: [{ before: { text: '中文😀\r\n', pixels: [0, 1, 255] }, after: { readonly: true } }],
+    nativeAudit: [{ requestId: 'owned', phase: 'finished', resourceReleaseProven: true }],
+    inputs: [{ key: '\\n' }],
+  }
+  assert.deepEqual(JSON.parse(serializeProductEvidence(record)), record)
+  const exact = {
+    data: 'x'.repeat(
+      MAX_PRODUCT_REPORT_BYTES - Buffer.byteLength(serializeProductEvidence({ data: '' })),
+    ),
+  }
+  assert.equal(Buffer.byteLength(serializeProductEvidence(exact)), MAX_PRODUCT_REPORT_BYTES)
+  assert.throws(() => serializeProductEvidence({ data: exact.data + 'x' }), /1 MiB/)
+  const multibyte = { data: '界'.repeat(Math.ceil(MAX_PRODUCT_REPORT_BYTES / 3)) }
+  assert(JSON.stringify(multibyte).length < MAX_PRODUCT_REPORT_BYTES)
+  assert.throws(() => serializeProductEvidence(multibyte), /1 MiB/)
 })

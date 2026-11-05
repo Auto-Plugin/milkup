@@ -1294,6 +1294,18 @@ async function noLinks(file) {
   assert(samePath(await realpath(file), file), 'Canonical input path')
 }
 
+// Match the coordinator's existing Read-SmallJson gate. Compact JSON retains
+// every observation and native proof; no arrays or state fields are truncated.
+export const MAX_PRODUCT_REPORT_BYTES = 1024 * 1024
+export function serializeProductEvidence(report) {
+  const body = JSON.stringify(report) + '\n'
+  assert(
+    Buffer.byteLength(body) <= MAX_PRODUCT_REPORT_BYTES,
+    'Structured evidence exceeds 1 MiB coordinator budget',
+  )
+  return body
+}
+
 export const MIGRATION_BASELINE_SHA256 =
   '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
 export function validateMigrationReceipt(receipt, expected) {
@@ -1558,11 +1570,7 @@ export async function main() {
   }
   const reportFile = path.join(evidence, 'mermaid-product-e2e.json')
   await writeFile(reportFile, '{}\n', { flag: 'wx' })
-  const persist = () => {
-    const body = JSON.stringify(report, null, 2) + '\n'
-    assert(Buffer.byteLength(body) <= 2 * 1024 * 1024, 'Structured evidence file budget')
-    return writeFile(reportFile, body)
-  }
+  const persist = () => writeFile(reportFile, serializeProductEvidence(report))
   let driver,
     product,
     session,
