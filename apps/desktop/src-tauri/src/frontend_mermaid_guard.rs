@@ -80,6 +80,9 @@ impl Registry {
                 "opaqueOrigin",
                 "nonceMatches",
                 "portAlreadyAssigned",
+                "engineAvailable",
+                "engineStartupError",
+                "engineScriptUrlRevoked",
                 "parentDomReadable",
                 "tauriInternals",
                 "tauriInvoke",
@@ -98,6 +101,8 @@ impl Registry {
                 .ok_or("Invalid connection identity")?;
             if !value["stage"].as_str().is_some_and(|v| {
                 [
+                    "assets-read",
+                    "engine-load",
                     "frame-load",
                     "port-transfer",
                     "frame-hello",
@@ -112,7 +117,8 @@ impl Registry {
                 return Err("Invalid connection stage".into());
             }
             for key in [
-                "opaqueOrigin",
+                "engineScriptUrlRevoked",                "engineAvailable",
+                "engineStartupError",                "opaqueOrigin",
                 "nonceMatches",
                 "portAlreadyAssigned",
                 "parentDomReadable",

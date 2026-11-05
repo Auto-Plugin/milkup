@@ -67,12 +67,30 @@ test(
       })
       const page = await browser.newPage()
       const external = []
+      let tamperEngine = false
+      let forbidChildAssetRequests = false
+      let childAssetRequests = 0
       page.on('console', (m) => {
         if (m.type() === 'error') console.log('browser error:', m.text().slice(0, 500))
       })
       page.on('pageerror', (e) => console.log('page error:', e.message.slice(0, 500)))
-      await page.route('**/*', (route) => {
+      await page.route('**/*', async (route) => {
         const url = route.request().url()
+        if (url.startsWith(origin + '/assets/') && url.endsWith('.js')) {
+          if (
+            url.includes('/mermaid-12.2.0.min-') &&
+            route.request().frame() !== page.mainFrame()
+          ) {
+            childAssetRequests++
+            if (forbidChildAssetRequests) return route.abort()
+          }
+          if (tamperEngine && url.includes('/mermaid-12.2.0.min-')) {
+            const response = await route.fetch()
+            const body = Buffer.from(await response.body())
+            body[0] ^= 1
+            return route.fulfill({ response, body })
+          }
+        }
         if (!url.startsWith(origin + '/') && !url.startsWith('blob:') && !url.startsWith('data:')) {
           external.push(url)
           return route.abort()
@@ -83,6 +101,38 @@ test(
       await page.waitForFunction(() => !!window.frontendMermaidFixture)
       const render = (source) =>
         page.evaluate((source) => window.frontendMermaidFixture.render(source), source)
+      await t.test(
+        'fixed engine tampering is rejected before frame creation; child engine protocol loads are unnecessary',
+        async () => {
+          tamperEngine = true
+          await assert.rejects(render('flowchart LR\nA-->B'), /Fixed script bytes differ/)
+          assert.equal(await page.locator('iframe[data-milkup-mermaid-renderer]').count(), 0)
+          tamperEngine = false
+          await page.evaluate(() => window.frontendMermaidFixture.reset())
+          await page.evaluate(() => {
+            const send = MessagePort.prototype.postMessage
+            MessagePort.prototype.postMessage = function (data, transfer) {
+              if (data?.kind === 'initialize-engine') {
+                MessagePort.prototype.postMessage = send
+                new Uint8Array(data.bytes)[0] ^= 1
+              }
+              return send.call(this, data, transfer)
+            }
+          })
+          await assert.rejects(
+            render('flowchart LR\nA-->B'),
+            /Pinned Mermaid engine did not initialize/,
+          )
+          assert.equal(await page.locator('iframe[data-milkup-mermaid-renderer]').count(), 0)
+          await page.evaluate(() => window.frontendMermaidFixture.reset())
+          forbidChildAssetRequests = true
+          assert.ok((await render('flowchart LR\nA-->B')).bytes > 100)
+          const child = page.frames().find((f) => f !== page.mainFrame())
+          assert.equal(await child.evaluate(() => typeof globalThis.mermaid?.render), 'function')
+          assert.equal(childAssetRequests, 0)
+          forbidChildAssetRequests = false
+        },
+      )
       await t.test('ordinary and twelve official syntax fixtures', async (st) => {
         for (const item of [
           { id: 'flow', source: 'flowchart LR\nA[Hello] --> B[World]' },

@@ -49,7 +49,8 @@ export function createFrontendMermaidOwner(
   let drainTask: Promise<void> | undefined
   let retirement: Promise<void> | undefined
   let frameWasAppended = false
-  let connectionStage = 'frame-load'
+  let connectionStage = 'assets-read'
+  let assetAbort: AbortController | undefined
   let auditing = false
   let auditChain = Promise.resolve()
   let renderingMessage: ((value: Message) => void) | undefined
@@ -82,6 +83,7 @@ export function createFrontendMermaidOwner(
     port = undefined
     frame?.remove()
     frame = undefined
+    assetAbort?.abort()
   }
   const wait = (test: (value: Message) => boolean, deadline: number): Promise<Message> =>
     new Promise((resolve, reject) => {
@@ -125,6 +127,51 @@ export function createFrontendMermaidOwner(
         },
       )
     })
+  const fixedScript = async (
+    asset: string,
+    bytesExpected: number,
+    shaExpected: string,
+    deadline: number,
+  ) => {
+    assertActive(deadline)
+    const controller = new AbortController()
+    assetAbort = controller
+    const timer = setTimeout(() => controller.abort(), Math.max(0, deadline - performance.now()))
+    let reader: ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>> | undefined
+    try {
+      const url = new URL(asset, location.href)
+      if (url.origin !== location.origin)
+        throw new Error('Fixed script must be a packaged same-origin asset')
+      const response = await fetch(url, {
+        signal: controller.signal,
+        redirect: 'error',
+        credentials: 'omit',
+        mode: 'same-origin',
+      })
+      if (!response.ok || !response.body) throw new Error('Fixed script response unavailable')
+      reader = response.body.getReader()
+      const bytes = new Uint8Array(bytesExpected)
+      let size = 0
+      while (true) {
+        const part = await reader.read()
+        if (part.done) break
+        if (size + part.value.length > bytesExpected)
+          throw new Error('Fixed script byte budget exceeded')
+        bytes.set(part.value, size)
+        size += part.value.length
+      }
+      assertActive(deadline)
+      if (size !== bytesExpected || (await digest(bytes)) !== shaExpected)
+        throw new Error('Fixed script bytes differ from the reviewed engine')
+      assertActive(deadline)
+      return bytes
+    } finally {
+      controller.abort()
+      reader?.releaseLock()
+      clearTimeout(timer)
+      if (assetAbort === controller) assetAbort = undefined
+    }
+  }
   const connect = (deadline: number) =>
     (connection ??= (async () => {
       if (options.nativeGuard) {
@@ -149,10 +196,19 @@ export function createFrontendMermaidOwner(
           await new Promise((resolve) => setTimeout(resolve, 10))
         }
       }
+      connectionStage = 'assets-read'
+      await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
+      const engine = await fixedScript(
+        engineAsset,
+        5494801,
+        'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f',
+        deadline,
+      )
+      const bootstrap = new URL(frameAsset, location.href).href
       connectionStage = 'frame-load'
       await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
       assertActive(deadline)
-      const connected = wait((value) => value.kind === 'connected', deadline)
+      const connected = wait((value) => value.kind === 'bootstrap-connected', deadline)
       frame = document.createElement('iframe')
       frame.name = `milkup-mermaid-${nonce}`
       frame.sandbox.add('allow-scripts')
@@ -203,12 +259,15 @@ export function createFrontendMermaidOwner(
       addEventListener('message', handshake)
       removeHandshake = () => removeEventListener('message', handshake)
       const policy = `default-src 'none'; script-src 'nonce-${nonce}'; script-src-attr 'none'; style-src 'unsafe-inline'; img-src blob: data:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'`
-      const engine = new URL(engineAsset, location.href).href
-      const bootstrap = new URL(frameAsset, location.href).href
-      frame.srcdoc = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${escape(policy)}"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script nonce="${nonce}" src="${escape(engine)}"></script><script nonce="${nonce}" src="${escape(bootstrap)}" data-owner="${nonce}" data-parent-origin="${escape(location.origin)}"></script></body></html>`
+      frame.srcdoc = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${escape(policy)}"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script nonce="${nonce}" src="${escape(bootstrap)}" data-owner="${nonce}" data-parent-origin="${escape(location.origin)}"></script></body></html>`
       document.body.append(frame)
       frameWasAppended = true
-      const hello = await connected
+      await connected
+      connectionStage = 'engine-load'
+      await audit({ kind: 'connection', ownerId: nonce, stage: connectionStage, failed: false })
+      const initialized = wait((value) => value.kind === 'connected', deadline)
+      port!.postMessage({ kind: 'initialize-engine', nonce, bytes: engine.buffer }, [engine.buffer])
+      const hello = await initialized
       connectionStage = 'bridge-inventory'
       await audit({
         kind: 'connection',
@@ -217,6 +276,8 @@ export function createFrontendMermaidOwner(
         ...hello.bridge,
         failed: false,
       })
+      if (hello.bridge?.engineAvailable !== true || hello.bridge.engineScriptUrlRevoked !== true)
+        throw new Error('Pinned Mermaid engine did not initialize')
       if (
         !hello.bridge ||
         hello.bridge.parentDomReadable !== false ||

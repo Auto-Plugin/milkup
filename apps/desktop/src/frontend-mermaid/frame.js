@@ -3,6 +3,14 @@
 ;(() => {
   'use strict'
   document.documentElement.dataset.milkupMermaidBootstrap = 'started'
+  let engineStartupError = false
+  addEventListener(
+    'error',
+    () => {
+      engineStartupError = true
+    },
+    { capture: true },
+  )
   const MAX_AXIS = 8192
   const MAX_PIXELS = 16777216
   const finiteBox = (box) =>
@@ -287,20 +295,62 @@
       void parent.document.documentElement
       parentDomReadable = true
     } catch {}
-    const bridge = {
+    let engineInitialized = false
+    let engineInitializing = false
+    let engineScriptUrlRevoked = false
+    const bridge = () => ({
+      engineAvailable: typeof globalThis.mermaid?.render === 'function',
+      engineStartupError,
+      engineScriptUrlRevoked,
       parentDomReadable,
       tauriInternals: '__TAURI_INTERNALS__' in window,
       tauriInvoke: '__TAURI__' in window,
       wryIpc: 'ipc' in window,
       chromeWebview: !!window.chrome?.webview,
-    }
-    port.postMessage({ kind: 'connected', nonce, engine: mermaid.version ?? '12.2.0', bridge })
+    })
+    port.postMessage({ kind: 'bootstrap-connected', nonce })
     port.onmessage = async ({ data }) => {
       if (!data || data.nonce !== nonce) return
+      if (data.kind === 'initialize-engine') {
+        if (engineInitializing || engineInitialized) return
+        engineInitializing = true
+        let engineUrl
+        let engineScript
+        try {
+          if (!(data.bytes instanceof ArrayBuffer) || data.bytes.byteLength !== 5494801)
+            throw Error('Fixed engine size')
+          const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', data.bytes))]
+            .map((v) => v.toString(16).padStart(2, '0'))
+            .join('')
+          if (digest !== 'a8a6a6f805b074a8261a2825c86f99c8054acb3b35f50bb7e24a4f9f2c3c3b9f')
+            throw Error('Fixed engine identity')
+          engineUrl = URL.createObjectURL(new Blob([data.bytes], { type: 'text/javascript' }))
+          engineScript = document.createElement('script')
+          engineScript.nonce = nonce
+          engineScript.src = engineUrl
+          await new Promise((resolve, reject) => {
+            engineScript.onload = resolve
+            engineScript.onerror = () => reject(Error('Fixed engine script load'))
+            document.head.append(engineScript)
+          })
+          if (typeof globalThis.mermaid?.render !== 'function')
+            throw Error('Fixed engine export missing')
+          engineInitialized = true
+        } catch {
+          engineStartupError = true
+        } finally {
+          engineScript?.remove()
+          if (engineUrl) URL.revokeObjectURL(engineUrl)
+          engineScriptUrlRevoked = true
+        }
+        port.postMessage({ kind: 'connected', nonce, engine: '12.2.0', bridge: bridge() })
+        return
+      }
+      if (!engineInitialized) return
       if (data.kind === 'boundary-probe') {
         // A native frame receiver rejects and records this actual attempt; the
         // parent requires that record, not a timeout, before admitting source.
-        if (bridge.chromeWebview)
+        if (bridge().chromeWebview)
           chrome.webview.postMessage(
             JSON.stringify({
               cmd: 'frontend_mermaid_probe',
@@ -520,6 +570,12 @@
     port.start()
   }
   addEventListener('message', handshake)
-  parent.postMessage({ kind: 'milkup-mermaid-ready', nonce }, parentOrigin)
-  document.documentElement.dataset.milkupMermaidReadySent = 'true'
+  addEventListener(
+    'DOMContentLoaded',
+    () => {
+      parent.postMessage({ kind: 'milkup-mermaid-ready', nonce }, parentOrigin)
+      document.documentElement.dataset.milkupMermaidReadySent = 'true'
+    },
+    { once: true },
+  )
 })()

@@ -66,6 +66,8 @@ export function frontendLedgerClass(ProcessLedger) {
         nonce(event.ownerId)
         assert(
           [
+            'assets-read',
+            'engine-load',
             'frame-load',
             'port-transfer',
             'frame-hello',
@@ -84,6 +86,17 @@ export function frontendLedgerClass(ProcessLedger) {
           assert.equal(event.portAlreadyAssigned, false, 'One-use hello')
         }
         if (event.stage === 'bridge-inventory') {
+          assert.equal(
+            event.engineAvailable,
+            true,
+            'Official engine must initialize before rendering',
+          )
+          assert.equal(event.engineStartupError, false, 'Fixed script startup must succeed')
+          assert.equal(
+            event.engineScriptUrlRevoked,
+            true,
+            'Child-created script URL must be released',
+          )
           for (const key of ['tauriInternals', 'tauriInvoke', 'wryIpc'])
             assert.equal(event[key], false, 'Privileged bridge remains exposed: ' + key)
           assert.equal(event.parentDomReadable, false, 'Opaque renderer cannot read parent DOM')
