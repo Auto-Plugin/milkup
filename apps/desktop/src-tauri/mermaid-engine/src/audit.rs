@@ -546,6 +546,12 @@ fn native_diagnostic_timeline(value: &Value) -> Value {
         "copyDestinationPinnedTickMs",
         "copyByteComparisonFinishedTickMs",
         "launchStartedTickMs",
+        "launchPathValidationStartedTickMs",
+        "launchPipesStartedTickMs",
+        "launchAttributesStartedTickMs",
+        "launchEnvironmentStartedTickMs",
+        "createProcessStartedTickMs",
+        "createProcessReturnedTickMs",
         "parentChildPipeCopiesClosedByTickMs",
         "beforeTerminateTickMs",
         "afterTerminateRequestTickMs",
@@ -1280,6 +1286,33 @@ mod tests {
             ),
             json!({"beforeTerminateTickMs":5,"copyBytesWrittenTickMs":3,"copySyncFinishedTickMs":4})
         );
+    }
+
+    #[test]
+    fn emitted_launch_diagnostics_retain_fixed_stages_without_exporting_other_fields() {
+        let stages = [
+            "launchPathValidationStartedTickMs",
+            "launchPipesStartedTickMs",
+            "launchAttributesStartedTickMs",
+            "launchEnvironmentStartedTickMs",
+            "createProcessStartedTickMs",
+            "createProcessReturnedTickMs",
+        ];
+        let mut timeline = json!({"command":"secret", "nativePath":"secret"});
+        for (index, stage) in stages.iter().enumerate() {
+            timeline[*stage] = json!(index as u64 + 1);
+        }
+        let record = native_diagnostics(
+            &"f".repeat(32),
+            &json!({"nativeDiagnosticTimeline":timeline}),
+        );
+        assert_eq!(record["timeline"].as_object().unwrap().len(), stages.len());
+        for (index, stage) in stages.iter().enumerate() {
+            assert_eq!(record["timeline"][*stage], index as u64 + 1);
+        }
+        timeline["createProcessStartedTickMs"] = json!("not a timestamp");
+        assert!(native_diagnostic_timeline(&timeline)["createProcessStartedTickMs"].is_null());
+        assert!(serde_json::to_vec(&record).unwrap().len() + 100 < MAX_LINE_BYTES);
     }
 
     fn ipc_diagnostic(stream: &str) -> Value {
