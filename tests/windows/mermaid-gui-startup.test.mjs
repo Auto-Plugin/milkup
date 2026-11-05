@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   requireGuiStartup,
+  stopAfterFatalGuiEvidence,
   captureGuiWindowMetrics,
   acceptNativePickerResults,
   blockDependentGuiScenarios,
@@ -148,4 +149,22 @@ test('wide interaction verifies readable natural pixels, scroll reachability and
     mutate(bad)
     assert.throws(() => validateWideInteraction(bad, png))
   }
+})
+
+test('fatal renderer audit stops new native UI operations while keeping the run failed', () => {
+  const report = { status: 'running', steps: [{ name: 'blank-start-enable', status: 'passed' }] }
+  const row = {
+    name: 'open-ordinary-stable',
+    status: 'failed',
+    error: 'Frontend connection failed at frame-load',
+  }
+  report.steps.push(row)
+  assert.equal(stopAfterFatalGuiEvidence(report, row, Error(row.error)), true)
+  assert.equal(report.status, 'failed')
+  assert.equal(report.blockedPrerequisite.kind, 'fatal-runtime-evidence')
+  assert(report.steps.slice(2).every((s) => s.executed === false && s.status === 'blocked'))
+  assert.equal(row.error, 'Frontend connection failed at frame-load')
+  const normal = { steps: [] }
+  assert.equal(stopAfterFatalGuiEvidence(normal, {}, undefined), false)
+  assert.deepEqual(normal.steps, [])
 })

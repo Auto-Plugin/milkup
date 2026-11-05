@@ -134,6 +134,16 @@ export function blockDependentGuiScenarios(report, prerequisite) {
   }
 }
 
+export function stopAfterFatalGuiEvidence(report, row, fatal) {
+  if (!fatal) return false
+  row.status = 'failed'
+  row.error ??= String(fatal)
+  blockDependentGuiScenarios(report, row)
+  report.status = 'failed'
+  report.blockedPrerequisite.kind = 'fatal-runtime-evidence'
+  return true
+}
+
 export function requireGuiStartup(report, startup) {
   assert.equal(startup.name, GUI_STEPS[0])
   if (startup.status === 'passed') return true
@@ -1418,6 +1428,10 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       }
       row.finishedAt = new Date().toISOString()
       await persist()
+    }
+    if (stopAfterFatalGuiEvidence(report, row, fatal)) {
+      await persist()
+      throw Error('Fatal runtime evidence; remaining GUI scenarios were not executed')
     }
     if (row.prerequisiteFailure) {
       blockDependentGuiScenarios(report, row)
