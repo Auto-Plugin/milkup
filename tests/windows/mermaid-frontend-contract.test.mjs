@@ -231,3 +231,32 @@ test('parent DOM readability and missing production inventory reject admission',
     /inventory/,
   )
 })
+
+test('native frame lifecycle diagnostics cannot substitute for rejection or release proof', () => {
+  const l = fixture()
+  for (const stage of [
+    'created',
+    'navigation-start',
+    'dom-content-loaded',
+    'navigation-completed',
+    'destroyed',
+  ]) {
+    l.accept(
+      event({ kind: 'frame-lifecycle', frameId: 1, ownerId: owner, stage, detail: {} }),
+      pid,
+      birth,
+    )
+  }
+  assert.throws(
+    () => l.accept(event({ ...base, phase: 'admitted', nativeBridgeRejected: true }), pid, birth),
+    /rejection/,
+  )
+  const m = fixture()
+  ready(m)
+  m.accept(
+    event({ kind: 'frame-lifecycle', frameId: 1, ownerId: owner, stage: 'destroyed', detail: {} }),
+    pid,
+    birth,
+  )
+  assert.throws(() => m.closeLaunch(launch()), /acknowledged/)
+})

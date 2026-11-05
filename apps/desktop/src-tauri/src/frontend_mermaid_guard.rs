@@ -18,6 +18,8 @@ struct Status {
     frame_proofs: HashMap<String, (u64, u64)>,
     navigation_proofs: HashMap<String, u64>,
     connection_records: usize,
+    frame_serial: u64,
+    lifecycle_records: usize,
 }
 
 #[derive(Clone)]
@@ -33,6 +35,17 @@ impl Default for Registry {
 }
 
 impl Registry {
+    #[cfg(windows)]
+    fn lifecycle(&self, frame_id: u64, owner: &Option<String>, phase: &str, detail: Value) {
+        let Some(writer) = self.1.as_ref().as_ref() else { return; };
+        let mut state = self.0.lock().unwrap();
+        state.lifecycle_records += 1;
+        if state.lifecycle_records > 256 || writer.emit(&json!({
+            "kind":"frame-lifecycle", "frameId":frame_id, "ownerId":owner,
+            "stage":phase, "detail":detail
+        })).is_err() { state.failed = true; }
+    }
+
     pub fn status(&self) -> Value {
         let state = self.0.lock().unwrap();
         json!({"ready":state.ready && !state.failed,"failed":state.failed,
@@ -286,6 +299,12 @@ impl Registry {
     }
 }
 
+fn cancel_frame_navigation(owned: bool, uri: &str) -> bool {
+    // Unrelated application/automation frames are not Mermaid owners. They
+    // receive no Mermaid port or source and cannot earn an owner proof.
+    owned && uri != "about:srcdoc"
+}
+
 fn valid_nonce(value: &str) -> bool {
     value.len() == 32 && value.bytes().all(|c| c.is_ascii_hexdigit())
 }
@@ -311,6 +330,8 @@ pub fn install(
                     created_frame.Name(&mut name)?;
                     let name = take_pwstr(name);
                     let created_nonce = name.strip_prefix("milkup-mermaid-").filter(|v| valid_nonce(v)).map(str::to_owned);
+                    let frame_id = { let mut state=created_registry.0.lock().unwrap(); state.frame_serial += 1; state.frame_serial };
+                    created_registry.lifecycle(frame_id, &created_nonce, "created", json!({"nameMatched":created_nonce.is_some()}));
                     let frame = created_frame.cast::<ICoreWebView2Frame2>()?;
                     if let Some(nonce) = &created_nonce {
                         let mut state = created_registry.0.lock().unwrap();
@@ -324,6 +345,7 @@ pub fn install(
                     let destroyed_nonce = created_nonce.clone();
                     let mut destroyed_token = 0;
                     frame.add_Destroyed(&FrameDestroyedEventHandler::create(Box::new(move |_, _| {
+                        destroyed_registry.lifecycle(frame_id, &destroyed_nonce, "destroyed", json!({}));
                         if let Some(nonce) = &destroyed_nonce {
                             let mut state = destroyed_registry.0.lock().unwrap();
                             state.frames.insert(nonce.clone(),false);
@@ -340,7 +362,12 @@ pub fn install(
                         let mut uri = PWSTR::null();
                         args.Uri(&mut uri)?;
                         let uri = take_pwstr(uri);
-                        if uri != "about:srcdoc" {
+                        let cancelled = cancel_frame_navigation(navigation_nonce.is_some(), &uri);
+                        navigation_registry.lifecycle(frame_id, &navigation_nonce, "navigation-start", json!({
+                            "uriKind": if uri=="about:srcdoc" {"srcdoc"} else if uri=="about:blank" {"blank"} else {"other"},
+                            "cancelled":cancelled
+                        }));
+                        if cancelled {
                             args.SetCancel(true)?;
                             let mut state = navigation_registry.0.lock().unwrap();
                             state.blocked_navigations += 1;
@@ -356,6 +383,25 @@ pub fn install(
                         }
                         Ok(())
                     })), &mut navigation_token)?;
+                    let dom_registry = created_registry.clone();
+                    let dom_nonce = created_nonce.clone();
+                    let mut dom_token=0;
+                    frame.add_DOMContentLoaded(&FrameDOMContentLoadedEventHandler::create(Box::new(move |_, _| {
+                        dom_registry.lifecycle(frame_id, &dom_nonce, "dom-content-loaded", json!({}));
+                        Ok(())
+                    })), &mut dom_token)?;
+                    let complete_registry = created_registry.clone();
+                    let complete_nonce = created_nonce.clone();
+                    let mut complete_token=0;
+                    frame.add_NavigationCompleted(&FrameNavigationCompletedEventHandler::create(Box::new(move |_, args| {
+                        let Some(args)=args else { return Ok(()); };
+                        let mut success=windows::core::BOOL::default();
+                        let mut error=COREWEBVIEW2_WEB_ERROR_STATUS::default();
+                        args.IsSuccess(&mut success)?;
+                        args.WebErrorStatus(&mut error)?;
+                        complete_registry.lifecycle(frame_id, &complete_nonce, "navigation-completed", json!({"success":success.as_bool(),"webErrorStatus":error.0}));
+                        Ok(())
+                    })), &mut complete_token)?;
                     let message_registry = created_registry.clone();
                     let mut frame_token = 0;
                     frame.add_WebMessageReceived(
@@ -415,6 +461,14 @@ mod tests {
     }
     fn event(phase: &str) -> Value {
         json!({"phase":phase,"ownerId":"a".repeat(32),"requestId":"b".repeat(32),"sourceSha256":"c".repeat(64)})
+    }
+    #[test]
+    fn navigation_policy_only_applies_to_exact_owned_frames() {
+        assert!(!cancel_frame_navigation(false, "about:blank"));
+        assert!(!cancel_frame_navigation(false, "https://example.invalid"));
+        assert!(!cancel_frame_navigation(true, "about:srcdoc"));
+        assert!(cancel_frame_navigation(true, "about:blank"));
+        assert!(cancel_frame_navigation(true, "https://example.invalid"));
     }
     #[test]
     fn exit_requires_retired_frontend_frames_without_a_legacy_registry() {

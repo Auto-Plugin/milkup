@@ -30,6 +30,26 @@ export function frontendLedgerClass(ProcessLedger) {
       assert(this.events.length < 1024, 'Bounded complete frontend evidence')
       const event = { ...value, productCreationFileTime: birth }
       this.events.push(event)
+      if (event.kind === 'frame-lifecycle') {
+        assert(Number.isSafeInteger(event.frameId) && event.frameId > 0)
+        assert(
+          [
+            'created',
+            'destroyed',
+            'navigation-start',
+            'dom-content-loaded',
+            'navigation-completed',
+          ].includes(event.stage),
+        )
+        if (event.ownerId !== null) nonce(event.ownerId)
+        assert(
+          event.detail &&
+            typeof event.detail === 'object' &&
+            JSON.stringify(event.detail).length <= 256,
+        )
+        // Diagnostic sequence cannot substitute for any boundary/release proof.
+        return
+      }
       if (event.kind === 'connection') {
         nonce(event.ownerId)
         assert(
