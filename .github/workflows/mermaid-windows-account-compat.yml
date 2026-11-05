@@ -225,6 +225,39 @@ jobs:
             }
           }
           if ($failures.Count) { throw ($failures -join "`n") }
+      - name: Stage completed product evidence before GUI regression
+        id: product_evidence
+        if: always() && steps.linked.outcome == 'success' && steps.source_gate.outcome == 'success'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $retained = Join-Path $env:RUNNER_TEMP 'mermaid-product-retained-early'
+          New-Item -ItemType Directory -Path $retained | Out-Null
+          $count = 0
+          foreach ($kind in @('pure-standard', 'filtered-admin')) {
+            $directory = Join-Path $env:RUNNER_TEMP "mermaid-account-$kind"
+            if (-not (Test-Path -LiteralPath $directory -PathType Container)) { continue }
+            foreach ($phase in @('checkout', 'desktop-check', 'final')) {
+              $name = 'mermaid-source-' + $phase + '.json'
+              Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP $name) -Destination (Join-Path $directory $name) -ErrorAction Stop
+            }
+            node tests/windows/stage-mermaid-evidence.mjs $directory (Join-Path $retained $kind) $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw "Early product evidence closed-name/type/hash review failed for $kind" }
+            $count++
+          }
+          if ($count -gt 0) {
+            "directory=$retained" >> $env:GITHUB_OUTPUT
+            'ready=true' >> $env:GITHUB_OUTPUT
+          }
+      - name: Retain product evidence without waiting for GUI completion
+        if: always() && steps.product_evidence.outputs.ready == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mermaid-product-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.product_evidence.outputs.directory }}/
+          retention-days: 7
+          compression-level: 6
+          if-no-files-found: error
+          include-hidden-files: false
       - name: Run independent GUI regression under both account kinds
         if: always() && steps.linked.outcome == 'success' && steps.source_gate.outcome == 'success'
         run: |
