@@ -1045,7 +1045,7 @@ export async function main() {
       'Natural-size diagram view after the real button click',
       10000,
     )
-    await stability(interaction, 2000)
+    await stability(interaction, 3000)
     const point = interaction.natural.wheelPoint
     assert(point.hit, 'Real diagram viewport receives wheel input')
     const deltaX = Math.ceil(
