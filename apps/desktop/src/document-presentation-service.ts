@@ -212,6 +212,7 @@ export function createDesktopDocumentPresentationService(
       let nativeUnitAdmitted = false
       let nativeCacheProgress = false
       let deferredNativeUnit = false
+      let resourceLimited = false
       const isPure = (declaration: DesktopDocumentRenderer) =>
         !declaration.contexts.includes('text') &&
         options.cacheableFence?.(declaration.pluginId, declaration.id) === true
@@ -225,6 +226,25 @@ export function createDesktopDocumentPresentationService(
               isPure(declaration) ? [input.source, input.width, input.theme, input.target] : input,
             ])
           : undefined
+      // Keep the current window's completed units alive across progressive paints.
+      // The eight-entry LRU is only for off-window reuse. Both kinds share the
+      // original 64 MiB charge and the existing aggregate fragment/image ceiling.
+      const activeFenceKeys = new Set<string>()
+      for (const block of request.blocks) {
+        if (block.kind !== 'fence' || !block.complete) continue
+        const language = (block.info ?? '').trim().split(/\s+/u)[0] ?? ''
+        for (const declaration of declarations) {
+          if (!isPure(declaration) || !declaration.fenceLanguages?.includes(language)) continue
+          activeFenceKeys.add(
+            fenceKey(declaration, {
+              ...request,
+              source: request.source.slice(block.from - request.from, block.to - request.from),
+            })!,
+          )
+        }
+      }
+      const inactiveKeys = () => [...fenceCache.keys()].filter((key) => !activeFenceKeys.has(key))
+      for (const key of inactiveKeys().slice(0, -8)) evict(key)
       const acceptedRenderers = new Map<DesktopDocumentRenderer, () => void>()
       const renderOne = async (
         declaration: DesktopDocumentRenderer,
@@ -305,13 +325,25 @@ export function createDesktopDocumentPresentationService(
           const limit = 64 * 1024 * 1024
           if (cost <= limit) {
             evict(cacheKey)
-            while (fenceCache.size >= 8 || cacheCost + cost > limit)
-              evict(fenceCache.keys().next().value!)
-            retainDocumentPngImages(result)
-            fenceCache.set(cacheKey, { result, cost, pure })
-            nativeCacheProgress ||= pure
-            cacheCost += cost
-          }
+            for (const key of inactiveKeys()) {
+              if (
+                fenceCache.size < DOCUMENT_PRESENTATION_LIMITS.fragments &&
+                cacheCost + cost <= limit
+              )
+                break
+              evict(key)
+            }
+            if (
+              fenceCache.size < DOCUMENT_PRESENTATION_LIMITS.fragments &&
+              cacheCost + cost <= limit
+            ) {
+              retainDocumentPngImages(result)
+              fenceCache.set(cacheKey, { result, cost, pure })
+              nativeCacheProgress ||= pure
+              cacheCost += cost
+              for (const key of inactiveKeys().slice(0, -8)) evict(key)
+            } else resourceLimited = true
+          } else resourceLimited = true
         }
         return result
       }
@@ -491,13 +523,15 @@ export function createDesktopDocumentPresentationService(
         request,
         result,
         declarations,
-        // Bound continuation to the cache's eight retained units. A changed
-        // viewport/input gets a new pass; unchanged over-budget input cannot
-        // cycle through eviction/re-render forever. Errors are never cached or
-        // retried by this path, and competition/aggregate rejection cannot loop.
-        ...(deferredNativeUnit && nativeCacheProgress && ++continuationPasses < 8
+        // Progress is monotonic within this window: retained active units are
+        // never evicted to admit another one. Each pass starts one new native
+        // unit, and the existing fragment ceiling bounds the whole sequence.
+        ...(deferredNativeUnit &&
+        nativeCacheProgress &&
+        ++continuationPasses < DOCUMENT_PRESENTATION_LIMITS.fragments
           ? { continueAfterPaint: true }
           : {}),
+        ...(resourceLimited ? { resourceLimited: true } : {}),
       }
     } finally {
       for (const result of owned) disposeDocumentPngImages(result)

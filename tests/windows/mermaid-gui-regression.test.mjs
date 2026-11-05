@@ -13,6 +13,7 @@ import {
   validateGuiClose,
   validateGuiObserver,
   validateGuiReport,
+  validateManyDiagrams,
   validateNativeWindowEvidence,
   validateNativeChildLifetimes,
   validateCurrentNativeResourceProof,
@@ -383,6 +384,49 @@ const samples = (duration = 75000, count = 1) =>
     imageSources: 'same-lease',
     notices: '[]',
   }))
+const manyProof = () =>
+  ['many', 'manyScroll'].map((name) => ({
+    name,
+    exactBytesUnchanged: true,
+    sourceOffsets: Array.from({ length: 12 }, (_, i) => i * 30),
+    visits: [...Array(12).keys(), 0, 11, 0].map((diagram, i) => ({
+      diagram,
+      from: diagram * 30,
+      png: { fullyDecoded: true, sha256: sha(String(diagram)) },
+      imageCount: 1,
+      samples: samples(3000),
+      wheelInputs: [{ deltaY: i === 12 || i === 14 ? -300 : 300 }],
+    })),
+  }))
+test('many-diagram evidence requires all twelve distinct previews, return scrolling and idle stability', () => {
+  assert(validateManyDiagrams(manyProof()))
+  for (const change of [
+    (rounds) => rounds[0].visits.splice(8, 1),
+    (rounds) => {
+      rounds[0].visits[8].png.sha256 = rounds[0].visits[0].png.sha256
+    },
+    (rounds) => {
+      rounds[0].visits[12].png.sha256 = sha('wrong')
+    },
+    (rounds) => {
+      rounds[0].visits[9].samples[1].admitted++
+    },
+    (rounds) => {
+      rounds[1].visits[10].samples[1].sourceVisible = true
+    },
+    (rounds) => {
+      rounds[1].visits.forEach((visit) => {
+        visit.wheelInputs = []
+      })
+    },
+  ]) {
+    const bad = manyProof()
+    change(bad)
+    assert.throws(() => validateManyDiagrams(bad))
+  }
+  for (const name of ['many', 'manyScroll'])
+    assert.equal((guiFixtures[name].match(/```mermaid/g) ?? []).length, 12)
+})
 const close = (kind) => ({
   kind,
   productPid: 42,
@@ -520,6 +564,7 @@ const passing = () => ({
     if (name === 'multi-diagram')
       Object.assign(step, {
         decodedImages: [{ fullyDecoded: true }, { fullyDecoded: true }],
+        manyDiagrams: manyProof(),
         samples: samples(10000, 2),
       })
     if (name === 'idle-close') step.close = close('idle')

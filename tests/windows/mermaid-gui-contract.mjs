@@ -94,6 +94,49 @@ export function validateStableSamples(samples, { durationMs, imageCount }) {
   return { durationMs: samples.at(-1).elapsedMs - first.elapsedMs, samples: samples.length }
 }
 
+export function validateManyDiagrams(rounds) {
+  assert(
+    Array.isArray(rounds) && rounds.length === 2,
+    'Compact and eviction-scroll documents required',
+  )
+  assert.deepEqual(
+    rounds.map((round) => round.name),
+    ['many', 'manyScroll'],
+  )
+  for (const round of rounds) {
+    assert.equal(round.exactBytesUnchanged, true)
+    assert.equal(round.sourceOffsets.length, 12)
+    assert.equal(new Set(round.sourceOffsets).size, 12)
+    assert.deepEqual(
+      round.visits.map((visit) => visit.diagram),
+      [...Array(12).keys(), 0, 11, 0],
+    )
+    for (const visit of round.visits) {
+      assert.equal(visit.from, round.sourceOffsets[visit.diagram])
+      assert(Number.isSafeInteger(visit.from) && visit.from >= 0)
+      assert.equal(visit.png.fullyDecoded, true)
+      assert.match(visit.png.sha256, /^[a-f0-9]{64}$/)
+      assert(Number.isSafeInteger(visit.imageCount) && visit.imageCount >= 1)
+      assert(Array.isArray(visit.wheelInputs) && visit.wheelInputs.length <= 80)
+      validateStableSamples(visit.samples, { durationMs: 3000, imageCount: visit.imageCount })
+    }
+    assert.equal(
+      new Set(round.visits.slice(0, 12).map((visit) => visit.png.sha256)).size,
+      12,
+      'Twelve distinct diagrams; a repeated first image cannot satisfy coverage',
+    )
+    assert(round.visits.some((visit) => visit.wheelInputs.some((input) => input.deltaY > 0)))
+    assert(round.visits.some((visit) => visit.wheelInputs.some((input) => input.deltaY < 0)))
+    for (const visit of round.visits.slice(12))
+      assert.equal(
+        visit.png.sha256,
+        round.visits[visit.diagram].png.sha256,
+        'Scroll return preserves diagram content',
+      )
+  }
+  return true
+}
+
 export function validateGuiClose(close, kind) {
   assert.equal(close.kind, kind)
   assert.equal(close.realUiCloseRequested, true)
@@ -1178,6 +1221,7 @@ export function validateGuiReport(report) {
   assert.equal(multi.decodedImages.length, 2)
   assert(multi.decodedImages.every((png) => png.fullyDecoded))
   validateStableSamples(multi.samples, { durationMs: 10000, imageCount: 2 })
+  if (validateGuiIdentity(report) === 'current-candidate') validateManyDiagrams(multi.manyDiagrams)
   validateGuiClose(report.steps.find((item) => item.name === 'idle-close').close, 'idle')
   validateGuiClose(report.steps.find((item) => item.name === 'busy-close').close, 'busy')
   validateGuiObserver(report.observerSummary)
@@ -1223,7 +1267,12 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
   if (validateGuiIdentity(report) === 'current-candidate')
     for (const job of jobs) validateCurrentNativeResourceProof(job)
   for (const step of report.steps) {
-    for (const png of [step.png, step.finalPng, ...(step.decodedImages ?? [])].filter(Boolean))
+    for (const png of [
+      step.png,
+      step.finalPng,
+      ...(step.decodedImages ?? []),
+      ...(step.manyDiagrams ?? []).flatMap((round) => round.visits.map((visit) => visit.png)),
+    ].filter(Boolean))
       ledger.matchPng(png.nativeMatch.productPid, png)
     if (step.close?.kind === 'busy') {
       for (const id of step.close.pendingRequestIds) {

@@ -319,3 +319,22 @@ it('paints a host partial before continuing and does not cache it as a completed
   await vi.advanceTimersByTimeAsync(20000)
   expect(provide).toHaveBeenCalledTimes(2)
 })
+
+it('explains a resource-limited partial and does not silently restart it', async () => {
+  const provide = vi.fn<DocumentPresentationConfig['provide']>((window) => ({
+    ...response(window),
+    result: { fragments: [], complete: false },
+    resourceLimited: true,
+  }))
+  make({ provide })
+  await vi.advanceTimersByTimeAsync(0)
+  expect(document.querySelector('[data-document-presentation-notice]')?.textContent).toContain(
+    '资源上限',
+  )
+  expect(document.querySelector('[data-document-presentation-notice]')?.textContent).toContain(
+    '滚动',
+  )
+  await vi.advanceTimersByTimeAsync(30000)
+  expect(provide).toHaveBeenCalledTimes(1)
+  expect(document.body.textContent).toContain('body')
+})

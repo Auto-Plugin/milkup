@@ -271,6 +271,22 @@ export const guiFixtures = Object.freeze({
   wide: fixtures.wide,
   multi:
     '# Two live diagrams\n\n```mermaid\nflowchart LR\nA[First] --> B[End]\n```\n\n```mermaid\nflowchart LR\nC[Second] --> D[End]\n```\n\nOutside both diagrams\n',
+  many:
+    '# Twelve consecutive diagrams\n\n' +
+    Array.from(
+      { length: 12 },
+      (_, i) => '```mermaid\nflowchart LR\nA[Diagram ' + (i + 1) + '] --> B[End]\n```\n\n',
+    ).join(''),
+  manyScroll:
+    '# Twelve diagrams across scroll windows\n\n' +
+    Array.from(
+      { length: 12 },
+      (_, i) =>
+        '```mermaid\nflowchart LR\nA[Scroll diagram ' +
+        (i + 1) +
+        '] --> B[End]\n```\n' +
+        '\n'.repeat(36),
+    ).join(''),
   busy: [
     '# Close during an admitted render',
     '',
@@ -909,7 +925,12 @@ export async function main() {
     return until(
       async () => {
         const value = await compact()
-        if (value.imageCount !== count || value.pending !== 0 || value.sourceVisible) {
+        if (
+          (count !== null && value.imageCount !== count) ||
+          value.imageCount < 1 ||
+          value.pending !== 0 ||
+          value.sourceVisible
+        ) {
           stable = undefined
           return false
         }
@@ -927,7 +948,7 @@ export async function main() {
       60000,
     )
   }
-  const decodeImages = async (name, expected = 1) => {
+  const decodeImages = async (name, expected = 1, indices) => {
     const images = (await state()).images
     assert.equal(images.length, expected)
     const results = []
@@ -941,7 +962,7 @@ export async function main() {
         'const image=images.find(e=>e.complete&&e.naturalWidth>0);',
         'const image=images[index];',
       )
-    for (let index = 0; index < expected; index++) {
+    for (const index of indices ?? Array.from({ length: expected }, (_, i) => i)) {
       const decoded = await request(
         'POST',
         `/session/${session}/execute/async`,
@@ -989,6 +1010,72 @@ export async function main() {
     // Validate after collecting the entire interval, retaining fallback/churn
     // evidence rather than abandoning the baseline after its first bad sample.
     return validateStableSamples(row.samples, { durationMs, imageCount })
+  }
+  const exerciseManyDiagrams = async (name, proof) => {
+    Object.assign(proof, { name, picker: await openFile(name), visits: [] })
+    const offsets = [...guiFixtures[name].matchAll(/```mermaid/g)].map((match) => match.index)
+    assert.equal(offsets.length, 12)
+    proof.sourceOffsets = offsets
+    for (const diagram of [...offsets.keys(), 0, 11, 0]) {
+      const from = offsets[diagram]
+      const visit = { diagram, from, wheelInputs: [] }
+      proof.visits.push(visit)
+      await until(
+        async () => {
+          const target = await execute(
+            `
+const root=document.querySelector('.milkup-editor'),b=root.getBoundingClientRect(),from=arguments[0];
+const p=document.querySelector('[data-document-presentation][data-presentation-from="'+from+'"]');
+const e=p??root.querySelector('.milkup-line[data-from="'+from+'"]');if(!e)return null;
+const r=e.getBoundingClientRect(),img=p?.querySelector('img');
+return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,innerHeight)-20,
+ decoded:!!img&&img.complete&&img.naturalWidth>0,scrollTop:root.scrollTop,
+ x:Math.round(b.left+Math.min(30,b.width/2)),centerY:Math.round((Math.max(0,b.top)+Math.min(innerHeight,b.bottom))/2)};`,
+            from,
+          )
+          assert(target, 'Public source or preview node exists for diagram ' + diagram)
+          if (target.visible) return target.decoded
+          const deltaY = Math.round(Math.max(-600, Math.min(600, target.y - target.centerY)))
+          assert.notEqual(deltaY, 0)
+          assert(visit.wheelInputs.length < 80, 'Bounded real scroll traversal')
+          visit.wheelInputs.push({ fromScrollTop: target.scrollTop, deltaY })
+          await request('POST', `/session/${session}/actions`, {
+            actions: [
+              {
+                type: 'wheel',
+                id: 'many-wheel',
+                actions: [
+                  {
+                    type: 'scroll',
+                    origin: 'viewport',
+                    x: target.x,
+                    y: target.centerY,
+                    deltaX: 0,
+                    deltaY,
+                    duration: 100,
+                  },
+                ],
+              },
+            ],
+          })
+          return false
+        },
+        'Real scroll reaches decoded diagram ' + (diagram + 1),
+        60000,
+      )
+      const snapshot = await settle(null)
+      const index = await execute(
+        `return [...document.querySelectorAll('[data-document-presentation] img')].findIndex(e=>Number(e.closest('[data-document-presentation]').dataset.presentationFrom)===arguments[0]);`,
+        from,
+      )
+      assert(index >= 0, 'Requested diagram remains mounted after settling')
+      visit.png = (await decodeImages(name, snapshot.imageCount, [index]))[0]
+      visit.imageCount = snapshot.imageCount
+      await stability(visit, 3000, snapshot.imageCount)
+      await persist()
+    }
+    proof.exactBytesUnchanged = await exactBytes(name)
+    return proof
   }
   const screenshot = async (name) => {
     const bytes = Buffer.from(await request('GET', `/session/${session}/screenshot`), 'base64')
@@ -1385,6 +1472,14 @@ export async function main() {
       row.decodedImages = await decodeImages('multi', 2)
       await stability(row, 10000, 2)
       row.exactBytesUnchanged = await exactBytes('multi')
+      if (report.identityKind === 'current-candidate') {
+        row.manyDiagrams = []
+        for (const name of ['many', 'manyScroll']) {
+          const proof = { name, visits: [] }
+          row.manyDiagrams.push(proof)
+          await exerciseManyDiagrams(name, proof)
+        }
+      }
     })
     await step('idle-close', (row) => closeProduct('idle', row))
     await step('busy-close', async (row) => {

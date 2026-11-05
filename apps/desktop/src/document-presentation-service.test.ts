@@ -576,10 +576,26 @@ describe('viewport-prioritized bounded fence presentation', () => {
     expect(release).toHaveBeenCalledTimes(3)
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
-  it('bounds an unchanged native window and admits newly visible work without an eviction loop', async () => {
+  it('finishes twelve distinct diagrams and reuses them across scrolls; evicted windows resume without churn', async () => {
     const f = fixture(
-      Array.from({ length: 9 }, (_, i) => '```diagram\n' + i + '\n```\n').join('\n'),
+      Array.from({ length: 32 }, (_, i) => '```diagram\n' + i + '\n```\n').join('\n'),
     )
+    const offsets = [...f.window.source.matchAll(/```diagram/g)].map((match) => match.index!)
+    const windowFor = (start: number) => {
+      const from = offsets[start]!,
+        to = offsets[start + 12] ?? f.window.to
+      const source = f.window.source.slice(from, to)
+      return {
+        ...f.window,
+        from,
+        to,
+        source,
+        fromLine: f.window.source.slice(0, from).split('\n').length,
+        toLine: f.window.source.slice(0, to).split('\n').length,
+        completeStart: from === 0,
+        completeEnd: to === f.window.to,
+      }
+    }
     const release = vi.fn()
     const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) => ({
       complete: true,
@@ -600,29 +616,85 @@ describe('viewport-prioritized bounded fence presentation', () => {
       cacheableFence: () => true,
       render,
     })
-    try {
-      for (let pass = 0; pass < 8; pass++) {
-        const response = await service.provide(f.window, { signal: new AbortController().signal })
-        expect(response.continueAfterPaint === true).toBe(pass < 7)
-        expect(response.result.complete).toBe(false)
-        expect(render).toHaveBeenCalledTimes(pass + 1)
+    const finish = async (
+      window: ReturnType<typeof windowFor> & { visibleFrom?: number; visibleTo?: number },
+    ) => {
+      for (let pass = 0; pass < 12; pass++) {
+        const before = render.mock.calls.length
+        const response = await service.provide(window, { signal: new AbortController().signal })
+        expect(render.mock.calls.length - before).toBeLessThanOrEqual(1)
+        const count = response.result.fragments.length
+        const complete = response.result.complete
         disposeDocumentPngImages(response.result)
+        if (!response.continueAfterPaint) {
+          expect(complete).toBe(true)
+          expect(count).toBe(12)
+          return
+        }
       }
-      expect(documentPngResourceStats().images).toBe(8)
-      const ninth = f.window.source.lastIndexOf('```diagram')
-      const response = await service.provide(
-        { ...f.window, visibleFrom: ninth, visibleTo: f.window.to },
-        { signal: new AbortController().signal },
-      )
-      expect(render).toHaveBeenCalledTimes(9)
-      expect(render.mock.calls[8]![2].from).toBe(ninth)
-      expect(response.result.fragments.some((fragment) => fragment.from === ninth)).toBe(true)
-      disposeDocumentPngImages(response.result)
-      expect(documentPngResourceStats().images).toBe(8)
+      throw new Error('Native window did not converge')
+    }
+    try {
+      const first = windowFor(0)
+      await finish(first)
+      expect(render).toHaveBeenCalledTimes(12)
+      await finish({ ...first, visibleFrom: offsets[11]!, visibleTo: first.to })
+      await finish(first)
+      expect(render).toHaveBeenCalledTimes(12)
+      await finish(windowFor(20))
+      expect(render).toHaveBeenCalledTimes(24)
+      expect(documentPngResourceStats().images).toBe(20) // 12 active + 8 off-window.
+      await finish(first)
+      expect(render).toHaveBeenCalledTimes(28) // Only four actually evicted units.
+      await finish(first)
+      expect(render).toHaveBeenCalledTimes(28)
+      expect(documentPngResourceStats().images).toBe(20)
     } finally {
       service.clear()
     }
-    expect(release).toHaveBeenCalledTimes(9)
+    expect(release).toHaveBeenCalledTimes(28)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('stops progressive work at the shared byte budget without evicting and rerendering active diagrams', async () => {
+    const f = fixture(
+      Array.from({ length: 5 }, (_, i) => '```diagram\n' + i + '\n```\n').join('\n'),
+    )
+    const bytes = squarePng(2048),
+      release = vi.fn()
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block' as const,
+          accessibleText: 'large',
+          content: createDocumentPngImage({ bytes, width: 2048, height: 2048, release }),
+        },
+      ],
+    }))
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      cacheableFence: () => true,
+      render,
+    })
+    try {
+      for (let pass = 0; pass < 4; pass++) {
+        const response = await service.provide(f.window, { signal: new AbortController().signal })
+        expect(render).toHaveBeenCalledTimes(pass + 1)
+        expect(response.continueAfterPaint === true).toBe(pass < 3)
+        expect(response.resourceLimited === true).toBe(pass === 3)
+        expect(response.result.complete).toBe(false)
+        disposeDocumentPngImages(response.result)
+      }
+      expect(documentPngResourceStats().images).toBe(3)
+      expect(release).toHaveBeenCalledTimes(1)
+    } finally {
+      service.clear()
+    }
+    expect(release).toHaveBeenCalledTimes(4)
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
   it('runs every native competitor before rejecting overlap within a batch', async () => {

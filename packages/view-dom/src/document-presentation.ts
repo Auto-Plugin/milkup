@@ -44,6 +44,8 @@ export interface DocumentPresentationWindow {
 export interface DocumentPresentationResponse {
   /** Host-only progressive work; never copied from a plugin result. */
   readonly continueAfterPaint?: boolean
+  /** Host resource admission stopped; source stays available. */
+  readonly resourceLimited?: boolean
   readonly request: DocumentPresentationRequest
   readonly declarations: readonly DocumentRendererDeclaration[]
   readonly result: DocumentPresentationResult
@@ -943,6 +945,7 @@ export class DocumentPresentation {
               result,
               declarations: response.declarations,
               ...(response.continueAfterPaint === true ? { continueAfterPaint: true } : {}),
+              ...(response.resourceLimited === true ? { resourceLimited: true } : {}),
             },
           }
           transferred = true
@@ -1507,7 +1510,13 @@ export class DocumentPresentation {
         } else line.style.minHeight = '1em'
       }
       if (!response.result.complete)
-        this.fallback('部分内容暂未生成预览，已保留对应 Markdown 源码。')
+        this.fallback(
+          response.resourceLimited
+            ? '当前预览已达到资源上限；请滚动到未显示的图表继续预览，源码已保留。'
+            : response.continueAfterPaint
+              ? '正在逐步生成图表预览，已完成的图表可继续阅读。'
+              : '部分内容暂未生成预览，已保留对应 Markdown 源码。',
+        )
       const snapshot = this.snapshot()
       const previousBlocks =
         this.blocksIdentity === snapshot.sourceIdentity &&
