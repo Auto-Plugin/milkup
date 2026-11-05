@@ -204,3 +204,14 @@ passed 71 tests. `frontend-browser-corpus.json` records each corpus PNG hash,
 geometry and the tested fixed-frame hash. Current normal browser suite is 20/20.
 These remain Chromium checks; Windows frontend acceptance is still pending/failing,
 and there is no hard-termination or per-frame OS-memory guarantee.
+
+
+## Windows frontend first run and production parent-DOM check (2026-11-05)
+
+Run `42111470436` / `977735af` completed failure. Both accounts enabled reviewed Diagrams 1.3.0 but failed the first decoded PNG. All later GUI render phases likewise timed out; the raw product logs contain no main-probe, rejected child message, admitted request, or rendering record. This is insufficient to identify which connection check failed. Both real close paths also panicked on the unmanaged legacy `milkup_mermaid_engine::Registry` and exited 101. Commit `371e6dda` removes those two legacy exit accesses and adds bounded native connection-stage diagnostics; its run `42114193342` remains separate and had not reached product validation when this note was written.
+
+The compressed idle/busy logs from artifact `13455009627` were restored with exact per-chunk and raw byte/hash checks. Their failure evidence is retained locally in `/tmp/frontend421114-verified-summary.json`. No frontend Windows rendering or cleanup pass is claimed from that run.
+
+Commit `9313da55` ensures the observer's owned stdin closes even when explicit stop/report parsing fails; two actual Node child-process tests preserve the original failure and verify EOF/exit. This fixes a static failure-finalization leak, without claiming it caused the Windows failure above.
+
+Commit `6d1f524c` requires the fixed production frame to attempt reading the parent DOM and report `parentDomReadable=false` over its private port before native probes. The native audit accepts only bounded boolean metadata; final acceptance rejects missing/readable parent evidence and missing frame inventory. Local checks: packaged-owner Chromium 20/20, frontend ledger 5/5, Rust metadata 3/3, TypeScript check passed. This change is not in run `42114193342` and still requires real Windows evidence.
