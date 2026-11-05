@@ -23,16 +23,17 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 mod appearance_theme;
 mod appearance_theme_store;
+mod frontend_mermaid_guard;
 mod native_search;
-mod private_mermaid;
-#[cfg(target_os = "linux")]
-pub mod private_mermaid_linux;
 pub mod output;
 mod piece_tree;
 mod plugin_catalog;
 pub mod plugin_dom;
 mod plugin_icon;
 mod plugin_sidecar;
+mod private_mermaid;
+#[cfg(target_os = "linux")]
+pub mod private_mermaid_linux;
 use plugin_sidecar::{SidecarEvent, SidecarRegistry, SidecarStarted};
 mod recovery;
 mod recovery_storage;
@@ -1010,12 +1011,26 @@ fn unwatch_markdown_file(
     Ok(true)
 }
 
+#[tauri::command]
+fn frontend_mermaid_guard_status(
+    registry: State<frontend_mermaid_guard::Registry>,
+) -> serde_json::Value {
+    registry.status()
+}
+#[tauri::command]
+fn frontend_mermaid_probe(
+    registry: State<frontend_mermaid_guard::Registry>,
+    nonce: String,
+) -> Result<serde_json::Value, String> {
+    registry.probe(&nonce)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
+        .manage(frontend_mermaid_guard::Registry::default())
         .manage(SidecarRegistry::default())
         .manage(plugin_dom::DomRegistry::default())
-        .manage(milkup_mermaid_engine::Registry::default())
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
         .manage(updates::UpdateService::default())
@@ -1023,6 +1038,22 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
+            #[cfg(windows)]
+            {
+                let registry = app
+                    .state::<frontend_mermaid_guard::Registry>()
+                    .inner()
+                    .clone();
+                app.get_webview_window("main")
+                    .ok_or("Main WebView missing")?
+                    .with_webview(move |webview| {
+                        let result = unsafe { webview.controller().CoreWebView2() }
+                            .and_then(|view| frontend_mermaid_guard::install(&view, registry));
+                        if result.is_err() {
+                            eprintln!("MILKUP_FRONTEND_BOUNDARY guard unavailable");
+                        }
+                    })?;
+            }
             app.manage(recovery::RecoveryStore::new(
                 app.path().app_data_dir()?.join("recovery-v1"),
             ));
@@ -1033,12 +1064,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            private_mermaid::private_mermaid_render,
-            private_mermaid::private_mermaid_trace,
-            private_mermaid::private_mermaid_cancel,
-            private_mermaid::private_mermaid_release,
-            private_mermaid::private_mermaid_retire_owner,
-            private_mermaid::private_mermaid_shutdown,
+            frontend_mermaid_guard_status,
+            frontend_mermaid_probe,
             appearance_theme::appearance_theme_load,
             appearance_theme::appearance_theme_read_candidate,
             appearance_theme::appearance_theme_commit_candidate,

@@ -50,7 +50,7 @@ $sourceReceiptPath = Join-Path $EvidenceDirectory 'source-acceptance-run.json'
 Write-NewJson $sourceReceiptPath (($sourceRunJson -join "`n") | ConvertFrom-Json)
 Checked node @('scripts/ci/verify-mermaid-source-acceptance.mjs', $sourceReceiptPath, $AcceptedSourceRunId, $AcceptedSourceSha)
 Checked git @('merge-base', '--is-ancestor', $AcceptedSourceSha, $sha)
-Checked git @('diff', '--exit-code', $AcceptedSourceSha, $sha, '--', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'packages/core/src', 'packages/view-dom/src', 'plugins/diagrams-worker')
+Checked git @('diff', '--exit-code', $AcceptedSourceSha, $sha, '--', 'vendor/wry', 'apps/desktop/src-tauri/Cargo.toml', 'apps/desktop/src-tauri/Cargo.lock', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/vite.config.ts', 'apps/desktop/src-tauri/mermaid-engine', 'apps/desktop/src-tauri/src', 'apps/desktop/src', 'packages/core/src', 'packages/view-dom/src', 'plugins/diagrams-worker')
 $dirty = @(git status --porcelain=v1 --untracked-files=all)
 if ($LASTEXITCODE -ne 0 -or $dirty.Count -ne 0) { throw 'Packaging requires a strictly clean checkout' }
 Checked node @('scripts/check-versions.mjs')

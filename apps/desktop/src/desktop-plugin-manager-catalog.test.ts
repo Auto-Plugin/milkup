@@ -1,3 +1,4 @@
+import { createPrivateMermaidOwner } from './private-mermaid-service'
 import { describe, it, expect, vi } from 'vitest'
 const fileWrites = vi.hoisted(() => vi.fn())
 vi.mock('./plugin-file-broker', async () => {
@@ -251,7 +252,7 @@ describe('private fixed Mermaid package authorization', () => {
         ? { bundledPackagePaths: async () => ['bundled:test.lifecycle-1.3.0.milkup-plugin'] }
         : {}),
       privateMermaid: {
-        invoke,
+        createOwner: () => createPrivateMermaidOwner(invoke),
         reviewed: {
           pluginId: 'test.lifecycle',
           rendererId: 'diagram',

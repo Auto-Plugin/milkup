@@ -1,3 +1,4 @@
+import { createFrontendMermaidOwner } from './frontend-mermaid-service'
 import { formatDisplayPath } from './display-path'
 import { recoveryStatusText } from './recovery-status-presentation'
 import { LargeDocumentSource } from './large-document-source'
@@ -1510,11 +1511,11 @@ const desktopOutput = createDesktopOutputService({
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
-  ...(isTauriRuntime()
-    ? {
-        privateMermaid: { invoke: recoveryInvoke, reviewed: REVIEWED_MERMAID_PACKAGE },
-      }
-    : {}),
+  privateMermaid: {
+    createOwner: () =>
+      createFrontendMermaidOwner(isTauriRuntime() ? { nativeGuard: recoveryInvoke } : {}),
+    reviewed: REVIEWED_MERMAID_PACKAGE,
+  },
   reservedPluginIds: ['milkup.updates'],
   bundledUpgradeSources: {
     'milkup.diagrams': [
@@ -5404,8 +5405,6 @@ async function invokeWindowClose(): Promise<void> {
       setDocumentLoadingState({ phase: 'ready' })
       return
     }
-    const { invoke } = await import('@tauri-apps/api/core')
-    await invoke('private_mermaid_shutdown')
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     await desktopPluginManager.disposeTemporaryStorage()
     await getCurrentWindow().destroy()

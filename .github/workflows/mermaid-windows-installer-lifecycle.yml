@@ -80,7 +80,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
           git merge-base --is-ancestor $env:ACCEPTED_SOURCE_SHA HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Accepted source is not an ancestor of this installer candidate' }
-          git diff --exit-code $env:ACCEPTED_SOURCE_SHA HEAD -- apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
+          git diff --exit-code $env:ACCEPTED_SOURCE_SHA HEAD -- vendor/wry apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.lock apps/desktop/src-tauri/tauri.conf.json apps/desktop/vite.config.ts apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed native, renderer or Diagrams implementation changed before packaging' }
           $dirty = @(git status --porcelain)
           if ($LASTEXITCODE -ne 0 -or $dirty.Count) { throw 'Dirty candidate checkout' }

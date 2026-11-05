@@ -12,11 +12,8 @@ import {
 import { iconSvg } from './icons'
 import { disposeDocumentPngImages } from '@milkup/core/internal/document-png-image'
 import { DocumentPresentationError } from '@milkup/core'
-import {
-  createPrivateMermaidOwner,
-  privateMermaidFailureMessage,
-  type PrivateMermaidInvoke,
-} from './private-mermaid-service'
+import { privateMermaidFailureMessage } from './private-mermaid-service'
+import type { FrontendMermaidOwner } from './frontend-mermaid-service'
 import type {
   ActionContext,
   ActionDefinition,
@@ -234,7 +231,7 @@ export interface DesktopPluginKeymapContext {
 export interface DesktopPluginManagerOptions {
   /** Closed desktop implementation; never supplied by a plugin manifest or RPC. */
   readonly privateMermaid?: {
-    readonly invoke: PrivateMermaidInvoke
+    readonly createOwner: () => FrontendMermaidOwner
     readonly reviewed: {
       readonly pluginId: string
       readonly rendererId: string
@@ -390,11 +387,11 @@ export class DesktopPluginManager {
     {
       readonly epoch: number
       readonly generation: string
-      readonly owner: ReturnType<typeof createPrivateMermaidOwner>
+      readonly owner: FrontendMermaidOwner
     }
   >()
   private documentRenderersClosing = false
-  private readonly retiringMermaidOwners = new Set<ReturnType<typeof createPrivateMermaidOwner>>()
+  private readonly retiringMermaidOwners = new Set<FrontendMermaidOwner>()
   private readonly catalog: DesktopPluginCatalog | undefined
   private readonly reservedPluginIds: ReadonlySet<string>
   private readonly hostPermissions: ReadonlySet<string>
@@ -1780,7 +1777,7 @@ export class DesktopPluginManager {
         let owned = this.mermaidOwners.get(pluginId)
         if (!owned || owned.epoch !== identity.epoch || owned.generation !== identity.generation) {
           this.retireMermaidOwner(pluginId)
-          owned = { ...identity, owner: createPrivateMermaidOwner(config.invoke) }
+          owned = { ...identity, owner: config.createOwner() }
           this.mermaidOwners.set(pluginId, owned)
         }
         let result: DocumentPresentationResult
@@ -1856,7 +1853,7 @@ export class DesktopPluginManager {
     this.retiringOperations.set(pluginId, operations)
   }
 
-  private async settleMermaidOwner(owner: ReturnType<typeof createPrivateMermaidOwner>) {
+  private async settleMermaidOwner(owner: FrontendMermaidOwner) {
     this.retiringMermaidOwners.add(owner)
     await owner.retire({ cancelActive: this.documentRenderersClosing })
     this.retiringMermaidOwners.delete(owner)
