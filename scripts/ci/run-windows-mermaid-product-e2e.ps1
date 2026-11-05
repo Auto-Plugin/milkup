@@ -82,7 +82,11 @@ function Assert-Contained([string]$Path, [string]$Root) {
 # Windows/.NET, empty string is an existing value and is not equivalent to null.
 function Set-ProcessEnvironmentValue([string]$Name, [AllowNull()][object]$Value) {
     if ($null -eq $Value) {
-        [Environment]::SetEnvironmentVariable($Name, $null, 'Process')
+        # PowerShell's .NET string binding can coerce literal $null to ''.
+        # Delete through the process-only provider instead of that method call.
+        $path = 'Env:' + $Name
+        if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -ErrorAction Stop }
+        if (Test-Path -LiteralPath $path) { throw 'Optional process environment input was not removed' }
     } else {
         [Environment]::SetEnvironmentVariable($Name, [string]$Value, 'Process')
     }

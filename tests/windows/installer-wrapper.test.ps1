@@ -30,6 +30,7 @@ Case 'actual child receives absent optional inventory after null removal, not an
         $json = & node -e 'process.stdout.write(JSON.stringify({present:Object.hasOwn(process.env,"MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY"),value:process.env.MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY??null}))'
         Assert-True ($LASTEXITCODE -eq 0) 'Environment probe child failed'
         $child = $json | ConvertFrom-Json
+        Write-Host ('MILKUP_OPTIONAL_ENV_NULL_CHILD ' + ($child | ConvertTo-Json -Compress))
         Assert-True (-not $child.present -and $null -eq $child.value) 'Null became an empty or inherited child input'
         Set-ProcessEnvironmentValue $name ''
         $json = & node -e 'process.stdout.write(JSON.stringify({present:Object.hasOwn(process.env,"MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY"),value:process.env.MILKUP_TEST_OPTIONAL_PLUGIN_INVENTORY??null}))'
