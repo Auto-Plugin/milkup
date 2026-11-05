@@ -489,12 +489,21 @@ export function validateNativeChildLifetimes(raw, { allowLegacyChildLifetimes = 
       'Native event time must independently unwrap within 2000 ms',
     )
   }
-  assert(Array.isArray(raw.windowLifetimes) && raw.windowLifetimes.length <= 2048)
+  const archived = raw.lifetimeArchiveVersion === 1
+  if (raw.lifetimeArchiveVersion !== undefined) assert.equal(raw.lifetimeArchiveVersion, 1)
+  assert(
+    Array.isArray(raw.windowLifetimes) && raw.windowLifetimes.length <= (archived ? 8192 : 2048),
+  )
   assert(Array.isArray(raw.childShowEvidence) && raw.childShowEvidence.length <= 128)
   assert(Array.isArray(raw.processes) && raw.processes.length <= 256)
   assert(Array.isArray(raw.events) && raw.events.length <= 2048)
   const total = raw.events.length + raw.windowLifetimes.length + raw.childShowEvidence.length
-  assert(total <= 2048, 'All native event and lifetime records share the existing 2048 budget')
+  if (archived)
+    assert(
+      raw.events.length + raw.childShowEvidence.length <= 2048,
+      'Live event evidence remains bounded independently of archived generations',
+    )
+  else assert(total <= 2048, 'All native event and lifetime records share the existing 2048 budget')
   assert.equal(raw.sharedRecordCount, total)
   const processes = new Map()
   for (const process of raw.processes) {
@@ -1368,6 +1377,36 @@ export function verifyGuiEvidence(report, nativeBytes, windowBytes) {
       }
     }
   }
+  for (const step of report.steps)
+    for (const round of step.manyDiagrams ?? [])
+      for (const visit of round.visits) {
+        if (visit.nativeRequestsDuringVisit === undefined) continue
+        assert.equal(
+          visit.nativeRequestsAfter - visit.nativeRequestsBefore,
+          visit.nativeRequestsDuringVisit.length,
+        )
+        assert.equal(visit.nativeRequestsAfter, visit.samples.at(-1).admitted)
+        assert.equal(
+          new Set(visit.nativeRequestsDuringVisit.map((item) => item.requestId)).size,
+          visit.nativeRequestsDuringVisit.length,
+        )
+        for (const item of visit.nativeRequestsDuringVisit) {
+          const actual = jobs.find(
+            (job) =>
+              job.productPid === visit.png.nativeMatch.productPid &&
+              job.requestId === item.requestId,
+          )
+          assert(actual?.finished, 'Visit request must match a completed original native record')
+          assert.equal(item.pngSha256, actual.finished.pngSha256 ?? null)
+          assert.equal(item.successful, actual.finished.successful ?? false)
+        }
+        assert.deepEqual(
+          visit.targetMatchedNewRequestIds,
+          visit.nativeRequestsDuringVisit
+            .filter((item) => item.successful && item.pngSha256 === visit.png.sha256)
+            .map((item) => item.requestId),
+        )
+      }
   const windows = JSON.parse(decodeGuiEvidence(windowBytes, 'window'))
   validateNativeWindowEvidence(windows, report.observerSummary, {
     allowLegacyDesktopBounds: validateGuiIdentity(report) === 'delivered-beta9-baseline',

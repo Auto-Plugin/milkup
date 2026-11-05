@@ -1855,3 +1855,37 @@ test('compressed evidence cannot conceal decompression beyond its independent bo
   encoded.rawBytes = 1
   assert.throws(() => decodeGuiEvidence(Buffer.from(JSON.stringify(encoded)), 'product-log'))
 })
+
+test('retired lifetime history does not consume live event slots and keeps every strict generation proof', () => {
+  const raw = childLifetimeEvidence()
+  raw.lifetimeArchiveVersion = 1
+  raw.observationStoppedAtTick = 10000
+  const event = (sequence, tick) => ({
+    sequence,
+    nativeTick: tick,
+    callbackTick: tick,
+    nativeEventUptimeMs32: tick,
+    eventThreadId: 11,
+  })
+  for (let i = 0; i < 2300; i++) {
+    const tick = 3000 + i * 3
+    raw.windowLifetimes.push({
+      id: i + 3,
+      hwnd: '0x' + (1000 + i).toString(16),
+      generation: 1,
+      create: event(100 + i * 2, tick),
+      confirmation: null,
+      retirement: { ...event(101 + i * 2, tick + 1), reason: 'destroy', parentLifeId: null },
+      proofReleasedAtTick: tick + 1,
+    })
+  }
+  raw.sharedRecordCount =
+    raw.events.length + raw.windowLifetimes.length + raw.childShowEvidence.length
+  validateNativeChildLifetimes(raw)
+  const bad = structuredClone(raw)
+  bad.windowLifetimes[100].retirement = null
+  assert.throws(() => validateNativeChildLifetimes(bad))
+  const oversized = structuredClone(raw)
+  oversized.windowLifetimes = Array(8193).fill(raw.windowLifetimes[0])
+  assert.throws(() => validateNativeChildLifetimes(oversized))
+})

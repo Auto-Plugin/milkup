@@ -1034,6 +1034,12 @@ export async function main() {
         startedAt: new Date().toISOString(),
         stage: 'seek',
       }
+      const priorRequestIds = new Set(
+        [...ledger.jobs.values()]
+          .filter((job) => job.productPid === product.pid)
+          .map((job) => job.requestId),
+      )
+      visit.nativeRequestsBefore = priorRequestIds.size
       proof.visits.push(visit)
       await persist()
       await until(
@@ -1096,6 +1102,18 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       visit.stage = 'stability'
       await persist()
       await stability(visit, 3000, snapshot.imageCount, true)
+      const currentJobs = [...ledger.jobs.values()].filter((job) => job.productPid === product.pid)
+      visit.nativeRequestsAfter = currentJobs.length
+      visit.nativeRequestsDuringVisit = currentJobs
+        .filter((job) => !priorRequestIds.has(job.requestId))
+        .map((job) => ({
+          requestId: job.requestId,
+          pngSha256: job.finished?.pngSha256 ?? null,
+          successful: job.finished?.successful ?? false,
+        }))
+      visit.targetMatchedNewRequestIds = visit.nativeRequestsDuringVisit
+        .filter((job) => job.successful && job.pngSha256 === visit.png.sha256)
+        .map((job) => job.requestId)
       visit.stage = 'complete'
       visit.finishedAt = new Date().toISOString()
       await persist()

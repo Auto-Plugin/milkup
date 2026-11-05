@@ -15,6 +15,7 @@ using System.Threading;
 public sealed class WindowsMermaidGuiObserver : IDisposable
 {
     const int MaxEvents = 2048, MaxProcesses = 256, MaxWindows = 256;
+    const int MaxLifetimeHistory = 4 * MaxEvents; // Independent bounded immutable history; not queue slots.
     const uint CreateEvent = 0x8000, DestroyEvent = 0x8001, ShowEvent = 0x8002, HideEvent = 0x8003;
     readonly object gate = new object();
     readonly Stopwatch clock = Stopwatch.StartNew();
@@ -319,7 +320,11 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         }
     }
     int SharedRecordCount() { return events.Count + windowLives.Count + childShowEvidence.Count; }
-    bool HasRecordRoom() { if (SharedRecordCount() < MaxEvents) return true; MarkOverflow("shared-event-lifetime-budget"); return false; }
+    bool HasRecordRoom() {
+        if (events.Count + childShowEvidence.Count >= MaxEvents) { MarkOverflow("event-evidence-budget"); return false; }
+        if (windowLives.Count >= MaxLifetimeHistory) { MarkOverflow("lifetime-archive-budget"); return false; }
+        return true;
+    }
     WindowLife CurrentLife(IntPtr hwnd) {
         for (int index = windowLives.Count - 1; index >= 0; index--) if (windowLives[index].Hwnd == hwnd) return windowLives[index];
         return null;
@@ -333,10 +338,10 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
     void ReleaseLife(WindowLife life, long tick) { if (life.Released.HasValue) return; if (life.Identity != null) { life.Identity.Dispose(); life.Identity = null; } life.Released = tick; }
     void ExpireRetiredLives(long tick) {
         foreach (WindowLife life in windowLives) if (!life.Released.HasValue && life.Retirement != null && tick - Number(life.Retirement, "callbackTick") > 2000) ReleaseLife(life, tick);
-        // Cache hints do not prove historical identity. Discard only dead child
+        // Cache hints do not prove historical identity. Discard dead window
         // hints; immutable CREATE/SHOW evidence and any held proof remain intact.
         var deadChildren = new List<long>();
-        foreach (var pair in previous) if (pair.Value.KnownChild && !IsWindow(pair.Value.Handle)) deadChildren.Add(pair.Key);
+        foreach (var pair in previous) if (!IsWindow(pair.Value.Handle)) deadChildren.Add(pair.Key);
         foreach (long key in deadChildren) previous.Remove(key);
     }
     void RetireLife(WindowLife life, Dictionary<string, object> source, string reason, long? parent) {
@@ -553,7 +558,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         bool drain = Interlocked.CompareExchange(ref processingNativeNotice, 1, 0) == 0;
         try {
             var notice = new NativeNotice { Kind = kind, Hwnd = hwnd, Tid = tid, Time = time, Order = order, Tick = NativeTick() };
-            lock (gate) { if (nativeNotices.Count + SharedRecordCount() >= MaxEvents) { MarkOverflow("native-event-queue-budget"); return; } nativeNotices.Enqueue(notice); }
+            lock (gate) { if (nativeNotices.Count >= MaxEvents) { MarkOverflow("native-event-queue-budget"); return; } nativeNotices.Enqueue(notice); }
             if (!drain) return;
             while (true) {
                 lock (gate) {
@@ -1131,7 +1136,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             var lifeRows = new List<Dictionary<string, object>>(); foreach (WindowLife life in windowLives) lifeRows.Add(life.Record());
             var tracked = new List<Dictionary<string, object>>(); foreach (Product product in products) tracked.Add(new Dictionary<string, object> { { "pid", product.Pid }, { "image", product.Image }, { "creationFileTime", product.Creation.ToString() }, { "heldProcessSignaledAtStop", WaitForSingleObject(product.Handle, 0) == 0 } });
             var processRows = new List<Dictionary<string, object>>(); foreach (ProcessFact process in processEvidence.Values) processRows.Add(new Dictionary<string, object> { { "pid", process.Pid }, { "parentPid", process.Parent }, { "creationFileTime", process.Creation.ToString() }, { "image", process.Image } });
-            return new Dictionary<string, object> { { "nativeDiagnostics", nativeDiagnostics.ToArray() }, { "nativeDiagnosticsTruncated", nativeDiagnosticsTruncated }, { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "retiredChildHints", retiredChildHints }, { "productMeasurements", productMeasurements.ToArray() }, { "productWindowOperations", productWindowOperations.ToArray() }, { "productWindowReadiness", productWindowReadiness.ToArray() }, { "filePickerOperations", filePickerOperations.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "knownWindowShowEvents", knownWindowShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false }, { "childLifeVersion", 1 }, { "windowLifetimes", lifeRows.ToArray() }, { "childShowEvidence", childShowEvidence.ToArray() }, { "observationStoppedAtTick", observationStoppedAtTick }, { "workingGenerationPeak", workingGenerationPeak }, { "sharedRecordCount", SharedRecordCount() } };
+            return new Dictionary<string, object> { { "nativeDiagnostics", nativeDiagnostics.ToArray() }, { "nativeDiagnosticsTruncated", nativeDiagnosticsTruncated }, { "schema", 1 }, { "complete", joined && samplerJoined && errors.Count == 0 && !overflow }, { "positiveControlPassed", positive != null && positive.ContainsKey("passed") && (bool)positive["passed"] }, { "context", desktopContext }, { "positiveControl", positive }, { "events", events.ToArray() }, { "processes", processRows.ToArray() }, { "trackedProducts", tracked.ToArray() }, { "productVisibleConsoleCount", visibleProductConsoles.Count }, { "unattributedVisibleConsoleCount", visibleUnknownConsoles.Count }, { "overflow", overflow }, { "overflowReasons", new List<string>(overflowReasons).ToArray() }, { "unresolvedEvents", unresolvedEvents.ToArray() }, { "retiredChildHints", retiredChildHints }, { "productMeasurements", productMeasurements.ToArray() }, { "productWindowOperations", productWindowOperations.ToArray() }, { "productWindowReadiness", productWindowReadiness.ToArray() }, { "filePickerOperations", filePickerOperations.ToArray() }, { "knownChildShowEvents", knownChildShowEvents }, { "knownWindowShowEvents", knownWindowShowEvents }, { "resolvedChildEvents", resolvedChildEvents.ToArray() }, { "observerErrors", errors.ToArray() }, { "activeProcessCacheCount", processes.Count }, { "liveWindowCacheCount", previous.Count }, { "elapsedMs", clock.ElapsedMilliseconds }, { "pollMilliseconds", 25 }, { "windowEventHookUsed", true }, { "desktopOrAclChanged", false }, { "productTerminatedByObserver", false }, { "childLifeVersion", 1 }, { "windowLifetimes", lifeRows.ToArray() }, { "childShowEvidence", childShowEvidence.ToArray() }, { "observationStoppedAtTick", observationStoppedAtTick }, { "workingGenerationPeak", workingGenerationPeak }, { "sharedRecordCount", SharedRecordCount() }, { "lifetimeArchiveVersion", 1 } };
         }
     }
     public void Dispose() { if (started && !stopping) { try { Stop(); } catch { } } lock (gate) foreach (WindowLife life in windowLives) if (life.Identity != null) { life.Identity.Dispose(); life.Identity = null; } foreach (Product product in products) if (product.Handle != IntPtr.Zero) { CloseHandle(product.Handle); product.Handle = IntPtr.Zero; } ready.Dispose(); }

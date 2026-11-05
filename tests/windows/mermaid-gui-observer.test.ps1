@@ -279,9 +279,9 @@ try {
     $lifeList[2].Create['nativeTick'] = $null
     Assert (-not (Test-ExactLife)) 'An unknown later CREATE barrier was ignored'
     $retainedEvents = [WindowsMermaidGuiObserver].GetField('events', $instanceFlags).GetValue($lifetimeObserver)
-    foreach ($number in 1..2044) { $retainedEvents.Add((New-NativeDictionary @{})) }
+    foreach ($number in 1..2047) { $retainedEvents.Add((New-NativeDictionary @{})) }
     $sharedCount = [WindowsMermaidGuiObserver].GetMethod('SharedRecordCount', $instanceFlags)
-    Assert ($sharedCount.Invoke($lifetimeObserver, @()) -eq 2048) 'Shared records were counted inconsistently'
+    Assert ($sharedCount.Invoke($lifetimeObserver, @()) -eq 2051) 'Shared records were counted inconsistently'
     $null = $recordLife.Invoke($lifetimeObserver, @([IntPtr]18, 'create', [uint32]400, [uint32]12, [long]410, [long]9))
     Assert ($lifeList.Count -eq 3 -and [bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($lifetimeObserver)) 'Shared journal exhaustion did not fail without exceeding its bound'
 } finally { $lifetimeObserver.Dispose() }
@@ -293,13 +293,16 @@ try {
 } finally { $generationBudget.Dispose() }
 $retiredBudget = [WindowsMermaidGuiObserver]::new()
 try {
-    foreach ($number in 1..300) {
+    foreach ($number in 1..2300) {
         $null = $recordLife.Invoke($retiredBudget, @([IntPtr]$number, 'create', [uint32]($number * 3), [uint32]12, [long]($number * 3), [long]($number * 2)))
         $null = $recordLife.Invoke($retiredBudget, @([IntPtr]$number, 'destroy', [uint32]($number * 3 + 1), [uint32]12, [long]($number * 3 + 1), [long]($number * 2 + 1)))
     }
     $retiredLives = [WindowsMermaidGuiObserver].GetField('windowLives', $instanceFlags).GetValue($retiredBudget)
-    Assert ($retiredLives.Count -eq 300 -and -not [bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($retiredBudget)) 'Unconfirmed dead windows consumed held-proof slots after retirement'
+    Assert ($retiredLives.Count -eq 2300 -and -not [bool][WindowsMermaidGuiObserver].GetField('overflow', $instanceFlags).GetValue($retiredBudget)) 'Unconfirmed dead windows consumed held-proof slots after retirement'
     Assert ($retiredLives[0].Released -eq 4 -and $retiredLives[0].Create['sequence'] -eq 2) 'Unconfirmed release discarded or rewrote its original CREATE barrier'
+    while ($retiredLives.Count -lt 8192) { $retiredLives.Add($retiredLives[0]) }
+    $room = [WindowsMermaidGuiObserver].GetMethod('HasRecordRoom', $instanceFlags)
+    Assert (-not [bool]$room.Invoke($retiredBudget, @())) 'Immutable history exceeded its independent hard bound'
 } finally { $retiredBudget.Dispose() }
 [pscustomobject]@{ passed = $true; csharpCompiled = $true; powershellParsed = $true; pointerBytes = [IntPtr]::Size; inputBytes = $expectedInput; startupInfoExBytes = $expectedStartup; nativeWindowsExecution = $false } | ConvertTo-Json -Compress
 
