@@ -47,6 +47,10 @@ test('both installer workflows forward the accepted receipt into the protected b
       new URL(`../../.github/workflows/mermaid-windows-${name}.yml`, import.meta.url),
       'utf8',
     )
+    assert.match(
+      workflow,
+      /git diff --exit-code .* -- vendor\/wry \.gitattributes scripts\/frontend-mermaid-document\.mjs /,
+    )
     const build = workflow.split('      - name: Build release NSIS')[1].split('      - name:')[0]
     assert.match(build, /GH_TOKEN: \$\{\{ github.token \}\}/)
     assert.match(build, /ACCEPTED_SOURCE_RUN: \$\{\{ inputs.accepted_source_run/)
@@ -66,6 +70,10 @@ test('both installer workflows forward the accepted receipt into the protected b
   )
   assert.match(builder, /'merge-base', '--is-ancestor', \$AcceptedSourceSha, \$sha/)
   assert.match(builder, /'diff', '--exit-code', \$AcceptedSourceSha, \$sha, '--', 'vendor\/wry'/)
+  assert.match(
+    builder,
+    /'vendor\/wry', '\.gitattributes', 'scripts\/frontend-mermaid-document\.mjs'/,
+  )
   assert.match(builder, /reviewedImplementationBase = \$AcceptedSourceSha/)
   assert.match(builder, /sourceAcceptanceRunId = \[long\]\$AcceptedSourceRunId/)
   assert.doesNotMatch(builder, /a22f8c35|41985364078/)

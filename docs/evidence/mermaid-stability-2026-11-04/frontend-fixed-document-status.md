@@ -12,7 +12,7 @@ The old browser fixture omitted Tauri's main-page style nonce policy. Applying a
 
 ## Candidate change
 
-Serve only an immutable, generated renderer document through a dedicated local protocol in the existing WebView. The document embeds the exact fixed bootstrap and applies a hash-only script CSP, with inline styles allowed only inside the opaque sandbox. The main-page policy is unchanged. Official engine bytes are still verified independently by parent and child and executed from a child-owned Blob with exact SRI; no network/script URL or plugin HTML is accepted. Source remains on the authenticated private channel. The native guard allows only the first exact owner-fragment document navigation and rejects subsequent navigation. Native IPC negative proof and frame-destroyed release remain mandatory.
+Serve only an immutable, generated renderer document through a dedicated local protocol in the existing WebView. The document embeds the exact fixed bootstrap and applies a hash-only script CSP, with inline styles allowed only inside the opaque sandbox. The main-page policy is unchanged. Official engine bytes are still verified independently by parent and child and executed from a child-owned Blob with exact SRI; no network/script URL or plugin HTML is accepted. Source remains on the authenticated private channel. The native guard allows only the first exact owner-fragment document navigation and rejects subsequent cross-document navigation. Same-document fragment changes are not a hard navigation boundary ([WebView2 navigation events](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events) do not raise NavigationStarting for them). Native IPC negative proof and frame-destroyed release remain mandatory.
 
 Browser and production use identical generated document bytes. Vite rejects stale generated HTML. Installer verification requires those exact bytes both as a reachable asset and inside the compiled/extracted executable. The protocol serves no filesystem/user paths or arbitrary body content.
 
@@ -23,3 +23,11 @@ Limits unchanged: iframe removal is not proof of arbitrary JavaScript hard termi
 ## Windows build follow-up
 
 42123551505 / fd341e86 stopped before Rust and all product/GUI tests: the generated-document equality check rejected Windows checkout bytes. Reproduced with Git core.autocrlf=true: both bootstrap and HTML became CRLF and equality/hash failed. Explicit LF attributes now keep the two sealed inputs identical; no normalization or relaxed equality is used at runtime/build validation. The browser suite also passes 21/21 when the actual generated document is served from a different origin, with the parent style nonce policy still active.
+
+The complete updated local corpus is recorded separately in `frontend-fixed-document-corpus.json`: 72/72 tests, 63 PNG sample records, exact candidate e991f63f and raw log SHA. This supersedes no Windows result.
+
+## First successful Windows product stage
+
+Run 42123865033 / e991f63f product artifact 13461160807: both account product reports and outer audits passed, 11/11 each. The same caret inside the fence yielded source/preview/live image counts 0/1/0; hot enable without restart, preview readonly/copy and Markdown marker hiding passed. Each account recorded eight separate owner lifetimes, each with unchanged main probe count after actual child native-message rejection, cancelled about:blank navigation, native destruction and zero pending requests. Pure results: 22 ready, 3 cancelled, 1 expected grammar error; filtered: 23 ready, 2 cancelled, 1 expected grammar error. Normal first-image and C4 screenshots were manually inspected and contain legible diagrams. GUI and installed acceptance were still pending at this checkpoint; do not promote the product result to full acceptance.
+
+Packaging source-diff protection additionally includes `.gitattributes` and the fixed document generator. The accepted source receipt must still be the exact successful frontend workflow, with matching protected source bytes.
