@@ -1,6 +1,6 @@
 # User-reported cursor, startup and mode-entry follow-up
 
-Status: local verification only; Windows and installed-candidate acceptance pending.
+Status: Windows product follow-up verified; corrected complete source and installed-candidate acceptance pending.
 
 ## Reproduced cause
 
@@ -69,3 +69,27 @@ Final GUI artifact 13485917659 ZIP SHA `a6ae2c9bc989be3eb5b42b8e5d93db8cae41ebad
 Both remaining seven GUI phases passed, including 12-diagram compact/scroll visits and idle/busy close. Both native observer summaries are complete, positive controls passed, no overflow, zero attributed/unattributed visible consoles. The candidate remains failed overall.
 
 The correction reuses the full existing wide-image validator with an explicit expected mode for caret settling, including decoded PNG dimensions/lease, intrinsic geometry, viewport overflow, admission count, no pending work, source fallback or document mutation. Ordinary settling and return-to-fit continue to require the original fitted contract. Pending observations are retained before validation. Positive/negative tests reject fitted-as-natural, natural-as-fitted, wrong dimensions/lease, new work, clipping, outer overflow and fallback. This harness correction still requires a new real Windows result.
+
+## 42181547640 product evidence (308f2428)
+
+Product artifact 13485783899 ZIP SHA `0d1a82595e9cc317094ff035bb541619f648c1c25cfdce4731f33107b9c8cc7d` verified. Both product reports and their outer wrappers passed 11/11. Both have 29 admitted and 29 finished frontend requests: 28 ready and the expected invalid-syntax error; no unmatched admission or timeout.
+
+Each account passed six Diagrams-alone caret visits and ten visits with real bundled Math enabled. Every outside-fence visit retained the same decoded DOM image; inside the fence source editing hid and then restored that image. Math visibility followed its own current selection. The two continuous 40-key bursts also retained that image with unchanged admission counts (7→7 alone; 8→8 with Math). Pure burst durations were 167.6 / 200.4 ms; filtered 194.2 / 195.6 ms. These are input-action durations, not Mermaid-render durations.
+
+Initial same-source Mermaid request: 236 / 263 ms. Subsequent same-source requests on already-used owners: pure 45,33,35,28,38,39,30,26 ms; filtered 43,35,34,28,38,56,27,23 ms. Across all 28 successful requests including different grammar fixtures, medians were 43 / 44 ms. This is a CI sample, not a controlled hardware benchmark.
+
+Initial document-painted→first decoded: 984.4 / 891.5 ms. Navigation time-origin→first decoded: 2405.7 / 3396.8 ms. Recorded process start→first decoded: 8748.4 / 5440.0 ms. The process→navigation gap and filtered root HTML response ending at 2118 ms remain startup observations, not a proven application/OS root cause. Do not equate the warm diagram improvement with eliminating application startup latency.
+
+The run still contains the known fit-only GUI caret-settling harness bug. Final GUI and installation acceptance must use 7bb507a1 or a later verified candidate; the product result alone is insufficient.
+
+Final GUI artifact 13487351512 ZIP SHA `4dbde1a6bab625f39384e690144553f8d90ded41605ef1f70ac3b8a0373c109a` verified. Both accounts failed only the known fit-only validator in natural-size caret settling. The other seven phases passed, including 12-chart compact/scroll visits. Both observers complete, positive controls passed, no overflow, zero attributed/unattributed visible console windows. Both idle and busy closes exited zero without forced termination and proved inner cleanup; busy had one in-flight request at click. The overall run remains failure. Follow-up 42183423554 tests 7bb507a1 and is not yet accepted.
+
+Build-profile boundary: the source workflow links `debug/milkup-desktop.exe` with `tauri/custom-protocol` and embedded production frontend assets (`dev-with-production-custom-protocol-assets`). The installer workflow builds a release NSIS package. Source-run timing must not be reported as installed release timing or used to infer that release cold startup has the same delay.
+
+## Exact prior beta.10 upgrade preparation
+
+The existing lifecycle matrix starts from beta.9. That does not directly test upgrading the frontend beta.10 package the user actually installed. The extended harness separately pins that historical installer (`d6d02410…d1e91`), installed image (`c58cb0f5…89192`) and application source (`40c66b69…ce94`), and uses the frontend audit contract with strict launch identity. It prepares enabled/explicitly-disabled choices through the real UI and observes them after an input-free restart before upgrading. The legacy beta.9 four-case matrix is retained; no historical bytes or profile are silently relabeled.
+
+The planned full matrix is 12 isolated cases: two account kinds × four legacy cases, plus two account kinds × enabled/disabled from the actual prior beta.10. All use one future accepted new installer. The new package pins remain to be filled from its verified build artifact; no new-package lifecycle run has occurred yet.
+
+Local verifier tests: 291 Node cases and 123 PowerShell wrapper cases passed; workflow YAML and all four embedded PowerShell blocks parse. These are contract tests, not Windows installation evidence. The receipt checks reject wrong baseline image/source, native-vs-frontend audit substitution, missing strict launch audit version and profile mutations for the historical beta.10 cases.

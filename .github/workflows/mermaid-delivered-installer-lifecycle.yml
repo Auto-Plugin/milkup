@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: Full matrix or the previously blocked old-beta.9 prerequisite case
+        description: All historical profiles, one legacy case, or the exact prior beta.10 profiles
         type: choice
-        options: [all, filtered-admin-enabled]
+        options: [all, filtered-admin-enabled, delivered-beta10]
         default: all
         required: true
 permissions:
@@ -64,12 +64,13 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or $source.status -cne 'completed' -or $source.conclusion -cne 'success' -or $source.head_sha -cne '40c66b69eddf371cc158c7e25499113ab980ce94' -or $source.path -cne '.github/workflows/mermaid-windows-trial-delivery.yml') { throw 'Exact delivery run is not accepted' }
           $source | ConvertTo-Json -Depth 32 | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'accepted-delivery-run.json') -Encoding utf8
           $inputs = @(
-            @{ name = 'delivery'; id = '13473705011'; sha = 'd6a6e5e448ecdd2f209c9276d46981c726fb23b8411e062849ba7610e805cc83' },
-            @{ name = 'inspection'; id = '13472394573'; sha = '930f52304e00ff2b7a0351d1f17a6c5309c343d5bfd8b0e26d01c111f5b53ca0' }
+            @{ name = 'delivery'; run = '42148997347'; id = '13473705011'; sha = 'd6a6e5e448ecdd2f209c9276d46981c726fb23b8411e062849ba7610e805cc83' },
+            @{ name = 'inspection'; run = '42148997347'; id = '13472394573'; sha = '930f52304e00ff2b7a0351d1f17a6c5309c343d5bfd8b0e26d01c111f5b53ca0' },
+            @{ name = 'prior-delivery'; run = '42148997347'; id = '13473705011'; sha = 'd6a6e5e448ecdd2f209c9276d46981c726fb23b8411e062849ba7610e805cc83' }
           )
           foreach ($item in $inputs) {
             $metadata = (& gh api ('repos/Auto-Plugin/milkup/actions/artifacts/' + $item.id) | ConvertFrom-Json)
-            if ($LASTEXITCODE -ne 0 -or $metadata.expired -or [string]$metadata.workflow_run.id -cne '42148997347' -or $metadata.digest -cne ('sha256:' + $item.sha)) { throw 'Accepted artifact identity changed or expired' }
+            if ($LASTEXITCODE -ne 0 -or $metadata.expired -or [string]$metadata.workflow_run.id -cne $item.run -or $metadata.digest -cne ('sha256:' + $item.sha)) { throw 'Accepted artifact identity changed or expired' }
             $metadata | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE ($item.name + '-artifact.json')) -Encoding utf8
             $zip = Join-Path $env:RUNNER_TEMP ('exact-' + $item.name + '.zip')
             & gh api ('repos/Auto-Plugin/milkup/actions/artifacts/' + $item.id + '/zip') > $zip
@@ -95,6 +96,9 @@ jobs:
           $baseline = @(Get-ChildItem $old -File -Filter '*setup.exe')
           if ($baseline.Count -ne 1 -or (Get-FileHash $baseline[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf') { throw 'Wrong beta.9 installer' }
           'EXACT_BASELINE_INSTALLER=' + $baseline[0].FullName >> $env:GITHUB_ENV
+          $priorInstaller = Join-Path (Join-Path $env:RUNNER_TEMP 'exact-prior-delivery') 'milkup-2.0.0-beta.10-windows-x64-40c66b69eddf-setup.exe'
+          if ((Get-FileHash $priorInstaller -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91') { throw 'Exact prior beta.10 installer changed' }
+          'EXACT_PRIOR_BETA10_INSTALLER=' + $priorInstaller >> $env:GITHUB_ENV
       - name: Build only the test catalog fixture helper
         run: |
           rustup toolchain install 1.99.0 --profile minimal
@@ -108,15 +112,21 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $reuse = Get-Content $env:EXACT_REUSE_RECEIPT -Raw | ConvertFrom-Json
-          if ($env:LIFECYCLE_SCOPE -cnotin @('all','filtered-admin-enabled')) { throw 'Unknown lifecycle scope' }
-          @{ scope = $env:LIFECYCLE_SCOPE; expectedCases = $(if ($env:LIFECYCLE_SCOPE -ceq 'all') { 8 } else { 1 }); priorRun = '42153692467'; priorFailureRetained = $true } | ConvertTo-Json | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'execution-scope.json') -Encoding utf8
+          if ($env:LIFECYCLE_SCOPE -cnotin @('all','filtered-admin-enabled','delivered-beta10')) { throw 'Unknown lifecycle scope' }
+          @{ scope = $env:LIFECYCLE_SCOPE; expectedCases = $(if ($env:LIFECYCLE_SCOPE -ceq 'all') { 12 } elseif ($env:LIFECYCLE_SCOPE -ceq 'delivered-beta10') { 4 } else { 1 }); historicalBaselines = @('beta9','delivered-beta10'); applicationCandidateSha = $reuse.applicationCandidateSha; installerSha256 = $reuse.installer.sha256 } | ConvertTo-Json | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'execution-scope.json') -Encoding utf8
           $failures = @()
           foreach ($kind in @('pure-standard','filtered-admin')) {
-            foreach ($choice in @('enabled','disabled','same-version','startup-failure')) {
-              if ($env:LIFECYCLE_SCOPE -ceq 'filtered-admin-enabled' -and ($kind -cne 'filtered-admin' -or $choice -cne 'enabled')) { continue }
-              try {
-                ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -RendererMode frontend -PinnedDeliveredLifecycle -ApplicationCandidateSha $reuse.applicationCandidateSha -Binary $reuse.binary.path -ExpectedBinarySha256 $reuse.binary.sha256 -Installer $reuse.installer.path -ExpectedInstallerSha256 $reuse.installer.sha256 -ExpectedVersion '2.0.0-beta.10' -PackageManifest $reuse.packageManifest.path -ExpectedPackageManifestSha256 $reuse.packageManifest.sha256 -LifecycleBaselineInstaller $env:EXACT_BASELINE_INSTALLER -MigrationChoice $choice -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind -EvidenceDirectory (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE "$kind-$choice")
-              } catch { $failures += "$kind/$choice : $($_.Exception.Message)"; Write-Host "::error::$kind/$choice failed; original evidence retained" }
+            foreach ($baselineKind in @('beta9','delivered-beta10')) {
+              if ($env:LIFECYCLE_SCOPE -ceq 'delivered-beta10' -and $baselineKind -cne 'delivered-beta10') { continue }
+              $choices = $(if ($baselineKind -ceq 'beta9') { @('enabled','disabled','same-version','startup-failure') } else { @('enabled','disabled') })
+              $baselinePath = $(if ($baselineKind -ceq 'beta9') { $env:EXACT_BASELINE_INSTALLER } else { $env:EXACT_PRIOR_BETA10_INSTALLER })
+              foreach ($choice in $choices) {
+                if ($env:LIFECYCLE_SCOPE -ceq 'filtered-admin-enabled' -and ($kind -cne 'filtered-admin' -or $choice -cne 'enabled' -or $baselineKind -cne 'beta9')) { continue }
+                $caseName = $(if ($baselineKind -ceq 'beta9') { "$kind-$choice" } else { "$kind-$baselineKind-$choice" })
+                try {
+                  ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -RendererMode frontend -PinnedDeliveredLifecycle -ApplicationCandidateSha $reuse.applicationCandidateSha -Binary $reuse.binary.path -ExpectedBinarySha256 $reuse.binary.sha256 -Installer $reuse.installer.path -ExpectedInstallerSha256 $reuse.installer.sha256 -ExpectedVersion '2.0.0-beta.10' -PackageManifest $reuse.packageManifest.path -ExpectedPackageManifestSha256 $reuse.packageManifest.sha256 -LifecycleBaselineInstaller $baselinePath -LifecycleBaselineKind $baselineKind -MigrationChoice $choice -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind -EvidenceDirectory (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE $caseName)
+                } catch { $failures += "$caseName : $($_.Exception.Message)"; Write-Host "::error::$caseName failed; original evidence retained" }
+              }
             }
           }
           if ((Get-FileHash $reuse.installer.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $reuse.installer.sha256) { throw 'Original installer changed during verification' }

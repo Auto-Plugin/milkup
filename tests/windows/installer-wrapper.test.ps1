@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-PinnedDeliveredLifecycle', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
+$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Get-LifecycleBaselineIdentity', 'Assert-PinnedDeliveredLifecycle', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
@@ -459,7 +459,24 @@ Case 'frontend installer identity cannot silently fall back to a native contract
     try { Assert-InstallationManifest $manifest $commit $version $built 'frontend' } catch { $rejected = $true }
     Assert-True $rejected 'Wrong renderer identity passed'
 }
+Case 'exact historical beta.10 profile is bound independently from the new target installer' {
+    $legacy = Get-LifecycleBaselineIdentity 'beta9' 'enabled'
+    $prior = Get-LifecycleBaselineIdentity 'delivered-beta10' 'enabled'
+    Assert-True ($legacy.binary -ceq '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84' -and $legacy.renderer -ceq 'native') 'Legacy baseline changed'
+    Assert-True ($prior.installer -ceq 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91' -and
+        $prior.binary -ceq 'c58cb0f5d9413da42373e3d659fa196a4c65adc89ef964f03b5055ac9c189192' -and
+        $prior.candidate -ceq '40c66b69eddf371cc158c7e25499113ab980ce94' -and $prior.renderer -ceq 'frontend') 'Delivered baseline identity changed'
+    Assert-True ((Get-LifecycleBaselineIdentity 'delivered-beta10' 'disabled').binary -ceq $prior.binary) 'Disabled profile uses another application'
+    foreach ($pair in @(@('unknown','enabled'),@('delivered-beta10','same-version'),@('delivered-beta10','startup-failure'),@('beta9','unknown'))) {
+        $rejected = $false
+        try { Get-LifecycleBaselineIdentity $pair[0] $pair[1] | Out-Null } catch { $rejected = $true }
+        Assert-True $rejected 'Unpinned historical profile was accepted'
+    }
+}
+
 $report = @{ status = 'passed'; tests = $results.Count; cases = $results.ToArray(); windowsInstallerExecuted = $false; windowsNativeApisCalled = $false }
 $json = $report | ConvertTo-Json -Depth 8
+
+
 if ($OutputPath) { [IO.File]::WriteAllText([IO.Path]::GetFullPath($OutputPath), $json + "`n", [Text.UTF8Encoding]::new($false)) }
 Write-Output $json

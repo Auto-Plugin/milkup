@@ -1410,9 +1410,27 @@ export function serializeProductEvidence(report) {
 
 export const MIGRATION_BASELINE_SHA256 =
   '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
-export function validateUntouchedOldRestart(observation, enabled) {
+export const MIGRATION_BASELINES = Object.freeze({
+  beta9: Object.freeze({
+    applicationSha256: MIGRATION_BASELINE_SHA256,
+    candidateSha: 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4',
+    rendererMode: 'native',
+    auditContract: 'shipped-beta9-preparation-only',
+  }),
+  'delivered-beta10': Object.freeze({
+    applicationSha256: 'c58cb0f5d9413da42373e3d659fa196a4c65adc89ef964f03b5055ac9c189192',
+    candidateSha: '40c66b69eddf371cc158c7e25499113ab980ce94',
+    rendererMode: 'frontend',
+    auditContract: 'shipped-40c66b69-frontend-preparation-only',
+  }),
+})
+export function migrationBaseline(kind = 'beta9') {
+  assert(Object.hasOwn(MIGRATION_BASELINES, kind), 'Exact historical baseline required')
+  return MIGRATION_BASELINES[kind]
+}
+export function validateUntouchedOldRestart(observation, enabled, baselineKind = 'beta9') {
   assert(observation, 'Old restart must retain its initial observation')
-  assert.equal(observation.applicationSha256, MIGRATION_BASELINE_SHA256)
+  assert.equal(observation.applicationSha256, migrationBaseline(baselineKind).applicationSha256)
   assert.equal(observation.mode, 'live', 'Saved old view mode survives restart')
   assert.equal(observation.cursor, 0, 'Saved old caret survives restart')
   assert.equal(observation.dirty, false)
@@ -1427,14 +1445,24 @@ export function validateUntouchedOldRestart(observation, enabled) {
   assert.equal(observation.previewVerified, enabled)
 }
 export function validateMigrationReceipt(receipt, expected) {
+  const baseline = migrationBaseline(expected.baselineKind)
   assert.equal(receipt.status, 'passed')
   assert.equal(receipt.runId, expected.runId)
   assert.equal(receipt.candidateSha, expected.candidateSha)
   assert.equal(receipt.context.actualSid, expected.sid)
   assert.equal(receipt.context.sessionId, expected.sessionId)
-  assert.equal(receipt.applicationSha256, MIGRATION_BASELINE_SHA256)
+  assert.equal(receipt.applicationSha256, baseline.applicationSha256)
+  assert.equal(receipt.applicationCandidateSha, baseline.candidateSha)
+  assert.equal(receipt.rendererMode, baseline.rendererMode)
+  if (baseline.rendererMode === 'frontend') assert.equal(receipt.auditIdentityVersion, 1)
+  if (expected.baselineKind === 'delivered-beta10')
+    assert(
+      ['enabled', 'disabled'].includes(expected.choice),
+      'Historical beta.10 profile remains unchanged',
+    )
   assert.equal(receipt.migration.phase, 'prepare')
-  assert.equal(receipt.migration.auditContract, 'shipped-beta9-preparation-only')
+  assert.equal(receipt.migration.auditContract, baseline.auditContract)
+  assert.equal(receipt.migration.baselineKind ?? 'beta9', expected.baselineKind ?? 'beta9')
   assert.equal(receipt.migration.choice, expected.choice === 'disabled' ? 'disabled' : 'enabled')
   assert.equal(
     receipt.launches.length,
@@ -1458,7 +1486,11 @@ export function validateMigrationReceipt(receipt, expected) {
   )
   assert.equal(restarted.restartedOldProfile, true)
   assert.equal(restarted.profile, first.profile)
-  validateUntouchedOldRestart(restarted.initialRestartObservation, expected.choice !== 'disabled')
+  validateUntouchedOldRestart(
+    restarted.initialRestartObservation,
+    expected.choice !== 'disabled',
+    expected.baselineKind,
+  )
   const restart = receipt.steps.find((step) => step.name === '00-restart-old-plugin-choice')
   assert.equal(restart?.passed, true)
   assert.equal(restart.productPid, restarted.productPid)
@@ -1527,10 +1559,23 @@ export async function main() {
     runtimeExe = path.resolve(required('RUNTIME_EXE'))
   const migrationPhase = process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE ?? 'none'
   const migrationChoice = process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE
+  const baselineKind = process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_BASELINE_KIND ?? 'beta9'
+  const baseline = migrationBaseline(baselineKind)
   assert(['none', 'prepare', 'verify'].includes(migrationPhase))
   if (migrationPhase !== 'none')
     assert(['enabled', 'disabled', 'same-version', 'startup-failure'].includes(migrationChoice))
-  if (migrationPhase === 'prepare') assert.equal(expectedBinarySha, MIGRATION_BASELINE_SHA256)
+  if (migrationPhase === 'prepare') {
+    assert.equal(expectedBinarySha, baseline.applicationSha256)
+    assert.equal(
+      process.env.MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA,
+      baseline.candidateSha,
+    )
+  }
+  if (migrationPhase !== 'none' && baselineKind === 'delivered-beta10')
+    assert(
+      ['enabled', 'disabled'].includes(migrationChoice),
+      'Delivered beta.10 uses real unchanged profiles only',
+    )
   const initiallyEnabled = migrationPhase !== 'verify' || migrationChoice !== 'disabled'
   const expectedPluginInventory = parseExpectedPluginInventory(
     process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY,
@@ -1590,6 +1635,7 @@ export async function main() {
       sid: expectedSid,
       sessionId: expectedSessionId,
       choice: migrationChoice,
+      baselineKind,
     })
     const catalog = migrationReceipt.migration.catalog
     assert(
@@ -1648,14 +1694,16 @@ export async function main() {
     await writeFile(path.join(evidence, `fixture-${name}.md`), bytes, { flag: 'wx' })
   }
   const rendererMode =
-    migrationPhase === 'prepare' ? 'native' : process.env.MILKUP_WINDOWS_MERMAID_RENDERER_MODE
+    migrationPhase === 'prepare'
+      ? baseline.rendererMode
+      : process.env.MILKUP_WINDOWS_MERMAID_RENDERER_MODE
   assert(
     ['native', 'frontend'].includes(rendererMode),
     'Explicit renderer acceptance mode required',
   )
   const auditPrefix = rendererMode === 'frontend' ? FRONTEND_AUDIT_PREFIX : AUDIT_PREFIX
   const Ledger =
-    migrationPhase === 'prepare'
+    migrationPhase === 'prepare' && baselineKind === 'beta9'
       ? (await import('./mermaid-beta9-audit-fixture.mjs')).AuditLedger
       : rendererMode === 'frontend'
         ? frontendLedgerClass(AuditLedger)
@@ -1664,7 +1712,7 @@ export async function main() {
       expectedSid,
       expectedSessionId,
       expectedAccountKind,
-      migrationPhase !== 'prepare',
+      migrationPhase !== 'prepare' || baselineKind !== 'beta9',
     ),
     driverPort = await freePort()
   const report = {
@@ -1676,7 +1724,8 @@ export async function main() {
           migration: {
             phase: migrationPhase,
             auditContract:
-              migrationPhase === 'prepare' ? 'shipped-beta9-preparation-only' : 'current-candidate',
+              migrationPhase === 'prepare' ? baseline.auditContract : 'current-candidate',
+            baselineKind,
             choice: migrationChoice,
             ...(syntheticFixture ? { syntheticFixture } : {}),
             preparedReportSha256: process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256,
@@ -2265,11 +2314,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         previewVerified: false,
       }
       current.initialRestartObservation = observation
-      validateUntouchedOldRestart(observation, false)
+      validateUntouchedOldRestart(observation, false, baselineKind)
       await rendered(migrationChoice !== 'disabled')
       observation.inputsAfterPreview = report.inputs.length
       observation.previewVerified = migrationChoice !== 'disabled'
-      validateUntouchedOldRestart(observation, migrationChoice !== 'disabled')
+      validateUntouchedOldRestart(observation, migrationChoice !== 'disabled', baselineKind)
       return
     }
     await control('0')

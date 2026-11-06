@@ -13,6 +13,7 @@ import {
   validateUntouchedOldRestart,
   validateSyntheticMigrationFixture,
   MIGRATION_BASELINE_SHA256,
+  migrationBaseline,
   crc32,
   validatePng,
   validateResponsiveDiagram,
@@ -2186,6 +2187,8 @@ test('old profile receipts require the real pinned baseline, same owned account 
     candidateSha: expected.candidateSha,
     context: { actualSid: expected.sid, sessionId: 2 },
     applicationSha256: MIGRATION_BASELINE_SHA256,
+    applicationCandidateSha: migrationBaseline().candidateSha,
+    rendererMode: migrationBaseline().rendererMode,
     launches: [
       {
         productPid: 100,
@@ -2248,6 +2251,57 @@ test('old profile receipts require the real pinned baseline, same owned account 
   enabled.steps[0].previewVerified = true
   enabled.launches[1].initialRestartObservation.previewVerified = true
   validateMigrationReceipt(enabled, { ...expected, choice: 'enabled' })
+  const delivered = structuredClone(enabled)
+  const old = migrationBaseline('delivered-beta10')
+  delivered.applicationSha256 = old.applicationSha256
+  delivered.applicationCandidateSha = old.candidateSha
+  delivered.rendererMode = old.rendererMode
+  delivered.auditIdentityVersion = 1
+  delivered.migration.auditContract = old.auditContract
+  delivered.migration.baselineKind = 'delivered-beta10'
+  delivered.launches[1].initialRestartObservation.applicationSha256 = old.applicationSha256
+  const deliveredExpected = { ...expected, choice: 'enabled', baselineKind: 'delivered-beta10' }
+  validateMigrationReceipt(delivered, deliveredExpected)
+  for (const change of [
+    (r) => {
+      r.applicationSha256 = MIGRATION_BASELINE_SHA256
+    },
+    (r) => {
+      r.applicationCandidateSha = migrationBaseline().candidateSha
+    },
+    (r) => {
+      r.migration.auditContract = migrationBaseline().auditContract
+    },
+    (r) => {
+      delete r.migration.baselineKind
+    },
+    (r) => {
+      r.rendererMode = 'native'
+    },
+    (r) => {
+      delete r.auditIdentityVersion
+    },
+    (r) => {
+      r.launches[1].initialRestartObservation.applicationSha256 = MIGRATION_BASELINE_SHA256
+    },
+  ]) {
+    const bad = structuredClone(delivered)
+    change(bad)
+    assert.throws(() => validateMigrationReceipt(bad, deliveredExpected))
+  }
+  assert.throws(() => validateMigrationReceipt(delivered, expected))
+  assert.throws(() =>
+    validateMigrationReceipt(delivered, { ...deliveredExpected, choice: 'same-version' }),
+  )
+  assert.throws(() => migrationBaseline('unreviewed'))
+  const disabledDelivered = structuredClone(delivered)
+  disabledDelivered.migration.choice = 'disabled'
+  disabledDelivered.migration.catalog.enabled = false
+  disabledDelivered.steps[0].checked = 'false'
+  disabledDelivered.steps[0].previewVerified = false
+  disabledDelivered.launches[1].initialRestartObservation.previewVerified = false
+  validateMigrationReceipt(disabledDelivered, { ...deliveredExpected, choice: 'disabled' })
+
   for (const change of [
     (r) => (r.status = 'failed'),
     (r) => (r.context.actualSid += '0'),

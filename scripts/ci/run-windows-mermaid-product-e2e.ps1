@@ -13,6 +13,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][switch]$PinnedDeliveredLifecycle,
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
     [Parameter(ParameterSetName = 'Parent')][string]$LifecycleBaselineInstaller,
+    [Parameter(ParameterSetName = 'Parent')][ValidateSet('beta9','delivered-beta10', IgnoreCase = $false)][string]$LifecycleBaselineKind = 'beta9',
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('enabled', 'disabled', 'same-version', 'startup-failure', IgnoreCase = $false)][string]$MigrationChoice,
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedInstallerSha256,
     [Parameter(ParameterSetName = 'Parent')][string]$ExpectedVersion,
@@ -373,6 +374,26 @@ function Remove-ExactProfileWithRetry([string]$Sid, $Audit) {
     }
     $Audit.profileDeleted = $true
 }
+function Get-LifecycleBaselineIdentity([string]$Kind, [string]$Choice) {
+    if ($Choice -cnotin @('enabled','disabled','same-version','startup-failure')) { throw 'Explicit historical profile choice required' }
+    if ($Kind -ceq 'beta9') {
+        return [ordered]@{
+            kind = $Kind; version = '2.0.0-beta.9'; renderer = 'native'
+            installer = 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+            binary = '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+            candidate = 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4'
+        }
+    }
+    if ($Kind -ceq 'delivered-beta10' -and $Choice -cin @('enabled','disabled')) {
+        return [ordered]@{
+            kind = $Kind; version = '2.0.0-beta.10'; renderer = 'frontend'
+            installer = 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91'
+            binary = 'c58cb0f5d9413da42373e3d659fa196a4c65adc89ef964f03b5055ac9c189192'
+            candidate = '40c66b69eddf371cc158c7e25499113ab980ce94'
+        }
+    }
+    throw 'Only the pinned historical baseline and its declared profile cases are permitted'
+}
 function Assert-PinnedDeliveredLifecycle([string]$ApplicationSha, [string]$InstallerSha, [string]$BinarySha, [string]$Version, [string]$Mode, [string]$Renderer, [bool]$Lifecycle, [string]$Choice) {
     if ($ApplicationSha -cne '40c66b69eddf371cc158c7e25499113ab980ce94' -or
         $InstallerSha -cne 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91' -or
@@ -466,7 +487,8 @@ function Write-LifecycleProgress($Spec, [string]$Evidence, [string]$Phase, $Deta
 }
 function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]$Evidence, [string]$Application) {
     if ($Spec.migrationChoice -cnotin @('enabled', 'disabled', 'same-version', 'startup-failure')) { throw 'Explicit old profile choice required' }
-    Assert-Hash $Application '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+    $baselineIdentity = Get-LifecycleBaselineIdentity $Spec.lifecycleBaselineKind $Spec.migrationChoice
+    Assert-Hash $Application $baselineIdentity.binary
     $oldChoice = $(if ($Spec.migrationChoice -ceq 'disabled') { 'disabled' } else { 'enabled' })
     $root = Join-Path $Scratch 'migration-prepare'
     New-OwnedDirectory $root
@@ -478,7 +500,7 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
     Write-Json (Join-Path $output 'standard-context.json') $subcontext
     $variables = @{
         MILKUP_WINDOWS_MERMAID_APP = $Application
-        MILKUP_WINDOWS_MERMAID_APP_SHA256 = '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+        MILKUP_WINDOWS_MERMAID_APP_SHA256 = $baselineIdentity.binary
         MILKUP_WINDOWS_MERMAID_EDGE_DRIVER = $Spec.driver.path
         MILKUP_WINDOWS_MERMAID_WORK = $work; MILKUP_WINDOWS_MERMAID_EVIDENCE = $output
         MILKUP_WINDOWS_MERMAID_EXPECTED_SID = $Spec.expectedSid
@@ -487,8 +509,9 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
         MILKUP_WINDOWS_MERMAID_RUN_ID = $Spec.runId; MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $Spec.candidateSha
         MILKUP_WINDOWS_MERMAID_RUNTIME_VERSION = $Spec.runtime.version; MILKUP_WINDOWS_MERMAID_RUNTIME_EXE = $Spec.runtime.path
         MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $Spec.wrapper.path; MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
-        MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA = 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4'
-        MILKUP_WINDOWS_MERMAID_RENDERER_MODE = 'native'
+        MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA = $baselineIdentity.candidate
+        MILKUP_WINDOWS_MERMAID_RENDERER_MODE = $baselineIdentity.renderer
+        MILKUP_WINDOWS_MERMAID_MIGRATION_BASELINE_KIND = $baselineIdentity.kind
         MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE = 'prepare'; MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE = $oldChoice
         MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY = $null
         MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT = $null; MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256 = $null
@@ -507,7 +530,9 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
         $report = Read-SmallJson $reportPath
         if ($report.status -cne 'passed' -or $report.runId -cne $Spec.runId -or $report.context.actualSid -cne $Spec.expectedSid -or
             $report.migration.phase -cne 'prepare' -or $report.migration.choice -cne $oldChoice -or
-            $report.applicationSha256 -cne $variables.MILKUP_WINDOWS_MERMAID_APP_SHA256) { throw 'Old profile UI evidence identity mismatch' }
+            $report.applicationSha256 -cne $variables.MILKUP_WINDOWS_MERMAID_APP_SHA256 -or
+            $report.applicationCandidateSha -cne $baselineIdentity.candidate -or $report.rendererMode -cne $baselineIdentity.renderer -or
+            $report.migration.baselineKind -cne $baselineIdentity.kind) { throw 'Old profile UI evidence identity mismatch' }
         $receipt = File-Proof $reportPath
         if ($Spec.migrationChoice -cin @('same-version', 'startup-failure')) {
             Assert-Hash $Spec.migrationFixture.path $Spec.migrationFixture.sha256
@@ -568,16 +593,17 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
         Assert-InstallationManifest $manifest $Spec.applicationCandidateSha $Spec.expectedVersion $manifestBuiltHash $Spec.rendererMode
         $record.bundledPlugins = @($manifest.bundledPlugins)
         if (($Spec.Contains('lifecycle') -and $Spec.lifecycle)) {
-            Assert-Hash $Spec.lifecycleBaseline.path 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
-            $record['lifecycle'] = [ordered]@{ status = 'failed'; baselineVersion = '2.0.0-beta.9'; baselineInstall = $null; sameVersion = $null; uninstall = $null; dataPreserved = $false; automaticRollbackAccepted = $false }
+            $baselineIdentity = Get-LifecycleBaselineIdentity $Spec.lifecycleBaselineKind $Spec.migrationChoice
+            Assert-Hash $Spec.lifecycleBaseline.path $baselineIdentity.installer
+            $record['lifecycle'] = [ordered]@{ status = 'failed'; baselineKind = $baselineIdentity.kind; baselineVersion = $baselineIdentity.version; baselineInstall = $null; sameVersion = $null; uninstall = $null; dataPreserved = $false; automaticRollbackAccepted = $false }
             Write-LifecycleProgress $Spec $Evidence 'baseline-install-start'
             $record.lifecycle.baselineInstall = [WindowsMermaidStandardUser]::RunOwnedInstaller(
                 $Spec.lifecycleBaseline.path, $installDirectory, $Scratch,
                 (Join-Path $Evidence 'baseline-stdout.log'), (Join-Path $Evidence 'baseline-stderr.log'),
                 $Spec.expectedSid, [uint32]$Spec.expectedSessionId, $Spec.expectedAccountKind, 120000)
             Write-LifecycleProgress $Spec $Evidence 'baseline-install-finish' @{ status = $record.lifecycle.baselineInstall.status; elapsedMs = $record.lifecycle.baselineInstall.elapsedMs }
-            if ($record.lifecycle.baselineInstall.status -cne 'passed') { throw 'Pinned beta.9 baseline installation failed' }
-            Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+            if ($record.lifecycle.baselineInstall.status -cne 'passed') { throw 'Pinned historical baseline installation failed' }
+            Assert-Hash (Join-Path $installDirectory 'milkup-desktop.exe') $baselineIdentity.binary
             if ($Spec.migrationChoice) { $record.lifecycle['migrationPreparation'] = Prepare-RealOldPluginChoice $Spec $Context $Scratch $Evidence (Join-Path $installDirectory 'milkup-desktop.exe') }
             $sentinel = Join-Path $Scratch 'work/升级保留.md'
             [IO.File]::WriteAllText($sentinel, "# 原文 preservation`n中文 English`n", [Text.UTF8Encoding]::new($false))
@@ -765,6 +791,7 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
             MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE = $(if ($spec.migrationChoice) { 'verify' } else { 'none' })
             MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE = $spec.migrationChoice
+            MILKUP_WINDOWS_MERMAID_MIGRATION_BASELINE_KIND = $spec.lifecycleBaselineKind
         }
         if ($spec.migrationChoice) {
             $variables['MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT'] = $installation.lifecycle.migrationPreparation.path
@@ -1065,9 +1092,10 @@ try {
         }
     }
     if ($LifecycleBaselineInstaller) {
-        Assert-Hash $LifecycleBaselineInstaller 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+        $baselineIdentity = Get-LifecycleBaselineIdentity $LifecycleBaselineKind $MigrationChoice
+        Assert-Hash $LifecycleBaselineInstaller $baselineIdentity.installer
         Copy-Item -LiteralPath $LifecycleBaselineInstaller -Destination (Join-Path $code 'baseline-installer.exe') -ErrorAction Stop
-        Assert-Hash (Join-Path $code 'baseline-installer.exe') 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
+        Assert-Hash (Join-Path $code 'baseline-installer.exe') $baselineIdentity.installer
     }
     if ($installerMode) {
         foreach ($pair in @(@($installerProof.path, 'candidate-installer.exe'), @($manifestProof.path, 'installer-input.json'), @((Join-Path $repository 'tests/windows/verify-installed-binary.mjs'), 'verify-installed-binary.mjs'))) {
@@ -1129,7 +1157,7 @@ try {
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; rendererMode = $RendererMode; harnessMode = $HarnessMode
         pinnedDeliveredLifecycle = [bool]$PinnedDeliveredLifecycle
-        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice
+        frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice; lifecycleBaselineKind = $LifecycleBaselineKind
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         sourcePluginInventory = $sourceInventoryProof
         binaryRole = $audit.binaryRole; binary = (File-Proof (Join-Path $code 'milkup-desktop.exe')); node = (File-Proof $node)
