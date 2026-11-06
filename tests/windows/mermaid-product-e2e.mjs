@@ -1549,6 +1549,41 @@ export function validateMigrationReceipt(receipt, expected) {
   assert.match(receipt.migration.catalog.sha256, /^[a-f0-9]{64}$/)
 }
 
+export function validateMigrationAppearance(value) {
+  assert.equal(value.zoom, 1.25, 'Actual preserved UI zoom')
+  assert.equal(value.stored.zoom, 1.25, 'Public UI must persist its non-default setting')
+  assert(['system', 'light', 'dark'].includes(value.stored.theme))
+  assert.deepEqual(Object.keys(value.stored).sort(), ['theme', 'zoom'])
+}
+
+export function validateMigrationProfileReuse(receipt, expected) {
+  validateMigrationReceipt(receipt, expected)
+  assert(samePath(receipt.context.scratchRoot, expected.scratchRoot), 'Exact owned fixture root')
+  assert(within(expected.scratchRoot, receipt.context.work), 'Old work stays in this fixture')
+  const profile = path.join(receipt.context.work, 'webview-profiles', 'ordinary')
+  const proof = receipt.migration.browserProfile
+  assert(proof && samePath(proof.path, profile), 'Exact old browser profile proof')
+  for (const launch of receipt.launches)
+    assert(samePath(launch.profile, profile), 'Both closed old launches used this profile')
+  for (const key of ['device', 'inode', 'birthtimeNs'])
+    assert.match(proof.identity[key], /^[0-9]+$/, 'Original directory identity: ' + key)
+  assert(BigInt(proof.identity.birthtimeNs) > 0n)
+  if (expected.baselineKind === 'delivered-beta10')
+    validateMigrationAppearance(receipt.migration.browserPreference)
+  return profile
+}
+
+async function browserProfileIdentity(profile) {
+  await noLinks(profile)
+  const info = await lstat(profile, { bigint: true })
+  assert(info.isDirectory() && !info.isSymbolicLink(), 'Plain owned WebView directory')
+  return {
+    device: String(info.dev),
+    inode: String(info.ino),
+    birthtimeNs: String(info.birthtimeNs),
+  }
+}
+
 export function validateSyntheticMigrationFixture(fixture, expected) {
   assert.equal(fixture.status, 'passed')
   assert.equal(fixture.scope, 'synthetic-prior-approved-bundle-not-historical-release')
@@ -2217,6 +2252,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     guard()
     return ledger.verifyAll(product.pid)
   }
+  const readBrowserAppearance = () =>
+    execute(
+      `return {zoom:Number(document.querySelector('#app').dataset.appearanceZoom),stored:JSON.parse(localStorage.getItem('milkup.desktop.appearance.v1')??'null')}`,
+    )
   const startProduct = async (name, restart = false) => {
     const inputsBeforeLaunch = report.inputs.length
     if (restart) {
@@ -2226,9 +2265,38 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       assert.equal(name, 'ordinary')
     }
     active = name
-    const port = await freePort(),
-      profile = path.join(profileRoot, name)
-    await mkdir(profile, { recursive: restart })
+    const port = await freePort()
+    const reuseOldBrowserProfile =
+      migrationPhase === 'verify' && name === 'ordinary' && report.launches.length === 0
+    const profile = reuseOldBrowserProfile
+      ? validateMigrationProfileReuse(migrationReceipt, {
+          runId,
+          candidateSha,
+          sid: expectedSid,
+          sessionId: expectedSessionId,
+          choice: migrationChoice,
+          baselineKind,
+          scratchRoot: context.scratchRoot,
+        })
+      : path.join(profileRoot, name)
+    if (reuseOldBrowserProfile) {
+      const identity = await browserProfileIdentity(profile)
+      assert.deepEqual(
+        identity,
+        migrationReceipt.migration.browserProfile.identity,
+        'Old browser directory must survive upgrade unchanged',
+      )
+      report.migration.browserProfileReuse = {
+        path: profile,
+        identity,
+        priorReceiptSha256: process.env.MILKUP_WINDOWS_MERMAID_MIGRATION_RECEIPT_SHA256,
+        oldLaunches: migrationReceipt.launches.map(({ productPid, creationFileTime }) => ({
+          productPid,
+          creationFileTime,
+        })),
+        oldProcessesClosedByUi: true,
+      }
+    } else await mkdir(profile, { recursive: restart })
     const env = { ...process.env }
     for (const key of Object.keys(env))
       if (key.startsWith('WEBVIEW2_') || key.startsWith('TAURI_')) delete env[key]
@@ -2247,6 +2315,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     launch = {
       fixture: name,
       ...(restart ? { restartedOldProfile: true } : {}),
+      ...(reuseOldBrowserProfile ? { reusedMigrationBrowserProfile: true } : {}),
       productPid: product.pid,
       fileArgument: files[name].path,
       profile,
@@ -2367,6 +2436,32 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     assert.equal(initial.visibility, 'visible')
     assert.equal(initial.developmentProbe, 'undefined')
     assert.equal(initial.diagnostics, 'undefined')
+    if ((restart || reuseOldBrowserProfile) && baselineKind === 'delivered-beta10') {
+      const expectedAppearance = (restart ? report : migrationReceipt).migration.browserPreference
+      validateMigrationAppearance(expectedAppearance)
+      await until(
+        async () => (await readBrowserAppearance()).zoom === expectedAppearance.zoom,
+        'Saved non-default browser appearance after actual launch',
+      )
+      current.preservedBrowserPreference = await readBrowserAppearance()
+      assert.deepEqual(
+        current.preservedBrowserPreference,
+        expectedAppearance,
+        'Same old browser storage survives restart and upgrade',
+      )
+      assert.equal(
+        report.inputs.length,
+        inputsBeforeLaunch,
+        'Observe migrated appearance before any input',
+      )
+    }
+    if (reuseOldBrowserProfile) {
+      current.migrationProfileIdentity = await browserProfileIdentity(profile)
+      assert.deepEqual(
+        current.migrationProfileIdentity,
+        migrationReceipt.migration.browserProfile.identity,
+      )
+    }
     if (restart) {
       // The exact shipped beta.9 cancels its pending native frame when switched
       // into source mode. A restart observation must not inject the unrelated
@@ -2670,6 +2765,17 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           await switchPlugin(false)
           await rendered(false)
         }
+        if (baselineKind === 'delivered-beta10') {
+          await closeMenu()
+          await control('=')
+          await until(
+            async () => (await readBrowserAppearance()).zoom === 1.25,
+            'Real old UI saves non-default browser zoom',
+          )
+          row.browserPreference = await readBrowserAppearance()
+          validateMigrationAppearance(row.browserPreference)
+          report.migration.browserPreference = row.browserPreference
+        }
         row.saved = await saved()
       })
       await closeProduct(true)
@@ -2717,6 +2823,12 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       }
       assert.equal(found.length, 1, 'One durable catalog produced by the real old UI')
       report.migration.catalog = found[0]
+      const oldProfile = report.launches[1].profile
+      assert(report.launches.every((item) => item.closedByUi && item.stdioClosedAt))
+      report.migration.browserProfile = {
+        path: oldProfile,
+        identity: await browserProfileIdentity(oldProfile),
+      }
     } else {
       await step(
         migrationPhase === 'verify' ? '01-migrated-plugin-choice' : '01-default-mermaid-preview',

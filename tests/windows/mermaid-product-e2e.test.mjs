@@ -12,6 +12,8 @@ import {
   validatePreviewModes,
   validateUntouchedInitialPreview,
   validateMigrationReceipt,
+  validateMigrationProfileReuse,
+  validateMigrationAppearance,
   validateUntouchedOldRestart,
   validateSyntheticMigrationFixture,
   MIGRATION_BASELINE_SHA256,
@@ -2264,6 +2266,59 @@ test('old profile receipts require the real pinned baseline, same owned account 
   delivered.launches[1].initialRestartObservation.applicationSha256 = old.applicationSha256
   const deliveredExpected = { ...expected, choice: 'enabled', baselineKind: 'delivered-beta10' }
   validateMigrationReceipt(delivered, deliveredExpected)
+  const reuse = structuredClone(delivered)
+  reuse.migration.browserPreference = { zoom: 1.25, stored: { theme: 'system', zoom: 1.25 } }
+  const scratchRoot = path.resolve('owned-fixture')
+  reuse.context.scratchRoot = scratchRoot
+  reuse.context.work = path.join(scratchRoot, 'old-work')
+  const oldProfile = path.join(reuse.context.work, 'webview-profiles', 'ordinary')
+  reuse.launches.forEach((launch) => {
+    launch.profile = oldProfile
+  })
+  reuse.migration.browserProfile = {
+    path: oldProfile,
+    identity: { device: '1', inode: '22', birthtimeNs: '1000000' },
+  }
+  assert.equal(
+    validateMigrationProfileReuse(reuse, { ...deliveredExpected, scratchRoot }),
+    oldProfile,
+  )
+  for (const change of [
+    (r) => {
+      r.context.scratchRoot += '-other'
+    },
+    (r) => {
+      r.context.work = path.dirname(scratchRoot)
+    },
+    (r) => {
+      r.launches[0].closedByUi = false
+    },
+    (r) => {
+      r.launches[1].profile += '-other'
+    },
+    (r) => {
+      r.migration.browserProfile.path += '-other'
+    },
+    (r) => {
+      delete r.migration.browserProfile
+    },
+    (r) => {
+      delete r.migration.browserPreference
+    },
+    (r) => {
+      r.migration.browserPreference.zoom = 1
+    },
+    (r) => {
+      r.migration.browserProfile.identity.inode = '-1'
+    },
+    (r) => {
+      r.migration.browserProfile.identity.birthtimeNs = '0'
+    },
+  ]) {
+    const bad = structuredClone(reuse)
+    change(bad)
+    assert.throws(() => validateMigrationProfileReuse(bad, { ...deliveredExpected, scratchRoot }))
+  }
   for (const change of [
     (r) => {
       r.applicationSha256 = MIGRATION_BASELINE_SHA256
@@ -2685,5 +2740,18 @@ test('initial candidate preview must be observed without keyboard, mode or caret
     { previewVerified: false },
   ]) {
     assert.throws(() => validateUntouchedInitialPreview({ ...observation, ...change }, true))
+  }
+})
+
+test('migrated browser preference rejects a fresh profile default and unproved stored values', () => {
+  const value = { zoom: 1.25, stored: { theme: 'system', zoom: 1.25 } }
+  validateMigrationAppearance(value)
+  for (const bad of [
+    { ...value, zoom: 1 },
+    { ...value, stored: null },
+    { ...value, stored: { theme: 'system', zoom: 1 } },
+    { ...value, stored: { theme: 'unknown', zoom: 1.25 } },
+  ]) {
+    assert.throws(() => validateMigrationAppearance(bad))
   }
 })
