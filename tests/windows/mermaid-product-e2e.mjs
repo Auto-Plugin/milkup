@@ -2649,6 +2649,14 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             row.migratedCatalog = { sha256: sha(catalogBytes), entry }
           }
           await closeMenu()
+          // Opening plugin inventory can finish an asynchronous contribution
+          // refresh. Retain the actual post-menu preview, not a source-only
+          // screenshot taken between disposing and decoding the replacement.
+          await rendered(initiallyEnabled)
+          row.previewAfterPluginMenu = {
+            enabled: initiallyEnabled,
+            observedAt: new Date().toISOString(),
+          }
           assert.equal((await state()).version, before.version)
           assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
         },
