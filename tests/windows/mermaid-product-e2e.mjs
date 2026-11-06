@@ -132,6 +132,15 @@ export const fixtures = Object.freeze({
 })
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 
+export function validateUntouchedInitialPreview(observation, expectedEnabled) {
+  assert.equal(observation.mode, 'live', 'Observe the saved/default mixed mode without forcing it')
+  assert.equal(observation.cursor, 0, 'Observe the saved/default document caret without moving it')
+  assert.equal(observation.dirty, false)
+  assert.equal(observation.inputsBeforeLaunch, 0, 'Initial candidate launch has no prior input')
+  assert.equal(observation.inputsAfterPreview, 0, 'First preview must precede normalization input')
+  assert.equal(observation.previewVerified, expectedEnabled)
+}
+
 export function validatePreviewModes(row) {
   assert.deepEqual(
     row.modeTransitions?.map((value) => value.mode),
@@ -2379,6 +2388,18 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       validateUntouchedOldRestart(observation, migrationChoice !== 'disabled', baselineKind)
       return
     }
+    if (name === 'ordinary' && report.launches.length === 1 && migrationPhase !== 'prepare') {
+      current.initialPreviewObservation = {
+        mode: initial.mode,
+        cursor: initial.cursor,
+        dirty: initial.dirty,
+        inputsBeforeLaunch,
+        inputsAfterPreview: report.inputs.length,
+        previewVerified: false,
+      }
+      validateUntouchedInitialPreview(current.initialPreviewObservation, false)
+      return
+    }
     await control('0')
     await position(fixtures[name], 0)
   }
@@ -2702,6 +2723,15 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         async (row) => {
           await rendered(initiallyEnabled)
           const before = await state()
+          Object.assign(launch.initialPreviewObservation, {
+            mode: before.mode,
+            cursor: before.cursor,
+            dirty: before.dirty,
+            inputsAfterPreview: report.inputs.length,
+            previewVerified: initiallyEnabled,
+          })
+          validateUntouchedInitialPreview(launch.initialPreviewObservation, initiallyEnabled)
+          row.untouchedInitialPreview = { ...launch.initialPreviewObservation }
           row.startupPerformance = await execute(startupPerformanceScript)
           row.startupPerformance.productStartedAt = launch.startedAt
           row.startupPerformance.observedAt = Date.now()

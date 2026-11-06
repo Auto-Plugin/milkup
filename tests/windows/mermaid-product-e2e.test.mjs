@@ -10,6 +10,7 @@ import {
   serializeProductEvidence,
   MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
+  validateUntouchedInitialPreview,
   validateMigrationReceipt,
   validateUntouchedOldRestart,
   validateSyntheticMigrationFixture,
@@ -2662,4 +2663,27 @@ test('startup timeline rejects missing/reordered observations and a backwards mo
   mono = 4
   assert.throws(() => timeline.mark('identity-query-started'))
   assert.equal(timeline.rows.length, 1)
+})
+
+test('initial candidate preview must be observed without keyboard, mode or caret normalization', () => {
+  const observation = {
+    mode: 'live',
+    cursor: 0,
+    dirty: false,
+    inputsBeforeLaunch: 0,
+    inputsAfterPreview: 0,
+    previewVerified: true,
+  }
+  validateUntouchedInitialPreview(observation, true)
+  validateUntouchedInitialPreview({ ...observation, previewVerified: false }, false)
+  for (const change of [
+    { mode: 'preview' },
+    { cursor: 38 },
+    { dirty: true },
+    { inputsBeforeLaunch: 1 },
+    { inputsAfterPreview: 1 },
+    { previewVerified: false },
+  ]) {
+    assert.throws(() => validateUntouchedInitialPreview({ ...observation, ...change }, true))
+  }
 })
