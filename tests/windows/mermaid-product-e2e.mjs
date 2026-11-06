@@ -2912,6 +2912,34 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               )
             assert.equal((await state()).version, before.version)
           }
+          const burstStarted = performance.now()
+          await keys('\uE014\uE012'.repeat(20))
+          await rendered(true)
+          proof.continuousKeys = {
+            movements: 40,
+            elapsedMs: performance.now() - burstStarted,
+            cursor: (await state()).cursor,
+            admittedAfter: report.nativeAudit.filter((event) => event.phase === 'admitted').length,
+            sameImage: await execute(
+              "return document.querySelector('[data-document-presentation] img') === window.__cursorReuseImage",
+            ),
+          }
+          assert.equal(
+            proof.continuousKeys.cursor,
+            0,
+            'Continuous native cursor keys return to the original position',
+          )
+          assert.equal(
+            proof.continuousKeys.admittedAfter,
+            admittedBefore,
+            'Continuous cursor input does not rerender Mermaid',
+          )
+          assert.equal(
+            proof.continuousKeys.sameImage,
+            true,
+            'Continuous cursor input retains the decoded image',
+          )
+          assert.equal((await state()).version, before.version)
           assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
         }
         await exerciseCursorReuse('cursorReuse', [
