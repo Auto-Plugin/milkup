@@ -227,6 +227,7 @@ describe('private fixed Mermaid package authorization', () => {
     failOldStartup = false,
   ) {
     let loads = 0
+    const prepare = vi.fn(async () => {})
     const invoke = vi.fn(async (command: string) => {
       if (command === 'private_mermaid_render') throw Error('native-probe')
       return null
@@ -252,7 +253,7 @@ describe('private fixed Mermaid package authorization', () => {
         ? { bundledPackagePaths: async () => ['bundled:test.lifecycle-1.3.0.milkup-plugin'] }
         : {}),
       privateMermaid: {
-        createOwner: () => createPrivateMermaidOwner(invoke),
+        createOwner: () => ({ ...createPrivateMermaidOwner(invoke), prepare }),
         reviewed: {
           pluginId: 'test.lifecycle',
           rendererId: 'diagram',
@@ -307,18 +308,21 @@ describe('private fixed Mermaid package authorization', () => {
       target: 'screen' as const,
       width: 640,
     }
-    return { manager, invoke, request, catalog }
+    return { manager, invoke, request, catalog, prepare }
   }
   it('starts only the reviewed fresh bundled renderer and preserves a later explicit disable across restart', async () => {
     vi.stubGlobal('crypto', webcrypto)
     const first = await renderer('1'.repeat(64), true)
     expect(first.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+    expect(first.prepare).toHaveBeenCalledTimes(1)
     await first.manager.disable('test.lifecycle')
     const reopened = await renderer('1'.repeat(64), true, first.catalog)
     expect(reopened.manager.state().records[0]?.enabled).toBe(false)
+    expect(reopened.prepare).not.toHaveBeenCalled()
     expect(reopened.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(false)
     await reopened.manager.enableFromUserIntent('test.lifecycle')
     expect(reopened.manager.canReusePrivateMermaidFence('test.lifecycle', 'diagram')).toBe(true)
+    expect(reopened.prepare).toHaveBeenCalledTimes(1)
     await reopened.manager.disable('test.lifecycle')
     vi.unstubAllGlobals()
   })

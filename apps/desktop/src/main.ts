@@ -510,6 +510,15 @@ app.innerHTML = `
           </div>
           <div class="search-message" data-search-message role="status">字面匹配 · 忽略大小写 · 忽略查询首尾空白</div>
         </div>
+        <nav class="document-modebar" aria-label="文档显示模式" data-document-modes>
+          <span class="document-modebar-label">文档模式</span>
+          <div class="document-mode-buttons" role="group" aria-label="选择源码、渲染或混合模式">
+            <button type="button" data-set-view-mode="source" aria-pressed="false" title="只显示 Markdown 源码，可编辑">源码</button>
+            <button type="button" data-set-view-mode="preview" aria-pressed="false" title="显示完整渲染结果，只读，可选择复制">渲染</button>
+            <button type="button" data-set-view-mode="live" aria-pressed="true" title="编辑处显示源码，其余内容显示预览">混合</button>
+          </div>
+          <span class="document-mode-help" data-view-mode-help>编辑处显示源码，其余内容显示预览</span>
+        </nav>
         <div class="editor-host" data-editor-host></div>
         <div class="plugin-bottom-slot" data-plugin-slot="bottom-panel"></div>
         <div class="document-loading" data-document-loading hidden>
@@ -1668,6 +1677,17 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
 })
 function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
   return {
+    selectionIndependent: () => {
+      const renderers = desktopPluginManager.state().contributions.documentRenderers ?? []
+      return (
+        renderers.length > 0 &&
+        renderers.every(
+          (renderer) =>
+            !renderer.contexts.includes('text') &&
+            desktopPluginManager.canReusePrivateMermaidFence(renderer.pluginId, renderer.id),
+        )
+      )
+    },
     provide: async (window, options) => {
       // A previous request may have run before plugin activation completed.
       // Clear its availability notice before awaiting the current renderer:
@@ -1918,6 +1938,7 @@ void initialDocumentOpenPromise.finally(async () => {
 })
 void desktopPluginManager.ready.then(
   async () => {
+    markStartupStage('plugin-catalog-ready')
     applicationUpdatesReady = true
     void applicationUpdates.start()
     try {
@@ -1955,6 +1976,12 @@ appRoot.querySelector('[data-menu-panel="about"]')?.addEventListener('click', (e
   else if (action === 'install') void installApplicationUpdate()
 })
 
+for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-set-view-mode]'))) {
+  button.addEventListener('click', () => {
+    const mode = button.dataset.setViewMode
+    if (isViewMode(mode)) setViewMode(mode)
+  })
+}
 app
   .querySelector<HTMLSelectElement>('[data-view-mode-selector]')
   ?.addEventListener('change', (event) => {
@@ -5684,6 +5711,18 @@ function updateModeToggle(mode: ViewMode): void {
 
   const selector = app?.querySelector<HTMLSelectElement>('[data-view-mode-selector]')
   if (selector) selector.value = mode
+  for (const choice of Array.from(
+    app?.querySelectorAll<HTMLButtonElement>('[data-set-view-mode]') ?? [],
+  ))
+    choice.setAttribute('aria-pressed', String(choice.dataset.setViewMode === mode))
+  setText(
+    '[data-view-mode-help]',
+    mode === 'source'
+      ? '显示 Markdown 源码，可编辑'
+      : mode === 'preview'
+        ? '完整渲染，只读，可选择复制'
+        : '编辑处显示源码，其余内容显示预览',
+  )
   const label = mode === 'source' ? '源码' : mode === 'preview' ? '渲染' : '混合'
   button.setAttribute('aria-label', label)
   button.title = label

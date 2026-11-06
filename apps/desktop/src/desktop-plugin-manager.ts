@@ -800,6 +800,20 @@ export class DesktopPluginManager {
     this.publishedGenerations.set(pluginId, generation.id)
     const record = this.registry.markEnabled(pluginId)
     this.persist()
+    // Begin fixed-engine loading as soon as its exact approved epoch publishes.
+    // Other bundled catalog I/O need not delay the first diagram. No source is
+    // admitted and every native boundary check still completes inside prepare.
+    const config = this.privateMermaid
+    const identity = config && this.privateMermaidIdentity(pluginId, config.reviewed.rendererId)
+    if (config && identity && !this.mermaidOwners.has(pluginId)) {
+      const owned = { ...identity, owner: config.createOwner() }
+      this.mermaidOwners.set(pluginId, owned)
+      void owned.owner.prepare?.().catch((error) => {
+        if (this.mermaidOwners.get(pluginId) === owned)
+          this.managerDiagnostics.push('Mermaid engine preparation failed: ' + String(error))
+      })
+    }
+    this.invalidatePresentation?.()
     return record
   }
   private async enableCatalogInstance(

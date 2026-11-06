@@ -99,7 +99,12 @@ export function createOwnedDocumentPngImage(
   const controlHeight = 28
   const syncControls = () => {
     attachControls()
-    if (!element.isConnected || !controls.isConnected) return
+    if (!element.isConnected || !controls.isConnected) {
+      controls.hidden = true
+      return
+    }
+    controls.hidden =
+      state !== 'decoded' || element.getBoundingClientRect().width >= value.width - 1
     const rect = element.getBoundingClientRect()
     controls.style.left = `${rect.left}px`
     controls.style.top = `${rect.top}px`
@@ -264,6 +269,9 @@ export function createOwnedDocumentPngImage(
         return
       }
       state = 'decoded'
+      const timing = ownerWindow?.performance
+      if (timing?.mark && !timing.getEntriesByName('milkup:preview:first-decoded').length)
+        timing.mark('milkup:preview:first-decoded')
       clearTimeout(timer)
       const Observer = ownerWindow?.ResizeObserver
       if (Observer) {
@@ -278,6 +286,7 @@ export function createOwnedDocumentPngImage(
   }
   return {
     element,
+    syncVisibility: syncControls,
     get state() {
       return state
     },

@@ -55,6 +55,9 @@ export type DocumentPresentationTarget = Extract<
   { type: 'reference' }
 >['target']
 export interface DocumentPresentationConfig {
+  /** Host-only authority for a set of reviewed, selection-independent renderers.
+   * Never copy this from a plugin declaration. Rechecked on every reuse. */
+  readonly selectionIndependent?: () => boolean
   readonly provide: (
     window: DocumentPresentationWindow,
     options: {
@@ -594,7 +597,7 @@ export class DocumentPresentation {
       this.cache.identity !== current.sourceIdentity ||
       this.cache.documentVersion !== current.documentVersion ||
       !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
-      !sameSelection(this.cache.response.request.selection, current.selection)
+      !this.matchesRenderSelection(this.cache.response.request.selection, current.selection)
     ) {
       this.invalidate()
       return
@@ -668,7 +671,7 @@ export class DocumentPresentation {
     if (!this.config && !this.saved.size && !this.job) return
     const current = this.snapshot()
     if (this.preparationRetry && !this.preparationRetry.matches()) this.cancelPreparationRetry()
-    if (this.job && !sameSelection(this.job.selection, current.selection)) {
+    if (this.job && !this.matchesRenderSelection(this.job.selection, current.selection)) {
       this.job.controller.abort()
       this.job = undefined
     }
@@ -679,7 +682,7 @@ export class DocumentPresentation {
         (this.cache.identity !== current.sourceIdentity ||
           this.cache.documentVersion !== current.documentVersion ||
           !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
-          !sameSelection(this.cache.response.request.selection, current.selection)))
+          !this.matchesRenderSelection(this.cache.response.request.selection, current.selection)))
     ) {
       this.restore()
       this.schedule()
@@ -871,7 +874,11 @@ export class DocumentPresentation {
       this.fallback('当前源码范围超出预览预算，保留 Markdown 源码。')
       return
     }
-    const baseKey = `${current.sourceVersion}:${window.from}:${window.to}:${window.width}:${this.epoch}:${window.selection.anchor}:${window.selection.head}:${current.documentVersion ?? ''}`
+    const selectionKey =
+      this.config.selectionIndependent?.() === true
+        ? 'independent'
+        : `${window.selection.anchor}:${window.selection.head}`
+    const baseKey = `${current.sourceVersion}:${window.from}:${window.to}:${window.width}:${this.epoch}:${selectionKey}:${current.documentVersion ?? ''}`
     const key = `${baseKey}:${window.visibleFrom}:${window.visibleTo}`
     if (
       this.cache?.identity === current.sourceIdentity &&
@@ -905,7 +912,7 @@ export class DocumentPresentation {
       this.cache.identity !== current.sourceIdentity ||
       this.cache.documentVersion !== current.documentVersion ||
       !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
-      !sameSelection(this.cache.response.request.selection, current.selection)
+      !this.matchesRenderSelection(this.cache.response.request.selection, current.selection)
     ) {
       this.restore()
       this.clearCache()
@@ -1085,7 +1092,7 @@ export class DocumentPresentation {
       current.documentVersion === job.documentVersion &&
       current.mode !== 'source' &&
       this.config !== undefined &&
-      sameSelection(job.selection, current.selection) &&
+      this.matchesRenderSelection(job.selection, current.selection) &&
       String(current.sourceVersion) === job.key.split(':')[0]
     )
   }
@@ -1150,7 +1157,7 @@ export class DocumentPresentation {
       cache.identity === before.sourceIdentity &&
       cache.documentVersion === before.documentVersion &&
       cache.key.startsWith(`${before.sourceVersion}:`) &&
-      sameSelection(cache.response.request.selection, before.selection)
+      this.matchesRenderSelection(cache.response.request.selection, before.selection)
     // Source DOM replacement temporarily removes measured preview height. Capture
     // the reading position before that shrink, while the visible line is known.
     const anchor = eligible ? this.captureScrollAnchor(before.selection) : undefined
@@ -1463,6 +1470,18 @@ export class DocumentPresentation {
             start === end &&
             (!context.sourceFocused || start === fragment.to)),
       )
+      if (this.config?.selectionIndependent?.() === true) {
+        for (const fragment of response.result.fragments) {
+          const owner = this.fragmentImages.get(fragment)
+          if (
+            fragment.content.type === 'host-png-image' &&
+            owner &&
+            !owner.failed &&
+            this.sameImageContext(owner, response, context)
+          )
+            retainedImages.add(fragment)
+        }
+      }
       const fragments: DocumentPresentationFragment[] = []
       const blocks: { fromLine: number; toLine: number }[] = []
       const allLines = this.content.querySelectorAll<HTMLElement>('.milkup-line')
@@ -1596,11 +1615,32 @@ export class DocumentPresentation {
       const retainedKeys = new Set(Array.from(retainedImages, fragmentKey))
       for (const key of this.previousFragmentImages.keys())
         if (!retainedKeys.has(key)) this.disposePreviousFragmentImages(key)
+      for (const owner of this.fragmentImages.values())
+        for (const image of owner.images) image.syncVisibility?.()
       this.painting = false
       this.observe()
     }
   }
 
+  private matchesRenderSelection(
+    a: PaintContext['selection'],
+    b: PaintContext['selection'],
+  ): boolean {
+    return sameSelection(a, b) || this.config?.selectionIndependent?.() === true
+  }
+  private sameImagePaintContext(owner: FragmentImages, context: PaintContext): boolean {
+    const before = owner.context
+    return (
+      this.samePaintContext(before, context) ||
+      (this.config?.selectionIndependent?.() === true &&
+        owner.fragment.content.type === 'host-png-image' &&
+        before.mode === context.mode &&
+        before.sourceIdentity === context.sourceIdentity &&
+        before.sourceVersion === context.sourceVersion &&
+        before.documentVersion === context.documentVersion &&
+        before.config === context.config)
+    )
+  }
   private sameImageContext(
     owner: FragmentImages,
     response: DocumentPresentationResponse,
@@ -1610,7 +1650,7 @@ export class DocumentPresentation {
       next = response.request
     return (
       owner.generation === this.imageGeneration &&
-      this.samePaintContext(owner.context, context) &&
+      this.sameImagePaintContext(owner, context) &&
       previous.documentId === next.documentId &&
       previous.version === next.version &&
       previous.theme === next.theme &&
@@ -1744,7 +1784,7 @@ export class DocumentPresentation {
         owner.generation !== this.imageGeneration ||
         !this.root.isConnected ||
         !this.content.isConnected ||
-        !this.samePaintContext(owner.context, this.paintContext())
+        !this.sameImagePaintContext(owner, this.paintContext())
       ) {
         this.disposeFragmentImages(currentFragment)
         return
@@ -1773,7 +1813,7 @@ export class DocumentPresentation {
         this.cache?.response === owner.response &&
         owner.generation === this.imageGeneration &&
         this.root.isConnected &&
-        this.samePaintContext(owner.context, this.paintContext())
+        this.sameImagePaintContext(owner, this.paintContext())
       )
         this.layout()
     }

@@ -2595,6 +2595,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         async (row) => {
           await rendered(initiallyEnabled)
           const before = await state()
+          row.startupPerformance =
+            await execute(`return {timeOrigin:performance.timeOrigin,now:performance.now(),
+            marks:performance.getEntriesByType('mark').filter(e=>e.name.startsWith('milkup:')).map(e=>({name:e.name,startTime:e.startTime}))}`)
+          row.startupPerformance.productStartedAt = launch.startedAt
+          row.startupPerformance.observedAt = Date.now()
           assert.equal(before.dirty, false)
           await menu()
           const inventory = initialInventory
@@ -2690,8 +2695,60 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         await position(fixtures.ordinary, fenceOffset, 'source')
         await rendered(false)
         row.modeTransitions = [{ mode: 'source', cursor: (await state()).cursor, images: 0 }]
-        await pointer('[data-view-mode-selector]')
-        await keys('\uE011\uE015\uE007') // Home, Down, Enter => 渲染.
+        row.modeControls =
+          await execute(`return [...document.querySelectorAll('[data-set-view-mode]')].map(e=>{
+          const r=e.getBoundingClientRect();return {mode:e.dataset.setViewMode,label:e.textContent,
+          width:r.width,height:r.height,top:r.top,left:r.left,visible:r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight&&r.right<=innerWidth}})`)
+        assert.deepEqual(
+          row.modeControls.map((c) => c.mode),
+          ['source', 'preview', 'live'],
+        )
+        assert.deepEqual(
+          row.modeControls.map((c) => c.label),
+          ['源码', '渲染', '混合'],
+        )
+        assert(
+          row.modeControls.every((c) => c.visible && c.width >= 44 && c.height >= 28),
+          'All three named mode buttons visibly discoverable',
+        )
+        const originalRect = await request('GET', `/session/${session}/window/rect`)
+        row.modeLayouts = []
+        try {
+          await request('POST', `/session/${session}/window/rect`, { width: 640, height: 600 })
+          for (const zoom of [1, 1.25]) {
+            await control(zoom === 1 ? '0' : '=')
+            await until(
+              () =>
+                execute(
+                  'return Number(document.querySelector("#app").dataset.appearanceZoom) === arguments[0]',
+                  zoom,
+                ),
+              'Native interface zoom applied',
+            )
+            const layout =
+              await execute(`return {innerWidth,innerHeight,zoom:document.querySelector('#app').dataset.appearanceZoom,
+              buttons:[...document.querySelectorAll('[data-set-view-mode]')].map(e=>{const r=e.getBoundingClientRect();return {mode:e.dataset.setViewMode,label:e.textContent,
+                visible:r.width>=44&&r.height>=28&&r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight}})}`)
+            assert(
+              layout.buttons.length === 3 && layout.buttons.every((button) => button.visible),
+              'All modes visible in narrow native window at actual WebView zoom',
+            )
+            for (const mode of ['preview', 'live', 'source']) {
+              await pointer(`[data-set-view-mode="${mode}"]`)
+              await until(
+                async () => (await state()).mode === mode,
+                'Named mode click at narrow native size',
+              )
+            }
+            row.modeLayouts.push(layout)
+          }
+        } finally {
+          await control('0')
+          await request('POST', `/session/${session}/window/rect`, originalRect)
+        }
+        await pointer('[data-set-view-mode="source"]')
+        assert.equal((await state()).mode, 'source')
+        await pointer('[data-set-view-mode="preview"]')
         await until(async () => (await state()).mode === 'preview', 'Public rendered mode selector')
         await rendered(true)
         let modeState = await state()
@@ -2743,6 +2800,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           cursor: modeState.cursor,
           images: modeState.images.length,
         })
+        await pointer('[data-set-view-mode="live"]')
+        assert.equal((await state()).mode, 'live')
         await position(fixtures.ordinary, fenceOffset, 'live')
         await rendered(false)
         modeState = await state()
@@ -2752,8 +2811,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         assert.equal((await state()).version, before.version)
         assert.equal((await state()).dirty, before.dirty)
         await position(fixtures.ordinary, 2, 'source')
-        await pointer('[data-view-mode-selector]')
-        await keys('\uE011\uE015\uE007')
+        await pointer('[data-set-view-mode="preview"]')
         await until(async () => (await state()).mode === 'preview', 'Rendered Markdown mode')
         assert.equal(
           await execute(
@@ -2763,8 +2821,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         )
         const boldOffset = fixtures.ordinary.indexOf('bold')
         await position(fixtures.ordinary, boldOffset, 'source')
-        await pointer('[data-view-mode-selector]')
-        await keys('\uE011\uE015\uE007')
+        await pointer('[data-set-view-mode="preview"]')
         await until(
           async () => (await state()).mode === 'preview',
           'Rendered Markdown retains bold caret',
@@ -2778,6 +2835,61 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         row.markdownPreviewMarkersHidden = true
         await position(fixtures.ordinary)
         await rendered(true)
+        const cursorPng =
+          await execute(`const e=document.querySelector('[data-document-presentation] img');
+          window.__cursorReuseImage=e;return {src:e.currentSrc,instance:e.closest('[data-document-png-instance]')?.dataset.documentPngInstance}`)
+        const admittedBefore = report.nativeAudit.filter((e) => e.phase === 'admitted').length
+        row.cursorReuse = { before: cursorPng, admittedBefore, visits: [] }
+        for (const offset of [
+          1,
+          8,
+          fenceOffset + 3,
+          fenceOffset + 6,
+          fixtures.ordinary.length - 1,
+          0,
+        ]) {
+          const began = performance.now()
+          await control('\uE011')
+          const steps = [
+            ...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
+              fixtures.ordinary.slice(0, offset),
+            ),
+          ].length
+          if (steps) await keys('\uE014'.repeat(steps))
+          await until(
+            async () => (await state()).cursor === offset,
+            'Cursor-only navigation reaches requested source offset',
+          )
+          const inside =
+            offset >= fixtures.ordinary.indexOf('```mermaid') &&
+            offset < fixtures.ordinary.indexOf('```', fixtures.ordinary.indexOf('```mermaid') + 3)
+          await rendered(!inside)
+          const observation =
+            await execute(`const e=document.querySelector('[data-document-presentation] img');return {
+            sameImage:e ? e===window.__cursorReuseImage : null,src:e?.currentSrc??null,
+            instance:e?.closest('[data-document-png-instance]')?.dataset.documentPngInstance??null}`)
+          const admissions = report.nativeAudit.filter((e) => e.phase === 'admitted').length
+          row.cursorReuse.visits.push({
+            offset,
+            inside,
+            ...observation,
+            admissions,
+            elapsedMs: performance.now() - began,
+          })
+          assert.equal(
+            admissions,
+            admittedBefore,
+            'Cursor-only movement never starts another Mermaid render',
+          )
+          if (!inside)
+            assert.equal(
+              observation.sameImage,
+              true,
+              'Unchanged Mermaid keeps its decoded DOM image',
+            )
+          assert.equal((await state()).version, before.version)
+        }
+        assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
         row.repeatedInvalidations = []
         for (let iteration = 0; iteration < 9; iteration++) {
           await control('1')
@@ -2819,8 +2931,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         await rendered(true)
         row.image = editedImage = await readImage('03-edited')
         const editedVersion = (await state()).version
-        await pointer('[data-view-mode-selector]')
-        await keys('\uE011\uE015\uE007')
+        await pointer('[data-set-view-mode="preview"]')
         await until(
           async () => (await state()).mode === 'preview',
           'Rendered mode with undo history',

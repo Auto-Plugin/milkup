@@ -12,6 +12,8 @@ import engineAsset from '../src-tauri/mermaid-engine/assets/mermaid-12.2.0.min.j
 import frameAsset from './frontend-mermaid/frame.html?url'
 
 export interface FrontendMermaidOwner {
+  /** Prepare only the fixed engine and boundary proofs, before any diagram admission. */
+  prepare?(): Promise<void>
   render(
     request: DocumentPresentationRequest,
     options: { readonly signal?: AbortSignal; readonly deadline?: number },
@@ -345,6 +347,7 @@ export function createFrontendMermaidOwner(
       }
     })())
   return {
+    prepare: () => connect(performance.now() + 10_000),
     render(value, settings) {
       const request = copyDocumentPresentationRequest(value)
       const deadline = settings.deadline ?? performance.now() + 10_000

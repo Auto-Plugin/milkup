@@ -7,6 +7,7 @@ export const imageDecodeDeadlineMs = 10_000
 export interface OwnedDocumentSvgImage {
   readonly element: HTMLElement
   readonly state: 'pending' | 'decoded' | 'failed' | 'disposed'
+  syncVisibility?(): void
   dispose(): void
 }
 

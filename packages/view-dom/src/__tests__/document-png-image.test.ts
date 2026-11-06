@@ -517,3 +517,68 @@ for (const windowed of [false, true]) {
     await unchanged(view)
   })
 }
+
+for (const windowed of [false, true]) {
+  it(`keeps a trusted PNG owner through cursor motion and editing its source (${windowed})`, async () => {
+    const base = provider(2100, 126)
+    const provide = vi.fn(base.provide)
+    const view = await make(windowed, { ...base, provide, selectionIndependent: () => true })
+    const first = decodes[0]!
+    first.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector('img')
+    expect(image).toBe(first.image)
+    const viewport = image!.parentElement!
+    viewport.scrollLeft = 640
+    const initialCalls = provide.mock.calls.length
+    view.inputDOM.focus()
+    for (const offset of [sourceText.length - 1, sourceText.length - 2, 2, 3, sourceText.length]) {
+      if (view instanceof EditorView)
+        view.updateState(view.state.applyTransaction({ selection: Selection.cursor(offset) }))
+      else await view.revealSelection(offset < firstLine.length ? 1 : 2, Selection.cursor(offset))
+      await settle()
+      expect(provide).toHaveBeenCalledTimes(initialCalls)
+      expect(decodes).toHaveLength(1)
+      if (offset < firstLine.length) expect(view.contentDOM.querySelector('img')).toBeNull()
+      else {
+        expect(view.contentDOM.querySelector('img')).toBe(image)
+        expect(viewport.scrollLeft).toBe(640)
+      }
+    }
+    await unchanged(view)
+  })
+}
+
+it('does not abort an in-flight trusted PNG on caret movement, but revokes it with its host config', async () => {
+  const base = provider()
+  let finish!: () => void
+  let signal!: AbortSignal
+  let independent = true
+  const provide = vi.fn(async (window, options) => {
+    signal = options.signal
+    await new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    return base.provide(window, options)
+  }) as DocumentPresentationConfig['provide'] & ReturnType<typeof vi.fn>
+  const view = (await make(false, {
+    provide,
+    selectionIndependent: () => independent,
+  })) as EditorView
+  for (const offset of [2, 3, sourceText.length - 1]) {
+    view.updateState(view.state.applyTransaction({ selection: Selection.cursor(offset) }))
+    await settle()
+    expect(signal.aborted).toBe(false)
+  }
+  expect(provide).toHaveBeenCalledTimes(1)
+  finish()
+  await settle()
+  decodes[0]!.resolve()
+  await settle()
+  expect(view.contentDOM.querySelector('img')).toBe(decodes[0]!.image)
+  independent = false
+  view.setDocumentPresentation(undefined)
+  await settle()
+  expect(view.contentDOM.querySelector('img')).toBeNull()
+  expect(revoked).toEqual(created)
+})
