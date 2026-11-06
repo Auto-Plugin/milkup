@@ -1256,6 +1256,51 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
       'Natural diagram far end is reachable with real horizontal wheel input',
       10000,
     )
+    await pointer('.milkup-line[data-line="1"]')
+    interaction.cursorScroll = []
+    const headingEnd = guiFixtures.wide.indexOf('\n')
+    for (const key of ['\uE011', '\uE014']) {
+      report.inputs.push({
+        at: new Date().toISOString(),
+        kind: 'W3C-key',
+        purpose: 'wide-caret-retains-scroll',
+        key,
+      })
+      await request('POST', `/session/${session}/actions`, {
+        actions: [
+          {
+            type: 'key',
+            id: 'wide-caret',
+            actions: [
+              { type: 'keyDown', value: key },
+              { type: 'keyUp', value: key },
+            ],
+          },
+        ],
+      })
+      await settle()
+      const value = await readWideView()
+      const cursor = await execute(
+        "return Number(document.querySelector('.milkup-cursor')?.dataset.position)",
+      )
+      interaction.cursorScroll.push({ cursor, view: value })
+      assert(cursor >= 0 && cursor < headingEnd, 'Real caret remains outside the diagram fence')
+      assert.equal(
+        value?.instance,
+        interaction.scrolled.instance,
+        'Caret retains decoded image owner',
+      )
+      assert.equal(value.mode, 'natural')
+      assert(
+        Math.abs(value.viewport.scrollLeft - interaction.scrolled.viewport.scrollLeft) <= 1,
+        'Caret retains native horizontal scroll',
+      )
+      assert.equal(
+        value.requests.admitted,
+        interaction.scrolled.requests.admitted,
+        'Caret never renders unchanged diagram again',
+      )
+    }
     await screenshot('wide-natural')
     interaction.naturalScreenshot = 'gui-wide-natural-window.png'
     interaction.naturalPngSha256 = (await decodeImages('wide-natural'))[0].sha256

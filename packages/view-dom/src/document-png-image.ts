@@ -92,6 +92,7 @@ export function createOwnedDocumentPngImage(
   let timer: ReturnType<typeof setTimeout> | undefined
   let released = false
   let natural = false
+  let savedScrollLeft = 0
   let measuredWidth: number | undefined
   let resize: ResizeObserver | undefined
   let layoutFrame: number | undefined
@@ -142,7 +143,10 @@ export function createOwnedDocumentPngImage(
     // Update the existing text node: preview observers watch child replacement,
     // while this control changes only the current owned image's display.
     buttonLabel.data = natural ? '适应宽度' : '原始尺寸'
-    if (!natural) viewport.scrollLeft = 0
+    if (!natural) {
+      savedScrollLeft = 0
+      viewport.scrollLeft = 0
+    }
     notifyLayout()
   }
   const measure = () => {
@@ -286,7 +290,15 @@ export function createOwnedDocumentPngImage(
   }
   return {
     element,
-    syncVisibility: syncControls,
+    captureViewState() {
+      if (element.isConnected) savedScrollLeft = viewport.scrollLeft
+    },
+    syncVisibility() {
+      syncControls()
+      // Native DOM removal resets scrolling even when the decoded image survives.
+      // Restore only after the owner has its final parent and measurable viewport.
+      if (element.isConnected) viewport.scrollLeft = savedScrollLeft
+    },
     get state() {
       return state
     },

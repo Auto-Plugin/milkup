@@ -189,6 +189,16 @@ test(
           assert.equal(await page.locator('iframe[data-milkup-mermaid-renderer]').count(), 0)
         },
       )
+      await t.test(
+        'native DOM detachment retains natural scroll and the decoded owner across caret movement',
+        async () => {
+          const rows = await page.evaluate(() => window.frontendMermaidFixture.cursorScroll())
+          assert.equal(rows.length, 5)
+          assert(rows.every((row) => row.calls === 1 && row.mode === 'natural'))
+          assert(rows.filter((row) => row.connected).every((row) => row.left === 640 && row.same))
+          assert.equal(rows.filter((row) => !row.connected).length, 2)
+        },
+      )
       await t.test('ordinary and twelve official syntax fixtures', async (st) => {
         cspErrors.length = 0
         for (const item of [

@@ -25,3 +25,9 @@ Original delivered run 42148997347 first ready timestamp minus recorded launch s
 The real Windows product harness additionally requires six caret visits inside/outside the fence with no new render admissions, the same decoded DOM image outside source editing, unchanged file/version, and all three public mode buttons usable at a 640-pixel native window and 100%/125% native WebView zoom. Native zoom does not claim a system DPI matrix.
 
 The prior delivered installer remains unchanged. No new installer or user-site fix is claimed until the corresponding candidate and installed-package runs complete.
+
+## Real DOM scroll correction
+
+A native Chromium DOM probe found a gap not modeled by jsdom: removing/reappending the same image viewport reset scrollLeft from 640 to 0. The follow-up captures the owned viewport before source DOM replacement and restores its offset only after final reattachment. The packaged browser regression now proves natural mode and the same image/provider invocation survive outside → inside → outside caret moves, with scrollLeft 640 restored outside. Ordinary provider contracts are unchanged. The Windows wide-view test now also drives real heading-caret keys after horizontal wheel scrolling and requires the same owner, offset and admission count.
+
+Full view run after the original change: 996/996. Follow-up targeted PNG + presentation tests: 100/100; packaged browser suite: 23/23. These do not substitute for the follow-up Windows run. Run 42177287963 is the earlier 8d6d13c5 candidate and does not include the native scroll correction.

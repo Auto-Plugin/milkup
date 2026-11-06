@@ -1168,6 +1168,7 @@ export class DocumentPresentation {
     }
     const focus = this.captureFocus()
     const previewScroll = this.capturePreviewScroll()
+    this.captureImageViewState()
     update()
     const current = () => {
       const latest = this.snapshot()
@@ -1307,8 +1308,13 @@ export class DocumentPresentation {
     )
       this.root.scrollTop += anchor.line.getBoundingClientRect().top - anchor.top
   }
+  private captureImageViewState(): void {
+    for (const owner of this.fragmentImages.values())
+      for (const image of owner.images) image.captureViewState?.()
+  }
   private restore(preserveImages = false, forceLayout = false): void {
     const painting = this.painting
+    if (preserveImages) this.captureImageViewState()
     if (!preserveImages) {
       this.imageGeneration++
       this.disposeFragmentImages()
