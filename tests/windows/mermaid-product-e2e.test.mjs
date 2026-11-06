@@ -2,6 +2,7 @@
 // browser, product, process observer, PowerShell, Runtime, or Windows task.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import vm from 'node:vm'
 import path from 'node:path'
 import { deflateSync } from 'node:zlib'
 import {
@@ -14,6 +15,7 @@ import {
   validateMigrationReceipt,
   validateMigrationProfileReuse,
   validateMigrationAppearance,
+  migrationAppearanceScript,
   validateUntouchedOldRestart,
   validateSyntheticMigrationFixture,
   MIGRATION_BASELINE_SHA256,
@@ -2267,7 +2269,11 @@ test('old profile receipts require the real pinned baseline, same owned account 
   const deliveredExpected = { ...expected, choice: 'enabled', baselineKind: 'delivered-beta10' }
   validateMigrationReceipt(delivered, deliveredExpected)
   const reuse = structuredClone(delivered)
-  reuse.migration.browserPreference = { zoom: 1.25, stored: { theme: 'system', zoom: 1.25 } }
+  reuse.migration.browserPreference = {
+    zoom: 1.25,
+    storageKey: 'milkup.desktop.settings.v1',
+    stored: { version: 1, revision: 2, theme: 'system', zoom: 1.25 },
+  }
   const scratchRoot = path.resolve('owned-fixture')
   reuse.context.scratchRoot = scratchRoot
   reuse.context.work = path.join(scratchRoot, 'old-work')
@@ -2744,7 +2750,11 @@ test('initial candidate preview must be observed without keyboard, mode or caret
 })
 
 test('migrated browser preference rejects a fresh profile default and unproved stored values', () => {
-  const value = { zoom: 1.25, stored: { theme: 'system', zoom: 1.25 } }
+  const value = {
+    zoom: 1.25,
+    storageKey: 'milkup.desktop.settings.v1',
+    stored: { version: 1, revision: 2, theme: 'system', zoom: 1.25 },
+  }
   validateMigrationAppearance(value)
   for (const bad of [
     { ...value, zoom: 1 },
@@ -2754,4 +2764,40 @@ test('migrated browser preference rejects a fresh profile default and unproved s
   ]) {
     assert.throws(() => validateMigrationAppearance(bad))
   }
+})
+
+test('browser appearance observation reads the current unified store, not the obsolete appearance key', () => {
+  const current = JSON.stringify({
+    version: 1,
+    application: { revision: 2, values: { 'appearance.theme': 'system', 'appearance.zoom': 1.25 } },
+    plugins: {},
+  })
+  const reads = []
+  const observe = (stored) =>
+    JSON.parse(
+      JSON.stringify(
+        vm.runInNewContext('(function(){' + migrationAppearanceScript + '})()', {
+          document: { querySelector: () => ({ dataset: { appearanceZoom: '1.25' } }) },
+          localStorage: {
+            getItem: (key) => {
+              reads.push(key)
+              return stored[key] ?? null
+            },
+          },
+        }),
+      ),
+    )
+  validateMigrationAppearance(observe({ 'milkup.desktop.settings.v1': current }))
+  assert.deepEqual(reads, ['milkup.desktop.settings.v1'])
+  assert.throws(
+    () =>
+      validateMigrationAppearance(
+        observe({ 'milkup.desktop.appearance.v1': '{"theme":"system","zoom":1.25}' }),
+      ),
+    /record must exist/,
+  )
+  assert.throws(
+    () => observe({ 'milkup.desktop.settings.v1': ' '.repeat(256 * 1024 + 1) }),
+    /Bounded/,
+  )
 })

@@ -1549,11 +1549,22 @@ export function validateMigrationReceipt(receipt, expected) {
   assert.match(receipt.migration.catalog.sha256, /^[a-f0-9]{64}$/)
 }
 
+export const migrationAppearanceScript = `const key='milkup.desktop.settings.v1';const raw=localStorage.getItem(key);
+  if(raw!==null&&raw.length>256*1024)throw new Error('Bounded application settings required');
+  const settings=raw===null?null:JSON.parse(raw),values=settings?.application?.values;
+  return {zoom:Number(document.querySelector('#app').dataset.appearanceZoom),storageKey:key,
+    stored:settings===null?null:{version:settings.version,revision:settings.application?.revision,
+      theme:values?.['appearance.theme'],zoom:values?.['appearance.zoom']}}`
+
 export function validateMigrationAppearance(value) {
   assert.equal(value.zoom, 1.25, 'Actual preserved UI zoom')
+  assert.equal(value.storageKey, 'milkup.desktop.settings.v1')
+  assert(value.stored && typeof value.stored === 'object', 'Current settings record must exist')
+  assert.equal(value.stored.version, 1)
+  assert(Number.isSafeInteger(value.stored.revision) && value.stored.revision > 0)
   assert.equal(value.stored.zoom, 1.25, 'Public UI must persist its non-default setting')
   assert(['system', 'light', 'dark'].includes(value.stored.theme))
-  assert.deepEqual(Object.keys(value.stored).sort(), ['theme', 'zoom'])
+  assert.deepEqual(Object.keys(value.stored).sort(), ['revision', 'theme', 'version', 'zoom'])
 }
 
 export function validateMigrationProfileReuse(receipt, expected) {
@@ -2252,10 +2263,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     guard()
     return ledger.verifyAll(product.pid)
   }
-  const readBrowserAppearance = () =>
-    execute(
-      `return {zoom:Number(document.querySelector('#app').dataset.appearanceZoom),stored:JSON.parse(localStorage.getItem('milkup.desktop.appearance.v1')??'null')}`,
-    )
+  const readBrowserAppearance = () => execute(migrationAppearanceScript)
   const startProduct = async (name, restart = false) => {
     const inputsBeforeLaunch = report.inputs.length
     if (restart) {
@@ -2768,10 +2776,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         if (baselineKind === 'delivered-beta10') {
           await closeMenu()
           await control('=')
-          await until(
-            async () => (await readBrowserAppearance()).zoom === 1.25,
-            'Real old UI saves non-default browser zoom',
-          )
+          await until(async () => {
+            const value = await readBrowserAppearance()
+            return value.zoom === 1.25 && value.stored?.zoom === 1.25
+          }, 'Real old UI saves non-default browser zoom')
           row.browserPreference = await readBrowserAppearance()
           validateMigrationAppearance(row.browserPreference)
           report.migration.browserPreference = row.browserPreference
