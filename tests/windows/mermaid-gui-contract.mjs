@@ -1150,6 +1150,64 @@ export function validateCurrentNativeResourceProof(job) {
   return true
 }
 
+export function validateWideObservation(value, png, fit, mode) {
+  assert(value, 'Actual wide UI observation required')
+  assert(['fit', 'natural'].includes(mode), 'Explicit expected scale mode required')
+  const atNaturalSize = mode === 'natural'
+  assert.equal(value.mode, atNaturalSize ? 'natural' : 'fit')
+  assert.equal(value.button.text, atNaturalSize ? '适应宽度' : '原始尺寸')
+  assert.equal(value.button.visible, true)
+  assert.equal(value.button.disabled, false)
+  assert.equal(value.image.complete, true)
+  assert.equal(
+    value.image.naturalWidth,
+    png.width,
+    'Displayed intrinsic width belongs to the decoded native PNG',
+  )
+  assert.equal(
+    value.image.naturalHeight,
+    png.height,
+    'Displayed intrinsic height belongs to the decoded native PNG',
+  )
+  assert.match(value.image.sourceSha256, /^[a-f0-9]{64}$/)
+  assert.equal(
+    value.image.sourceSha256,
+    fit.image.sourceSha256,
+    'View change retains the accepted image lease',
+  )
+  assert.equal(value.image.naturalWidth, fit.image.naturalWidth)
+  assert.equal(value.image.naturalHeight, fit.image.naturalHeight)
+  assert(value.image.naturalWidth > value.viewport.clientWidth && value.viewport.clientWidth >= 200)
+  const width = atNaturalSize ? value.image.naturalWidth : value.viewport.clientWidth
+  assert(Math.abs(value.image.width - width) <= 1, 'Actual fit/native image width')
+  assert(
+    Math.abs(value.image.height - (width * value.image.naturalHeight) / value.image.naturalWidth) <=
+      1,
+    'View change preserves image aspect ratio',
+  )
+  assert(
+    value.outer.scrollWidth <= value.outer.clientWidth + 1,
+    'Horizontal overflow remains inside the diagram viewport',
+  )
+  assert.equal(value.requests.pending, 0)
+  assert.equal(
+    value.requests.admitted,
+    fit.requests.admitted,
+    'View controls do not enqueue another native request',
+  )
+  assert.equal(value.dirty, false)
+  assert.equal(value.sourceVisible, false)
+  if (atNaturalSize) {
+    assert(['auto', 'scroll'].includes(value.viewport.overflowX))
+    assert(value.viewport.scrollWidth >= value.image.naturalWidth - 1)
+    assert(value.viewport.clientHeight >= value.image.naturalHeight - 1)
+  } else {
+    assert(value.viewport.scrollWidth <= value.viewport.clientWidth + 1)
+    assert.equal(value.viewport.scrollLeft, 0)
+  }
+  return true
+}
+
 export function validateWideInteraction(interaction, png) {
   assert(
     interaction && interaction.status === 'passed',
@@ -1162,64 +1220,13 @@ export function validateWideInteraction(interaction, png) {
   assert.equal(interaction.naturalPngSha256, png.sha256)
   assert.equal(interaction.naturalScreenshot, 'gui-wide-natural-window.png')
   const { fit, natural, scrolled, restored } = interaction
-  for (const [name, value] of Object.entries({ fit, natural, scrolled, restored })) {
-    assert(value, 'Actual wide UI observation: ' + name)
-    const atNaturalSize = name === 'natural' || name === 'scrolled'
-    assert.equal(value.mode, atNaturalSize ? 'natural' : 'fit')
-    assert.equal(value.button.text, atNaturalSize ? '适应宽度' : '原始尺寸')
-    assert.equal(value.button.visible, true)
-    assert.equal(value.button.disabled, false)
-    assert.equal(value.image.complete, true)
-    assert.equal(
-      value.image.naturalWidth,
-      png.width,
-      'Displayed intrinsic width belongs to the decoded native PNG',
+  for (const [name, value] of Object.entries({ fit, natural, scrolled, restored }))
+    validateWideObservation(
+      value,
+      png,
+      fit,
+      name === 'natural' || name === 'scrolled' ? 'natural' : 'fit',
     )
-    assert.equal(
-      value.image.naturalHeight,
-      png.height,
-      'Displayed intrinsic height belongs to the decoded native PNG',
-    )
-    assert.match(value.image.sourceSha256, /^[a-f0-9]{64}$/)
-    assert.equal(
-      value.image.sourceSha256,
-      fit.image.sourceSha256,
-      'View change retains the accepted image lease',
-    )
-    assert.equal(value.image.naturalWidth, fit.image.naturalWidth)
-    assert.equal(value.image.naturalHeight, fit.image.naturalHeight)
-    assert(
-      value.image.naturalWidth > value.viewport.clientWidth && value.viewport.clientWidth >= 200,
-    )
-    const width = atNaturalSize ? value.image.naturalWidth : value.viewport.clientWidth
-    assert(Math.abs(value.image.width - width) <= 1, 'Actual fit/native image width')
-    assert(
-      Math.abs(
-        value.image.height - (width * value.image.naturalHeight) / value.image.naturalWidth,
-      ) <= 1,
-      'View change preserves image aspect ratio',
-    )
-    assert(
-      value.outer.scrollWidth <= value.outer.clientWidth + 1,
-      'Horizontal overflow remains inside the diagram viewport',
-    )
-    assert.equal(value.requests.pending, 0)
-    assert.equal(
-      value.requests.admitted,
-      fit.requests.admitted,
-      'View controls do not enqueue another native request',
-    )
-    assert.equal(value.dirty, false)
-    assert.equal(value.sourceVisible, false)
-    if (atNaturalSize) {
-      assert(['auto', 'scroll'].includes(value.viewport.overflowX))
-      assert(value.viewport.scrollWidth >= value.image.naturalWidth - 1)
-      assert(value.viewport.clientHeight >= value.image.naturalHeight - 1)
-    } else {
-      assert(value.viewport.scrollWidth <= value.viewport.clientWidth + 1)
-      assert.equal(value.viewport.scrollLeft, 0)
-    }
-  }
   assert.equal(natural.viewport.scrollLeft, 0)
   assert(scrolled.viewport.scrollLeft > 0, 'Real wheel input must reach the wide image')
   assert(

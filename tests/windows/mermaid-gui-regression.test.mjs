@@ -22,6 +22,7 @@ import {
   validateCurrentNativeResourceProof,
   validateNativeDpiObservation,
   validateNativeGuiResize,
+  validateWideObservation,
 } from './mermaid-gui-contract.mjs'
 import {
   guiFixtures,
@@ -1957,4 +1958,46 @@ test('frontend GUI mode is externally selected and cannot downgrade after stripp
   delete report.frontendCleanupVerified
   report.nativeCleanupVerified = true
   assert.throws(() => validateGuiReport(report, 'frontend'))
+})
+
+test('natural caret settling uses intrinsic-size geometry without weakening fitted settling', () => {
+  const proof = syntheticWideInteraction()
+  const png = { width: 3200, height: 160 }
+  assert(validateWideObservation(proof.scrolled, png, proof.fit, 'natural'))
+  assert(validateWideObservation(proof.restored, png, proof.fit, 'fit'))
+  assert.throws(() => validateWideObservation(proof.scrolled, png, proof.fit, 'fit'))
+  assert.throws(() => validateWideObservation(proof.fit, png, proof.fit, 'natural'))
+  for (const change of [
+    (value) => {
+      value.image.width = 800
+    },
+    (value) => {
+      value.image.height = 40
+    },
+    (value) => {
+      value.image.complete = false
+    },
+    (value) => {
+      value.image.sourceSha256 = 'a'.repeat(64)
+    },
+    (value) => {
+      value.requests.admitted++
+    },
+    (value) => {
+      value.requests.pending = 1
+    },
+    (value) => {
+      value.viewport.overflowX = 'hidden'
+    },
+    (value) => {
+      value.outer.scrollWidth = 3200
+    },
+    (value) => {
+      value.sourceVisible = true
+    },
+  ]) {
+    const invalid = structuredClone(proof.scrolled)
+    change(invalid)
+    assert.throws(() => validateWideObservation(invalid, png, proof.fit, 'natural'))
+  }
 })

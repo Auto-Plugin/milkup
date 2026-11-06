@@ -43,6 +43,7 @@ import {
   validateNativeDpiObservation,
   validateNativeGuiResize,
   validateWideInteraction,
+  validateWideObservation,
   verifyGuiEvidence,
 } from './mermaid-gui-contract.mjs'
 
@@ -967,7 +968,7 @@ export async function main() {
     assert.equal((await state()).mode, 'live')
     return selection
   }
-  const settle = async (count = 1) => {
+  const settle = async (count = 1, validateLayout) => {
     let stable, since
     return until(
       async () => {
@@ -988,7 +989,8 @@ export async function main() {
           return false
         }
         if (performance.now() - since < 1500) return false
-        validateDiagramLayout(value, report.identityKind === 'current-candidate')
+        if (validateLayout) await validateLayout(value)
+        else validateDiagramLayout(value, report.identityKind === 'current-candidate')
         return value
       },
       'Decoded diagrams and native work settle',
@@ -1278,12 +1280,20 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
           },
         ],
       })
-      await settle()
+      await settle(1, async () => {
+        // This phase deliberately remains at natural size. The default settle
+        // contract requires fitted geometry and rejects a legitimately scrolled
+        // image's negative left coordinate. Preserve the full wide-image proof.
+        const observation = await readWideView()
+        interaction.cursorScrollPending = observation
+        validateWideObservation(observation, row.png, interaction.fit, 'natural')
+      })
       const value = await readWideView()
       const cursor = await execute(
         "return Number(document.querySelector('.milkup-cursor')?.dataset.position)",
       )
       interaction.cursorScroll.push({ cursor, view: value })
+      delete interaction.cursorScrollPending
       assert(cursor >= 0 && cursor < headingEnd, 'Real caret remains outside the diagram fence')
       assert.equal(
         value?.instance,
