@@ -5,11 +5,11 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 const hash = (b) => createHash('sha256').update(b).digest('hex')
 export const PIN = Object.freeze({
-  source: '40c66b69eddf371cc158c7e25499113ab980ce94',
-  run: '42148997347',
-  installer: 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91',
-  compiled: '0d96b2b470c20fb0a68de3adb1693f38f26ef1f0d7765ceb904dad796ce66131',
-  installed: 'c58cb0f5d9413da42373e3d659fa196a4c65adc89ef964f03b5055ac9c189192',
+  source: '7bb507a161104d4fa6f1aa41ad64f2191642c145',
+  run: '42188684521',
+  installer: 'b961f08a9d7e33df81542681e30e9196a1c37540c0ad9e4455faac0ad88865bc',
+  compiled: '76db5708fadaf413f13fda13a5d8b0ac5b6db34b0703a0fd5769aa137ab9b45d',
+  installed: 'df0fbc5f0dd79eaa9c4fe571e2496b68f7ea3a6bd04f10a430d6af747e33db6e',
 })
 export function recoverComparisonInput(installed, expected) {
   assert(installed.length <= 64 * 1024 * 1024 && installed.length === expected.bytes)

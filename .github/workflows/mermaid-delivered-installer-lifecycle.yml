@@ -43,9 +43,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ((git rev-parse HEAD) -cne $env:GITHUB_SHA) { throw 'Wrong harness source' }
-          git merge-base --is-ancestor 40c66b69eddf371cc158c7e25499113ab980ce94 HEAD
+          git merge-base --is-ancestor 7bb507a161104d4fa6f1aa41ad64f2191642c145 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Delivered application is not an ancestor' }
-          git diff --exit-code 40c66b69eddf371cc158c7e25499113ab980ce94 HEAD -- vendor/wry .gitattributes scripts/frontend-mermaid-document.mjs apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.lock apps/desktop/src-tauri/tauri.conf.json apps/desktop/vite.config.ts apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
+          git diff --exit-code 7bb507a161104d4fa6f1aa41ad64f2191642c145 HEAD -- vendor/wry .gitattributes scripts/frontend-mermaid-document.mjs apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.lock apps/desktop/src-tauri/tauri.conf.json apps/desktop/vite.config.ts apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
           if ($LASTEXITCODE -ne 0) { throw 'Application implementation differs from delivered candidate' }
           node --test scripts/ci/prepare-delivered-mermaid-lifecycle.test.mjs tests/windows/mermaid-product-e2e.test.mjs tests/windows/verify-installed-binary.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Exact package verification regressions failed' }
@@ -60,12 +60,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $source = (& gh api repos/Auto-Plugin/milkup/actions/runs/42148997347 | ConvertFrom-Json)
-          if ($LASTEXITCODE -ne 0 -or $source.status -cne 'completed' -or $source.conclusion -cne 'success' -or $source.head_sha -cne '40c66b69eddf371cc158c7e25499113ab980ce94' -or $source.path -cne '.github/workflows/mermaid-windows-trial-delivery.yml') { throw 'Exact delivery run is not accepted' }
+          $source = (& gh api repos/Auto-Plugin/milkup/actions/runs/42188684521 | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0 -or $source.status -cne 'completed' -or $source.conclusion -cne 'success' -or $source.head_sha -cne '7bb507a161104d4fa6f1aa41ad64f2191642c145' -or $source.path -cne '.github/workflows/mermaid-windows-trial-delivery.yml') { throw 'Exact delivery run is not accepted' }
           $source | ConvertTo-Json -Depth 32 | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'accepted-delivery-run.json') -Encoding utf8
           $inputs = @(
-            @{ name = 'delivery'; run = '42148997347'; id = '13473705011'; sha = 'd6a6e5e448ecdd2f209c9276d46981c726fb23b8411e062849ba7610e805cc83' },
-            @{ name = 'inspection'; run = '42148997347'; id = '13472394573'; sha = '930f52304e00ff2b7a0351d1f17a6c5309c343d5bfd8b0e26d01c111f5b53ca0' },
+            @{ name = 'delivery'; run = '42188684521'; id = '13490635445'; sha = '0b62c1e9d757b9befff0d2c052d83d473f38dfd7b7b7c27bc6a817557063026e' },
+            @{ name = 'inspection'; run = '42188684521'; id = '13490750154'; sha = 'b1b27b775645cff89cb42f1f3e7c81ba6f55431098a157a7ca65ec4b2dea53f5' },
             @{ name = 'prior-delivery'; run = '42148997347'; id = '13473705011'; sha = 'd6a6e5e448ecdd2f209c9276d46981c726fb23b8411e062849ba7610e805cc83' }
           )
           foreach ($item in $inputs) {
@@ -78,8 +78,8 @@ jobs:
             Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $env:RUNNER_TEMP ('exact-' + $item.name))
           }
           $delivery = Join-Path $env:RUNNER_TEMP 'exact-delivery'
-          $installer = Join-Path $delivery 'milkup-2.0.0-beta.10-windows-x64-40c66b69eddf-setup.exe'
-          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91') { throw 'Requested installer differs' }
+          $installer = Join-Path $delivery 'milkup-2.0.0-beta.10-windows-x64-7bb507a16110-setup.exe'
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'b961f08a9d7e33df81542681e30e9196a1c37540c0ad9e4455faac0ad88865bc') { throw 'Requested installer differs' }
           $extracted = Join-Path $env:RUNNER_TEMP 'exact-nsis-extracted'
           & 7z x $installer "-o$extracted" -y
           if ($LASTEXITCODE -ne 0) { throw 'Read-only NSIS extraction failed' }
@@ -116,7 +116,8 @@ jobs:
           @{ scope = $env:LIFECYCLE_SCOPE; expectedCases = $(if ($env:LIFECYCLE_SCOPE -ceq 'all') { 12 } elseif ($env:LIFECYCLE_SCOPE -ceq 'delivered-beta10') { 4 } else { 1 }); historicalBaselines = @('beta9','delivered-beta10'); applicationCandidateSha = $reuse.applicationCandidateSha; installerSha256 = $reuse.installer.sha256 } | ConvertTo-Json | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'execution-scope.json') -Encoding utf8
           $failures = @()
           foreach ($kind in @('pure-standard','filtered-admin')) {
-            foreach ($baselineKind in @('beta9','delivered-beta10')) {
+            # Exercise the user's previously delivered frontend package before the legacy matrix.
+            foreach ($baselineKind in @('delivered-beta10','beta9')) {
               if ($env:LIFECYCLE_SCOPE -ceq 'delivered-beta10' -and $baselineKind -cne 'delivered-beta10') { continue }
               $choices = $(if ($baselineKind -ceq 'beta9') { @('enabled','disabled','same-version','startup-failure') } else { @('enabled','disabled') })
               $baselinePath = $(if ($baselineKind -ceq 'beta9') { $env:EXACT_BASELINE_INSTALLER } else { $env:EXACT_PRIOR_BETA10_INSTALLER })

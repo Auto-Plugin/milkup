@@ -103,12 +103,12 @@ $baselineBuilt = '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593
 $baselineImage = '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
 function New-DeliveredAdmission {
     return @{ PinnedDeliveredLifecycle = $true; RendererMode = 'frontend'; LifecycleBaselineInstaller = 'pinned-beta9.exe'; MigrationChoice = 'enabled'
-        ApplicationCandidateSha = '40c66b69eddf371cc158c7e25499113ab980ce94'
-        ExpectedInstallerSha256 = 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91'
-        ExpectedBinarySha256 = '0d96b2b470c20fb0a68de3adb1693f38f26ef1f0d7765ceb904dad796ce66131'; ExpectedVersion = '2.0.0-beta.10' }
+        ApplicationCandidateSha = '7bb507a161104d4fa6f1aa41ad64f2191642c145'
+        ExpectedInstallerSha256 = 'b961f08a9d7e33df81542681e30e9196a1c37540c0ad9e4455faac0ad88865bc'
+        ExpectedBinarySha256 = '76db5708fadaf413f13fda13a5d8b0ac5b6db34b0703a0fd5769aa137ab9b45d'; ExpectedVersion = '2.0.0-beta.10' }
 }
 Case 'pinned lifecycle accepts only the already delivered package with separate harness identity' {
-    Assert-True ((Invoke-IdentityAdmission (New-DeliveredAdmission)) -ceq '40c66b69eddf371cc158c7e25499113ab980ce94') 'Exact delivered lifecycle rejected'
+    Assert-True ((Invoke-IdentityAdmission (New-DeliveredAdmission)) -ceq '7bb507a161104d4fa6f1aa41ad64f2191642c145') 'Exact delivered lifecycle rejected'
 }
 foreach ($field in @('ApplicationCandidateSha','ExpectedInstallerSha256','ExpectedBinarySha256','ExpectedVersion','HarnessMode','RendererMode','LifecycleBaselineInstaller','MigrationChoice','installerMode','PinnedDeliveredLifecycle')) {
     Case "pinned lifecycle rejects changed $field" {
