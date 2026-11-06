@@ -23,6 +23,7 @@ import {
   verifyRuntimeDependencies,
 } from './prepare-mermaid-trial-payload.mjs'
 import {
+  encodeGuiEvidence,
   GUI_STEPS,
   validateNativeDpiObservation,
 } from '../../tests/windows/mermaid-gui-contract.mjs'
@@ -1408,8 +1409,13 @@ async function guiInstalledFixture(t, options = {}) {
   const save = async () => {
     await f.save()
     const nativeBytes = Buffer.from(JSON.stringify(native)),
-      windowBytes = Buffer.from(JSON.stringify(windows)),
       contextBytes = Buffer.from(JSON.stringify(report.context))
+    let windowBytes = Buffer.from(JSON.stringify(windows))
+    if (options.compressedWindows) {
+      const envelope = JSON.parse(encodeGuiEvidence(windowBytes, 'window'))
+      options.mutateEnvelope?.(envelope)
+      windowBytes = Buffer.from(JSON.stringify(envelope))
+    }
     report.nativeAudit = {
       file: 'gui-native-audit.json',
       sha256: hash(nativeBytes),
@@ -1469,6 +1475,42 @@ test('additional GUI matrix requires separately installed pure-standard and filt
   await guiInstalledFixture(t, { parent, accountKind: 'filtered-admin' })
   assert.equal((await verifyInstalledGuiMatrix(parent, a.expected)).naturalUiCloses, 4)
 })
+test('installed GUI finalization decodes lossless window evidence before strict native identity checks', async (t) => {
+  const f = await guiInstalledFixture(t, { compressedWindows: true })
+  assert.equal((await verifyInstalledGuiEvidence(f.directory, f.expected)).status, 'passed')
+  f.windows.identityContext.token.sid = 'S-1-5-21-11-22-33-9999'
+  await f.save()
+  await assert.rejects(verifyInstalledGuiEvidence(f.directory, f.expected))
+})
+for (const scenario of [
+  'raw-budget',
+  'missing-chunk',
+  'truncated',
+  'chunk-hash',
+  'raw-hash',
+  'record-count',
+])
+  test(`installed GUI rejects compressed ${scenario} despite matching outer file hashes`, async (t) => {
+    const f = await guiInstalledFixture(t, {
+      compressedWindows: true,
+      mutateEnvelope(value) {
+        if (scenario === 'raw-budget') value.rawBytes = 8 * 1024 * 1024 + 1
+        if (scenario === 'missing-chunk') value.chunks.pop()
+        if (scenario === 'truncated') {
+          const chunk = value.chunks.at(-1)
+          const bytes = Buffer.from(chunk.data, 'base64').subarray(0, -1)
+          chunk.data = bytes.toString('base64')
+          chunk.bytes = bytes.length
+          chunk.sha256 = hash(bytes)
+          value.packedBytes--
+        }
+        if (scenario === 'chunk-hash') value.chunks[0].sha256 = '0'.repeat(64)
+        if (scenario === 'raw-hash') value.rawSha256 = '0'.repeat(64)
+        if (scenario === 'record-count') value.recordCount++
+      },
+    })
+    await assert.rejects(verifyInstalledGuiEvidence(f.directory, f.expected))
+  })
 for (const scenario of [
   'baseline-substitution',
   'wrong-harness',
