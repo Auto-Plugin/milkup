@@ -2845,20 +2845,26 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           8,
           fenceOffset + 3,
           fenceOffset + 6,
-          fixtures.ordinary.length - 1,
+          fixtures.ordinary.indexOf('Outside') + 3,
           0,
         ]) {
           const began = performance.now()
           await control('\uE011')
-          const steps = [
-            ...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
-              fixtures.ordinary.slice(0, offset),
-            ),
-          ].length
-          if (steps) await keys('\uE014'.repeat(steps))
-          await until(
-            async () => (await state()).cursor === offset,
-            'Cursor-only navigation reaches requested source offset',
+          // Live navigation skips fence delimiters, and CRLF interiors are not
+          // caret stops. Observe each actual move instead of counting raw source.
+          const navigation = { target: offset, positions: [(await state()).cursor] }
+          ;(row.cursorNavigation ??= []).push(navigation)
+          while (navigation.positions.at(-1) < offset) {
+            assert(navigation.positions.length <= 256, 'Bounded actual cursor navigation')
+            await keys('\uE014')
+            const next = (await state()).cursor
+            assert(next > navigation.positions.at(-1), 'Native cursor key makes forward progress')
+            navigation.positions.push(next)
+          }
+          assert.equal(
+            navigation.positions.at(-1),
+            offset,
+            'Actual cursor reaches the exact reachable offset',
           )
           const inside =
             offset >= fixtures.ordinary.indexOf('```mermaid') &&
