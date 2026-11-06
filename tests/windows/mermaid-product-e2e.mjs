@@ -14,6 +14,41 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { StringDecoder } from 'node:string_decoder'
 import { frontendLedgerClass, FRONTEND_AUDIT_PREFIX } from './mermaid-frontend-contract.mjs'
 
+// Observations only: these clocks never change product deadlines or authorize IPC.
+export function createStartupTimeline(now = () => performance.now(), wall = () => Date.now()) {
+  const stages = [
+    'spawn-returned',
+    'identity-query-started',
+    'identity-verified',
+    'devtools-query-started',
+    'devtools-ready',
+    'webdriver-attach-started',
+    'webdriver-attached',
+    'initial-document-ready',
+  ]
+  const origin = now()
+  const rows = []
+  return {
+    rows,
+    mark(stage) {
+      assert(rows.length < stages.length, 'Bounded startup observation count')
+      assert.equal(stage, stages[rows.length], 'Ordered bounded startup observations')
+      const elapsedMs = now() - origin
+      const unixMs = wall()
+      assert(Number.isFinite(elapsedMs) && elapsedMs >= (rows.at(-1)?.elapsedMs ?? 0))
+      assert(Number.isSafeInteger(unixMs) && unixMs > 0)
+      rows.push({ stage, elapsedMs, unixMs })
+    },
+  }
+}
+
+const startupPerformanceScript = `const resources=performance.getEntriesByType('resource');return {timeOrigin:performance.timeOrigin,now:performance.now(),
+  navigation:performance.getEntriesByType('navigation').map(e=>e.toJSON()),
+  resourceCount:resources.length,resourceDetailsComplete:resources.length<=64,
+  resources:resources.slice(0,64).map(e=>({name:e.name,initiatorType:e.initiatorType,startTime:e.startTime,duration:e.duration,
+    fetchStart:e.fetchStart,requestStart:e.requestStart,responseStart:e.responseStart,responseEnd:e.responseEnd,transferSize:e.transferSize})),
+  marks:performance.getEntriesByType('mark').filter(e=>e.name.startsWith('milkup:')).map(e=>({name:e.name,startTime:e.startTime}))}`
+
 export const syntaxCases = Object.freeze([
   { id: 'sequence', source: 'sequenceDiagram\nReader->>Editor: Write\nEditor-->>Reader: Saved\n' },
   { id: 'classDiagram', source: 'classDiagram\nclass Note {\n  +String title\n  +save()\n}\n' },
@@ -2131,6 +2166,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         15000,
       )
     }
+    if (!screenshot && !launch.firstDecodedObservation) {
+      launch.firstDecodedObservation = await execute(startupPerformanceScript)
+      launch.firstDecodedObservation.observedAt = Date.now()
+    }
     return { file, ...structure, ...decoded, native, visuallyReviewed: false }
   }
   const step = async (name, operation) => {
@@ -2191,6 +2230,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1`,
     })
     product = spawn(application, [files[name].path], { stdio: ['ignore', 'pipe', 'pipe'], env })
+    const startupTimeline = createStartupTimeline()
+    startupTimeline.mark('spawn-returned')
     product.once('error', (error) => {
       fatal = error
     })
@@ -2202,6 +2243,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       profile,
       debugPort: port,
       startedAt: new Date().toISOString(),
+      startupTimeline: startupTimeline.rows,
       applicationOutput: '',
     }
     report.launches.push(launch)
@@ -2249,9 +2291,12 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       stream.on('data', (bytes) => consume(decoder.write(bytes)))
       stream.on('end', () => consume(decoder.end(), true))
     }
+    startupTimeline.mark('identity-query-started')
     await observeProcesses()
+    startupTimeline.mark('identity-verified')
     auditCapture.bind()
     await persist()
+    startupTimeline.mark('devtools-query-started')
     current.devToolsVersion = await until(
       async () =>
         fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(1000) })
@@ -2260,6 +2305,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       'Owned WebView2 loopback startup',
       60000,
     )
+    startupTimeline.mark('devtools-ready')
+    startupTimeline.mark('webdriver-attach-started')
     const response = await request('POST', '/session', {
       capabilities: {
         alwaysMatch: {
@@ -2271,6 +2318,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     })
     session = response.sessionId
     assert(session, 'Attached WebDriver session')
+    startupTimeline.mark('webdriver-attached')
     current.capabilities = response.capabilities
     assert.equal(
       response.capabilities?.browserVersion,
@@ -2291,6 +2339,16 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       const current = await state()
       return current.path && samePath(current.path, files[name].path) && current.loading === 'ready'
     }, 'Literal production file-argument open')
+    startupTimeline.mark('initial-document-ready')
+    current.startupPerformance = await execute(startupPerformanceScript)
+    current.startupPerformance.inputsBeforeObservation = report.inputs.length
+    current.startupPerformance.inputsBeforeLaunch = inputsBeforeLaunch
+    assert.equal(
+      report.inputs.length,
+      inputsBeforeLaunch,
+      'Startup observations precede user input',
+    )
+    await persist()
     const initial = await state()
     assert(
       (initial.protocol === 'tauri:' && initial.hostname === 'localhost') ||
@@ -2644,13 +2702,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         async (row) => {
           await rendered(initiallyEnabled)
           const before = await state()
-          row.startupPerformance =
-            await execute(`const resources=performance.getEntriesByType('resource');return {timeOrigin:performance.timeOrigin,now:performance.now(),
-            navigation:performance.getEntriesByType('navigation').map(e=>e.toJSON()),
-            resourceCount:resources.length,resourceDetailsComplete:resources.length<=64,
-            resources:resources.slice(0,64).map(e=>({name:e.name,initiatorType:e.initiatorType,startTime:e.startTime,duration:e.duration,
-              fetchStart:e.fetchStart,requestStart:e.requestStart,responseStart:e.responseStart,responseEnd:e.responseEnd,transferSize:e.transferSize})),
-            marks:performance.getEntriesByType('mark').filter(e=>e.name.startsWith('milkup:')).map(e=>({name:e.name,startTime:e.startTime}))}`)
+          row.startupPerformance = await execute(startupPerformanceScript)
           row.startupPerformance.productStartedAt = launch.startedAt
           row.startupPerformance.observedAt = Date.now()
           assert.equal(before.dirty, false)

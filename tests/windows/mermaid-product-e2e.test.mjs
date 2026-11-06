@@ -6,6 +6,7 @@ import path from 'node:path'
 import { deflateSync } from 'node:zlib'
 import {
   fixtures,
+  createStartupTimeline,
   serializeProductEvidence,
   MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
@@ -2615,4 +2616,50 @@ test('captured early audit binds once to held creation and survives serialized g
     () => forged.accept({ ...successful().events[0], productCreationFileTime: '100' }),
     /cannot assert/,
   )
+})
+
+test('startup timeline preserves slow stage measurements without changing budgets', () => {
+  let mono = 100,
+    wall = 100000
+  const timeline = createStartupTimeline(
+    () => mono,
+    () => wall,
+  )
+  timeline.mark('spawn-returned')
+  mono += 1
+  wall += 1
+  timeline.mark('identity-query-started')
+  mono += 7000
+  wall += 7000
+  timeline.mark('identity-verified')
+  timeline.mark('devtools-query-started')
+  mono += 100
+  wall += 100
+  timeline.mark('devtools-ready')
+  timeline.mark('webdriver-attach-started')
+  mono += 200
+  wall += 200
+  timeline.mark('webdriver-attached')
+  mono += 100
+  wall += 100
+  timeline.mark('initial-document-ready')
+  assert.equal(timeline.rows[2].elapsedMs - timeline.rows[1].elapsedMs, 7000)
+  assert.equal(timeline.rows.at(-1).elapsedMs, 7401)
+  assert.equal(timeline.rows.length, 8)
+  assert.throws(() => timeline.mark('initial-document-ready'), /Bounded startup/)
+  assert.throws(() => timeline.mark(undefined), /Bounded startup/)
+})
+
+test('startup timeline rejects missing/reordered observations and a backwards monotonic clock', () => {
+  let mono = 5
+  const timeline = createStartupTimeline(
+    () => mono,
+    () => 1000,
+  )
+  assert.throws(() => timeline.mark('identity-verified'), /Ordered bounded/)
+  timeline.mark('spawn-returned')
+  assert.throws(() => timeline.mark('spawn-returned'), /Ordered bounded/)
+  mono = 4
+  assert.throws(() => timeline.mark('identity-query-started'))
+  assert.equal(timeline.rows.length, 1)
 })
