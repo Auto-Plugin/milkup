@@ -1684,6 +1684,8 @@ export async function main() {
         }),
     startedAt: new Date().toISOString(),
     candidateSha,
+    applicationCandidateSha:
+      process.env.MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA ?? candidateSha,
     expectedAccountKind,
     runId,
     application,

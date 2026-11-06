@@ -10,6 +10,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][switch]$FrontendBoundaryProbe,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('native','frontend', IgnoreCase = $false)][string]$RendererMode = 'native',
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
+    [Parameter(ParameterSetName = 'Parent')][switch]$PinnedDeliveredLifecycle,
     [Parameter(ParameterSetName = 'Parent')][string]$Installer,
     [Parameter(ParameterSetName = 'Parent')][string]$LifecycleBaselineInstaller,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('enabled', 'disabled', 'same-version', 'startup-failure', IgnoreCase = $false)][string]$MigrationChoice,
@@ -372,6 +373,15 @@ function Remove-ExactProfileWithRetry([string]$Sid, $Audit) {
     }
     $Audit.profileDeleted = $true
 }
+function Assert-PinnedDeliveredLifecycle([string]$ApplicationSha, [string]$InstallerSha, [string]$BinarySha, [string]$Version, [string]$Mode, [string]$Renderer, [bool]$Lifecycle, [string]$Choice) {
+    if ($ApplicationSha -cne '40c66b69eddf371cc158c7e25499113ab980ce94' -or
+        $InstallerSha -cne 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91' -or
+        $BinarySha -cne '0d96b2b470c20fb0a68de3adb1693f38f26ef1f0d7765ceb904dad796ce66131' -or
+        $Version -cne '2.0.0-beta.10' -or $Mode -cne 'product' -or $Renderer -cne 'frontend' -or
+        -not $Lifecycle -or $Choice -cnotin @('enabled', 'disabled', 'same-version', 'startup-failure')) {
+        throw 'Only the exact delivered 42148997347 installer may enter pinned lifecycle verification'
+    }
+}
 function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Version, [string]$BuiltHash, [string]$ExpectedRenderer = 'native') {
     if ($ExpectedRenderer -cnotin @('native','frontend')) { throw 'Unknown installer renderer mode' }
     if ($ExpectedRenderer -ceq 'frontend' -and $Manifest.rendererMode -cne 'frontend') { throw 'Installer frontend identity missing' }
@@ -477,6 +487,7 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
         MILKUP_WINDOWS_MERMAID_RUN_ID = $Spec.runId; MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $Spec.candidateSha
         MILKUP_WINDOWS_MERMAID_RUNTIME_VERSION = $Spec.runtime.version; MILKUP_WINDOWS_MERMAID_RUNTIME_EXE = $Spec.runtime.path
         MILKUP_WINDOWS_MERMAID_PROCESS_OBSERVER = $Spec.wrapper.path; MILKUP_WINDOWS_MERMAID_PWSH = (Get-Process -Id $PID).Path
+        MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA = 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4'
         MILKUP_WINDOWS_MERMAID_RENDERER_MODE = 'native'
         MILKUP_WINDOWS_MERMAID_MIGRATION_PHASE = 'prepare'; MILKUP_WINDOWS_MERMAID_MIGRATION_CHOICE = $oldChoice
         MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY = $null
@@ -640,6 +651,12 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
             $comparison.expectedInstalledSha256 -cne $manifest.expectedInstalledBinarySha256 -or
             $comparison.installedSha256 -cne $proof.sha256 -or $comparison.bytes -ne $proof.bytes) { throw 'Installed-binary comparison does not bind the frozen candidate' }
         $record.binaryComparison = $comparison
+        if ($Spec.Contains('pinnedDeliveredLifecycle') -and $Spec.pinnedDeliveredLifecycle) {
+            $record['comparisonInputProvenance'] = 'Exact original compiled SHA reconstructed solely by reversing the unique NSIS marker on an extracted COPY; original installer unchanged; comparison file never launched'
+            $record['compiledInThisRun'] = $false
+            $record['harnessCandidateSha'] = $Spec.candidateSha
+            $record['deliveredSourceRunId'] = '42148997347'
+        }
         }
         foreach ($resource in $manifest.resources) {
             $path = Join-Path $installDirectory $resource.relativePath
@@ -666,8 +683,12 @@ function Invoke-StandardChild {
         $spec.candidateSha -cne $env:GITHUB_SHA -or $spec.expectedSessionId -le 0) { throw 'Invalid immutable child specification' }
     if ($spec.rendererMode -cnotin @('native','frontend')) { throw 'Explicit renderer mode required' }
     if ($spec.harnessMode -cnotin @('product', 'gui-regression') -or $spec.applicationCandidateSha -cnotmatch '^[a-f0-9]{40}$' -or
-        ($spec.harnessMode -ceq 'product' -and $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Invalid separated harness/application identity' }
+        ($spec.harnessMode -ceq 'product' -and $spec.applicationCandidateSha -cne $spec.candidateSha -and -not $spec.pinnedDeliveredLifecycle)) { throw 'Invalid separated harness/application identity' }
     if ($spec.frontendBoundaryProbe -and ($spec.harnessMode -cne 'gui-regression' -or $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
+    if ($spec.pinnedDeliveredLifecycle) {
+        Assert-PinnedDeliveredLifecycle $spec.applicationCandidateSha $spec.installer.sha256 $spec.binary.sha256 $spec.expectedVersion $spec.harnessMode $spec.rendererMode $spec.lifecycle $spec.migrationChoice
+        if ($spec.binaryRole -cne 'reconstructedComparisonInput') { throw 'Delivered lifecycle must record reconstructed comparison provenance' }
+    }
     Assert-AccountMode $spec.expectedAccountKind ($spec.mode -ceq 'nsis-current-user')
     $profile = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
     $roaming = [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
@@ -783,6 +804,7 @@ function Invoke-StandardChild {
         $report = Read-SmallJson (Join-Path $evidence $reportName)
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
         if ($report.rendererMode -cne $spec.rendererMode) { throw 'Renderer acceptance mode mismatch' }
+        if ($spec.harnessMode -ceq 'product' -and $report.applicationCandidateSha -cne $spec.applicationCandidateSha) { throw 'Product report did not bind the installed application identity' }
         if ($spec.harnessMode -ceq 'gui-regression' -and ($report.applicationCandidateSha -cne $spec.applicationCandidateSha -or
             $report.harnessCandidateSha -cne $spec.candidateSha -or $report.harnessMode -cne 'gui-regression')) { throw 'GUI report did not bind the separate application and harness identities' }
         if ($null -ne $installation) {
@@ -878,10 +900,10 @@ if ($installerMode) {
 }
 if ($MigrationChoice -and -not $LifecycleBaselineInstaller) { throw 'Real migration requires the pinned installed old version' }
 if ($LifecycleBaselineInstaller -and (-not $installerMode -or $HarnessMode -cne 'product')) { throw 'Lifecycle probe requires current-candidate installed product mode' }
-if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
+if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha -and -not $PinnedDeliveredLifecycle) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
 if (-not $ApplicationCandidateSha) { $ApplicationCandidateSha = $ExpectedCommit }
 if ($FrontendBoundaryProbe -and ($HarnessMode -cne 'gui-regression' -or $ApplicationCandidateSha -cne $ExpectedCommit)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
-if ($ApplicationCandidateSha -cne $ExpectedCommit) {
+if ($ApplicationCandidateSha -cne $ExpectedCommit -and -not $PinnedDeliveredLifecycle) {
     # The sole mixed-source case is the independently hashed, already delivered beta.9 baseline.
     # It never enters the ordinary installed-product acceptance or package finalizer.
     if ($HarnessMode -cne 'gui-regression' -or -not $installerMode -or
@@ -889,6 +911,10 @@ if ($ApplicationCandidateSha -cne $ExpectedCommit) {
         $ExpectedInstallerSha256 -cne 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf' -or
         $ExpectedBinarySha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84' -or
         $ExpectedVersion -cne '2.0.0-beta.9') { throw 'Only the exact delivered beta.9 installer/binary may be a mixed-source GUI baseline' }
+}
+if ($PinnedDeliveredLifecycle) {
+    if (-not $installerMode -or $ApplicationCandidateSha -ceq $ExpectedCommit) { throw 'Pinned lifecycle requires separate truthful application and harness identities' }
+    Assert-PinnedDeliveredLifecycle $ApplicationCandidateSha $ExpectedInstallerSha256 $ExpectedBinarySha256 $ExpectedVersion $HarnessMode $RendererMode ([bool]$LifecycleBaselineInstaller) $MigrationChoice
 }
 if ($ExpectedCommit -cne $env:GITHUB_SHA) { throw 'Expected candidate SHA differs from the workflow source' }
 $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -943,7 +969,9 @@ try {
         if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) { throw 'Product binary is not PE x64' }
     } finally { $reader.Dispose() }
     $audit.binary = $binaryProof
-    $audit['binaryRole'] = $(if ($ApplicationCandidateSha -cne $ExpectedCommit) { 'extractedExpectedImage' } else { 'compiledCandidate' })
+    $audit['pinnedDeliveredLifecycle'] = [bool]$PinnedDeliveredLifecycle
+    if ($PinnedDeliveredLifecycle) { $audit['deliveredSourceRunId'] = '42148997347'; $audit['compiledInThisRun'] = $false }
+    $audit['binaryRole'] = $(if ($PinnedDeliveredLifecycle) { 'reconstructedComparisonInput' } elseif ($ApplicationCandidateSha -cne $ExpectedCommit) { 'extractedExpectedImage' } else { 'compiledCandidate' })
     $installerProof = $null; $manifestProof = $null
     if ($installerMode) {
         $installerProof = File-Proof $Installer
@@ -951,9 +979,9 @@ try {
         if ($installerProof.sha256 -cne $ExpectedInstallerSha256 -or $installerProof.bytes -gt 256MB -or
             $manifestProof.sha256 -cne $ExpectedPackageManifestSha256) { throw 'Installer or manifest frozen identity mismatch' }
         $manifest = Read-SmallJson $manifestProof.path
-        $manifestBuiltHash = $(if ($ApplicationCandidateSha -cne $ExpectedCommit) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $binaryProof.sha256 })
+        $manifestBuiltHash = $(if ($ApplicationCandidateSha -cne $ExpectedCommit -and -not $PinnedDeliveredLifecycle) { '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb' } else { $binaryProof.sha256 })
         Assert-InstallationManifest $manifest $ApplicationCandidateSha $ExpectedVersion $manifestBuiltHash $RendererMode
-        if ($ApplicationCandidateSha -cne $ExpectedCommit -and $manifest.expectedInstalledBinarySha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84') { throw 'Delivered beta.9 installed image identity mismatch' }
+        if ($ApplicationCandidateSha -cne $ExpectedCommit -and -not $PinnedDeliveredLifecycle -and $manifest.expectedInstalledBinarySha256 -cne '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84') { throw 'Delivered beta.9 installed image identity mismatch' }
     }
     $machineRoots = @(${env:ProgramFiles(x86)}, $env:ProgramFiles) | Where-Object { $_ } | Select-Object -Unique
     $candidates = @()
@@ -1100,6 +1128,7 @@ try {
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; rendererMode = $RendererMode; harnessMode = $HarnessMode
+        pinnedDeliveredLifecycle = [bool]$PinnedDeliveredLifecycle
         frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         sourcePluginInventory = $sourceInventoryProof

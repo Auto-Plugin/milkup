@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
+$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Assert-PinnedDeliveredLifecycle', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
@@ -74,10 +74,11 @@ function Reject-Manifest([scriptblock]$Change) {
 # Exercise the actual closed parent identity guards, without evaluating the
 # surrounding hosted-runner, account creation or process-launch statements.
 $identityGuardPrefixes = @(
-    'if ($HarnessMode -ceq ''product'' -and $ApplicationCandidateSha)',
+    'if ($HarnessMode -ceq ''product'' -and $ApplicationCandidateSha',
     'if (-not $ApplicationCandidateSha)',
     'if ($FrontendBoundaryProbe -and ($HarnessMode -cne ''gui-regression''',
-    'if ($ApplicationCandidateSha -cne $ExpectedCommit)'
+    'if ($ApplicationCandidateSha -cne $ExpectedCommit',
+    'if ($PinnedDeliveredLifecycle)'
 )
 $identityGuardScripts = foreach ($prefix in $identityGuardPrefixes) {
     $matches = @($ast.EndBlock.Statements | Where-Object { $_ -is [Management.Automation.Language.IfStatementAst] -and $_.Extent.Text.StartsWith($prefix, [StringComparison]::Ordinal) })
@@ -85,11 +86,12 @@ $identityGuardScripts = foreach ($prefix in $identityGuardPrefixes) {
     [scriptblock]::Create($matches[0].Extent.Text)
 }
 function Invoke-IdentityAdmission([hashtable]$Changes = @{}) {
+    $PinnedDeliveredLifecycle = $false; $RendererMode = 'native'; $LifecycleBaselineInstaller = ''; $MigrationChoice = ''
     $HarnessMode = 'product'; $ApplicationCandidateSha = ''; $ExpectedCommit = $commit
     $FrontendBoundaryProbe = $false; $installerMode = $true
     $ExpectedInstallerSha256 = 'f' * 64; $ExpectedBinarySha256 = $built; $ExpectedVersion = $version
     foreach ($entry in $Changes.GetEnumerator()) {
-        Assert-True ($entry.Key -cin @('HarnessMode', 'ApplicationCandidateSha', 'ExpectedCommit', 'FrontendBoundaryProbe', 'installerMode', 'ExpectedInstallerSha256', 'ExpectedBinarySha256', 'ExpectedVersion')) 'Unknown synthetic identity input'
+        Assert-True ($entry.Key -cin @('PinnedDeliveredLifecycle', 'RendererMode', 'LifecycleBaselineInstaller', 'MigrationChoice', 'HarnessMode', 'ApplicationCandidateSha', 'ExpectedCommit', 'FrontendBoundaryProbe', 'installerMode', 'ExpectedInstallerSha256', 'ExpectedBinarySha256', 'ExpectedVersion')) 'Unknown synthetic identity input'
         Set-Variable -Name $entry.Key -Value $entry.Value -Scope Local
     }
     foreach ($guard in $identityGuardScripts) { . $guard }
@@ -99,6 +101,24 @@ $baselineSource = 'a5556beea5cdd1570361c528b2326bc0ad8ba0c4'
 $baselineInstaller = 'f7fe28275477e8957653649924348bc06e24b4b49d63f6e1d6a6f08ed65c6fbf'
 $baselineBuilt = '6cb3cdf7fc31f064d7b0582f89fc67efbad94772f94434b54fb1063437d593eb'
 $baselineImage = '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+function New-DeliveredAdmission {
+    return @{ PinnedDeliveredLifecycle = $true; RendererMode = 'frontend'; LifecycleBaselineInstaller = 'pinned-beta9.exe'; MigrationChoice = 'enabled'
+        ApplicationCandidateSha = '40c66b69eddf371cc158c7e25499113ab980ce94'
+        ExpectedInstallerSha256 = 'd6d02410a7165a2f06ef3e5ceca00e70f3a78b14570f353e59d5b569da5d1e91'
+        ExpectedBinarySha256 = '0d96b2b470c20fb0a68de3adb1693f38f26ef1f0d7765ceb904dad796ce66131'; ExpectedVersion = '2.0.0-beta.10' }
+}
+Case 'pinned lifecycle accepts only the already delivered package with separate harness identity' {
+    Assert-True ((Invoke-IdentityAdmission (New-DeliveredAdmission)) -ceq '40c66b69eddf371cc158c7e25499113ab980ce94') 'Exact delivered lifecycle rejected'
+}
+foreach ($field in @('ApplicationCandidateSha','ExpectedInstallerSha256','ExpectedBinarySha256','ExpectedVersion','HarnessMode','RendererMode','LifecycleBaselineInstaller','MigrationChoice','installerMode','PinnedDeliveredLifecycle')) {
+    Case "pinned lifecycle rejects changed $field" {
+        $value = New-DeliveredAdmission
+        $value[$field] = $(if ($field -cin @('installerMode','PinnedDeliveredLifecycle')) { $false } else { '' })
+        $rejected = $false
+        try { Invoke-IdentityAdmission $value | Out-Null } catch { $rejected = $true }
+        Assert-True $rejected 'Changed delivered lifecycle identity was accepted'
+    }
+}
 function New-BaselineAdmission {
     return @{ HarnessMode = 'gui-regression'; ApplicationCandidateSha = $baselineSource
         ExpectedInstallerSha256 = $baselineInstaller; ExpectedBinarySha256 = $baselineImage; ExpectedVersion = '2.0.0-beta.9' }
