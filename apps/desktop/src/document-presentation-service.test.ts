@@ -1199,3 +1199,134 @@ describe('bounded completed fence reuse', () => {
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
 })
+
+describe('authenticated pending fences with selection-dependent providers', () => {
+  const text = '$x$\n```mermaid\nflowchart LR\nA-->B\n```\noutside\n'
+  const mermaid = {
+    id: 'diagram',
+    pluginId: 'host-diagrams',
+    contexts: ['fence'] as const,
+    fenceLanguages: ['mermaid'],
+  }
+  function pendingFixture() {
+    const f = fixture(text)
+    let finish!: () => void
+    let rendererSignal!: AbortSignal
+    let originalDeadline = 0
+    let renders = 0
+    const mathSelections: number[] = []
+    const release = vi.fn()
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [declaration, mermaid],
+      cacheableFence: (plugin) => plugin === mermaid.pluginId,
+      render: async (plugin, _id, request, operation) => {
+        if (plugin === declaration.pluginId) {
+          mathSelections.push(request.selection.head)
+          return result(request)
+        }
+        renders++
+        rendererSignal = operation.signal
+        originalDeadline = operation.deadline
+        await new Promise<void>((resolve) => {
+          finish = resolve
+        })
+        return {
+          complete: true,
+          fragments: [
+            {
+              from: request.from,
+              to: request.to,
+              layout: 'block',
+              accessibleText: 'diagram',
+              content: createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release }),
+            },
+          ],
+        }
+      },
+    })
+    return {
+      f,
+      service,
+      finish: () => finish(),
+      signal: () => rendererSignal,
+      deadline: () => originalDeadline,
+      renders: () => renders,
+      mathSelections,
+      release,
+    }
+  }
+  it('keeps one bounded pending render while Math refreshes and an old selection consumer aborts', async () => {
+    const x = pendingFixture(),
+      first = new AbortController(),
+      second = new AbortController()
+    const deadline = performance.now() + 5000
+    const stale = Promise.resolve(
+      x.service.provide(x.f.window, { signal: first.signal, deadline }),
+    ).catch((error) => error)
+    await vi.waitFor(() => expect(x.renders()).toBe(1))
+    first.abort()
+    const latest = x.service.provide(
+      { ...x.f.window, selection: { anchor: text.length, head: text.length } },
+      { signal: second.signal, deadline: deadline + 1000 },
+    )
+    await vi.waitFor(() => expect(x.mathSelections).toEqual([0, text.length]))
+    expect(x.signal().aborted).toBe(false)
+    expect(x.deadline()).toBe(deadline)
+    expect(x.renders()).toBe(1)
+    x.finish()
+    expect((await stale).code).toBe('aborted')
+    const response = await latest
+    expect(response.request.selection.head).toBe(text.length)
+    expect(
+      response.result.fragments.some((fragment) => fragment.content.type === 'host-png-image'),
+    ).toBe(true)
+    expect(x.renders()).toBe(1)
+    disposeDocumentPngImages(response.result)
+    x.service.clear()
+    expect(x.release).toHaveBeenCalledTimes(1)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('retains a completed authenticated fence for a later consumer after all selection waiters cancel', async () => {
+    const x = pendingFixture(),
+      controller = new AbortController()
+    const cancelled = Promise.resolve(
+      x.service.provide(x.f.window, { signal: controller.signal }),
+    ).catch((error) => error)
+    await vi.waitFor(() => expect(x.renders()).toBe(1))
+    controller.abort()
+    expect((await cancelled).code).toBe('aborted')
+    x.finish()
+    await vi.waitFor(() => expect(documentPngResourceStats().images).toBe(1))
+    const response = await x.service.provide(
+      { ...x.f.window, selection: { anchor: text.length, head: text.length } },
+      { signal: new AbortController().signal },
+    )
+    expect(x.renders()).toBe(1)
+    expect(
+      response.result.fragments.some((fragment) => fragment.content.type === 'host-png-image'),
+    ).toBe(true)
+    disposeDocumentPngImages(response.result)
+    x.service.clear()
+    expect(x.release).toHaveBeenCalledTimes(1)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it.each(['invalidate', 'clear'] as const)(
+    'revokes pending work on %s and releases late results',
+    async (operation) => {
+      const x = pendingFixture()
+      const task = Promise.resolve(
+        x.service.provide(x.f.window, { signal: new AbortController().signal }),
+      ).catch((error) => error)
+      await vi.waitFor(() => expect(x.renders()).toBe(1))
+      x.service[operation]()
+      expect(x.signal().aborted).toBe(true)
+      x.finish()
+      const response = await task
+      expect(response.code).toBe('revoked')
+      expect(x.release).toHaveBeenCalledTimes(1)
+      expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+    },
+  )
+})

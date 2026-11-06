@@ -58,6 +58,8 @@ export interface DocumentPresentationConfig {
   /** Host-only authority for a set of reviewed, selection-independent renderers.
    * Never copy this from a plugin declaration. Rechecked on every reuse. */
   readonly selectionIndependent?: () => boolean
+  /** Retain only authenticated inert PNG owners while other providers refresh. */
+  readonly retainHostPng?: () => boolean
   readonly provide: (
     window: DocumentPresentationWindow,
     options: {
@@ -597,7 +599,7 @@ export class DocumentPresentation {
       this.cache.identity !== current.sourceIdentity ||
       this.cache.documentVersion !== current.documentVersion ||
       !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
-      !this.matchesRenderSelection(this.cache.response.request.selection, current.selection)
+      !this.canPaintCachedSelection(this.cache.response.request.selection, current.selection)
     ) {
       this.invalidate()
       return
@@ -682,7 +684,7 @@ export class DocumentPresentation {
         (this.cache.identity !== current.sourceIdentity ||
           this.cache.documentVersion !== current.documentVersion ||
           !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
-          !this.matchesRenderSelection(this.cache.response.request.selection, current.selection)))
+          !this.canPaintCachedSelection(this.cache.response.request.selection, current.selection)))
     ) {
       this.restore()
       this.schedule()
@@ -912,7 +914,7 @@ export class DocumentPresentation {
       this.cache.identity !== current.sourceIdentity ||
       this.cache.documentVersion !== current.documentVersion ||
       !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
-      !this.matchesRenderSelection(this.cache.response.request.selection, current.selection)
+      !this.canPaintCachedSelection(this.cache.response.request.selection, current.selection)
     ) {
       this.restore()
       this.clearCache()
@@ -1157,7 +1159,7 @@ export class DocumentPresentation {
       cache.identity === before.sourceIdentity &&
       cache.documentVersion === before.documentVersion &&
       cache.key.startsWith(`${before.sourceVersion}:`) &&
-      this.matchesRenderSelection(cache.response.request.selection, before.selection)
+      this.canPaintCachedSelection(cache.response.request.selection, before.selection)
     // Source DOM replacement temporarily removes measured preview height. Capture
     // the reading position before that shrink, while the visible line is known.
     const anchor = eligible ? this.captureScrollAnchor(before.selection) : undefined
@@ -1469,14 +1471,16 @@ export class DocumentPresentation {
         end = Math.max(selectionAnchor, head)
       const candidates = response.result.fragments.filter(
         (fragment) =>
-          context.mode === 'preview' ||
-          fragment.status === 'error' ||
-          !(start <= fragment.to && end >= fragment.from) ||
-          (fragment.layout === 'block' &&
-            start === end &&
-            (!context.sourceFocused || start === fragment.to)),
+          (this.matchesRenderSelection(response.request.selection, context.selection) ||
+            (this.retainHostPng() && fragment.content.type === 'host-png-image')) &&
+          (context.mode === 'preview' ||
+            fragment.status === 'error' ||
+            !(start <= fragment.to && end >= fragment.from) ||
+            (fragment.layout === 'block' &&
+              start === end &&
+              (!context.sourceFocused || start === fragment.to))),
       )
-      if (this.config?.selectionIndependent?.() === true) {
+      if (this.retainHostPng()) {
         for (const fragment of response.result.fragments) {
           const owner = this.fragmentImages.get(fragment)
           if (
@@ -1628,6 +1632,15 @@ export class DocumentPresentation {
     }
   }
 
+  private retainHostPng(): boolean {
+    return this.config?.retainHostPng?.() === true || this.config?.selectionIndependent?.() === true
+  }
+  private canPaintCachedSelection(
+    a: PaintContext['selection'],
+    b: PaintContext['selection'],
+  ): boolean {
+    return this.matchesRenderSelection(a, b) || this.retainHostPng()
+  }
   private matchesRenderSelection(
     a: PaintContext['selection'],
     b: PaintContext['selection'],
@@ -1638,7 +1651,7 @@ export class DocumentPresentation {
     const before = owner.context
     return (
       this.samePaintContext(before, context) ||
-      (this.config?.selectionIndependent?.() === true &&
+      (this.retainHostPng() &&
         owner.fragment.content.type === 'host-png-image' &&
         before.mode === context.mode &&
         before.sourceIdentity === context.sourceIdentity &&

@@ -55,7 +55,7 @@ export const fixtures = Object.freeze({
     'A[Draft 草稿] --> B[Review 审阅]',
     '```',
     '',
-    'Outside é 👩🏽‍💻 **bold**',
+    'Outside é 👩🏽‍💻 **bold** and $x+y$',
     '',
   ].join('\r\n'),
   wide: [
@@ -1965,22 +1965,22 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     if ((await state()).menu) await pointer('[data-menu-close]')
     await until(async () => !(await state()).menu, 'Menu closed')
   }
-  const switchPlugin = async (enabled) => {
+  const switchPlugin = async (enabled, pluginId = PLUGIN) => {
     await menu()
     let before
     // Capture after any real wheel reveal, immediately before the click. This
     // excludes legitimate scrolling from the card anchoring comparison.
     await pointer(
-      `.plugin-summary-card[data-plugin-id="${PLUGIN}"] [role="switch"]`,
+      `.plugin-summary-card[data-plugin-id="${pluginId}"] [role="switch"]`,
       false,
       async () => {
         before = await state()
-        const card = before.cards.find((item) => item.id === PLUGIN)
+        const card = before.cards.find((item) => item.id === pluginId)
         assert(card && card.checked === String(!enabled), 'Actual plugin switch starting state')
       },
     )
     await until(async () => {
-      const next = (await state()).cards.find((item) => item.id === PLUGIN)
+      const next = (await state()).cards.find((item) => item.id === pluginId)
       return next?.checked === String(enabled) && next.busy !== 'true'
     }, 'Plugin toggle settled')
     const after = await state()
@@ -2839,67 +2839,100 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         row.markdownPreviewMarkersHidden = true
         await position(fixtures.ordinary)
         await rendered(true)
-        const cursorPng =
-          await execute(`const e=document.querySelector('[data-document-presentation] img');
+        const exerciseCursorReuse = async (label, offsets, mathEnabled = false) => {
+          const cursorPng =
+            await execute(`const e=document.querySelector('[data-document-presentation] img');
           window.__cursorReuseImage=e;return {src:e.currentSrc,instance:e.closest('[data-document-png-instance]')?.dataset.documentPngInstance}`)
-        const admittedBefore = report.nativeAudit.filter((e) => e.phase === 'admitted').length
-        row.cursorReuse = { before: cursorPng, admittedBefore, visits: [] }
-        for (const offset of [
+          const admittedBefore = report.nativeAudit.filter((e) => e.phase === 'admitted').length
+          const proof = (row[label] = {
+            before: cursorPng,
+            admittedBefore,
+            visits: [],
+            navigation: [],
+          })
+          for (const offset of offsets) {
+            const began = performance.now()
+            await control('\uE011')
+            // Live navigation skips fence delimiters, and CRLF interiors are not
+            // caret stops. Observe each actual move instead of counting raw source.
+            const navigation = { target: offset, positions: [(await state()).cursor] }
+            proof.navigation.push(navigation)
+            while (navigation.positions.at(-1) < offset) {
+              assert(navigation.positions.length <= 256, 'Bounded actual cursor navigation')
+              await keys('\uE014')
+              const next = (await state()).cursor
+              assert(next > navigation.positions.at(-1), 'Native cursor key makes forward progress')
+              navigation.positions.push(next)
+            }
+            assert.equal(
+              navigation.positions.at(-1),
+              offset,
+              'Actual cursor reaches the exact reachable offset',
+            )
+            const inside =
+              offset >= fixtures.ordinary.indexOf('```mermaid') &&
+              offset < fixtures.ordinary.indexOf('```', fixtures.ordinary.indexOf('```mermaid') + 3)
+            await rendered(!inside)
+            const observation =
+              await execute(`const e=document.querySelector('[data-document-presentation] img');return {
+            sameImage:e ? e===window.__cursorReuseImage : null,src:e?.currentSrc??null,
+            instance:e?.closest('[data-document-png-instance]')?.dataset.documentPngInstance??null}`)
+            if (mathEnabled) {
+              const mathFrom = fixtures.ordinary.indexOf('$x+y$')
+              const mathExpected = offset < mathFrom || offset > mathFrom + 5
+              await until(
+                () =>
+                  execute(
+                    `return !!document.querySelector('[data-document-presentation][data-presentation-from="'+arguments[0]+'"]') === arguments[1]`,
+                    mathFrom,
+                    mathExpected,
+                  ),
+                'Math preview tracks the current selection independently',
+              )
+              observation.mathVisible = mathExpected
+            }
+            const admissions = report.nativeAudit.filter((e) => e.phase === 'admitted').length
+            proof.visits.push({
+              offset,
+              inside,
+              ...observation,
+              admissions,
+              elapsedMs: performance.now() - began,
+            })
+            assert.equal(
+              admissions,
+              admittedBefore,
+              'Cursor-only movement never starts another Mermaid render',
+            )
+            if (!inside)
+              assert.equal(
+                observation.sameImage,
+                true,
+                'Unchanged Mermaid keeps its decoded DOM image',
+              )
+            assert.equal((await state()).version, before.version)
+          }
+          assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
+        }
+        await exerciseCursorReuse('cursorReuse', [
           1,
           8,
           fenceOffset + 3,
           fenceOffset + 6,
           fixtures.ordinary.indexOf('Outside') + 3,
           0,
-        ]) {
-          const began = performance.now()
-          await control('\uE011')
-          // Live navigation skips fence delimiters, and CRLF interiors are not
-          // caret stops. Observe each actual move instead of counting raw source.
-          const navigation = { target: offset, positions: [(await state()).cursor] }
-          ;(row.cursorNavigation ??= []).push(navigation)
-          while (navigation.positions.at(-1) < offset) {
-            assert(navigation.positions.length <= 256, 'Bounded actual cursor navigation')
-            await keys('\uE014')
-            const next = (await state()).cursor
-            assert(next > navigation.positions.at(-1), 'Native cursor key makes forward progress')
-            navigation.positions.push(next)
-          }
-          assert.equal(
-            navigation.positions.at(-1),
-            offset,
-            'Actual cursor reaches the exact reachable offset',
-          )
-          const inside =
-            offset >= fixtures.ordinary.indexOf('```mermaid') &&
-            offset < fixtures.ordinary.indexOf('```', fixtures.ordinary.indexOf('```mermaid') + 3)
-          await rendered(!inside)
-          const observation =
-            await execute(`const e=document.querySelector('[data-document-presentation] img');return {
-            sameImage:e ? e===window.__cursorReuseImage : null,src:e?.currentSrc??null,
-            instance:e?.closest('[data-document-png-instance]')?.dataset.documentPngInstance??null}`)
-          const admissions = report.nativeAudit.filter((e) => e.phase === 'admitted').length
-          row.cursorReuse.visits.push({
-            offset,
-            inside,
-            ...observation,
-            admissions,
-            elapsedMs: performance.now() - began,
-          })
-          assert.equal(
-            admissions,
-            admittedBefore,
-            'Cursor-only movement never starts another Mermaid render',
-          )
-          if (!inside)
-            assert.equal(
-              observation.sameImage,
-              true,
-              'Unchanged Mermaid keeps its decoded DOM image',
-            )
-          assert.equal((await state()).version, before.version)
-        }
-        assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
+        ])
+        await switchPlugin(true, 'milkup.math')
+        await position(fixtures.ordinary)
+        await rendered(true)
+        const mathFrom = fixtures.ordinary.indexOf('$x+y$')
+        await exerciseCursorReuse(
+          'mixedCursorReuse',
+          [1, 2, 3, 2, 1, 8, mathFrom + 2, fenceOffset + 3, mathFrom + 1, 0],
+          true,
+        )
+        await switchPlugin(false, 'milkup.math')
+        await rendered(true)
         row.repeatedInvalidations = []
         for (let iteration = 0; iteration < 9; iteration++) {
           await control('1')

@@ -199,6 +199,16 @@ test(
           assert.equal(rows.filter((row) => !row.connected).length, 2)
         },
       )
+      await t.test(
+        'selection-dependent refresh also preserves the native PNG owner and scrolling',
+        async () => {
+          const rows = await page.evaluate(() => window.frontendMermaidFixture.cursorScroll(true))
+          assert(rows.at(-1).calls > rows[0].calls)
+          assert(rows.every((row) => row.mode === 'natural'))
+          assert(rows.filter((row) => row.connected).every((row) => row.left === 640 && row.same))
+          assert.equal(rows.filter((row) => !row.connected).length, 2)
+        },
+      )
       await t.test('ordinary and twelve official syntax fixtures', async (st) => {
         cspErrors.length = 0
         for (const item of [

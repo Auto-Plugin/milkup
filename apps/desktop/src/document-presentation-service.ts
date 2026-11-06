@@ -55,6 +55,66 @@ export function createDesktopDocumentPresentationService(
     string,
     { result: DocumentPresentationResult; cost: number; pure: boolean }
   >()
+  interface PendingFence {
+    readonly controller: AbortController
+    task: Promise<DocumentPresentationResult>
+    users: number
+    settled: boolean
+    output?: DocumentPresentationResult
+  }
+  const pendingFences = new Map<string, PendingFence>()
+  const releasePending = (entry: PendingFence) => {
+    if (entry.settled && entry.users === 0 && entry.output) {
+      disposeDocumentPngImages(entry.output)
+      delete entry.output
+    }
+  }
+  const cancelPending = () => {
+    for (const entry of pendingFences.values()) entry.controller.abort()
+    pendingFences.clear()
+  }
+  const acquirePending = async (
+    key: string,
+    signal: AbortSignal,
+    produce: (signal: AbortSignal) => Promise<DocumentPresentationResult>,
+  ): Promise<DocumentPresentationResult> => {
+    let entry = pendingFences.get(key)
+    if (!entry) {
+      if (pendingFences.size >= 8) throw new Error('Pending authenticated fence budget exceeded')
+      entry = { controller: new AbortController(), task: undefined!, users: 0, settled: false }
+      const created = entry
+      pendingFences.set(key, created)
+      created.task = Promise.resolve()
+        .then(() => produce(created.controller.signal))
+        .then((output) => {
+          created.output = output
+          return output
+        })
+        .finally(() => {
+          created.settled = true
+          if (pendingFences.get(key) === created) pendingFences.delete(key)
+          releasePending(created)
+        })
+      void created.task.catch(() => undefined)
+    }
+    entry.users++
+    let abort!: () => void
+    const cancelled = new Promise<never>((_resolve, reject) => {
+      abort = () => reject(new DocumentPresentationError('aborted'))
+      signal.addEventListener('abort', abort, { once: true })
+      if (signal.aborted) abort()
+    })
+    try {
+      const result = await Promise.race([entry.task, cancelled])
+      if (signal.aborted) throw new DocumentPresentationError('aborted')
+      retainDocumentPngImages(result)
+      return result
+    } finally {
+      signal.removeEventListener('abort', abort)
+      entry.users--
+      releasePending(entry)
+    }
+  }
   let cacheCost = 0
   let cacheIdentity: object | undefined
   let cacheSource: MarkdownContextSource | undefined
@@ -70,6 +130,7 @@ export function createDesktopDocumentPresentationService(
     disposeDocumentPngImages(entry.result)
   }
   const clearFenceCache = () => {
+    cancelPending()
     for (const key of fenceCache.keys()) evict(key)
     cacheIdentity = undefined
     cacheSource = undefined
@@ -92,9 +153,8 @@ export function createDesktopDocumentPresentationService(
       const capturedSource = initial?.source
       const capturedVersion = capturedSource?.version
       const capturedDocumentId = capturedSource?.documentId
-      const assertCurrent = () => {
+      const assertSnapshot = () => {
         const current = options.current()
-        if (operation.signal.aborted) throw new DocumentPresentationError('aborted')
         if (
           !initial ||
           generation !== revision ||
@@ -108,6 +168,10 @@ export function createDesktopDocumentPresentationService(
           (window.documentVersion !== undefined && window.documentVersion !== capturedVersion)
         )
           throw new DocumentPresentationError('revoked')
+      }
+      const assertCurrent = () => {
+        if (operation.signal.aborted) throw new DocumentPresentationError('aborted')
+        assertSnapshot()
       }
       assertCurrent()
       const input = { ...window, documentId: capturedDocumentId!, version: capturedVersion! }
@@ -183,6 +247,7 @@ export function createDesktopDocumentPresentationService(
         cacheScope = scope
       }
       if (cacheSource !== capturedSource || cacheVersion !== capturedVersion) {
+        cancelPending()
         for (const [key, entry] of fenceCache) if (!entry.pure) evict(key)
         cacheSource = capturedSource
         cacheVersion = capturedVersion
@@ -243,6 +308,12 @@ export function createDesktopDocumentPresentationService(
           )
         }
       }
+      for (const [key, entry] of pendingFences) {
+        if (!activeFenceKeys.has(key)) {
+          entry.controller.abort()
+          pendingFences.delete(key)
+        }
+      }
       const inactiveKeys = () => [...fenceCache.keys()].filter((key) => !activeFenceKeys.has(key))
       for (const key of inactiveKeys().slice(0, -8)) evict(key)
       const acceptedRenderers = new Map<DesktopDocumentRenderer, () => void>()
@@ -290,61 +361,91 @@ export function createDesktopDocumentPresentationService(
           acceptedRenderers.set(declaration, assertRendererActive)
           return result
         }
-        const value = await options.render(declaration.pluginId, declaration.id, input, {
-          ...operation,
-          deadline,
-        })
+        const renderFresh = async (signal: AbortSignal) => {
+          const value = await options.render(declaration.pluginId, declaration.id, input, {
+            signal,
+            deadline,
+          })
+          try {
+            if (signal.aborted) throw new DocumentPresentationError('aborted')
+            assertSnapshot()
+            assertRendererActive()
+            const result = copyDocumentPresentationResult(value, input, declaration)
+            if (
+              cacheKey !== undefined &&
+              result.complete &&
+              !result.pending &&
+              !result.fragments.some((fragment) => fragment.status === 'error') &&
+              cacheIdentity === initial!.identity &&
+              cacheScope === scope &&
+              (!pure ||
+                (result.fragments.length === 1 &&
+                  result.fragments[0]!.from === input.from &&
+                  result.fragments[0]!.to === input.to &&
+                  result.fragments[0]!.layout === 'block' &&
+                  isDocumentPngImage(result.fragments[0]!.content)))
+            ) {
+              // Charge actual encoded bytes plus intrinsic decoded pixel cost.
+              // Accounting exposes neither the bytes nor a new image authority.
+              const cost =
+                (cacheKey.length + JSON.stringify(result).length) * 2 +
+                documentPngImages(result).reduce(
+                  (sum, image) =>
+                    sum + documentPngImageByteLength(image) + image.width * image.height * 4,
+                  0,
+                )
+              const limit = 64 * 1024 * 1024
+              if (cost <= limit) {
+                evict(cacheKey)
+                for (const key of inactiveKeys()) {
+                  if (
+                    fenceCache.size < DOCUMENT_PRESENTATION_LIMITS.fragments &&
+                    cacheCost + cost <= limit
+                  )
+                    break
+                  evict(key)
+                }
+                if (
+                  fenceCache.size < DOCUMENT_PRESENTATION_LIMITS.fragments &&
+                  cacheCost + cost <= limit
+                ) {
+                  retainDocumentPngImages(result)
+                  fenceCache.set(cacheKey, { result, cost, pure })
+                  nativeCacheProgress ||= pure
+                  cacheCost += cost
+                  for (const key of inactiveKeys().slice(0, -8)) evict(key)
+                } else resourceLimited = true
+              } else resourceLimited = true
+            }
+            return result
+          } catch (error) {
+            disposeDocumentPngImages(value)
+            throw error
+          }
+        }
+        // A selection-dependent consumer may be cancelled without cancelling
+        // this attested source-only computation. Its original deadline remains;
+        // source identity/version, epoch changes and close still revoke it.
+        const value =
+          pure && cacheKey !== undefined
+            ? await acquirePending(cacheKey, operation.signal, renderFresh)
+            : await renderFresh(operation.signal)
         owned.add(value)
         assertCurrent()
         assertRendererActive()
-        const result = copyDocumentPresentationResult(value, input, declaration)
-        acceptedRenderers.set(declaration, assertRendererActive)
-        if (
-          cacheKey !== undefined &&
-          result.complete &&
-          !result.pending &&
-          !result.fragments.some((fragment) => fragment.status === 'error') &&
-          cacheIdentity === initial!.identity &&
-          cacheScope === scope &&
-          (!pure ||
-            (result.fragments.length === 1 &&
-              result.fragments[0]!.from === input.from &&
-              result.fragments[0]!.to === input.to &&
-              result.fragments[0]!.layout === 'block' &&
-              isDocumentPngImage(result.fragments[0]!.content)))
-        ) {
-          // Charge actual encoded bytes plus intrinsic decoded pixel cost.
-          // Accounting exposes neither the bytes nor a new image authority.
-          const cost =
-            (cacheKey.length + JSON.stringify(result).length) * 2 +
-            documentPngImages(result).reduce(
-              (sum, image) =>
-                sum + documentPngImageByteLength(image) + image.width * image.height * 4,
-              0,
-            )
-          const limit = 64 * 1024 * 1024
-          if (cost <= limit) {
-            evict(cacheKey)
-            for (const key of inactiveKeys()) {
-              if (
-                fenceCache.size < DOCUMENT_PRESENTATION_LIMITS.fragments &&
-                cacheCost + cost <= limit
-              )
-                break
-              evict(key)
+        const rebound = pure
+          ? {
+              ...value,
+              fragments: value.fragments.map((fragment) => ({
+                ...fragment,
+                from: input.from,
+                to: input.to,
+              })),
             }
-            if (
-              fenceCache.size < DOCUMENT_PRESENTATION_LIMITS.fragments &&
-              cacheCost + cost <= limit
-            ) {
-              retainDocumentPngImages(result)
-              fenceCache.set(cacheKey, { result, cost, pure })
-              nativeCacheProgress ||= pure
-              cacheCost += cost
-              for (const key of inactiveKeys().slice(0, -8)) evict(key)
-            } else resourceLimited = true
-          } else resourceLimited = true
-        }
+          : value
+        const result = copyDocumentPresentationResult(rebound, input, declaration)
+        acceptedRenderers.set(declaration, assertRendererActive)
+        nativeCacheProgress ||= pure && cacheKey !== undefined && fenceCache.has(cacheKey)
         return result
       }
       // Text and mixed-context providers retain their full trusted window. Pure

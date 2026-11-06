@@ -4,6 +4,7 @@ import { createFrontendMermaidOwner } from '../../apps/desktop/src/frontend-merm
 import {
   acquireDocumentPngImage,
   createDocumentPngImage,
+  retainDocumentPngImages,
   disposeDocumentPngImages,
   documentPngResourceStats,
 } from '../../packages/core/src/document-png-image'
@@ -11,7 +12,7 @@ let owner = createFrontendMermaidOwner()
 const requests = new Map<string, { controller: AbortController; result: Promise<unknown> }>()
 Object.assign(window, {
   frontendMermaidFixture: {
-    async cursorScroll() {
+    async cursorScroll(mixed = false) {
       const firstLine = 'diagram source',
         text = firstLine + '\nuntouched tail'
       const canvas = document.createElement('canvas')
@@ -24,6 +25,13 @@ Object.assign(window, {
       parent.style.cssText = 'position:fixed;inset:20px;width:600px;height:600px;background:white'
       document.body.append(parent)
       let calls = 0
+      const content = createDocumentPngImage({
+        bytes,
+        width: 2100,
+        height: 126,
+        title: 'image',
+        release() {},
+      })
       const view = new EditorView({
         parent,
         mode: 'live',
@@ -32,7 +40,8 @@ Object.assign(window, {
           selection: Selection.cursor(text.length),
         }),
         documentPresentation: {
-          selectionIndependent: () => true,
+          selectionIndependent: () => !mixed,
+          retainHostPng: () => true,
           provide: ({
             sourceIdentity,
             sourceVersion,
@@ -42,6 +51,7 @@ Object.assign(window, {
             ...window
           }) => {
             calls++
+            retainDocumentPngImages(content)
             return {
               declarations: [{ id: 'host-image', contexts: ['text'] }],
               request: {
@@ -62,13 +72,7 @@ Object.assign(window, {
                     to: firstLine.length,
                     layout: 'block',
                     accessibleText: 'image',
-                    content: createDocumentPngImage({
-                      bytes,
-                      width: 2100,
-                      height: 126,
-                      title: 'image',
-                      release() {},
-                    }),
+                    content,
                   },
                 ],
               },
@@ -113,6 +117,7 @@ Object.assign(window, {
         return rows
       } finally {
         view.destroy()
+        disposeDocumentPngImages(content)
         parent.remove()
       }
     },

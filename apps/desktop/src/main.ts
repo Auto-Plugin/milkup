@@ -1677,6 +1677,10 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
 })
 function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
   return {
+    retainHostPng: () =>
+      (desktopPluginManager.state().contributions.documentRenderers ?? []).some((renderer) =>
+        desktopPluginManager.canReusePrivateMermaidFence(renderer.pluginId, renderer.id),
+      ),
     selectionIndependent: () => {
       const renderers = desktopPluginManager.state().contributions.documentRenderers ?? []
       return (

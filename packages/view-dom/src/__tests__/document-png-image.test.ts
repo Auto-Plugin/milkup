@@ -3,6 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { EditorState, MemoryDocumentSource, MemoryTextDocument, Selection } from '@milkup/core'
 import {
   createDocumentPngImage,
+  disposeDocumentPngImages,
+  retainDocumentPngImages,
   documentPngResourceStats,
 } from '@milkup/core/internal/document-png-image'
 import {
@@ -581,4 +583,99 @@ it('does not abort an in-flight trusted PNG on caret movement, but revokes it wi
   await settle()
   expect(view.contentDOM.querySelector('img')).toBeNull()
   expect(revoked).toEqual(created)
+})
+
+for (const windowed of [false, true]) {
+  it(`refreshes selection-dependent providers without decoding their cached host PNG again (${windowed})`, async () => {
+    const base = provider()
+    let first: Awaited<ReturnType<DocumentPresentationConfig['provide']>> | undefined
+    const selections: number[] = []
+    const provide: DocumentPresentationConfig['provide'] = async (window, options) => {
+      selections.push(window.selection.head)
+      const next = await base.provide(window, options)
+      if (first) {
+        disposeDocumentPngImages(next.result)
+        retainDocumentPngImages(first.result)
+        return { ...next, result: first.result }
+      }
+      first = next
+      retainDocumentPngImages(first.result)
+      return next
+    }
+    const view = await make(windowed, { provide, retainHostPng: () => true })
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector('img')!
+    view.inputDOM.focus()
+    for (const offset of [sourceText.length - 1, 2, sourceText.length]) {
+      if (view instanceof EditorView)
+        view.updateState(view.state.applyTransaction({ selection: Selection.cursor(offset) }))
+      else await view.revealSelection(offset < firstLine.length ? 1 : 2, Selection.cursor(offset))
+      await settle()
+      expect(selections).toContain(offset)
+      expect(decodes).toHaveLength(1)
+      if (offset >= firstLine.length) expect(view.contentDOM.querySelector('img')).toBe(image)
+    }
+    expect(new Set(selections).size).toBeGreaterThanOrEqual(3)
+    await unchanged(view)
+    disposeDocumentPngImages(first!.result)
+  })
+}
+
+it('withdraws stale selection-dependent text while keeping the authenticated image visible', async () => {
+  const base = provider()
+  let held: Awaited<ReturnType<DocumentPresentationConfig['provide']>> | undefined
+  let finish!: () => void
+  let calls = 0
+  const view = (await make(false, {
+    retainHostPng: () => true,
+    provide: async (window, options) => {
+      calls++
+      if (calls === 2)
+        await new Promise<void>((resolve) => {
+          finish = resolve
+        })
+      const response = await base.provide(window, options)
+      if (!held) {
+        held = response
+        retainDocumentPngImages(held.result)
+      } else {
+        disposeDocumentPngImages(response.result)
+        retainDocumentPngImages(held.result)
+      }
+      return {
+        ...response,
+        result: {
+          complete: true,
+          fragments: [
+            held.result.fragments[0]!,
+            {
+              from: firstLine.length + 2,
+              to: sourceText.length - 2,
+              layout: 'inline',
+              accessibleText: 'selection output',
+              content: { type: 'text', text: `selection-output-${window.selection.head}` },
+            },
+          ],
+        },
+      }
+    },
+  })) as EditorView
+  decodes[0]!.resolve()
+  await settle()
+  const image = view.contentDOM.querySelector('img')
+  expect(view.contentDOM.textContent).toContain(`selection-output-${sourceText.length}`)
+  view.updateState(
+    view.state.applyTransaction({ selection: Selection.cursor(sourceText.length - 1) }),
+  )
+  await settle()
+  expect(calls).toBe(2)
+  expect(view.contentDOM.querySelector('img')).toBe(image)
+  expect(view.contentDOM.textContent).not.toContain('selection-output-')
+  finish()
+  await settle()
+  expect(view.contentDOM.textContent).toContain(`selection-output-${sourceText.length - 1}`)
+  expect(view.contentDOM.querySelector('img')).toBe(image)
+  expect(decodes).toHaveLength(1)
+  disposeDocumentPngImages(held!.result)
 })
