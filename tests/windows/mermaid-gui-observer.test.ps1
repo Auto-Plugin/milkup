@@ -20,6 +20,39 @@ $tokens = $null
 $null = [System.Management.Automation.Language.Parser]::ParseFile($hostPath, [ref]$tokens, [ref]$parseErrors)
 Assert ($parseErrors.Count -eq 0) ('PowerShell parse errors: ' + ($parseErrors -join '; '))
 Add-Type -Path $source -ErrorAction Stop
+# Simulate a child disappearing during the independent root identity query.
+# Its own two live reads must already be complete; a disappearance during its
+# own held-identity query must still remain visible and fail reconciliation.
+foreach ($disappearDuring in @('root', 'child')) {
+    $capture = @{ alive = $true; disappearDuring = $disappearDuring; calls = [Collections.Generic.List[string]]::new() }
+    $readChild = [Func[Collections.Generic.Dictionary[string,object]]] {
+        $capture.calls.Add('child-read')
+        $result = [Collections.Generic.Dictionary[string,object]]::new()
+        $result['isWindow'] = $capture.alive
+        return $result
+    }.GetNewClosure()
+    $readRoot = [Func[Collections.Generic.Dictionary[string,object]]] {
+        $capture.calls.Add('root-read')
+        $result = [Collections.Generic.Dictionary[string,object]]::new()
+        $result['isWindow'] = $true
+        return $result
+    }.GetNewClosure()
+    $proveChild = [Func[Collections.Generic.Dictionary[string,object]]] {
+        $capture.calls.Add('child-proof')
+        if ($capture.disappearDuring -ceq 'child') { $capture.alive = $false }
+        return [Collections.Generic.Dictionary[string,object]]::new()
+    }.GetNewClosure()
+    $proveRoot = [Func[Collections.Generic.Dictionary[string,object]]] {
+        $capture.calls.Add('root-proof')
+        if ($capture.disappearDuring -ceq 'root') { $capture.alive = $false }
+        return [Collections.Generic.Dictionary[string,object]]::new()
+    }.GetNewClosure()
+    $reads = [WindowsMermaidGuiObserver]::CaptureTeardownReads($readChild, $readRoot, $proveChild, $proveRoot)
+    Assert ($reads.childFirst.isWindow -eq $true) 'Initial child read was lost'
+    Assert ($reads.childSecond.isWindow -eq ($disappearDuring -ceq 'root')) 'Child read bracket includes unrelated root-query latency or conceals disappearance'
+    Assert ($reads.rootFirst.isWindow -and $reads.rootSecond.isWindow) 'Both root reads remain required'
+    Assert (($capture.calls -join ',') -ceq 'root-read,child-read,child-proof,child-read,root-proof,root-read') 'Independent identity proofs must remain inside their own read brackets'
+}
 foreach ($name in @('ConsoleWindowClass', 'CASCADIA_HOSTING_WINDOW_CLASS', 'PseudoConsoleWindow')) {
     Assert ([WindowsMermaidGuiObserver]::IsConsoleClass($name)) "Known console class was missed: $name"
 }

@@ -497,20 +497,33 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         }
         return true;
     }
+    public static Dictionary<string, object> CaptureTeardownReads(Func<Dictionary<string, object>> readChild, Func<Dictionary<string, object>> readRoot, Func<Dictionary<string, object>> proveChild, Func<Dictionary<string, object>> proveRoot) {
+        // Complete the short-lived child's bracket before querying the root's
+        // identity. The root bracket surrounds it. Both independent held-birth
+        // proofs and both pairs of live reads remain required by reconciliation.
+        var rootFirst = readRoot();
+        var childFirst = readChild();
+        var childProof = proveChild();
+        var childSecond = readChild();
+        var rootProof = proveRoot();
+        var rootSecond = readRoot();
+        return new Dictionary<string, object> { { "childFirst", childFirst }, { "childSecond", childSecond }, { "rootFirst", rootFirst }, { "rootSecond", rootSecond }, { "childProof", childProof }, { "rootProof", rootProof } };
+    }
     Dictionary<string, object> CapturePostParentDestroy(WindowLife life, uint tid) {
         if (life.Confirmation == null || life.Retirement == null || (string)life.Retirement["reason"] != "parent-destroy") return null;
         WindowLife root = windowLives.Find(item => item.Id == Number(life.Retirement, "parentLifeId"));
         if (root == null || root.Confirmation == null || CurrentLife(life.Hwnd) != life || CurrentLife(root.Hwnd) != root) return null;
-        var childFirst = WindowDiagnostic(life.Hwnd); var rootFirst = WindowDiagnostic(root.Hwnd);
-        var childProof = ReadHeldIdentity(life, tid); var rootProof = ReadHeldIdentity(root, Convert.ToUInt32(root.Confirmation["threadId"]));
-        var childSecond = WindowDiagnostic(life.Hwnd); var rootSecond = WindowDiagnostic(root.Hwnd);
+        var reads = CaptureTeardownReads(() => WindowDiagnostic(life.Hwnd), () => WindowDiagnostic(root.Hwnd), () => ReadHeldIdentity(life, tid), () => ReadHeldIdentity(root, Convert.ToUInt32(root.Confirmation["threadId"])));
+        var childFirst = (Dictionary<string, object>)reads["childFirst"]; var childSecond = (Dictionary<string, object>)reads["childSecond"];
+        var rootFirst = (Dictionary<string, object>)reads["rootFirst"]; var rootSecond = (Dictionary<string, object>)reads["rootSecond"];
+        var childProof = (Dictionary<string, object>)reads["childProof"]; var rootProof = (Dictionary<string, object>)reads["rootProof"];
         bool matched = childProof != null && rootProof != null && !HasQueuedBarrier(life.Hwnd) && !HasQueuedBarrier(root.Hwnd) && CurrentLife(life.Hwnd) == life && CurrentLife(root.Hwnd) == root;
         foreach (var pair in new[] { new[] { childFirst, childSecond, life.Confirmation }, new[] { rootFirst, rootSecond, root.Confirmation } }) {
             matched = matched && Object.Equals(pair[0]["isWindow"], true) && Object.Equals(pair[1]["isWindow"], true);
             foreach (string key in new[] { "pid", "threadId", "className", "rootHwnd" }) matched = matched && Object.Equals(pair[0][key], pair[1][key]) && Object.Equals(pair[0][key], pair[2][key]);
         }
-        // Supplemental evidence only. It cannot extend a retired generation or
-        // change the strict reconciler's decision.
+        // Capture only: final reconciliation still requires both live brackets,
+        // held births, CREATE barriers and the subsequent direct child DESTROY.
         return new Dictionary<string, object> { { "childLifeId", life.Id }, { "rootLifeId", root.Id }, { "childFirst", childFirst }, { "childSecond", childSecond }, { "rootFirst", rootFirst }, { "rootSecond", rootSecond }, { "childProof", childProof }, { "rootProof", rootProof }, { "doubleReadMatched", matched }, { "endSequence", observationSequence } };
     }
     Dictionary<string, object> NewChildShow(IntPtr hwnd, uint time, uint tid, long tick, long order, string scope) {
