@@ -10,6 +10,7 @@ import {
   MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
   validateMigrationReceipt,
+  validateUntouchedOldRestart,
   validateSyntheticMigrationFixture,
   MIGRATION_BASELINE_SHA256,
   crc32,
@@ -2204,6 +2205,15 @@ test('old profile receipts require the real pinned baseline, same owned account 
         stdioClosedAt: 'closed-2',
         profile: 'same-owned-profile',
         restartedOldProfile: true,
+        initialRestartObservation: {
+          applicationSha256: MIGRATION_BASELINE_SHA256,
+          mode: 'live',
+          cursor: 0,
+          dirty: false,
+          inputsBeforeLaunch: 12,
+          inputsAfterPreview: 12,
+          previewVerified: false,
+        },
       },
     ],
     steps: [
@@ -2236,6 +2246,7 @@ test('old profile receipts require the real pinned baseline, same owned account 
   enabled.migration.catalog.enabled = true
   enabled.steps[0].checked = 'true'
   enabled.steps[0].previewVerified = true
+  enabled.launches[1].initialRestartObservation.previewVerified = true
   validateMigrationReceipt(enabled, { ...expected, choice: 'enabled' })
   for (const change of [
     (r) => (r.status = 'failed'),
@@ -2247,6 +2258,8 @@ test('old profile receipts require the real pinned baseline, same owned account 
     (r) => (r.launches[1].profile = 'fresh-profile'),
     (r) => r.launches.forEach((launch) => delete launch.profile),
     (r) => (r.launches[1].stdioClosedAt = null),
+    (r) => delete r.launches[1].initialRestartObservation,
+    (r) => r.launches[1].initialRestartObservation.inputsAfterPreview++,
     (r) => (r.steps[0].passed = false),
     (r) => (r.steps[0].checked = 'true'),
     (r) => (r.steps[0].productCreationFileTime = '1000'),
@@ -2258,6 +2271,32 @@ test('old profile receipts require the real pinned baseline, same owned account 
     const bad = structuredClone(receipt)
     change(bad)
     assert.throws(() => validateMigrationReceipt(bad, expected))
+  }
+})
+
+test('old restart observation rejects startup input, changed state and a false preview claim', () => {
+  const observation = {
+    applicationSha256: MIGRATION_BASELINE_SHA256,
+    mode: 'live',
+    cursor: 0,
+    dirty: false,
+    inputsBeforeLaunch: 10,
+    inputsAfterPreview: 10,
+    previewVerified: true,
+  }
+  validateUntouchedOldRestart(observation, true)
+  for (const change of [
+    (x) => (x.applicationSha256 = '0'.repeat(64)),
+    (x) => (x.mode = 'source'),
+    (x) => (x.cursor = 40),
+    (x) => (x.dirty = true),
+    (x) => (x.inputsBeforeLaunch = -1),
+    (x) => x.inputsAfterPreview++,
+    (x) => (x.previewVerified = false),
+  ]) {
+    const bad = structuredClone(observation)
+    change(bad)
+    assert.throws(() => validateUntouchedOldRestart(bad, true))
   }
 })
 

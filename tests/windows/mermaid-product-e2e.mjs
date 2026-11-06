@@ -1410,6 +1410,22 @@ export function serializeProductEvidence(report) {
 
 export const MIGRATION_BASELINE_SHA256 =
   '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
+export function validateUntouchedOldRestart(observation, enabled) {
+  assert(observation, 'Old restart must retain its initial observation')
+  assert.equal(observation.applicationSha256, MIGRATION_BASELINE_SHA256)
+  assert.equal(observation.mode, 'live', 'Saved old view mode survives restart')
+  assert.equal(observation.cursor, 0, 'Saved old caret survives restart')
+  assert.equal(observation.dirty, false)
+  assert(
+    Number.isSafeInteger(observation.inputsBeforeLaunch) && observation.inputsBeforeLaunch >= 0,
+  )
+  assert.equal(
+    observation.inputsAfterPreview,
+    observation.inputsBeforeLaunch,
+    'No mode, focus, zoom or menu input before observing the restarted old preview',
+  )
+  assert.equal(observation.previewVerified, enabled)
+}
 export function validateMigrationReceipt(receipt, expected) {
   assert.equal(receipt.status, 'passed')
   assert.equal(receipt.runId, expected.runId)
@@ -1442,6 +1458,7 @@ export function validateMigrationReceipt(receipt, expected) {
   )
   assert.equal(restarted.restartedOldProfile, true)
   assert.equal(restarted.profile, first.profile)
+  validateUntouchedOldRestart(restarted.initialRestartObservation, expected.choice !== 'disabled')
   const restart = receipt.steps.find((step) => step.name === '00-restart-old-plugin-choice')
   assert.equal(restart?.passed, true)
   assert.equal(restart.productPid, restarted.productPid)
@@ -2102,6 +2119,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     return ledger.verifyAll(product.pid)
   }
   const startProduct = async (name, restart = false) => {
+    const inputsBeforeLaunch = report.inputs.length
     if (restart) {
       assert.equal(migrationPhase, 'prepare')
       assert.equal(report.launches.length, 1)
@@ -2231,6 +2249,27 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     assert.equal(initial.visibility, 'visible')
     assert.equal(initial.developmentProbe, 'undefined')
     assert.equal(initial.diagnostics, 'undefined')
+    if (restart) {
+      // The exact shipped beta.9 cancels its pending native frame when switched
+      // into source mode. A restart observation must not inject the unrelated
+      // normalization cycle below before its original render has completed.
+      const observation = {
+        applicationSha256: expectedBinarySha,
+        mode: initial.mode,
+        cursor: initial.cursor,
+        dirty: initial.dirty,
+        inputsBeforeLaunch,
+        inputsAfterPreview: report.inputs.length,
+        previewVerified: false,
+      }
+      current.initialRestartObservation = observation
+      validateUntouchedOldRestart(observation, false)
+      await rendered(migrationChoice !== 'disabled')
+      observation.inputsAfterPreview = report.inputs.length
+      observation.previewVerified = migrationChoice !== 'disabled'
+      validateUntouchedOldRestart(observation, migrationChoice !== 'disabled')
+      return
+    }
     await control('0')
     await position(fixtures[name], 0)
   }
