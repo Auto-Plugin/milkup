@@ -286,7 +286,7 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
         // unless the held object's zero-time wait actually reported signaled.
         return new Dictionary<string, object> { { "result", wait }, { "exitFileTime", wait == 0 ? exit.ToString() : null } };
     }
-    static NativeIdentity OpenIdentity(uint tid, uint expectedPid, bool allowExited = false) {
+    static NativeIdentity OpenIdentity(uint tid, uint expectedPid, bool allowExited = false, bool includeImage = true) {
         var identity = new NativeIdentity { Tid = tid };
         try {
             identity.Thread = tid == 0 ? IntPtr.Zero : OpenThread(0x100800, false, tid);
@@ -299,26 +299,35 @@ public sealed class WindowsMermaidGuiObserver : IDisposable
             if (identity.Process == IntPtr.Zero) return null;
             Dictionary<string, object> processWait = IdentityWait(identity.Process, false, out creation);
             if (GetProcessId(identity.Process) != pid || !GetHandleInformation(identity.Process, out flags) || (flags & 1) != 0 || processWait == null || (!allowExited && Number(processWait, "result") != 258) || creation > identity.ThreadBirth) return null;
-            uint count = 32768; var image = new StringBuilder((int)count);
-            if (!QueryFullProcessImageNameW(identity.Process, 0, image, ref count)) return null;
-            identity.Fact = new ProcessFact { Pid = pid, Creation = creation, Image = Bounded(image.ToString(), 512) };
+            string image = null;
+            if (includeImage) {
+                uint count = 32768; var buffer = new StringBuilder((int)count);
+                if (!QueryFullProcessImageNameW(identity.Process, 0, buffer, ref count)) return null;
+                image = Bounded(buffer.ToString(), 512);
+            }
+            identity.Fact = new ProcessFact { Pid = pid, Creation = creation, Image = image };
             threadWait = IdentityWait(identity.Thread, true, out creation);
             if (GetProcessIdOfThread(identity.Thread) != pid || threadWait == null || creation != identity.ThreadBirth || (!allowExited && Number(threadWait, "result") != 258)) return null;
             NativeIdentity result = identity; identity = null; return result;
         } finally { if (identity != null) identity.Dispose(); }
     }
     static Dictionary<string, object> ReadHeldIdentity(WindowLife life, uint eventThread) {
+        long started = Stopwatch.GetTimestamp();
         NativeIdentity held = life.Identity;
         if (held == null || held.Thread == IntPtr.Zero || held.Process == IntPtr.Zero || eventThread != held.Tid) return null;
         // The retained original thread object preserves its ID after exit.
         // Still reopen that ID and require exactly the same native births:
         // any query error/not-found/reuse contradicts the proof and fails closed.
-        using (NativeIdentity current = OpenIdentity(eventThread, held.Fact.Pid, true)) {
+        // The full image was acquired for the retained generation. A fresh
+        // image string is not compared by this proof; avoid that unrelated
+        // path query inside the short-lived window's live-read bracket.
+        // Reopen both native objects and retain every birth/handle check.
+        using (NativeIdentity current = OpenIdentity(eventThread, held.Fact.Pid, true, false)) {
             if (current == null || current.ThreadBirth != held.ThreadBirth || current.Fact.Creation != held.Fact.Creation) return null;
             long threadBirth, processBirth; uint flags;
             Dictionary<string, object> threadWait = IdentityWait(held.Thread, true, out threadBirth), processWait = IdentityWait(held.Process, false, out processBirth);
             if (!GetHandleInformation(held.Thread, out flags) || (flags & 1) != 0 || !GetHandleInformation(held.Process, out flags) || (flags & 1) != 0 || GetThreadId(held.Thread) != held.Tid || GetProcessIdOfThread(held.Thread) != held.Fact.Pid || GetProcessId(held.Process) != held.Fact.Pid || threadWait == null || threadBirth != held.ThreadBirth || processWait == null || processBirth != held.Fact.Creation) return null;
-            return new Dictionary<string, object> { { "capturedAtTick", NativeTick() }, { "threadId", held.Tid }, { "threadCreationFileTime", held.ThreadBirth.ToString() }, { "pid", held.Fact.Pid }, { "processCreationFileTime", held.Fact.Creation.ToString() }, { "heldThreadVerified", true }, { "heldProcessVerified", true }, { "heldThreadWait", threadWait }, { "heldProcessWait", processWait }, { "currentThread", new Dictionary<string, object> { { "status", "same-identity" }, { "threadCreationFileTime", current.ThreadBirth.ToString() }, { "pid", current.Fact.Pid }, { "processCreationFileTime", current.Fact.Creation.ToString() } } } };
+            return new Dictionary<string, object> { { "capturedAtTick", NativeTick() }, { "freshIdentityReadUs", (Stopwatch.GetTimestamp() - started) * 1000000.0 / Stopwatch.Frequency }, { "freshImageLookup", false }, { "threadId", held.Tid }, { "threadCreationFileTime", held.ThreadBirth.ToString() }, { "pid", held.Fact.Pid }, { "processCreationFileTime", held.Fact.Creation.ToString() }, { "heldThreadVerified", true }, { "heldProcessVerified", true }, { "heldThreadWait", threadWait }, { "heldProcessWait", processWait }, { "currentThread", new Dictionary<string, object> { { "status", "same-identity" }, { "threadCreationFileTime", current.ThreadBirth.ToString() }, { "pid", current.Fact.Pid }, { "processCreationFileTime", current.Fact.Creation.ToString() } } } };
         }
     }
     int SharedRecordCount() { return events.Count + windowLives.Count + childShowEvidence.Count; }

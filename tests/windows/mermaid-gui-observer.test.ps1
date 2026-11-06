@@ -20,6 +20,42 @@ $tokens = $null
 $null = [System.Management.Automation.Language.Parser]::ParseFile($hostPath, [ref]$tokens, [ref]$parseErrors)
 Assert ($parseErrors.Count -eq 0) ('PowerShell parse errors: ' + ($parseErrors -join '; '))
 Add-Type -Path $source -ErrorAction Stop
+if ($IsWindows) {
+    # Compare full retained native identity with the fresh proof on real handles.
+    # Wrong PID and changed birth fields must still fail closed.
+    $flags = [Reflection.BindingFlags]'Static,NonPublic'
+    $openIdentity = [WindowsMermaidGuiObserver].GetMethod('OpenIdentity', $flags)
+    $heldIdentity = [WindowsMermaidGuiObserver].GetMethod('ReadHeldIdentity', $flags)
+    $nativeProcess = [Diagnostics.Process]::GetCurrentProcess()
+    $nativeTid = [uint32]($nativeProcess.Threads | Select-Object -First 1).Id
+    $nativePid = [uint32]$nativeProcess.Id
+    $full = $null; $fresh = $null
+    try {
+        $full = $openIdentity.Invoke($null, @($nativeTid, $nativePid, $false, $true))
+        $fresh = $openIdentity.Invoke($null, @($nativeTid, $nativePid, $false, $false))
+        Assert ($null -ne $full -and $null -ne $fresh) 'Real native identity could not be opened'
+        Assert ($full.Fact.Image.Length -gt 0 -and $null -eq $fresh.Fact.Image) 'Only retained identity requires the image path'
+        Assert ($full.Tid -eq $fresh.Tid -and $full.ThreadBirth -eq $fresh.ThreadBirth -and $full.Fact.Pid -eq $fresh.Fact.Pid -and $full.Fact.Creation -eq $fresh.Fact.Creation) 'Fresh native births differ from held identity'
+        $wrong = $openIdentity.Invoke($null, @($nativeTid, [uint32]($nativePid + 1), $false, $false))
+        try { Assert ($null -eq $wrong) 'Wrong process identity was accepted' } finally { if ($null -ne $wrong) { $wrong.Dispose() } }
+        $lifeType = [WindowsMermaidGuiObserver].GetNestedType('WindowLife', [Reflection.BindingFlags]::NonPublic)
+        $life = [Activator]::CreateInstance($lifeType, $true); $life.Identity = $full
+        $proof = $heldIdentity.Invoke($null, @($life, $nativeTid))
+        Assert ($null -ne $proof -and $proof.heldProcessVerified -and $proof.heldThreadVerified -and $proof.currentThread.status -ceq 'same-identity') 'Fresh proof did not verify real held handles'
+        Assert ($proof.freshImageLookup -eq $false -and $proof.freshIdentityReadUs -ge 0) 'Fresh read diagnostics missing'
+        $full.ThreadBirth++
+        Assert ($null -eq $heldIdentity.Invoke($null, @($life, $nativeTid))) 'Changed thread birth was accepted'
+        $full.ThreadBirth--
+        $full.Fact.Creation++
+        Assert ($null -eq $heldIdentity.Invoke($null, @($life, $nativeTid))) 'Changed process birth was accepted'
+        $full.Fact.Creation--
+        Assert ($null -eq $heldIdentity.Invoke($null, @($life, [uint32]0))) 'Missing event thread identity was accepted'
+    } finally {
+        if ($null -ne $fresh) { $fresh.Dispose() }
+        if ($null -ne $full) { $full.Dispose() }
+        $nativeProcess.Dispose()
+    }
+}
 # Simulate a child disappearing during the independent root identity query.
 # Its own two live reads must already be complete; a disappearance during its
 # own held-identity query must still remain visible and fail reconciliation.
