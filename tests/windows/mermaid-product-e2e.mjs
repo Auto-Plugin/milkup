@@ -2596,7 +2596,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           await rendered(initiallyEnabled)
           const before = await state()
           row.startupPerformance =
-            await execute(`return {timeOrigin:performance.timeOrigin,now:performance.now(),
+            await execute(`const resources=performance.getEntriesByType('resource');return {timeOrigin:performance.timeOrigin,now:performance.now(),
+            navigation:performance.getEntriesByType('navigation').map(e=>e.toJSON()),
+            resourceCount:resources.length,resourceDetailsComplete:resources.length<=64,
+            resources:resources.slice(0,64).map(e=>({name:e.name,initiatorType:e.initiatorType,startTime:e.startTime,duration:e.duration,
+              fetchStart:e.fetchStart,requestStart:e.requestStart,responseStart:e.responseStart,responseEnd:e.responseEnd,transferSize:e.transferSize})),
             marks:performance.getEntriesByType('mark').filter(e=>e.name.startsWith('milkup:')).map(e=>({name:e.name,startTime:e.startTime}))}`)
           row.startupPerformance.productStartedAt = launch.startedAt
           row.startupPerformance.observedAt = Date.now()

@@ -31,3 +31,13 @@ The prior delivered installer remains unchanged. No new installer or user-site f
 A native Chromium DOM probe found a gap not modeled by jsdom: removing/reappending the same image viewport reset scrollLeft from 640 to 0. The follow-up captures the owned viewport before source DOM replacement and restores its offset only after final reattachment. The packaged browser regression now proves natural mode and the same image/provider invocation survive outside → inside → outside caret moves, with scrollLeft 640 restored outside. Ordinary provider contracts are unchanged. The Windows wide-view test now also drives real heading-caret keys after horizontal wheel scrolling and requires the same owner, offset and admission count.
 
 Full view run after the original change: 996/996. Follow-up targeted PNG + presentation tests: 100/100; packaged browser suite: 23/23. These do not substitute for the follow-up Windows run. Run 42177287963 is the earlier 8d6d13c5 candidate and does not include the native scroll correction.
+
+## First Windows evidence, not final acceptance
+
+Run 42177287963 / 8d6d13c5 product artifact 13484735259 was verified against its GitHub ZIP digest `0067062b284469f1c7e69b355917b6c2df417306c006824818b9ec401ef8faa0`. Both accounts passed the initial preview and the visible three-mode controls at native 640x600 and 100%/125% WebView zoom. Both retained image instance 9 and six total admissions for the first two outside-caret visits.
+
+Both then failed the harness's exact caret target: it counted whole-source graphemes, while live arrow navigation skips fence delimiter lines (`codeFenceArrowTarget`). Target 41 reached 53; no document mutation occurred. The corrected harness observes each real native key movement, requires strict forward progress and the exact reachable target, and avoids CRLF-interior targets. It preserves the no-new-render/same-image assertions.
+
+Startup remains unresolved: timeOrigin→first decoded was 2387.1 ms / 14667.1 ms; filtered-admin's earliest inline HTML mark was already 11221.3 ms. Those observations do not isolate a native/browser startup cause. Further reports include navigation/resource timings to distinguish pre-HTML loading from module/catalog/render stages. No speed improvement is claimed from these differing cold starts.
+
+Complete candidate 35885076 (including scroll restoration and caret harness correction) runs as 42178558327. Superseded queued runs 42177815953 and 42178254754 were cancelled before execution. Installed and old-profile tests still depend on complete candidate acceptance.
