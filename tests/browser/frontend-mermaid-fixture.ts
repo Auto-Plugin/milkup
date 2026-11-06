@@ -8,6 +8,10 @@ let owner = createFrontendMermaidOwner()
 const requests = new Map<string, { controller: AbortController; result: Promise<unknown> }>()
 Object.assign(window, {
   frontendMermaidFixture: {
+    async prepare() {
+      await owner.prepare!()
+      return documentPngResourceStats()
+    },
     async render(
       body: string,
       theme = 'light',

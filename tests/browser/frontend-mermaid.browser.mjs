@@ -169,6 +169,26 @@ test(
           forbidChildAssetRequests = false
         },
       )
+      await t.test(
+        'fixed-engine preparation creates no PNG and the first render reuses its frame',
+        async () => {
+          await page.evaluate(() => window.frontendMermaidFixture.reset())
+          assert.deepEqual(await page.evaluate(() => window.frontendMermaidFixture.prepare()), {
+            bytes: 0,
+            images: 0,
+            decodedOwners: 0,
+          })
+          assert.equal(await page.locator('iframe[data-milkup-mermaid-renderer]').count(), 1)
+          const preparedFrame = page.frames().find((frame) => frame !== page.mainFrame())
+          assert.ok((await render('flowchart LR\nA[Prepared]-->B[Ready]')).bytes > 100)
+          assert.equal(
+            page.frames().find((frame) => frame !== page.mainFrame()),
+            preparedFrame,
+          )
+          await page.evaluate(() => window.frontendMermaidFixture.reset())
+          assert.equal(await page.locator('iframe[data-milkup-mermaid-renderer]').count(), 0)
+        },
+      )
       await t.test('ordinary and twelve official syntax fixtures', async (st) => {
         cspErrors.length = 0
         for (const item of [
