@@ -49,3 +49,13 @@ Math enables a selection-dependent text renderer, so the original all-renderers-
 Local coverage: view suite 999/999; presentation service 50/50 including aborted consumers, result reuse after every waiter cancels and late-result release on invalidation/clear; packaged browser 24/24 including native DOM scrolling while companion providers refresh; desktop TypeScript passed. The Windows product fixture now includes an actual inline formula, enables the real bundled Math plugin, exercises cursor movements inside/outside both formula and Mermaid, checks formula visibility against selection, and requires no new Mermaid admission or decoded image replacement. It disables Math afterward to preserve later cases' initial conditions. This combination remains pending Windows verification.
 
 Run 42177287963 final GUI artifact 13484429356 ZIP SHA `60ae55d2a4a860a9fce8f9e66307b16f74f26cf9eccc5a86c216356e425f4059` was checked. Both accounts' eight GUI steps passed, including 12-diagram compact/scroll visits and idle/busy close. Both observer summaries are complete with positive controls, no overflow and zero product/unattributed visible console windows. That evidence belongs only to 8d6d13c5 and does not prove the later companion-provider changes.
+
+## Measured hidden-frame encoding delay
+
+A diagnostic against the actual packaged fixed frame (real Chromium, same diagram, five sequential requests) measured Mermaid layout at 17–20 ms, SVG image decode at about 2 ms, and HTML canvas.toBlob at 985–1001 ms on warm requests. OffscreenCanvas.convertToBlob was evaluated and rejected as the solution: after its first request it still took about 989–991 ms. It is not in the candidate.
+
+The candidate uses the native synchronous PNG encoder only for validated rasters up to 1,048,576 pixels, retaining the prior asynchronous encoder for larger rasters. It checks the PNG data prefix and encoded byte ceiling, preserves the existing axis/pixel/PNG limits, and clears canvas pixel storage in finally on success or failure. No renderer worker, native renderer command or external resource was added.
+
+Under the same local diagnostic, the bounded PNG encode took 0.3–0.4 ms; total requests after preparation were 198.5 ms cold-render and 31.7 / 25.5 / 23.5 / 24.2 ms warm-render. These measure the diagram request, not application cold startup. The known pre-HTML cold-start variation remains unresolved pending Windows navigation timing evidence.
+
+Packaged browser suite 26/26 passed: actual use of the bounded encoder, larger-raster asynchronous path, invalid encoder output rejection/recovery, 12 syntax families, malicious input, isolation and resource release. Windows timing and installed-package validation remain required.

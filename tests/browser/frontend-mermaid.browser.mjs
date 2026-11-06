@@ -209,6 +209,76 @@ test(
           assert.equal(rows.filter((row) => !row.connected).length, 2)
         },
       )
+      await t.test('small opaque rasters avoid the document idle encoder', async () => {
+        await page.evaluate(() => window.frontendMermaidFixture.prepare())
+        const child = page.frames().find((frame) => frame !== page.mainFrame())
+        await child.evaluate(() => {
+          window.originalCanvasToBlob = HTMLCanvasElement.prototype.toBlob
+          window.originalCanvasData = HTMLCanvasElement.prototype.toDataURL
+          window.boundedEncodes = 0
+          HTMLCanvasElement.prototype.toBlob = function () {
+            throw Error('Unexpected document idle encoder')
+          }
+          HTMLCanvasElement.prototype.toDataURL = function (...args) {
+            if (this.width * this.height > 1048576) throw Error('Unbounded synchronous encoder')
+            boundedEncodes++
+            return originalCanvasData.apply(this, args)
+          }
+        })
+        try {
+          assert((await render('flowchart LR\nA[Bounded]-->B[PNG]')).bytes > 100)
+          assert.equal(await child.evaluate(() => boundedEncodes), 1)
+        } finally {
+          await child.evaluate(() => {
+            HTMLCanvasElement.prototype.toBlob = originalCanvasToBlob
+            HTMLCanvasElement.prototype.toDataURL = originalCanvasData
+          })
+        }
+      })
+      await t.test(
+        'large validated rasters retain asynchronous encoding and malformed encoder output is rejected',
+        async () => {
+          const child = page.frames().find((frame) => frame !== page.mainFrame())
+          await child.evaluate(() => {
+            window.originalRender = mermaid.render
+            window.originalCanvasData = HTMLCanvasElement.prototype.toDataURL
+            window.originalCanvasToBlob = HTMLCanvasElement.prototype.toBlob
+            window.largeEncodes = 0
+            mermaid.render = async () => ({
+              svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 1000"><rect width="1100" height="1000" fill="blue"/></svg>',
+            })
+            HTMLCanvasElement.prototype.toDataURL = function () {
+              throw Error('Large raster must remain asynchronous')
+            }
+            HTMLCanvasElement.prototype.toBlob = function (...args) {
+              largeEncodes++
+              return originalCanvasToBlob.apply(this, args)
+            }
+          })
+          try {
+            const large = await render('flowchart LR\nA-->B')
+            assert(large.width * large.height > 1048576)
+            assert.equal(await child.evaluate(() => largeEncodes), 1)
+          } finally {
+            await child.evaluate(() => {
+              mermaid.render = originalRender
+              HTMLCanvasElement.prototype.toDataURL = originalCanvasData
+              HTMLCanvasElement.prototype.toBlob = originalCanvasToBlob
+            })
+          }
+          await child.evaluate(() => {
+            HTMLCanvasElement.prototype.toDataURL = () => 'data:image/gif;base64,AAAA'
+          })
+          try {
+            await assert.rejects(render('flowchart LR\nA-->B'), /output-budget/)
+          } finally {
+            await child.evaluate(() => {
+              HTMLCanvasElement.prototype.toDataURL = originalCanvasData
+            })
+          }
+          assert((await render('flowchart LR\nA-->B')).bytes > 100)
+        },
+      )
       await t.test('ordinary and twelve official syntax fixtures', async (st) => {
         cspErrors.length = 0
         for (const item of [

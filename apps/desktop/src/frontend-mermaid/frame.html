@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-jxVrw9Sj3Xkg01QLzCH0nAYfkPzzBhpBo6KQqBRldeU=' 'sha256-qKam+AWwdKgmGiglyG+ZyAVKyzs19Qu34kpPnyw8O58='; script-src-attr 'none'; style-src 'unsafe-inline'; img-src blob: data:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script>// Only this fixed host asset and the pinned official engine execute here.
+<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HGTK+wu8gLPw+DZ/9ffy3RGshq94jH+JpKzJxP+vBXA=' 'sha256-qKam+AWwdKgmGiglyG+ZyAVKyzs19Qu34kpPnyw8O58='; script-src-attr 'none'; style-src 'unsafe-inline'; img-src blob: data:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><style>html,body{margin:0}#target{display:flow-root}</style></head><body><div id="target"></div><script>// Only this fixed host asset and the pinned official engine execute here.
 // Diagram text is data on an authenticated MessagePort, never script or HTML.
 ;(() => {
   'use strict'
@@ -521,16 +521,33 @@
           const canvas = document.createElement('canvas')
           canvas.width = width
           canvas.height = height
-          const context = canvas.getContext('2d')
-          if (!context) throw Error('canvas-unavailable')
-          context.fillStyle = background
-          context.fillRect(0, 0, width, height)
-          context.drawImage(image, 0, 0, width, height)
-          png = await new Promise((resolve, reject) =>
-            canvas.toBlob((b) => (b ? resolve(b) : reject(Error('png-failed'))), 'image/png'),
-          )
-          canvas.width = 0
-          canvas.height = 0
+          try {
+            const context = canvas.getContext('2d')
+            if (!context) throw Error('canvas-unavailable')
+            context.fillStyle = background
+            context.fillRect(0, 0, width, height)
+            context.drawImage(image, 0, 0, width, height)
+            // In hidden frames the asynchronous encoder can wait ~1 second for
+            // an idle opportunity. Bound synchronous encoding to one megapixel;
+            // larger rasters keep the asynchronous path and original pixel limit.
+            if (width * height <= 1048576) {
+              const prefix = 'data:image/png;base64,'
+              const encoded = canvas.toDataURL('image/png')
+              if (!encoded.startsWith(prefix) || encoded.length > prefix.length + 22369624)
+                throw Error('output-budget')
+              const decoded = atob(encoded.slice(prefix.length))
+              png = new Blob([Uint8Array.from(decoded, (char) => char.charCodeAt(0))], {
+                type: 'image/png',
+              })
+            } else {
+              png = await new Promise((resolve, reject) =>
+                canvas.toBlob((b) => (b ? resolve(b) : reject(Error('png-failed'))), 'image/png'),
+              )
+            }
+          } finally {
+            canvas.width = 0
+            canvas.height = 0
+          }
         } finally {
           if (!usesHtmlText) URL.revokeObjectURL(url)
         }
