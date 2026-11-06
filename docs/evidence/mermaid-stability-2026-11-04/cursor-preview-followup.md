@@ -1,6 +1,6 @@
 # User-reported cursor, startup and mode-entry follow-up
 
-Status: Windows product follow-up verified; corrected complete source and installed-candidate acceptance pending.
+Status: complete Windows source acceptance passed for 7bb507a1; exact release installation and historical-profile acceptance pending.
 
 ## Reproduced cause
 
@@ -93,3 +93,13 @@ The existing lifecycle matrix starts from beta.9. That does not directly test up
 The planned full matrix is 12 isolated cases: two account kinds × four legacy cases, plus two account kinds × enabled/disabled from the actual prior beta.10. All use one future accepted new installer. The new package pins remain to be filled from its verified build artifact; no new-package lifecycle run has occurred yet.
 
 Local verifier tests: 291 Node cases and 123 PowerShell wrapper cases passed; workflow YAML and all four embedded PowerShell blocks parse. These are contract tests, not Windows installation evidence. The receipt checks reject wrong baseline image/source, native-vs-frontend audit substitution, missing strict launch audit version and profile mutations for the historical beta.10 cases.
+
+## Complete source acceptance: 42183423554 / 7bb507a1
+
+The exact candidate `7bb507a161104d4fa6f1aa41ad64f2191642c145` completed successfully. Product artifact 13488086147 ZIP SHA `2473c781abf5ae2042e16c1039fdd6c707f88c820a1e72ce990d6de6cb1005e6` and complete account artifact 13488303599 ZIP SHA `acbe88ce6214197c94940040947f2722cfd2c0ccb750e29f06cc10519df3cc8d` were downloaded and verified. `verifyGuiEvidence(..., 'frontend')` independently passed against both original native audit and window evidence files.
+
+Both product reports and wrappers passed 11/11, including visible three-mode controls, hot activation, 12 syntax families, invalid syntax and Math coexistence. Each account's two continuous 40-key bursts preserved the original image and admissions (7→7; 8→8). Both GUI reports passed 8/8. In the natural-width caret case, offsets 0 and 1 retained instance 2, scrollLeft 2578 and two admitted requests; fit restoration set scrollLeft to zero. Twelve-diagram compact/scroll returns and both idle/busy real UI closes passed (exit zero, no forced termination, inner cleanup proven, busy pending=1). Both window observers were complete with positive controls, no overflow and zero attributed/unattributed visible consoles.
+
+Second-run performance observations: first same-source owner request 298 / 279 ms; same-source warm requests 28–63 / 29–70 ms; median of all 28 successful requests 57.5 / 50 ms. Document-painted→first decoded was 1825.7 / 1242.7 ms and process-start→first decoded 6376.2 / 4211.6 ms. Cold-start variation is retained explicitly; the faster previous sample is not the sole reported result. This remains the development native build with production frontend assets.
+
+Release package verification run 42188684521 was dispatched only after this complete acceptance, with both accepted source arguments bound to 42183423554 and its exact SHA. It captured 7bb507a1 before the separate lifecycle-harness commits were published. Installation and the 12-case historical profile matrix remain pending; no new installer delivery or user-site resolution is claimed yet.
