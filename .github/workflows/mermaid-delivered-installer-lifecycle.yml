@@ -3,6 +3,13 @@ on:
   push:
     branches: [dot/mermaid-stability-20261104]
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Full matrix or the previously blocked old-beta.9 prerequisite case
+        type: choice
+        options: [all, filtered-admin-enabled]
+        default: all
+        required: true
 permissions:
   contents: read
   actions: read
@@ -95,13 +102,18 @@ jobs:
           rustup run 1.99.0 cargo build --release --locked --manifest-path tests/windows/catalog-migration-fixture/Cargo.toml
           if ($LASTEXITCODE -ne 0) { throw 'Test-only catalog fixture build failed' }
           if (@(git status --porcelain=v1 --untracked-files=all).Count -ne 0) { throw 'Harness checkout changed' }
-      - name: Verify same installer in eight old-profile upgrade and uninstall scenarios
+      - name: Verify same installer in declared old-profile upgrade and uninstall scenarios
+        env:
+          LIFECYCLE_SCOPE: ${{ inputs.scope }}
         run: |
           $ErrorActionPreference = 'Stop'
           $reuse = Get-Content $env:EXACT_REUSE_RECEIPT -Raw | ConvertFrom-Json
+          if ($env:LIFECYCLE_SCOPE -cnotin @('all','filtered-admin-enabled')) { throw 'Unknown lifecycle scope' }
+          @{ scope = $env:LIFECYCLE_SCOPE; expectedCases = $(if ($env:LIFECYCLE_SCOPE -ceq 'all') { 8 } else { 1 }); priorRun = '42153692467'; priorFailureRetained = $true } | ConvertTo-Json | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'execution-scope.json') -Encoding utf8
           $failures = @()
           foreach ($kind in @('pure-standard','filtered-admin')) {
             foreach ($choice in @('enabled','disabled','same-version','startup-failure')) {
+              if ($env:LIFECYCLE_SCOPE -ceq 'filtered-admin-enabled' -and ($kind -cne 'filtered-admin' -or $choice -cne 'enabled')) { continue }
               try {
                 ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -RendererMode frontend -PinnedDeliveredLifecycle -ApplicationCandidateSha $reuse.applicationCandidateSha -Binary $reuse.binary.path -ExpectedBinarySha256 $reuse.binary.sha256 -Installer $reuse.installer.path -ExpectedInstallerSha256 $reuse.installer.sha256 -ExpectedVersion '2.0.0-beta.10' -PackageManifest $reuse.packageManifest.path -ExpectedPackageManifestSha256 $reuse.packageManifest.sha256 -LifecycleBaselineInstaller $env:EXACT_BASELINE_INSTALLER -MigrationChoice $choice -ExpectedCommit $env:GITHUB_SHA -ProductionAssetsConfirmed -AccountKind $kind -EvidenceDirectory (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE "$kind-$choice")
               } catch { $failures += "$kind/$choice : $($_.Exception.Message)"; Write-Host "::error::$kind/$choice failed; original evidence retained" }
