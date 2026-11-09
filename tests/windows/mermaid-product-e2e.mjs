@@ -3579,6 +3579,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             const afterScroll = await diagnostics()
             prefetchEvidence.afterScroll = afterScroll
             assert(afterScroll.cacheHits > warm.cacheHits, 'Scroll consumed prefetched cache')
+            assert(
+              afterScroll.prefetchRenders <= warm.prefetchRenders + warm.maxPrefetchFences,
+              'Nearby scrolling must not churn through the speculative render cache',
+            )
             assert(afterScroll.cacheBytes <= afterScroll.maxCacheBytes)
             assert(afterScroll.pending <= 8)
             row.syntaxCases = []

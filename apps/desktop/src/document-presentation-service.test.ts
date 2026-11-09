@@ -1458,6 +1458,52 @@ describe('bounded authenticated Mermaid prefetch', () => {
     }
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
+  it('keeps the nearest eight prefetched fences across overlapping scroll windows without cache churn', async () => {
+    const f = fixture(
+      'Intro\n'.repeat(130) +
+        Array.from({ length: 12 }, (_, i) => `\`\`\`mermaid\ngraph TD; A${i}-->B\n\`\`\`\n\n`).join(
+          '',
+        ) +
+        'tail\n'.repeat(200),
+    )
+    const render = vi.fn(
+      async (_id: string, _renderer: string, input: DocumentPresentationRequest) => png(input),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mermaid],
+      cacheableFence: () => true,
+      prefetch: true,
+      render,
+    })
+    try {
+      for (const from of [1, 11, 21, 31, 41, 51, 61, 71, 81]) {
+        const response = await service.provide(await slice(f, from, from + 20), {
+          signal: new AbortController().signal,
+        })
+        expect(response.result.fragments).toHaveLength(0)
+        disposeDocumentPngImages(response.result)
+        await waitForPrefetch(service)
+      }
+      expect(render).toHaveBeenCalledTimes(8)
+      expect(service.diagnostics()).toMatchObject({
+        prefetchRenders: 8,
+        prefetchReady: 8,
+        cacheEntries: 8,
+        pending: 0,
+      })
+      const arrival = await service.provide(await slice(f, 130, 135), {
+        signal: new AbortController().signal,
+      })
+      expect(arrival.result.fragments).toHaveLength(1)
+      disposeDocumentPngImages(arrival.result)
+      expect(render).toHaveBeenCalledTimes(8)
+    } finally {
+      service.clear()
+    }
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
   it('source strategy suppresses only Mermaid, and obsolete settings default to existing behavior', async () => {
     const f = fixture('```mermaid\ngraph TD; A-->B\n```\n')
     let mode: 'source' | 'live' | 'preview' = 'source'

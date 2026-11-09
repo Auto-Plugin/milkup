@@ -145,3 +145,31 @@ receipt only after that run fully passes and the workflow's protected-applicatio
 `git diff --exit-code` succeeds. Report source acceptance SHA and packaging harness
 SHA separately, and verify the resulting actual installer/binary hashes. The same
 immutable installer must then be reused for old-profile lifecycle verification.
+
+## Bound speculative cache churn before arrival
+
+Run 42559758809 (2a075ffb) retained both internal 11/11 product reports, but
+the outer audit rejected the omitted prefetch PNG filename. Thus its source
+acceptance failed; it cannot authorize packaging. The exact filename retention
+fix is 1a7dd884. GUI rapid-scroll evidence is still pending at this point.
+
+The same raw product reports show eight initially ready prefetches, followed by
+30 speculative renders after nearby scrolling. A controlled application regression
+reproduced 40 renders where the nearest eight unchanged diagrams suffice. Counting
+only new speculative renders let overlapping windows advance past cached entries,
+evict the nearest images from the eight-entry off-window LRU, and render them again.
+
+Background admission now selects the nearest eight total units, including cache
+hits. Foreground rendering is unchanged, including documents with twelve or more
+diagrams. The 256-line lookahead, eight-entry off-window cache, 64 MiB ceiling,
+deadlines and resource release checks remain. The controlled regression is now
+eight renders with the first arrival served from cache and zero resources after
+clear. Real Windows product acceptance additionally rejects nearby-scroll churn
+beyond one further eight-fence budget.
+
+Local validation: desktop 72 suites / 1030 tests passed, service 56/56 passed,
+desktop TypeScript passed, related Node harness 317/317 passed. One initial full
+Vitest invocation also discovered a Node-native bootstrap test file and reported
+no Vitest suite there; the correctly scoped src run passed. Windows behavior of
+this application fix is not yet verified. It requires a new exact source receipt
+before installer construction; the older receipts do not validate this change.

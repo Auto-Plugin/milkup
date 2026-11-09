@@ -600,7 +600,12 @@ export function createDesktopDocumentPresentationService(
           a.from - b.from,
       )
       const fragments: DocumentPresentationFragment[] = []
-      for (const unit of units) {
+      // Speculate on the nearest eight total units, including cache hits. Counting
+      // only new renders lets every overlapping scroll window walk farther ahead,
+      // evict the nearest prefetched images from the eight-entry off-window LRU,
+      // and repeatedly render them again before the user reaches them.
+      const admittedUnits = background ? units.slice(0, 8) : units
+      for (const unit of admittedUnits) {
         assertCurrent()
         let candidates = [...unit.candidates]
         if (unit.block) {
