@@ -21,7 +21,10 @@ struct Status {
     frame_serial: u64,
     lifecycle_records: usize,
     console_records: usize,
+    document_protocol_records: usize,
 }
+
+pub enum DocumentProtocolStage { Received, ResponseBuilt }
 
 #[derive(Clone)]
 pub struct Registry(Arc<Mutex<Status>>, Arc<Option<Writer>>);
@@ -36,6 +39,21 @@ impl Default for Registry {
 }
 
 impl Registry {
+    // Native-only diagnostic; never accepts URL/source text or provides an owner,
+    // renderer, navigation, or release proof. Existing failure gates are unchanged.
+    pub fn document_protocol(&self, stage: DocumentProtocolStage, allowed: bool, bytes: usize) {
+        let Some(writer) = self.1.as_ref().as_ref() else { return; };
+        let stage = match stage {
+            DocumentProtocolStage::Received => "received",
+            DocumentProtocolStage::ResponseBuilt => "response-built",
+        };
+        let mut state = self.0.lock().unwrap();
+        state.document_protocol_records += 1;
+        if state.document_protocol_records > 128 || writer.emit(&json!({
+            "kind":"fixed-document-protocol", "stage":stage, "allowed":allowed,
+            "bodyBytes":bytes
+        })).is_err() { state.failed = true; }
+    }
     #[cfg(windows)]
     fn lifecycle(&self, frame_id: u64, owner: &Option<String>, phase: &str, detail: Value) {
         let Some(writer) = self.1.as_ref().as_ref() else { return; };
@@ -568,11 +586,22 @@ mod tests {
     #[test]
     fn audit_rejects_unproven_boundary_and_irrelevant_or_nested_metadata() {
         let registry = ready();
+        assert!(registry.record(json!({"kind":"fixed-document-protocol", "stage":"response-built", "allowed":true, "bodyBytes":42})).is_err());
         let mut bad = event("admitted");
         bad["pngBytes"] = json!({"text":"not metadata"});
         assert!(registry.record(bad).is_err());
         registry.0.lock().unwrap().navigation_proofs.clear();
         assert!(registry.record(event("admitted")).is_err());
+        assert!(registry.0.lock().unwrap().requests.is_empty());
+    }
+    #[test]
+    fn native_protocol_diagnostics_are_bounded_and_do_not_establish_owner_proofs() {
+        let registry = ready();
+        registry.0.lock().unwrap().document_protocol_records = 127;
+        registry.document_protocol(DocumentProtocolStage::Received, true, 0);
+        assert!(!registry.0.lock().unwrap().failed);
+        registry.document_protocol(DocumentProtocolStage::ResponseBuilt, true, 42);
+        assert!(registry.0.lock().unwrap().failed);
         assert!(registry.0.lock().unwrap().requests.is_empty());
     }
     #[test]

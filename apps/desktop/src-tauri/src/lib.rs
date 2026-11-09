@@ -1034,15 +1034,19 @@ fn frontend_mermaid_audit_flush(registry: State<frontend_mermaid_guard::Registry
 
 pub fn run() {
     tauri::Builder::default()
-        .register_uri_scheme_protocol("milkup-mermaid", |_context, request| {
+        .register_uri_scheme_protocol("milkup-mermaid", |context, request| {
             let allowed = frontend_mermaid_document::allowed_request(request.method().as_str(), &request.uri().to_string());
-            tauri::http::Response::builder()
+            let registry = context.app_handle().state::<frontend_mermaid_guard::Registry>();
+            registry.document_protocol(frontend_mermaid_guard::DocumentProtocolStage::Received, allowed, 0);
+            let response = tauri::http::Response::builder()
                 .status(if allowed { 200 } else { 404 })
                 .header("Content-Type", "text/html; charset=utf-8")
                 .header("X-Content-Type-Options", "nosniff")
                 .header("Cache-Control", "no-store")
                 .body(if allowed { frontend_mermaid_document::HTML } else { &[] })
-                .expect("Fixed response headers")
+                .expect("Fixed response headers");
+            registry.document_protocol(frontend_mermaid_guard::DocumentProtocolStage::ResponseBuilt, allowed, response.body().len());
+            response
         })
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
         .manage(frontend_mermaid_guard::Registry::default())

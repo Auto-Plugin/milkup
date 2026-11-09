@@ -30,6 +30,16 @@ export function frontendLedgerClass(ProcessLedger) {
       assert(this.events.length < 1024, 'Bounded complete frontend evidence')
       const event = { ...value, productCreationFileTime: birth }
       this.events.push(event)
+      if (event.kind === 'fixed-document-protocol') {
+        assert(['received', 'response-built'].includes(event.stage))
+        assert.equal(typeof event.allowed, 'boolean')
+        assert(
+          Number.isSafeInteger(event.bodyBytes) && event.bodyBytes >= 0 && event.bodyBytes <= 65536,
+        )
+        if (event.stage === 'received' || !event.allowed) assert.equal(event.bodyBytes, 0)
+        else assert(event.bodyBytes > 0)
+        return // Host response construction is not frame load or boundary evidence.
+      }
       if (event.kind === 'frame-console-diagnostic') {
         for (const key of [
           'cspViolation',

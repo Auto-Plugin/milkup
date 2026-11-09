@@ -299,3 +299,42 @@ test('native frame lifecycle diagnostics cannot substitute for rejection or rele
   )
   assert.throws(() => m.closeLaunch(launch()), /acknowledged/)
 })
+
+test('fixed document response diagnostics cannot replace frame readiness or release', () => {
+  const l = fixture()
+  for (const [stage, bodyBytes] of [
+    ['received', 0],
+    ['response-built', 42],
+  ])
+    l.accept(
+      event({ kind: 'fixed-document-protocol', stage, allowed: true, bodyBytes }),
+      pid,
+      birth,
+    )
+  assert.throws(
+    () => l.accept(event({ ...base, phase: 'admitted', nativeBridgeRejected: true }), pid, birth),
+    /rejection/,
+  )
+  for (const value of [
+    { stage: 'unknown', allowed: true, bodyBytes: 1 },
+    { stage: 'received', allowed: true, bodyBytes: 1 },
+    { stage: 'response-built', allowed: true, bodyBytes: 65537 },
+    { stage: 'response-built', allowed: false, bodyBytes: 42 },
+  ])
+    assert.throws(() =>
+      fixture().accept(event({ kind: 'fixed-document-protocol', ...value }), pid, birth),
+    )
+  const m = fixture()
+  ready(m)
+  m.accept(
+    event({
+      kind: 'fixed-document-protocol',
+      stage: 'response-built',
+      allowed: true,
+      bodyBytes: 42,
+    }),
+    pid,
+    birth,
+  )
+  assert.throws(() => m.closeLaunch(launch()), /acknowledged/)
+})
