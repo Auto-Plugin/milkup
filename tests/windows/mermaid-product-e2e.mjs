@@ -1986,18 +1986,36 @@ export async function main() {
     throw Error('Timed out: ' + label)
   }
   const request = async (method, route, body, signal, observation) => {
-    report.lastRequest = { method, route, at: new Date().toISOString() }
-    const response = await fetch(`http://127.0.0.1:${driverPort}${route}`, {
+    const started = performance.now()
+    const attempt = {
       method,
-      headers: { 'content-type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.any([
-        AbortSignal.timeout(route === '/session' ? 60000 : 30000),
-        ...(signal ? [signal] : []),
-      ]),
-    })
-    return decodeWebDriverResponse(await response.text(), response.status, observation)
+      route,
+      at: new Date().toISOString(),
+      fixture: launch?.fixture,
+      observingState: body?.script === observe,
+    }
+    report.lastRequest = attempt
+    try {
+      const response = await fetch(`http://127.0.0.1:${driverPort}${route}`, {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.any([
+          AbortSignal.timeout(route === '/session' ? 60000 : 30000),
+          ...(signal ? [signal] : []),
+        ]),
+      })
+      return decodeWebDriverResponse(await response.text(), response.status, observation)
+    } catch (error) {
+      // Preserve the original failing command before teardown overwrites lastRequest.
+      // No scripts, arguments, document text, or new retry/timeout policy is recorded.
+      const failures = (report.requestFailures ??= [])
+      assert(failures.length < 16, 'Bounded complete WebDriver request failures')
+      failures.push({ ...attempt, elapsedMs: performance.now() - started, error: String(error) })
+      throw error
+    }
   }
+
   const executeWithSignal = (signal, script, ...args) =>
     request('POST', `/session/${session}/execute/sync`, { script, args }, signal)
   const execute = (script, ...args) => executeWithSignal(undefined, script, ...args)
@@ -3478,7 +3496,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
                 // Keep the latest bounded observations even if readiness times out.
                 if (prefetchEvidence.readinessSamples.length === 32)
                   prefetchEvidence.readinessSamples.shift()
-                prefetchEvidence.readinessSamples.push({ at: iso(), ...value })
+                prefetchEvidence.readinessSamples.push({ at: new Date().toISOString(), ...value })
                 return value.prefetchReady > 0 && value.pending === 0 && !value.prefetchActive
                   ? value
                   : false

@@ -82,3 +82,33 @@ do not execute Windows native APIs or installers. Synthetic final-state expansio
 of the retained reports round-tripped byte-equivalent JSON objects: 1,094,955 →
 124,209 stored bytes and 1,089,785 → 123,797. Those expansions are codec fixtures,
 not missing final Windows evidence. Real Windows verification remains required.
+
+## cfc58132 product failure follow-up
+
+Run 42557620900 passed the real Windows Rust/build gates. Its retained product
+artifact 13648975371 has ZIP SHA-256
+`0d86d5ac622d3497c6072ddd457accc074853cf279667f2c8597320bf6c26a2f`.
+Both reports now persist final failure states successfully; lossless decoding and
+hash checks succeeded. This does not make either product run pass.
+
+Pure-standard completed steps 01–06, then a WebDriver HTTP request timed out
+30 seconds after attaching the wide-document process, before windowRect and
+initial-document-ready were recorded. No Mermaid owner/connection or fixed-document
+request existed for that process. The empty driver native log and overwritten
+lastRequest cannot distinguish the timeouts command from window/rect; this is not
+evidence of a Mermaid syntax/render timeout. The process later closed normally
+with exit 0. Preserve the unresolved startup failure rather than attributing it to
+the historical fixed-frame load failure.
+
+Filtered-admin completed 01–06, wide and C4. The new readiness diagnostic called an
+undefined `iso()` helper on entering syntax. This harness defect is corrected to
+the existing explicit Date timestamp pattern. Its teardown interrupted engine-load;
+that secondary failure is not an independent syntax rejection. Failed WebDriver
+commands are now retained before teardown overwrites lastRequest, including bounded
+route/fixture/timing metadata without scripts or document arguments. No deadlines,
+retry behavior, or product acceptance assertions changed.
+
+The installed-package final verifier also now restores the same product transport
+before its existing identity/PNG/cleanup checks. Added fixtures prove an intact
+compressed report passes and corrupt hashes or a wrong candidate still fail.
+All 339 Node source-workflow contract tests passed locally. Windows rerun required.

@@ -27,7 +27,12 @@ import {
   GUI_STEPS,
   validateNativeDpiObservation,
 } from '../../tests/windows/mermaid-gui-contract.mjs'
-import { crc32, validatePng, syntaxCases } from '../../tests/windows/mermaid-product-e2e.mjs'
+import {
+  crc32,
+  validatePng,
+  syntaxCases,
+  encodeProductEvidence,
+} from '../../tests/windows/mermaid-product-e2e.mjs'
 import { syntheticWideInteraction } from '../../tests/windows/mermaid-gui-test-fixtures.mjs'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
@@ -1782,4 +1787,26 @@ test('fixed frontend assets require exact bytes and reachable production referen
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
+})
+
+test('installed final gate restores lossless product evidence before original identity and cleanup checks', async (t) => {
+  const fixture = await installedFixture(t)
+  fixture.product.retainedLargeState = '中文😀'.repeat(180000)
+  const file = path.join(fixture.directory, 'mermaid-product-e2e.json')
+  const encoded = encodeProductEvidence(fixture.product)
+  assert.equal(JSON.parse(encoded).encoding, 'milkup-product-gzip-v1')
+  await writeFile(file, encoded)
+  const proof = await verifyInstalledEvidence(fixture.directory, fixture.expected)
+  assert.equal(proof.status, 'passed')
+  assert.equal(
+    proof.records.find((r) => r.name === 'mermaid-product-e2e.json').sha256,
+    hash(Buffer.from(encoded)),
+  )
+  const damaged = JSON.parse(encoded)
+  damaged.rawSha256 = '0'.repeat(64)
+  await writeJson(file, damaged)
+  await assert.rejects(verifyInstalledEvidence(fixture.directory, fixture.expected))
+  fixture.product.candidateSha = 'f'.repeat(40)
+  await writeFile(file, encodeProductEvidence(fixture.product))
+  await assert.rejects(verifyInstalledEvidence(fixture.directory, fixture.expected))
 })

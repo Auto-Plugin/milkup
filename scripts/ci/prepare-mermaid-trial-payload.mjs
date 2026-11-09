@@ -20,6 +20,7 @@ import { REVIEWED_MERMAID_PACKAGE } from '../../apps/desktop/src/reviewed-mermai
 import { assertReviewedMermaidPackage } from '../../plugins/diagrams-worker/scripts/package-seals.mjs'
 import {
   AuditLedger,
+  decodeProductEvidence,
   assertCleanCloseConfirmation,
   fixtures,
   syntaxCases,
@@ -891,7 +892,10 @@ export async function verifyInstalledEvidence(directory, expected) {
         name,
         bytes: bytes.length,
         sha256: hash(bytes),
-        value: JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/, '')),
+        value:
+          name === 'mermaid-product-e2e.json'
+            ? decodeProductEvidence(bytes)
+            : JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/, '')),
       }
     }),
   )
