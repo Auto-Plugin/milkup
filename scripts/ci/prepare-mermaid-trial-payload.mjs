@@ -1137,6 +1137,7 @@ export async function verifyInstalledEvidence(directory, expected) {
     for (const record of [
       step.screenshot,
       step.image,
+      step.prefetch?.warmedImage,
       ...(step.syntaxCases ?? []).map((item) => item.image),
     ].filter(Boolean)) {
       assert(safeName(record.file) && record.file.endsWith('.png'))

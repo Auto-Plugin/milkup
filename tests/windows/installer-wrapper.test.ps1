@@ -286,6 +286,10 @@ Case 'retain exact installer evidence names without admitting executables' {
         Assert-True ($names[$name] -ceq ($name + '.log')) 'Exact multi-diagram fixture evidence missing'
     }
 }
+Case 'retains the exact offscreen-prefetch PNG as well as the later syntax PNG' {
+    $names = Get-ChildEvidenceNames
+    Assert-True ($names['syntax-prefetched-first-diagram.png'] -ceq 'syntax-prefetched-first-diagram.png') 'Prefetch PNG omitted from original evidence'
+}
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('milkup-installer-wrapper-regression-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
 try {

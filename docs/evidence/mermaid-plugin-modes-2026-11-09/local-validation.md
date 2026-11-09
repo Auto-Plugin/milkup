@@ -128,3 +128,20 @@ No product state or scrollTop is assigned by the observer.
 All 339 local source-workflow Node contract tests pass, including new negative
 rapid-scroll fixtures. These are synthetic contract tests; real Windows rapid-scroll
 results are pending. The older in-flight candidates do not contain this new test.
+
+## Prefetch PNG retention and packaging binding
+
+The old coordinator copy allowlist omitted `syntax-prefetched-first-diagram.png`.
+In the retained 8a9b43d0 reports, its SHA-256 equals the later retained first syntax
+PNG, but the separately named original file is absent. Do not claim that absent
+file was retained. Added the exact filename to both bounded copy/staging allowlists
+and to installed verification's PNG checks; a missing referenced prefetch PNG now
+fails. Local checks: 190 related Node contracts and 125 PowerShell fixture cases
+passed. No runtime application, engine, document, deadline or acceptance input was
+changed by this follow-up.
+
+This evidence-only follow-up may be packaged against the in-flight 2a075ffb source
+receipt only after that run fully passes and the workflow's protected-application
+`git diff --exit-code` succeeds. Report source acceptance SHA and packaging harness
+SHA separately, and verify the resulting actual installer/binary hashes. The same
+immutable installer must then be reused for old-profile lifecycle verification.

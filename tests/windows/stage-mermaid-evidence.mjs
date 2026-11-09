@@ -38,6 +38,7 @@ const diagrams = new Set(
     '06-reenabled',
     '07-wide',
     '07-c4',
+    'syntax-prefetched-first',
     ...syntaxCases.map(({ id }) => 'syntax-' + id),
   ].map((name) => name + '-diagram.png'),
 )

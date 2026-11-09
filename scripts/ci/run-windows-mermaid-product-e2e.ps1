@@ -188,6 +188,7 @@ function Get-ChildEvidenceNames {
     $names.Add('ordinary-restart-product.log', 'ordinary-restart-product.log')
     foreach ($name in @('migration-synthetic-catalog.json', 'migration-synthetic-catalog.log')) { $names.Add($name, $name) }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
+    $names.Add('syntax-prefetched-first-diagram.png', 'syntax-prefetched-first-diagram.png')
     foreach ($name in @('02-enabled', '03-edited', '04-undone', '05-redone', '06-reenabled', '07-wide', '07-c4')) { $names.Add($name + '-diagram.png', $name + '-diagram.png') }
     foreach ($name in @('gui-regression.json', 'gui-native-audit.json', 'native-window-events.json', 'gui-observer-stderr.log', 'gui-idle-product.log', 'gui-busy-product.log', 'gui-console-positive.png', 'gui-native-failure.png', 'gui-ordinary-diagram.png', 'gui-wide-diagram.png', 'gui-multi-diagram.png', 'gui-multi-2-diagram.png')) { $names.Add($name, $name) }
     foreach ($step in @('blank-start-enable', 'open-ordinary-stable', 'open-wide-stable', 'resize-wide', 'repeat-document-open', 'multi-diagram', 'idle-close', 'busy-close')) {

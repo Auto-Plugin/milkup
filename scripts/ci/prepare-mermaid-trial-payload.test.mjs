@@ -1813,3 +1813,14 @@ test('installed final gate restores lossless product evidence before original id
   await writeFile(file, encodeProductEvidence(fixture.product))
   await assert.rejects(verifyInstalledEvidence(fixture.directory, fixture.expected))
 })
+
+test('installed prefetch evidence requires its actual retained PNG, not only a report hash', async (t) => {
+  const f = await installedFixture(t)
+  const row = f.product.steps.find((x) => x.image)
+  row.prefetch = { warmedImage: structuredClone(row.image) }
+  await f.save()
+  assert.equal((await verifyInstalledEvidence(f.directory, f.expected)).status, 'passed')
+  row.prefetch.warmedImage.file = 'missing-prefetched-diagram.png'
+  await f.save()
+  await assert.rejects(verifyInstalledEvidence(f.directory, f.expected))
+})
