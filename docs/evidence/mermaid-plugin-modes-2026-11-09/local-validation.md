@@ -250,3 +250,33 @@ API, 2361546 bytes, 441 entries, 7134287 uncompressed bytes, all CRC/path/mode
 checks passed; hashes match both pins. Seven new negative/positive tool-download
 tests and the packaging suite passed (56 total); PowerShell AST parses. The new
 Windows preparation/build and actual installations remain to be executed.
+
+## Installed package and exact historical-profile binding
+
+42569506864 / d06d3148 completed successfully. Both pinned official tool assets
+were verified on the first metadata and byte requests, before compilation.
+Independent downloaded-archive, installed-product, GUI, generation/PNG, source
+hash and complete delivery-inventory checks passed. Four installations use one
+installer, both product reports 11/11 and both full GUI contracts passed. Mermaid
+strategies preserve ordinary Markdown, enabled Math, editor live mode and unchanged
+version/dirty state. Prefetch stays 8 -> 8 with seven further cache hits in each
+account. Both window audits complete without overflow and with positive controls;
+idle/busy UI closes exit zero with internal cleanup and no forced termination.
+
+Installer: milkup-2.0.0-beta.10-windows-x64-d06d31486b34-setup.exe (7097133 bytes)
+SHA-256: 0e6f44631600c420d0517ae6d6f3822f87271ca2721a818c73c6f7a274d3bee2.
+Delivery artifact 13653464012 ZIP SHA-256:
+b8f4b92e5f1d6fd5450580dc2c91406967b0881b5b5dbcf17688d72fdaae78bf.
+Installed evidence artifact 13653991469 ZIP SHA-256:
+7e9b2827514631d6a52fc377facc41212b9abe0fba2af2bf3c68dae99263e3db.
+Inspection artifact 13654115843 ZIP SHA-256:
+07e85caf04206336c22199d4d01202cf06c35b9ea4664a3f7033f44253bf0c4a.
+
+The next lifecycle run downloads those immutable artifacts and checks the exact
+successful delivery run, installer/image/ZIP hashes and unchanged application
+source. Explicit push marker selects the existing full twelve-case matrix;
+ordinary pushes remain skipped. Preserve both historical baseline packages and
+all startup/profile-reuse, disabled-choice, same-version, failed-old-plugin,
+real NSIS uninstall, saved-document and cleanup gates. Local pin-binding tests:
+102 Node tests and both PowerShell wrapper suites passed. This is preparation,
+not a claim that the new package has completed historical-profile acceptance.

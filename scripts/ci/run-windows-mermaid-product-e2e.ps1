@@ -431,12 +431,12 @@ function Get-LifecycleBaselineIdentity([string]$Kind, [string]$Choice) {
     throw 'Only the pinned historical baseline and its declared profile cases are permitted'
 }
 function Assert-PinnedDeliveredLifecycle([string]$ApplicationSha, [string]$InstallerSha, [string]$BinarySha, [string]$Version, [string]$Mode, [string]$Renderer, [bool]$Lifecycle, [string]$Choice) {
-    if ($ApplicationSha -cne '7bb507a161104d4fa6f1aa41ad64f2191642c145' -or
-        $InstallerSha -cne 'b961f08a9d7e33df81542681e30e9196a1c37540c0ad9e4455faac0ad88865bc' -or
-        $BinarySha -cne '76db5708fadaf413f13fda13a5d8b0ac5b6db34b0703a0fd5769aa137ab9b45d' -or
+    if ($ApplicationSha -cne 'd06d31486b349c51a183d022378b04138aa2ba16' -or
+        $InstallerSha -cne '0e6f44631600c420d0517ae6d6f3822f87271ca2721a818c73c6f7a274d3bee2' -or
+        $BinarySha -cne '4e5d7c1b97bdc160ee571def39944c14e24359502e08fe38a07c9331072a96fc' -or
         $Version -cne '2.0.0-beta.10' -or $Mode -cne 'product' -or $Renderer -cne 'frontend' -or
         -not $Lifecycle -or $Choice -cnotin @('enabled', 'disabled', 'same-version', 'startup-failure')) {
-        throw 'Only the exact delivered 42188684521 installer may enter pinned lifecycle verification'
+        throw 'Only the exact delivered 42569506864 installer may enter pinned lifecycle verification'
     }
 }
 function Assert-InstallationManifest($Manifest, [string]$Commit, [string]$Version, [string]$BuiltHash, [string]$ExpectedRenderer = 'native') {
@@ -717,7 +717,7 @@ function Invoke-StandardInstallation($Spec, $Context, [string]$Scratch, [string]
             $record['comparisonInputProvenance'] = 'Exact original compiled SHA reconstructed solely by reversing the unique NSIS marker on an extracted COPY; original installer unchanged; comparison file never launched'
             $record['compiledInThisRun'] = $false
             $record['harnessCandidateSha'] = $Spec.candidateSha
-            $record['deliveredSourceRunId'] = '42188684521'
+            $record['deliveredSourceRunId'] = '42569506864'
         }
         }
         foreach ($resource in $manifest.resources) {
@@ -1033,7 +1033,7 @@ try {
     } finally { $reader.Dispose() }
     $audit.binary = $binaryProof
     $audit['pinnedDeliveredLifecycle'] = [bool]$PinnedDeliveredLifecycle
-    if ($PinnedDeliveredLifecycle) { $audit['deliveredSourceRunId'] = '42188684521'; $audit['compiledInThisRun'] = $false }
+    if ($PinnedDeliveredLifecycle) { $audit['deliveredSourceRunId'] = '42569506864'; $audit['compiledInThisRun'] = $false }
     $audit['binaryRole'] = $(if ($PinnedDeliveredLifecycle) { 'reconstructedComparisonInput' } elseif ($ApplicationCandidateSha -cne $ExpectedCommit) { 'extractedExpectedImage' } else { 'compiledCandidate' })
     $installerProof = $null; $manifestProof = $null
     if ($installerMode) {

@@ -1,7 +1,7 @@
 name: Mermaid exact delivered installer lifecycle
 on:
   push:
-    branches: [dot/mermaid-stability-20261104]
+    branches: [dot/mermaid-stability-20261104, dot/mermaid-plugin-modes-20261109]
   workflow_dispatch:
     inputs:
       scope:
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   lifecycle:
-    if: github.event_name == 'workflow_dispatch' && github.repository == 'Auto-Plugin/milkup' && github.ref == 'refs/heads/dot/mermaid-stability-20261104'
+    if: (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[mermaid-exact-installer-lifecycle]'))) && github.repository == 'Auto-Plugin/milkup' && (github.ref == 'refs/heads/dot/mermaid-stability-20261104' || github.ref == 'refs/heads/dot/mermaid-plugin-modes-20261109')
     runs-on: windows-latest
     timeout-minutes: 90
     defaults:
@@ -43,9 +43,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ((git rev-parse HEAD) -cne $env:GITHUB_SHA) { throw 'Wrong harness source' }
-          git merge-base --is-ancestor 7bb507a161104d4fa6f1aa41ad64f2191642c145 HEAD
+          git merge-base --is-ancestor d06d31486b349c51a183d022378b04138aa2ba16 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Delivered application is not an ancestor' }
-          git diff --exit-code 7bb507a161104d4fa6f1aa41ad64f2191642c145 HEAD -- vendor/wry .gitattributes scripts/frontend-mermaid-document.mjs apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.lock apps/desktop/src-tauri/tauri.conf.json apps/desktop/vite.config.ts apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
+          git diff --exit-code d06d31486b349c51a183d022378b04138aa2ba16 HEAD -- vendor/wry .gitattributes scripts/frontend-mermaid-document.mjs apps/desktop/src-tauri/Cargo.toml apps/desktop/src-tauri/Cargo.lock apps/desktop/src-tauri/tauri.conf.json apps/desktop/vite.config.ts apps/desktop/src-tauri/mermaid-engine apps/desktop/src-tauri/src apps/desktop/src packages/core/src packages/view-dom/src plugins/diagrams-worker
           if ($LASTEXITCODE -ne 0) { throw 'Application implementation differs from delivered candidate' }
           node --test scripts/ci/prepare-delivered-mermaid-lifecycle.test.mjs tests/windows/mermaid-product-e2e.test.mjs tests/windows/verify-installed-binary.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Exact package verification regressions failed' }
@@ -60,12 +60,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $source = (& gh api repos/Auto-Plugin/milkup/actions/runs/42188684521 | ConvertFrom-Json)
-          if ($LASTEXITCODE -ne 0 -or $source.status -cne 'completed' -or $source.conclusion -cne 'success' -or $source.head_sha -cne '7bb507a161104d4fa6f1aa41ad64f2191642c145' -or $source.path -cne '.github/workflows/mermaid-windows-trial-delivery.yml') { throw 'Exact delivery run is not accepted' }
+          $source = (& gh api repos/Auto-Plugin/milkup/actions/runs/42569506864 | ConvertFrom-Json)
+          if ($LASTEXITCODE -ne 0 -or $source.status -cne 'completed' -or $source.conclusion -cne 'success' -or $source.head_sha -cne 'd06d31486b349c51a183d022378b04138aa2ba16' -or $source.path -cne '.github/workflows/mermaid-windows-trial-delivery.yml') { throw 'Exact delivery run is not accepted' }
           $source | ConvertTo-Json -Depth 32 | Set-Content (Join-Path $env:EXACT_LIFECYCLE_EVIDENCE 'accepted-delivery-run.json') -Encoding utf8
           $inputs = @(
-            @{ name = 'delivery'; run = '42188684521'; id = '13490635445'; sha = '0b62c1e9d757b9befff0d2c052d83d473f38dfd7b7b7c27bc6a817557063026e' },
-            @{ name = 'inspection'; run = '42188684521'; id = '13490750154'; sha = 'b1b27b775645cff89cb42f1f3e7c81ba6f55431098a157a7ca65ec4b2dea53f5' },
+            @{ name = 'delivery'; run = '42569506864'; id = '13653464012'; sha = 'b8f4b92e5f1d6fd5450580dc2c91406967b0881b5b5dbcf17688d72fdaae78bf' },
+            @{ name = 'inspection'; run = '42569506864'; id = '13654115843'; sha = '07e85caf04206336c22199d4d01202cf06c35b9ea4664a3f7033f44253bf0c4a' },
             @{ name = 'prior-delivery'; run = '42148997347'; id = '13473705011'; sha = 'd6a6e5e448ecdd2f209c9276d46981c726fb23b8411e062849ba7610e805cc83' }
           )
           foreach ($item in $inputs) {
@@ -78,8 +78,8 @@ jobs:
             Expand-Archive -LiteralPath $zip -DestinationPath (Join-Path $env:RUNNER_TEMP ('exact-' + $item.name))
           }
           $delivery = Join-Path $env:RUNNER_TEMP 'exact-delivery'
-          $installer = Join-Path $delivery 'milkup-2.0.0-beta.10-windows-x64-7bb507a16110-setup.exe'
-          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'b961f08a9d7e33df81542681e30e9196a1c37540c0ad9e4455faac0ad88865bc') { throw 'Requested installer differs' }
+          $installer = Join-Path $delivery 'milkup-2.0.0-beta.10-windows-x64-d06d31486b34-setup.exe'
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -cne '0e6f44631600c420d0517ae6d6f3822f87271ca2721a818c73c6f7a274d3bee2') { throw 'Requested installer differs' }
           $extracted = Join-Path $env:RUNNER_TEMP 'exact-nsis-extracted'
           & 7z x $installer "-o$extracted" -y
           if ($LASTEXITCODE -ne 0) { throw 'Read-only NSIS extraction failed' }
@@ -108,7 +108,7 @@ jobs:
           if (@(git status --porcelain=v1 --untracked-files=all).Count -ne 0) { throw 'Harness checkout changed' }
       - name: Verify same installer in declared old-profile upgrade and uninstall scenarios
         env:
-          LIFECYCLE_SCOPE: ${{ inputs.scope }}
+          LIFECYCLE_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.scope || 'all' }}
         run: |
           $ErrorActionPreference = 'Stop'
           $reuse = Get-Content $env:EXACT_REUSE_RECEIPT -Raw | ConvertFrom-Json
