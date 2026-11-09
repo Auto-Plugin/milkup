@@ -173,3 +173,47 @@ Vitest invocation also discovered a Node-native bootstrap test file and reported
 no Vitest suite there; the correctly scoped src run passed. Windows behavior of
 this application fix is not yet verified. It requires a new exact source receipt
 before installer construction; the older receipts do not validate this change.
+
+## 42559758809 complete GUI evidence and 42562621335 prerequisite failure
+
+42559758809 / 2a075ffb finished failure solely at the product coordinator's exact
+prefetch PNG retention gate described above. Both internal product reports were
+11/11 passed. Both GUI reports satisfy the complete strict frontend contract,
+including twelve compact and twelve spaced diagrams with 1→12→1 visits, stable
+original-size/cursor ownership, and idle/busy exit 0 without forced termination.
+Each observer is complete, positive control passed, no overflow, zero product or
+unattributed visible consoles. The eighteen trusted real wheel inputs took
+875.45 / 896.56 ms; subsequent first-chart recovery measured 41.88 / 67.00 ms.
+This is recovery after a burst, not the cold-start metric. Untouched ordinary
+launch birth→decoded was 6972.4 / 5813.1 ms (one sample per account, debugger
+attached). Complete artifact 13650262273 has ZIP SHA-256
+305440995bed5bf8d467f7dbd143ed355ca28992efc6957788d8d1b21ae5bbfa.
+
+42562621335 / 42769e5a stopped before desktop linking or real product/GUI work:
+Rust 236 passed, one failed, three ignored. The exact failure was workspace
+atomic_sibling_save_preserves_file_entry_but_invalidates_old_directory_cursor,
+workspace.rs:1733: an old directory cursor was accepted after a sibling rename.
+No Mermaid behavior result is inferred from this unexecuted round.
+
+Windows Stamp compares identity/size/last-write time (changed is zero); a rapid
+same-name replacement can retain that stamp. Add a nonrecursive directory change
+notification for each of the existing at-most-16 cursors, installed while the
+validated directory/ancestor handles remain held and before enumeration starts.
+Poll nonblocking before and after a page; any signal or API failure rejects the
+cursor. Keep all identity/timestamp and traversal checks. Notifications are
+explicitly noninheritable and closed using FindCloseChangeNotification on drop.
+The Windows regression restores the exact old directory last-write time after
+atomic rename and proves the old cursor is still rejected; another test checks
+noninheritance and actual handle closure on cursor cancellation. No sleep, test
+retry, weaker assertion or larger timeout substitutes for invalidation.
+
+API reference: https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstchangenotificationw
+The notification supplements existing checks; this does not claim new guarantees
+for remote filesystems where Windows documents notification limitations.
+
+Local validation of this prerequisite fix: rustfmt and diff checks pass; the exact
+DirectoryChanges production block cross-typechecks against windows-sys 0.61.2 for
+x86_64-pc-windows-msvc. Full local desktop cross-check is blocked at ring's native
+build because this Linux environment lacks MSVC lib.exe; it does not establish
+Windows test success. The next real Windows workflow must compile and execute
+both new tests and the original failing test before product/GUI acceptance.

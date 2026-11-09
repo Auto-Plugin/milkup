@@ -171,8 +171,72 @@ struct Cursor {
     directory: EntryRecord,
     cancelled: AtomicBool,
     scan: Mutex<ReadDir>,
+    #[cfg(windows)]
+    changes: DirectoryChanges,
     _handle: File,
     _guards: Vec<File>,
+}
+// Directory timestamps can remain identical across a quick atomic sibling save.
+// One non-recursive notification per bounded cursor detects name changes without
+// enumerating the whole directory or relying on timestamp resolution. It never
+// grants access: the existing held-directory and entry identity checks still do.
+#[cfg(windows)]
+struct DirectoryChanges(windows_sys::Win32::Foundation::HANDLE);
+// The kernel notification can be polled from any thread. Ownership is exclusive;
+// Drop runs only after the containing cursor's final Arc has been released.
+#[cfg(windows)]
+unsafe impl Send for DirectoryChanges {}
+#[cfg(windows)]
+unsafe impl Sync for DirectoryChanges {}
+#[cfg(windows)]
+impl DirectoryChanges {
+    fn new(path: &Path) -> Result<Self> {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::Foundation::{
+            SetHandleInformation, HANDLE_FLAG_INHERIT, INVALID_HANDLE_VALUE,
+        };
+        use windows_sys::Win32::Storage::FileSystem::{
+            FindFirstChangeNotificationW, FILE_NOTIFY_CHANGE_ATTRIBUTES,
+            FILE_NOTIFY_CHANGE_DIR_NAME, FILE_NOTIFY_CHANGE_FILE_NAME,
+            FILE_NOTIFY_CHANGE_LAST_WRITE, FILE_NOTIFY_CHANGE_SIZE,
+        };
+        let path: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+        let handle = unsafe {
+            FindFirstChangeNotificationW(
+                path.as_ptr(),
+                0,
+                FILE_NOTIFY_CHANGE_FILE_NAME
+                    | FILE_NOTIFY_CHANGE_DIR_NAME
+                    | FILE_NOTIFY_CHANGE_ATTRIBUTES
+                    | FILE_NOTIFY_CHANGE_SIZE
+                    | FILE_NOTIFY_CHANGE_LAST_WRITE,
+            )
+        };
+        if handle == INVALID_HANDLE_VALUE {
+            return Err(err(io::Error::last_os_error()));
+        }
+        let owned = Self(handle);
+        if unsafe { SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0) } == 0 {
+            return Err(err(io::Error::last_os_error()));
+        }
+        Ok(owned)
+    }
+    fn ensure_unchanged(&self) -> Result<()> {
+        use windows_sys::Win32::Foundation::{WAIT_OBJECT_0, WAIT_TIMEOUT};
+        use windows_sys::Win32::System::Threading::WaitForSingleObject;
+        match unsafe { WaitForSingleObject(self.0, 0) } {
+            WAIT_TIMEOUT => Ok(()),
+            WAIT_OBJECT_0 => Err("Workspace directory changed; restart listing".into()),
+            _ => Err(err(io::Error::last_os_error())),
+        }
+    }
+}
+#[cfg(windows)]
+impl Drop for DirectoryChanges {
+    fn drop(&mut self) {
+        // FindCloseChangeNotification is the required destructor, not CloseHandle.
+        unsafe { windows_sys::Win32::Storage::FileSystem::FindCloseChangeNotification(self.0) };
+    }
 }
 struct OpenLease {
     root: Arc<Root>,
@@ -774,6 +838,8 @@ impl WorkspaceRegistry {
                 return Err("Workspace entry is not a directory".into());
             }
             let checked = root.validate(&directory)?;
+            #[cfg(windows)]
+            let changes = DirectoryChanges::new(&root.path.join(&directory.public.relative_path))?;
             directory.stamp = stamp(&checked.file)?;
             #[cfg(target_os = "linux")]
             let scan = {
@@ -793,6 +859,8 @@ impl WorkspaceRegistry {
                 directory,
                 cancelled: AtomicBool::new(false),
                 scan: Mutex::new(scan),
+                #[cfg(windows)]
+                changes,
                 _handle: checked.file,
                 _guards: checked._guards,
             });
@@ -807,6 +875,8 @@ impl WorkspaceRegistry {
             if cursor.cancelled.load(Ordering::Acquire) {
                 return Err("Workspace listing was cancelled".into());
             }
+            #[cfg(windows)]
+            cursor.changes.ensure_unchanged()?;
             if stamp(&root.validate(&cursor.directory)?.file)? != cursor.directory.stamp {
                 return Err("Workspace directory changed; restart listing".into());
             }
@@ -872,6 +942,8 @@ impl WorkspaceRegistry {
             if stamp(&root.validate(&cursor.directory)?.file)? != cursor.directory.stamp {
                 return Err("Workspace directory changed; restart listing".into());
             }
+            #[cfg(windows)]
+            cursor.changes.ensure_unchanged()?;
             if cursor.cancelled.load(Ordering::Acquire) {
                 return Err("Workspace listing was cancelled".into());
             }
@@ -1741,6 +1813,83 @@ mod tests {
                 .len(),
             2
         );
+    }
+    #[cfg(windows)]
+    #[test]
+    fn directory_cursor_rejects_atomic_rename_even_with_identical_timestamp_stamp() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let fixture = Fixture::new();
+        fixture.write("a.md", "old");
+        fixture.write("b.md", "safe b");
+        let (registry, scope, root) = fixture.register();
+        let page = registry
+            .list(&scope, &root.id, None, None, Some(1))
+            .unwrap();
+        let cursor = page.next_cursor.unwrap();
+        let directory = OpenOptions::new()
+            .access_mode(0x0100 | 0x0080) // FILE_WRITE_ATTRIBUTES | FILE_READ_ATTRIBUTES
+            .share_mode(1 | 2)
+            .custom_flags(0x00200000 | 0x02000000) // no-follow, directory handle
+            .open(&fixture.0)
+            .unwrap();
+        let before = stamp(&directory).unwrap();
+        let modified = directory.metadata().unwrap().modified().unwrap();
+        fixture.write("new.tmp", "new");
+        fs::rename(fixture.0.join("new.tmp"), fixture.0.join("a.md")).unwrap();
+        directory.set_modified(modified).unwrap();
+        assert_eq!(
+            stamp(&directory).unwrap(),
+            before,
+            "Reproduce equal timestamp stamp"
+        );
+        let error = registry
+            .list(&scope, &root.id, None, Some(&cursor), None)
+            .unwrap_err();
+        assert!(error.contains("directory changed"), "{error}");
+        assert!(registry
+            .root(&scope, &root.id)
+            .unwrap()
+            .cursors
+            .lock()
+            .unwrap()
+            .is_empty());
+        assert_eq!(
+            registry
+                .list(&scope, &root.id, None, None, None)
+                .unwrap()
+                .entries
+                .len(),
+            2
+        );
+    }
+    #[cfg(windows)]
+    #[test]
+    fn directory_notification_is_noninheritable_and_closed_with_cancelled_cursor() {
+        use windows_sys::Win32::Foundation::{GetHandleInformation, HANDLE_FLAG_INHERIT};
+        let fixture = Fixture::new();
+        fixture.write("a.md", "a");
+        fixture.write("b.md", "b");
+        let (registry, scope, root) = fixture.register();
+        let page = registry
+            .list(&scope, &root.id, None, None, Some(1))
+            .unwrap();
+        let cursor = page.next_cursor.unwrap();
+        let handle = registry
+            .root(&scope, &root.id)
+            .unwrap()
+            .cursors
+            .lock()
+            .unwrap()
+            .get(&cursor)
+            .unwrap()
+            .changes
+            .0;
+        let mut flags = 0;
+        assert_ne!(unsafe { GetHandleInformation(handle, &mut flags) }, 0);
+        assert_eq!(flags & HANDLE_FLAG_INHERIT, 0);
+        registry.cancel_cursor(&scope, &cursor).unwrap();
+        assert_eq!(unsafe { GetHandleInformation(handle, &mut flags) }, 0);
+        assert_eq!(io::Error::last_os_error().raw_os_error(), Some(6));
     }
     #[test]
     fn replaced_or_deleted_target_and_replaced_ancestor_invalidate_entry() {
