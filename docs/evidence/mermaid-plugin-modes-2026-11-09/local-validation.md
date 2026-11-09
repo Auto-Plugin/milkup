@@ -112,3 +112,19 @@ The installed-package final verifier also now restores the same product transpor
 before its existing identity/PNG/cleanup checks. Added fixtures prove an intact
 compressed report passes and corrupt hashes or a wrong candidate still fail.
 All 339 Node source-workflow contract tests passed locally. Windows rerun required.
+
+## Rapid-scroll coverage added before installation
+
+The prior 12-chart GUI traversal waits at each chart; it is not a rapid-scroll
+stress test. The updated manyScroll round issues eighteen real W3C wheel actions
+(35 ms per action, six up/six down/six up) before the final first-chart revisit.
+Passive observers retain trusted/untrusted wheel counts, bounded actual scroll
+positions, command duration and recovery time. The original 12 distinct PNGs,
+1→12→1 return equality, three-second stability, complete audit and normal close
+contracts remain. Missing events, no actual viewport movement, untrusted input,
+observation overflow or recovery beyond the existing seek deadline fail acceptance.
+No product state or scrollTop is assigned by the observer.
+
+All 339 local source-workflow Node contract tests pass, including new negative
+rapid-scroll fixtures. These are synthetic contract tests; real Windows rapid-scroll
+results are pending. The older in-flight candidates do not contain this new test.

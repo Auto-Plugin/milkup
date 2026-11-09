@@ -1,3 +1,4 @@
+import { syntheticRapidScroll } from './mermaid-gui-test-fixtures.mjs'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
@@ -392,9 +393,11 @@ const manyProof = () =>
   ['many', 'manyScroll'].map((name) => ({
     name,
     exactBytesUnchanged: true,
+    ...(name === 'manyScroll' ? { rapidScroll: syntheticRapidScroll() } : {}),
     sourceOffsets: Array.from({ length: 12 }, (_, i) => i * 30),
     visits: [...Array(12).keys(), 0, 11, 0].map((diagram, i) => ({
       diagram,
+      rapidRecoveryMs: 100,
       from: diagram * 30,
       png: { fullyDecoded: true, sha256: sha(String(diagram)) },
       imageCount: 1,
@@ -406,6 +409,30 @@ const manyProof = () =>
 test('many-diagram evidence requires all twelve distinct previews, return scrolling and idle stability', () => {
   assert(validateManyDiagrams(manyProof()))
   for (const change of [
+    (rounds) => {
+      delete rounds[1].rapidScroll
+    },
+    (rounds) => {
+      rounds[1].rapidScroll.observed.trustedWheels = 0
+    },
+    (rounds) => {
+      rounds[1].rapidScroll.observed.untrustedWheels = 1
+    },
+    (rounds) => {
+      rounds[1].rapidScroll.observed.positions = [0, 0]
+    },
+    (rounds) => {
+      rounds[1].rapidScroll.observed.overflow = true
+    },
+    (rounds) => {
+      rounds[1].rapidScroll.deltas.pop()
+    },
+    (rounds) => {
+      delete rounds[1].visits.at(-1).rapidRecoveryMs
+    },
+    (rounds) => {
+      rounds[1].visits.at(-1).rapidRecoveryMs = 60001
+    },
     (rounds) => rounds[0].visits.splice(8, 1),
     (rounds) => {
       rounds[0].visits[0].geometryTable = {}

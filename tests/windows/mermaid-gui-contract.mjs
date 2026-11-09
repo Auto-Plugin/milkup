@@ -192,6 +192,40 @@ export function validateManyDiagrams(rounds) {
   )
   for (const round of rounds) {
     assert.equal(round.exactBytesUnchanged, true)
+    if (round.name === 'manyScroll') {
+      const rapid = round.rapidScroll
+      assert(rapid, 'Real rapid scroll evidence required')
+      assert.equal(rapid.input, 'W3C-wheel-burst')
+      assert.deepEqual(rapid.deltas, [
+        ...Array(6).fill(-1800),
+        ...Array(6).fill(1800),
+        ...Array(6).fill(-1800),
+      ])
+      assert.equal(rapid.durationPerActionMs, 35)
+      assert(
+        Number.isFinite(rapid.elapsedMs) && rapid.elapsedMs >= 18 * 35 && rapid.elapsedMs <= 30000,
+      )
+      const observed = rapid.observed
+      assert.equal(observed.overflow, false)
+      assert(Number.isSafeInteger(observed.trustedWheels) && observed.trustedWheels > 0)
+      assert.equal(observed.untrustedWheels, 0)
+      assert(Number.isFinite(observed.height) && observed.height > 0)
+      assert(
+        Array.isArray(observed.positions) &&
+          observed.positions.length >= 2 &&
+          observed.positions.length <= 256,
+      )
+      assert(observed.positions.every((v) => Number.isFinite(v) && v >= 0))
+      assert(
+        Math.max(...observed.positions) - Math.min(...observed.positions) > observed.height,
+        'Rapid wheel burst must move the actual viewport',
+      )
+      const recovery = round.visits.at(-1).rapidRecoveryMs
+      assert(
+        Number.isFinite(recovery) && recovery >= 0 && recovery <= 60000,
+        'Latest target recovers after rapid scrolling',
+      )
+    }
     assert.equal(round.sourceOffsets.length, 12)
     assert.equal(new Set(round.sourceOffsets).size, 12)
     assert.deepEqual(

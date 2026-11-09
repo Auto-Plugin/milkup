@@ -1,3 +1,4 @@
+import { syntheticRapidScroll } from '../../tests/windows/mermaid-gui-test-fixtures.mjs'
 // Pure verification fixtures. These tests never install or launch Windows code.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -1206,12 +1207,14 @@ async function guiInstalledFixture(t, options = {}) {
   ].map((name) => ({
     name,
     exactBytesUnchanged: true,
+    ...(name === 'manyScroll' ? { rapidScroll: syntheticRapidScroll() } : {}),
     sourceOffsets: Array.from({ length: 12 }, (_, index) => index * 30),
     visits: [...Array(12).keys(), 0, 11, 0].map((diagram, index) => {
       const geometry = 'synthetic many-diagram geometry',
         digest = hash(Buffer.from(geometry))
       return {
         diagram,
+        rapidRecoveryMs: 100,
         from: diagram * 30,
         png: manyPngs[diagram],
         imageCount: 1,

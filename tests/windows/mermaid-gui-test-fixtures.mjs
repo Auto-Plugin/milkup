@@ -45,3 +45,17 @@ export function syntheticWideInteraction(
     restored: sample(false),
   }
 }
+
+export const syntheticRapidScroll = () => ({
+  input: 'W3C-wheel-burst',
+  deltas: [...Array(6).fill(-1800), ...Array(6).fill(1800), ...Array(6).fill(-1800)],
+  durationPerActionMs: 35,
+  elapsedMs: 700,
+  observed: {
+    trustedWheels: 18,
+    untrustedWheels: 0,
+    overflow: false,
+    height: 600,
+    positions: [1000, 0, 1000, 0],
+  },
+})

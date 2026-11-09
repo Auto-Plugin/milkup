@@ -1073,6 +1073,50 @@ export async function main() {
     assert.equal(offsets.length, 12)
     proof.sourceOffsets = offsets
     for (const diagram of [...offsets.keys(), 0, 11, 0]) {
+      let burstFinished
+      if (name === 'manyScroll' && proof.visits.length === 14) {
+        const deltas = [...Array(6).fill(-1800), ...Array(6).fill(1800), ...Array(6).fill(-1800)]
+        const rapid = (proof.rapidScroll = {
+          input: 'W3C-wheel-burst',
+          deltas,
+          durationPerActionMs: 35,
+        })
+        const target =
+          await execute(`const root=document.querySelector('.milkup-editor'),r=root.getBoundingClientRect();
+          const evidence={trustedWheels:0,untrustedWheels:0,positions:[root.scrollTop],overflow:false,height:root.clientHeight};
+          const wheel=e=>{if(e.isTrusted)evidence.trustedWheels++;else evidence.untrustedWheels++};
+          const scroll=()=>{if(evidence.positions.length>=256)evidence.overflow=true;else evidence.positions.push(root.scrollTop)};
+          root.addEventListener('wheel',wheel,{capture:true,passive:true});root.addEventListener('scroll',scroll,{passive:true});
+          window.__milkupRapidScroll={evidence,stop:()=>{root.removeEventListener('wheel',wheel,true);root.removeEventListener('scroll',scroll)}};
+          return {x:Math.round(r.left+30),y:Math.round((Math.max(0,r.top)+Math.min(innerHeight,r.bottom))/2)};`)
+        const started = performance.now()
+        try {
+          await request('POST', `/session/${session}/actions`, {
+            actions: [
+              {
+                type: 'wheel',
+                id: 'rapid-many-wheel',
+                actions: deltas.map((deltaY) => ({
+                  type: 'scroll',
+                  origin: 'viewport',
+                  x: target.x,
+                  y: target.y,
+                  deltaX: 0,
+                  deltaY,
+                  duration: 35,
+                })),
+              },
+            ],
+          })
+        } finally {
+          rapid.elapsedMs = performance.now() - started
+          rapid.observed = await execute(
+            'const value=window.__milkupRapidScroll;value.stop();delete window.__milkupRapidScroll;return value.evidence',
+          )
+          await persist()
+        }
+        burstFinished = performance.now()
+      }
       const from = offsets[diagram]
       const visit = {
         diagram,
@@ -1132,6 +1176,7 @@ return {y:(r.top+r.bottom)/2,visible:r.top>=b.top&&r.top<Math.min(b.bottom,inner
         'Real scroll reaches decoded diagram ' + (diagram + 1),
         60000,
       )
+      if (burstFinished !== undefined) visit.rapidRecoveryMs = performance.now() - burstFinished
       visit.stage = 'settle'
       visit.seekFinishedAt = new Date().toISOString()
       await persist()
