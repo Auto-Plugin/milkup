@@ -679,3 +679,50 @@ it('withdraws stale selection-dependent text while keeping the authenticated ima
   expect(decodes).toHaveLength(1)
   disposeDocumentPngImages(held!.result)
 })
+
+for (const windowed of [false, true]) {
+  it(`scopes source/render/mixed strategy to the authenticated image without changing editor mode (${windowed})`, async () => {
+    let mode: 'source' | 'preview' | 'live' = 'live'
+    const base = provider()
+    const provide = vi.fn(base.provide)
+    const view = await make(windowed, {
+      ...base,
+      provide,
+      selectionIndependent: () => true,
+      retainHostPng: () => true,
+      hostPngMode: () => mode,
+    })
+    decodes[0]!.resolve()
+    await settle()
+    const originalReadonly = view.inputDOM.readOnly
+    const image = view.contentDOM.querySelector('img')
+    expect(image).not.toBeNull()
+    view.inputDOM.focus()
+    const select = async (offset: number) => {
+      if (view instanceof EditorView)
+        view.updateState(view.state.applyTransaction({ selection: Selection.cursor(offset) }))
+      else await view.revealSelection(offset < firstLine.length ? 1 : 2, Selection.cursor(offset))
+      await settle()
+    }
+    await select(1)
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('[data-document-presentation] img')).toBeNull()
+    const before = provide.mock.calls.length
+    mode = 'preview'
+    await select(2)
+    expect(view.contentDOM.querySelector('[data-document-presentation] img')).toBe(image)
+    expect(view.inputDOM.readOnly).toBe(originalReadonly)
+    expect(view.dom.dataset.mode).toBe('live')
+    mode = 'source'
+    await select(3)
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('[data-document-presentation] img')).toBeNull()
+    expect(view.inputDOM.readOnly).toBe(originalReadonly)
+    mode = 'live'
+    await select(sourceText.length)
+    expect(view.contentDOM.querySelector('[data-document-presentation] img')).toBe(image)
+    expect(provide.mock.calls.length).toBe(before)
+    expect(decodes).toHaveLength(1)
+    await unchanged(view)
+  })
+}

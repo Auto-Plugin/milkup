@@ -11,6 +11,7 @@ import {
   serializeProductEvidence,
   MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
+  validatePluginRenderModes,
   validateUntouchedInitialPreview,
   validateMigrationReceipt,
   validateMigrationProfileReuse,
@@ -2800,4 +2801,43 @@ test('browser appearance observation reads the current unified store, not the ob
     () => observe({ 'milkup.desktop.settings.v1': ' '.repeat(256 * 1024 + 1) }),
     /Bounded/,
   )
+})
+
+test('plugin strategies reject document-mode leakage, stale persistence and changed Markdown/Math', () => {
+  const good = {
+    defaultMode: 'live',
+    restoredMode: 'live',
+    transitions: ['source', 'preview', 'live'].map((strategy) => ({
+      strategy,
+      editorMode: 'live',
+      versionBefore: 1,
+      versionAfter: 1,
+      dirtyBefore: false,
+      dirtyAfter: false,
+      markdownBefore: '<strong>bold</strong>',
+      markdownAfter: '<strong>bold</strong>',
+      mathBefore: true,
+      mathAfter: true,
+      inside: strategy === 'preview',
+      outside: strategy !== 'source',
+      persisted: strategy,
+    })),
+  }
+  validatePluginRenderModes(good)
+  for (const mutate of [
+    (v) => (v.defaultMode = 'preview'),
+    (v) => v.transitions.pop(),
+    (v) => (v.transitions[0].editorMode = 'source'),
+    (v) => (v.transitions[0].persisted = 'live'),
+    (v) => (v.transitions[1].inside = false),
+    (v) => (v.transitions[2].outside = false),
+    (v) => (v.transitions[1].markdownAfter = ''),
+    (v) => (v.transitions[1].mathAfter = false),
+    (v) => v.transitions[1].versionAfter++,
+    (v) => (v.transitions[1].dirtyAfter = true),
+  ]) {
+    const bad = structuredClone(good)
+    mutate(bad)
+    assert.throws(() => validatePluginRenderModes(bad))
+  }
 })

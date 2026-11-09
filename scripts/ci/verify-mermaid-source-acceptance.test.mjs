@@ -53,8 +53,22 @@ test('both installer workflows forward the accepted receipt into the protected b
     )
     const build = workflow.split('      - name: Build release NSIS')[1].split('      - name:')[0]
     assert.match(build, /GH_TOKEN: \$\{\{ github.token \}\}/)
-    assert.match(build, /ACCEPTED_SOURCE_RUN: \$\{\{ inputs.accepted_source_run/)
-    assert.match(build, /ACCEPTED_SOURCE_SHA: \$\{\{ inputs.accepted_source_sha/)
+    if (name === 'trial-delivery') {
+      assert.match(
+        workflow,
+        /'ACCEPTED_SOURCE_RUN=' \+ \$env:ACCEPTED_SOURCE_RUN >> \$env:GITHUB_ENV/,
+      )
+      assert.match(
+        workflow,
+        /'ACCEPTED_SOURCE_SHA=' \+ \$env:ACCEPTED_SOURCE_SHA >> \$env:GITHUB_ENV/,
+      )
+      assert.match(workflow, /\$runs.Count -ne 1 -or \$shas.Count -ne 1/)
+      assert.match(workflow, /\$sourceRun.head_branch -cne \$env:GITHUB_REF_NAME/)
+      assert.doesNotMatch(build, /ACCEPTED_SOURCE_RUN:/)
+    } else {
+      assert.match(build, /ACCEPTED_SOURCE_RUN: \$\{\{ inputs.accepted_source_run/)
+      assert.match(build, /ACCEPTED_SOURCE_SHA: \$\{\{ inputs.accepted_source_sha/)
+    }
     assert.match(
       build,
       /-AcceptedSourceRunId \$env:ACCEPTED_SOURCE_RUN -AcceptedSourceSha \$env:ACCEPTED_SOURCE_SHA/,
@@ -85,4 +99,13 @@ test('frontend packaging requires an exact successful frontend source workflow, 
   assert.throws(() => verifySourceAcceptance(receipt, runId, sha, 'frontend'))
   assert.throws(() => verifySourceAcceptance(frontend, runId, sha, 'native'))
   assert.throws(() => verifySourceAcceptance(frontend, runId, sha, 'unknown'))
+})
+
+test('plugin-mode branch is explicitly admitted while unrelated branches remain blocked', () => {
+  verifySourceAcceptance(
+    { ...receipt, head_branch: 'dot/mermaid-plugin-modes-20261109' },
+    runId,
+    sha,
+  )
+  assert.throws(() => verifySourceAcceptance({ ...receipt, head_branch: 'main' }, runId, sha))
 })

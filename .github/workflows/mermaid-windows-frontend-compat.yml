@@ -8,7 +8,12 @@ name: Mermaid frontend Windows account acceptance
 # Upload only reviewed self-authored evidence; never binaries or profiles.
 on:
   push:
-    branches: [dot/mermaid-rebuild-20261103, dot/mermaid-stability-20261104]
+    branches:
+      [
+        dot/mermaid-rebuild-20261103,
+        dot/mermaid-stability-20261104,
+        dot/mermaid-plugin-modes-20261109,
+      ]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +28,7 @@ jobs:
   source:
     if: >-
       github.repository == 'Auto-Plugin/milkup' &&
-      (github.ref == 'refs/heads/dot/mermaid-rebuild-20261103' || github.ref == 'refs/heads/dot/mermaid-stability-20261104') &&
+      (github.ref == 'refs/heads/dot/mermaid-rebuild-20261103' || github.ref == 'refs/heads/dot/mermaid-stability-20261104' || github.ref == 'refs/heads/dot/mermaid-plugin-modes-20261109') &&
       github.event.repository.private == false &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.deleted == false &&

@@ -60,6 +60,8 @@ export interface DocumentPresentationConfig {
   readonly selectionIndependent?: () => boolean
   /** Retain only authenticated inert PNG owners while other providers refresh. */
   readonly retainHostPng?: () => boolean
+  /** Host-only strategy for authenticated inert PNG output, not a document mode. */
+  readonly hostPngMode?: () => 'source' | 'preview' | 'live'
   readonly provide: (
     window: DocumentPresentationWindow,
     options: {
@@ -337,7 +339,14 @@ export class DocumentPresentation {
       }
     }
     clearTimeout(this.scrollQuietTimer)
-    this.scrollQuietTimer = setTimeout(this.flushScroll, 300)
+    // Reviewed PNG fences are cached/prepared ahead. Do not impose an additional
+    // visible 300ms delay before mounting them; generic providers keep batching.
+    this.scrollQuietTimer = setTimeout(
+      this.flushScroll,
+      this.config?.selectionIndependent?.() === true && this.config?.hostPngMode?.() !== 'source'
+        ? 16
+        : 300,
+    )
     this.scrollLimitTimer ??= setTimeout(this.flushScroll, 900)
   }
   private tabOrigin: { event: KeyboardEvent; element: HTMLElement } | undefined
@@ -1473,7 +1482,12 @@ export class DocumentPresentation {
         (fragment) =>
           (this.matchesRenderSelection(response.request.selection, context.selection) ||
             (this.retainHostPng() && fragment.content.type === 'host-png-image')) &&
+          (fragment.content.type !== 'host-png-image' ||
+            this.config?.hostPngMode?.() !== 'source') &&
           (context.mode === 'preview' ||
+            (fragment.content.type === 'host-png-image'
+              ? (this.config?.hostPngMode?.() ?? context.mode)
+              : context.mode) === 'preview' ||
             fragment.status === 'error' ||
             !(start <= fragment.to && end >= fragment.from) ||
             (fragment.layout === 'block' &&

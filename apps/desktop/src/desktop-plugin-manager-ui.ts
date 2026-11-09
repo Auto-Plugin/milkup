@@ -180,10 +180,12 @@ class DesktopPluginManagerView {
     else if (focused && this.target.ownerDocument.activeElement !== focused) {
       const replacement = Array.from(
         this.target.querySelectorAll<HTMLElement>(
-          '[data-plugin-action], [data-plugin-card-more-trigger]',
+          '[data-plugin-action], [data-plugin-card-more-trigger], [data-mermaid-render-mode]',
         ),
       ).find(
         (element) =>
+          element.hasAttribute('data-mermaid-render-mode') ===
+            focused.hasAttribute('data-mermaid-render-mode') &&
           element.dataset.pluginCardMoreTrigger === focused.dataset.pluginCardMoreTrigger &&
           element.dataset.pluginAction === focused.dataset.pluginAction &&
           element.dataset.pluginId === focused.dataset.pluginId &&

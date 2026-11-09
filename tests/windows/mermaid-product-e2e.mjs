@@ -79,9 +79,12 @@ export const syntaxCases = Object.freeze([
 ])
 
 export const fixtures = Object.freeze({
-  syntax: syntaxCases
-    .map(({ id, source }) => '# Syntax ' + id + '\n\n```mermaid\n' + source + '\n```\n\n')
-    .join(''),
+  syntax:
+    Array.from({ length: 130 }, (_, i) => `Prefetch lead ${i}\n`).join('') +
+    syntaxCases
+      .map(({ id, source }) => '# Syntax ' + id + '\n\n```mermaid\n' + source + '\n```\n\n')
+      .join('') +
+    Array.from({ length: 1000 }, (_, i) => `Bounded large document tail ${i}\n`).join(''),
   ordinary: [
     '# Windows Mermaid 中文😀',
     '',
@@ -158,6 +161,28 @@ export function validatePreviewModes(row) {
   assert.equal(row.sourcePreserved, true)
   assert.equal(row.previewReadonlyAfterHotEnable, true)
   assert.equal(row.markdownPreviewMarkersHidden, true)
+}
+
+export function validatePluginRenderModes(row) {
+  assert.equal(row.defaultMode, 'live', 'Missing historical preference defaults to mixed')
+  assert.deepEqual(
+    row.transitions.map((value) => value.strategy),
+    ['source', 'preview', 'live'],
+  )
+  for (const value of row.transitions) {
+    assert.equal(value.editorMode, 'live', 'Plugin strategy must not change document mode')
+    assert.equal(value.versionAfter, value.versionBefore)
+    assert.equal(value.dirtyAfter, value.dirtyBefore)
+    assert.equal(typeof value.markdownBefore, 'string')
+    assert(value.markdownBefore.length > 0, 'Markdown control is actually present')
+    assert.equal(value.mathBefore, true, 'Math control is actually rendered')
+    assert.equal(value.markdownAfter, value.markdownBefore)
+    assert.equal(value.mathAfter, value.mathBefore)
+    assert.equal(value.inside, value.strategy === 'preview')
+    assert.equal(value.outside, value.strategy !== 'source')
+    assert.equal(value.persisted, value.strategy, 'Real settings UI persists the preference')
+  }
+  assert.equal(row.restoredMode, 'live')
 }
 
 export const unwrapWebDriverValue = (response) =>
@@ -2130,6 +2155,23 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     if (step) (step.pluginToggleLayouts ??= []).push(layout)
     await closeMenu()
   }
+  const setMermaidStrategy = async (strategy) => {
+    await menu()
+    await pointer(`.plugin-summary-card[data-plugin-id="${PLUGIN}"] [data-plugin-action="details"]`)
+    await pointer('[data-mermaid-render-mode]')
+    await keys(
+      '\uE011' + '\uE015'.repeat(['source', 'preview', 'live'].indexOf(strategy)) + '\uE007',
+    )
+    await until(
+      () =>
+        execute(
+          'return document.querySelector("[data-mermaid-render-mode]")?.value === arguments[0] && localStorage.getItem("milkup.desktop.plugins.milkup.diagrams.render-mode.v1") === arguments[0]',
+          strategy,
+        ),
+      'Plugin strategy saved by real keyboard input',
+    )
+    await closeMenu()
+  }
   const position = async (source, offset = 0, mode = 'live') => {
     await closeMenu()
     await control('1')
@@ -2503,6 +2545,9 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       validateUntouchedInitialPreview(current.initialPreviewObservation, false)
       return
     }
+    // Observe prefetch on the untouched large-document launch, before any mode
+    // normalization could cancel/restart work and contaminate the budget count.
+    if (name === 'syntax') return
     await control('0')
     await position(fixtures[name], 0)
   }
@@ -2944,67 +2989,80 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         )
         assert.equal((await state()).version, before.version)
         assert.equal((await state()).dirty, before.dirty)
+        // This is a plugin preference, separate from the original document modes.
+        const pluginModes = (row.pluginModes = { transitions: [] })
+        await menu()
+        await pointer(
+          `.plugin-summary-card[data-plugin-id="${PLUGIN}"] [data-plugin-action="details"]`,
+        )
+        pluginModes.defaultMode = await execute(
+          'return document.querySelector("[data-mermaid-render-mode]")?.value',
+        )
+        assert.equal(
+          await execute(
+            'return localStorage.getItem("milkup.desktop.plugins.milkup.diagrams.render-mode.v1")',
+          ),
+          null,
+          'Old/no-preference profile was not rewritten before input',
+        )
+        await closeMenu()
+        await switchPlugin(true, 'milkup.math')
+        const unaffected = () =>
+          execute(`const visible=e=>!!e&&e.getBoundingClientRect().height>0;return {
+          markdown:document.querySelector('.milkup-inline-strong')?.outerHTML??null,
+          math:visible(document.querySelector('[data-document-presentation][data-presentation-from="${fixtures.ordinary.indexOf('$x+y$')}"]'))}`)
+        for (const strategy of ['source', 'preview', 'live']) {
+          await position(fixtures.ordinary, fixtures.ordinary.indexOf('flowchart LR'))
+          const beforeStrategy = await state(),
+            otherBefore = await unaffected()
+          await setMermaidStrategy(strategy)
+          await rendered(strategy === 'preview')
+          const afterStrategy = await state(),
+            otherAfter = await unaffected()
+          const transition = {
+            strategy,
+            editorMode: afterStrategy.mode,
+            versionBefore: beforeStrategy.version,
+            versionAfter: afterStrategy.version,
+            dirtyBefore: beforeStrategy.dirty,
+            dirtyAfter: afterStrategy.dirty,
+            markdownBefore: otherBefore.markdown,
+            markdownAfter: otherAfter.markdown,
+            mathBefore: otherBefore.math,
+            mathAfter: otherAfter.math,
+            inside: afterStrategy.images.some((image) => image.visible),
+            persisted: await execute(
+              'return localStorage.getItem("milkup.desktop.plugins.milkup.diagrams.render-mode.v1")',
+            ),
+          }
+          await position(fixtures.ordinary)
+          await rendered(strategy !== 'source')
+          transition.outside = (await state()).images.some((image) => image.visible)
+          pluginModes.transitions.push(transition)
+        }
+        pluginModes.restoredMode = 'live'
+        validatePluginRenderModes(pluginModes)
+        await switchPlugin(false, 'milkup.math')
         // Drive the public selector through native keyboard input. Keep the caret
         // inside the fence: preview must not depend on moving it out of the source.
         const fenceOffset = fixtures.ordinary.indexOf('flowchart LR')
         await position(fixtures.ordinary, fenceOffset, 'source')
         await rendered(false)
         row.modeTransitions = [{ mode: 'source', cursor: (await state()).cursor, images: 0 }]
-        row.modeControls =
-          await execute(`return [...document.querySelectorAll('[data-set-view-mode]')].map(e=>{
-          const r=e.getBoundingClientRect();return {mode:e.dataset.setViewMode,label:e.textContent,
-          width:r.width,height:r.height,top:r.top,left:r.left,visible:r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight&&r.right<=innerWidth}})`)
-        assert.deepEqual(
-          row.modeControls.map((c) => c.mode),
-          ['source', 'preview', 'live'],
+        // Keep the editor's original mode toggle, not a duplicate global selector.
+        assert.equal(
+          await execute(
+            'return document.querySelectorAll("[data-set-view-mode], [data-view-mode-selector], [data-document-modes]").length',
+          ),
+          0,
         )
-        assert.deepEqual(
-          row.modeControls.map((c) => c.label),
-          ['源码', '渲染', '混合'],
+        assert.equal(await execute('return !!document.querySelector("[data-mode-toggle]")'), true)
+        await control('1')
+        await pointer('[data-mode-toggle]')
+        await until(
+          async () => (await state()).mode === 'preview',
+          'Original editor preview shortcut',
         )
-        assert(
-          row.modeControls.every((c) => c.visible && c.width >= 44 && c.height >= 28),
-          'All three named mode buttons visibly discoverable',
-        )
-        const originalRect = await request('GET', `/session/${session}/window/rect`)
-        row.modeLayouts = []
-        try {
-          await request('POST', `/session/${session}/window/rect`, { width: 640, height: 600 })
-          for (const zoom of [1, 1.25]) {
-            await control(zoom === 1 ? '0' : '=')
-            await until(
-              () =>
-                execute(
-                  'return Number(document.querySelector("#app").dataset.appearanceZoom) === arguments[0]',
-                  zoom,
-                ),
-              'Native interface zoom applied',
-            )
-            const layout =
-              await execute(`return {innerWidth,innerHeight,zoom:document.querySelector('#app').dataset.appearanceZoom,
-              buttons:[...document.querySelectorAll('[data-set-view-mode]')].map(e=>{const r=e.getBoundingClientRect();return {mode:e.dataset.setViewMode,label:e.textContent,
-                visible:r.width>=44&&r.height>=28&&r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight}})}`)
-            assert(
-              layout.buttons.length === 3 && layout.buttons.every((button) => button.visible),
-              'All modes visible in narrow native window at actual WebView zoom',
-            )
-            for (const mode of ['preview', 'live', 'source']) {
-              await pointer(`[data-set-view-mode="${mode}"]`)
-              await until(
-                async () => (await state()).mode === mode,
-                'Named mode click at narrow native size',
-              )
-            }
-            row.modeLayouts.push(layout)
-          }
-        } finally {
-          await control('0')
-          await request('POST', `/session/${session}/window/rect`, originalRect)
-        }
-        await pointer('[data-set-view-mode="source"]')
-        assert.equal((await state()).mode, 'source')
-        await pointer('[data-set-view-mode="preview"]')
-        await until(async () => (await state()).mode === 'preview', 'Public rendered mode selector')
         await rendered(true)
         let modeState = await state()
         assert.equal(modeState.cursor, fenceOffset, 'Preview retains the caret inside the fence')
@@ -3055,7 +3113,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           cursor: modeState.cursor,
           images: modeState.images.length,
         })
-        await pointer('[data-set-view-mode="live"]')
+        await control('2')
         assert.equal((await state()).mode, 'live')
         await position(fixtures.ordinary, fenceOffset, 'live')
         await rendered(false)
@@ -3066,7 +3124,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         assert.equal((await state()).version, before.version)
         assert.equal((await state()).dirty, before.dirty)
         await position(fixtures.ordinary, 2, 'source')
-        await pointer('[data-set-view-mode="preview"]')
+        await control('1')
+        await pointer('[data-mode-toggle]')
         await until(async () => (await state()).mode === 'preview', 'Rendered Markdown mode')
         assert.equal(
           await execute(
@@ -3076,7 +3135,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         )
         const boldOffset = fixtures.ordinary.indexOf('bold')
         await position(fixtures.ordinary, boldOffset, 'source')
-        await pointer('[data-set-view-mode="preview"]')
+        await control('1')
+        await pointer('[data-mode-toggle]')
         await until(
           async () => (await state()).mode === 'preview',
           'Rendered Markdown retains bold caret',
@@ -3253,7 +3313,8 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         await rendered(true)
         row.image = editedImage = await readImage('03-edited')
         const editedVersion = (await state()).version
-        await pointer('[data-set-view-mode="preview"]')
+        await control('1')
+        await pointer('[data-mode-toggle]')
         await until(
           async () => (await state()).mode === 'preview',
           'Rendered mode with undo history',
@@ -3322,6 +3383,107 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         await startProduct(name)
         await step('07-' + name, async (row) => {
           if (name === 'syntax') {
+            // All measurements below are read-only. Wheel input is real WebDriver
+            // input; no direct scrollTop, editor command or cache mutation is used.
+            const diagnostics = () =>
+              execute('return window.__milkupDesktopTest.getMermaidPresentationDiagnostics()')
+            const firstFrom = fixtures.syntax.indexOf('```mermaid')
+            assert.equal(
+              (await state()).images.some((image) => image.visible),
+              false,
+              'First fence starts below viewport',
+            )
+            const warm = await until(
+              async () => {
+                const value = await diagnostics()
+                return value.prefetchReady > 0 && value.pending === 0 && !value.prefetchActive
+                  ? value
+                  : false
+              },
+              'Offscreen Mermaid is ready before scrolling',
+              45000,
+            )
+            assert(
+              warm.prefetchRenders <= warm.maxPrefetchFences,
+              'Initial prefetch stays within fence budget',
+            )
+            assert(
+              warm.prefetchRenders < syntaxCases.length,
+              'Large document is not rendered eagerly in full',
+            )
+            assert(warm.cacheEntries > 0 && warm.cacheEntries <= 8)
+            assert(warm.cacheBytes <= 64 * 1024 * 1024 && warm.maxCacheBytes === 64 * 1024 * 1024)
+            assert.equal(warm.maxPrefetchLines, 256)
+            const readyIds = report.nativeAudit
+              .filter(
+                (event) =>
+                  event.phase === 'finished' &&
+                  (event.status === 'ready' || event.successful === true),
+              )
+              .map((event) => event.requestId)
+            assert(readyIds.length > 0, 'Offscreen readiness has actual renderer audit')
+            await execute(
+              `window.__mermaidScrollObservation={firstVisible:null,decoded:null,samples:0};
+              const from=arguments[0],observation=window.__mermaidScrollObservation;
+              const visible=e=>{if(!e)return false;const r=e.getBoundingClientRect();return r.height>0&&r.bottom>0&&r.top<innerHeight};
+              function sample(){observation.samples++;const line=document.querySelector('.milkup-line[data-from="'+from+'"]');
+                const block=document.querySelector('[data-presentation-from="'+from+'"]');const image=block?.querySelector('img');
+                if(observation.firstVisible===null&&(visible(line)||visible(block)))observation.firstVisible=performance.now();
+                if(visible(image)&&image.complete&&image.naturalWidth>0){observation.decoded=performance.now();return;}
+                if(observation.samples<3600)requestAnimationFrame(sample);}
+              requestAnimationFrame(sample);return true`,
+              firstFrom,
+            )
+            let observed
+            for (let attempt = 0; attempt < 30; attempt++) {
+              const box = (await state()).editor
+              await request('POST', `/session/${session}/actions`, {
+                actions: [
+                  {
+                    type: 'wheel',
+                    id: 'prefetch-scroll',
+                    actions: [
+                      {
+                        type: 'scroll',
+                        x: Math.round(box.left + box.width / 2),
+                        y: Math.round(box.top + box.height / 2),
+                        deltaX: 0,
+                        deltaY: 240,
+                        duration: 80,
+                      },
+                    ],
+                  },
+                ],
+              })
+              observed = await execute('return window.__mermaidScrollObservation')
+              if (observed.decoded !== null) break
+            }
+            assert(
+              observed?.firstVisible !== null && observed?.decoded !== null,
+              'Wheel reached the decoded prefetched fence',
+            )
+            assert(
+              observed.decoded - observed.firstVisible <= 100,
+              'No visible renderer wait after prefetched fence enters viewport (100 ms gate)',
+            )
+            const warmedImage = await readImage('syntax-prefetched-first', false, firstFrom)
+            assert(
+              readyIds.includes(warmedImage.native.requestId),
+              'Visible image reuses render completed before scrolling',
+            )
+            const afterScroll = await diagnostics()
+            assert(afterScroll.cacheHits > warm.cacheHits, 'Scroll consumed prefetched cache')
+            assert(afterScroll.cacheBytes <= afterScroll.maxCacheBytes)
+            assert(afterScroll.pending <= 8)
+            row.prefetch = {
+              beforeScroll: warm,
+              afterScroll,
+              observed,
+              warmedImage,
+              readyIds,
+              documentLines: fixtures.syntax.split('\n').length,
+              maxVisibleWaitMs: 100,
+            }
             row.syntaxCases = []
             for (const example of syntaxCases) {
               const heading = fixtures.syntax.indexOf('# Syntax ' + example.id + '\n')

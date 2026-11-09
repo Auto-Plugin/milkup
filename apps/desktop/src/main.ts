@@ -1,3 +1,4 @@
+import { createMermaidRenderSettings, isMermaidRenderMode } from './mermaid-render-settings'
 import { createFrontendMermaidOwner } from './frontend-mermaid-service'
 import { formatDisplayPath } from './display-path'
 import { recoveryStatusText } from './recovery-status-presentation'
@@ -510,15 +511,6 @@ app.innerHTML = `
           </div>
           <div class="search-message" data-search-message role="status">字面匹配 · 忽略大小写 · 忽略查询首尾空白</div>
         </div>
-        <nav class="document-modebar" aria-label="文档显示模式" data-document-modes>
-          <span class="document-modebar-label">文档模式</span>
-          <div class="document-mode-buttons" role="group" aria-label="选择源码、渲染或混合模式">
-            <button type="button" data-set-view-mode="source" aria-pressed="false" title="只显示 Markdown 源码，可编辑">源码</button>
-            <button type="button" data-set-view-mode="preview" aria-pressed="false" title="显示完整渲染结果，只读，可选择复制">渲染</button>
-            <button type="button" data-set-view-mode="live" aria-pressed="true" title="编辑处显示源码，其余内容显示预览">混合</button>
-          </div>
-          <span class="document-mode-help" data-view-mode-help>编辑处显示源码，其余内容显示预览</span>
-        </nav>
         <div class="editor-host" data-editor-host></div>
         <div class="plugin-bottom-slot" data-plugin-slot="bottom-panel"></div>
         <div class="document-loading" data-document-loading hidden>
@@ -563,7 +555,7 @@ app.innerHTML = `
         <button type="button" class="statusbar-button" data-sidebar-toggle aria-label="${messages.buttons.sidebar}" title="${messages.buttons.sidebar}">
           ${iconSvg(PanelLeft)}
         </button>
-        <select data-view-mode-selector aria-label="文档模式"><option value="source">源码</option><option value="preview">渲染</option><option value="live">混合</option></select><button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
+        <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
       <span class="statusbar-notice" data-mermaid-availability role="status" aria-live="polite" hidden></span>
       <span class="statusbar-notice" data-notice role="status" aria-live="polite" hidden></span>
@@ -1665,7 +1657,10 @@ function currentPresentationDocument() {
   }
   return { source: presentationMemorySource, identity: state.doc }
 }
+const mermaidRenderSettings = createMermaidRenderSettings(desktopStorage)
 const desktopDocumentPresentation = createDesktopDocumentPresentationService({
+  getMermaidRenderMode: mermaidRenderSettings.get,
+  prefetch: true,
   current: currentPresentationDocument,
   theme: () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
   renderers: () => desktopPluginManager.state().contributions.documentRenderers ?? [],
@@ -1677,6 +1672,7 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
 })
 function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
   return {
+    hostPngMode: mermaidRenderSettings.get,
     retainHostPng: () =>
       (desktopPluginManager.state().contributions.documentRenderers ?? []).some((renderer) =>
         desktopPluginManager.canReusePrivateMermaidFence(renderer.pluginId, renderer.id),
@@ -1704,6 +1700,7 @@ function createDesktopDocumentPresentation(): DocumentPresentationConfig | undef
       const response = await desktopDocumentPresentation.provide(window, options)
       if (!options.signal.aborted) {
         const unavailable =
+          mermaidRenderSettings.get() !== 'source' &&
           response.request.blocks.some(
             (block) =>
               block.kind === 'fence' && (block.info ?? '').trim().split(/\s+/u)[0] === 'mermaid',
@@ -1980,18 +1977,28 @@ appRoot.querySelector('[data-menu-panel="about"]')?.addEventListener('click', (e
   else if (action === 'install') void installApplicationUpdate()
 })
 
-for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-set-view-mode]'))) {
-  button.addEventListener('click', () => {
-    const mode = button.dataset.setViewMode
-    if (isViewMode(mode)) setViewMode(mode)
-  })
-}
-app
-  .querySelector<HTMLSelectElement>('[data-view-mode-selector]')
-  ?.addEventListener('change', (event) => {
-    const mode = (event.target as HTMLSelectElement).value
-    if (isViewMode(mode)) setViewMode(mode)
-  })
+appRoot.querySelector('[data-plugin-manager]')?.addEventListener('change', (event) => {
+  const select = event.target
+  if (!(select instanceof HTMLSelectElement) || !select.matches('[data-mermaid-render-mode]'))
+    return
+  if (!isMermaidRenderMode(select.value)) return
+  const error = select
+    .closest('[data-mermaid-settings]')
+    ?.querySelector<HTMLElement>('[data-mermaid-settings-error]')
+  try {
+    mermaidRenderSettings.set(select.value)
+    desktopDocumentPresentation.invalidate()
+    view?.refreshDocumentPresentation()
+    sourceView?.refreshDocumentPresentation()
+    renderPluginManager()
+  } catch (cause) {
+    select.value = mermaidRenderSettings.get()
+    if (error) {
+      error.hidden = false
+      error.textContent = `无法保存 Mermaid 渲染策略：${getErrorMessage(cause)}`
+    }
+  }
+})
 app.querySelector<HTMLButtonElement>('[data-mode-toggle]')?.addEventListener('click', () => {
   runDesktopAction('view.setMode', { mode: getNextViewMode(session.viewMode) })
 })
@@ -4191,6 +4198,7 @@ function closeCurrentDocument(): void {
 }
 
 function setViewMode(mode: SessionViewMode): void {
+  if (mode === 'source') desktopDocumentPresentation.pausePrefetch()
   if (sourceView) {
     sourceView.setMode(mode)
     session = recordModeChange(session, mode)
@@ -4348,7 +4356,11 @@ function renderPluginManager(): void {
     return
   }
 
-  renderDesktopPluginManagerElement(target, desktopPluginManager.state(), loadDesktopPluginIcon)
+  renderDesktopPluginManagerElement(
+    target,
+    { ...desktopPluginManager.state(), mermaidRenderMode: mermaidRenderSettings.get() },
+    loadDesktopPluginIcon,
+  )
   for (const button of Array.from(
     target.querySelectorAll<HTMLButtonElement>('[data-plugin-action="toggle"]'),
   )) {
@@ -5713,20 +5725,6 @@ function updateModeToggle(mode: ViewMode): void {
     return
   }
 
-  const selector = app?.querySelector<HTMLSelectElement>('[data-view-mode-selector]')
-  if (selector) selector.value = mode
-  for (const choice of Array.from(
-    app?.querySelectorAll<HTMLButtonElement>('[data-set-view-mode]') ?? [],
-  ))
-    choice.setAttribute('aria-pressed', String(choice.dataset.setViewMode === mode))
-  setText(
-    '[data-view-mode-help]',
-    mode === 'source'
-      ? '显示 Markdown 源码，可编辑'
-      : mode === 'preview'
-        ? '完整渲染，只读，可选择复制'
-        : '编辑处显示源码，其余内容显示预览',
-  )
   const label = mode === 'source' ? '源码' : mode === 'preview' ? '渲染' : '混合'
   button.setAttribute('aria-label', label)
   button.title = label
@@ -6256,6 +6254,7 @@ function getDirectoryPath(path: string): string {
 
 Object.assign(globalThis, {
   __milkupDesktopTest: Object.freeze({
+    getMermaidPresentationDiagnostics: () => desktopDocumentPresentation.diagnostics(),
     getStartupDiagnostics,
     runDesktopWorkerFilePluginFixture,
     runDesktopSidecarPluginFixture,

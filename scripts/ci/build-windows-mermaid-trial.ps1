@@ -11,7 +11,7 @@ $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or
     $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
     $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-    $env:GITHUB_REF -cne 'refs/heads/dot/mermaid-stability-20261104') {
+    $env:GITHUB_REF -cnotin @('refs/heads/dot/mermaid-stability-20261104', 'refs/heads/dot/mermaid-plugin-modes-20261109')) {
     throw 'Only the independent Windows test-delivery candidate is permitted'
 }
 function Checked([string]$Program, [string[]]$Arguments) {

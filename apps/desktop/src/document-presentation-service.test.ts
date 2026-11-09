@@ -1330,3 +1330,226 @@ describe('authenticated pending fences with selection-dependent providers', () =
     },
   )
 })
+
+describe('bounded authenticated Mermaid prefetch', () => {
+  const mermaid = {
+    pluginId: 'milkup.diagrams',
+    id: 'diagrams.mermaid',
+    contexts: ['fence'] as const,
+    fenceLanguages: ['mermaid'],
+  }
+  const delay = () => new Promise((resolve) => setTimeout(resolve, 5))
+  const waitForPrefetch = async (
+    service: ReturnType<typeof createDesktopDocumentPresentationService>,
+  ) => {
+    for (let i = 0; i < 100 && service.diagnostics().prefetchActive; i++) await delay()
+    expect(service.diagnostics().prefetchActive).toBe(false)
+  }
+  const png = (input: DocumentPresentationRequest) => ({
+    complete: true,
+    fragments: [
+      {
+        from: input.from,
+        to: input.to,
+        layout: 'block' as const,
+        accessibleText: 'diagram',
+        content: createDocumentPngImage({ bytes: tinyPng, width: 1, height: 1, release: () => {} }),
+      },
+    ],
+  })
+  async function slice(f: ReturnType<typeof fixture>, from: number, to: number) {
+    const read = await f.source.readLineWindow(from, to, 65536)
+    return {
+      ...f.window,
+      source: read.text,
+      from: read.from,
+      to: read.to,
+      fromLine: read.lines[0]!.number,
+      toLine: read.lines.at(-1)!.number,
+      completeStart: read.from === 0,
+      completeEnd: read.lines.at(-1)!.number === f.source.lineCount,
+    }
+  }
+  it('prepares a not-yet-visible fence, reuses it on arrival and ignores caret movement', async () => {
+    const f = fixture(
+      'Text\n'.repeat(120) + '```mermaid\ngraph TD; A-->B\n```\n' + 'tail\n'.repeat(100),
+    )
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) =>
+      png(input),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mermaid],
+      cacheableFence: () => true,
+      prefetch: true,
+      render,
+    })
+    try {
+      const first = await service.provide(await slice(f, 1, 30), {
+        signal: new AbortController().signal,
+      })
+      expect(first.result.fragments).toHaveLength(0)
+      disposeDocumentPngImages(first.result)
+      await waitForPrefetch(service)
+      expect(service.diagnostics()).toMatchObject({
+        prefetchReady: 1,
+        prefetchRenders: 1,
+        cacheEntries: 1,
+      })
+      const arrival = await slice(f, 115, 130)
+      for (const head of [0, arrival.from + 1, arrival.to]) {
+        const response = await service.provide(
+          { ...arrival, selection: { anchor: head, head } },
+          { signal: new AbortController().signal },
+        )
+        expect(response.result.fragments).toHaveLength(1)
+        disposeDocumentPngImages(response.result)
+      }
+      await waitForPrefetch(service)
+      expect(render).toHaveBeenCalledTimes(1)
+      expect(service.diagnostics().cacheHits).toBeGreaterThanOrEqual(3)
+    } finally {
+      service.clear()
+    }
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('caps speculation at eight fences and 256 lines, without invoking unrelated providers', async () => {
+    const f = fixture(
+      'Intro\n'.repeat(50) +
+        Array.from(
+          { length: 10000 },
+          (_, i) => `\`\`\`mermaid\ngraph TD; A${i}-->B\n\`\`\`\n\n`,
+        ).join(''),
+    )
+    const render = vi.fn(async (id: string, _r: string, input: DocumentPresentationRequest) =>
+      id === 'milkup.diagrams' ? png(input) : { complete: true, fragments: [] },
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mermaid, declaration],
+      cacheableFence: (id) => id === 'milkup.diagrams',
+      prefetch: true,
+      render,
+    })
+    try {
+      const first = await service.provide(await slice(f, 1, 20), {
+        signal: new AbortController().signal,
+      })
+      disposeDocumentPngImages(first.result)
+      await waitForPrefetch(service)
+      expect(service.diagnostics()).toMatchObject({
+        prefetchRenders: 8,
+        prefetchReady: 8,
+        prefetchPasses: 8,
+        pending: 0,
+      })
+      expect(service.diagnostics().cacheEntries).toBeLessThanOrEqual(8)
+      expect(service.diagnostics().cacheBytes).toBeLessThanOrEqual(64 * 1024 * 1024)
+      expect(render.mock.calls.filter(([id]) => id !== 'milkup.diagrams')).toHaveLength(1)
+      expect(
+        render.mock.calls
+          .filter(([id]) => id === 'milkup.diagrams')
+          .every(([, , input]) => input.toLine <= 256),
+      ).toBe(true)
+    } finally {
+      service.clear()
+    }
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('source strategy suppresses only Mermaid, and obsolete settings default to existing behavior', async () => {
+    const f = fixture('```mermaid\ngraph TD; A-->B\n```\n')
+    let mode: 'source' | 'live' | 'preview' = 'source'
+    const render = vi.fn(async (id: string, _r: string, input: DocumentPresentationRequest) =>
+      id === 'milkup.diagrams' ? png(input) : { complete: true, fragments: [] },
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mermaid, declaration],
+      cacheableFence: (id) => id === 'milkup.diagrams',
+      getMermaidRenderMode: () => mode,
+      prefetch: true,
+      render,
+    })
+    try {
+      const source = await service.provide(f.window, { signal: new AbortController().signal })
+      expect(source.declarations).toEqual([declaration])
+      expect(render.mock.calls.map(([id]) => id)).toEqual(['test'])
+      disposeDocumentPngImages(source.result)
+      expect(service.diagnostics().prefetchActive).toBe(false)
+      mode = 'preview'
+      service.invalidate()
+      const preview = await service.provide(f.window, { signal: new AbortController().signal })
+      expect(preview.result.fragments).toHaveLength(1)
+      disposeDocumentPngImages(preview.result)
+      await waitForPrefetch(service)
+    } finally {
+      service.clear()
+    }
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('clear prevents queued background work and releases prepared images', async () => {
+    const f = fixture('Text\n'.repeat(80) + '```mermaid\ngraph TD; A-->B\n```\n')
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) =>
+      png(input),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mermaid],
+      cacheableFence: () => true,
+      prefetch: true,
+      render,
+    })
+    const response = await service.provide(await slice(f, 1, 20), {
+      signal: new AbortController().signal,
+    })
+    disposeDocumentPngImages(response.result)
+    service.clear()
+    await delay()
+    expect(render).not.toHaveBeenCalled()
+    expect(service.diagnostics()).toMatchObject({
+      prefetchActive: false,
+      pending: 0,
+      cacheEntries: 0,
+      cacheBytes: 0,
+    })
+  })
+  it('prepares past the end of a full foreground window and pauses queued work in source mode', async () => {
+    const f = fixture('Text\n'.repeat(280) + '```mermaid\ngraph TD; A-->B\n```\n')
+    const render = vi.fn(async (_p: string, _r: string, input: DocumentPresentationRequest) =>
+      png(input),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mermaid],
+      cacheableFence: () => true,
+      prefetch: true,
+      render,
+    })
+    try {
+      const first = await service.provide(await slice(f, 1, 256), {
+        signal: new AbortController().signal,
+      })
+      disposeDocumentPngImages(first.result)
+      await waitForPrefetch(service)
+      expect(service.diagnostics().prefetchReady).toBe(1)
+      expect(render.mock.calls[0]![2].fromLine).toBe(281)
+      service.pausePrefetch()
+      const again = await service.provide(await slice(f, 1, 255), {
+        signal: new AbortController().signal,
+      })
+      disposeDocumentPngImages(again.result)
+      service.pausePrefetch()
+      await delay()
+      expect(service.diagnostics().prefetchActive).toBe(false)
+      expect(render).toHaveBeenCalledTimes(1)
+    } finally {
+      service.clear()
+    }
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+})

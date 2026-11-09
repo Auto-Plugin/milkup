@@ -1,3 +1,4 @@
+import { renderMermaidRenderSettings, type MermaidRenderMode } from './mermaid-render-settings'
 import {
   ArrowLeft,
   Download,
@@ -305,6 +306,7 @@ export interface DesktopPluginManagerOptions {
 }
 
 export interface DesktopPluginManagerState {
+  readonly mermaidRenderMode?: MermaidRenderMode
   readonly catalogRevision?: number
   readonly executionUnavailableReasons?: Readonly<Record<string, string>>
   readonly bundledUpgradeOffers?: Readonly<Record<string, PluginManifest>>
@@ -3207,6 +3209,7 @@ export function renderDesktopPluginManager(
           view.icons?.get(selected.manifest.id),
           entry,
           state.bundledUpgradeOffers?.[selected.manifest.id],
+          state.mermaidRenderMode,
         ) +
         renderCandidate(entry) +
         renderBundledUpgrade(state.bundledUpgradeOffers?.[selected.manifest.id]) +
@@ -3392,6 +3395,7 @@ function renderPluginRecord(
   icon?: string,
   entry?: PluginCatalogEntry,
   bundledUpgrade?: PluginManifest,
+  mermaidRenderMode: MermaidRenderMode = 'live',
 ): string {
   if (entry?.tombstone)
     return `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">${escapeHtml(record.manifest.name)}</h4><p>已卸载，权限与启动已撤销。用户数据保留。</p><div class="plugin-errors">${entry.diagnostics.map(escapeHtml).join('<br>')}</div><button type="button" class="dialog-button" data-plugin-action="remove" data-plugin-id="${escapeHtml(entry.id)}">${iconSvg(Trash2)}重试清理安装文件</button></article>`
@@ -3442,6 +3446,7 @@ function renderPluginRecord(
     `<button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="${escapeHtml(manifest.id)}">${iconSvg(Download)}导出插件</button>`,
     `<button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="${escapeHtml(manifest.id)}">${iconSvg(Trash2)}移除插件</button>`,
     '</footer>',
+    manifest.id === 'milkup.diagrams' ? renderMermaidRenderSettings(mermaidRenderMode) : '',
     record.manifest.settings
       ? `<section data-plugin-settings-schema><h4>设置结构（只读）</h4><pre>${escapeHtml(JSON.stringify(record.manifest.settings, null, 2))}</pre></section>`
       : '',

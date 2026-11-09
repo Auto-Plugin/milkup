@@ -73,3 +73,37 @@ C# process regression and installed-byte comparison tests cover actual process
 wait/exit/output behavior and the exact Tauri image transformation separately.
 Actual Windows installation and product acceptance are established only by the
 subsequent CI run's reports, not these local tests.
+
+### Plugin strategy and prefetch acceptance (2026-11-09)
+
+The product suite requires the original editor mode toggle and rejects duplicate
+`data-set-view-mode` global buttons. It changes Mermaid's own settings selector
+using native pointer/keyboard input and observes persistence without writing test
+preferences. Source/render/mixed must hot-apply without changing editor mode,
+Markdown, Math, document version or dirty state. An absent historical preference
+must start mixed. Existing editor preview read-only/copy/undo, cursor-image reuse,
+native ownership, GUI observer and teardown gates remain mandatory.
+
+The syntax fixture retains all twelve grammars but places them below 130 lead
+lines and adds 1,000 tail lines. Before input, it must produce offscreen ready
+results with at most eight prefetch renders and less than all twelve diagrams.
+A real wheel scroll samples visibility/decoded state using requestAnimationFrame;
+the first diagram must decode within 100 ms of becoming visible and match a
+renderer request already completed before scrolling. Cache hits must increase;
+cache bytes must remain within 64 MiB and pending work within eight. This is an
+explicit acceptance threshold, not a claim that Windows has already passed it.
+
+The new `dot/mermaid-plugin-modes-20261109` branch is explicitly allowed. Without
+local workflow-dispatch credentials, the authorized push path is two stages:
+
+1. Push a source commit containing `[mermaid-frontend-e2e]`, then verify that exact
+   SHA's frontend two-account workflow succeeded.
+2. Push a packaging-only commit containing `[mermaid-windows-installer]`,
+   `[accepted-source-run:<successful run ID>]`, and
+   `[accepted-source-sha:<exact 40-character source SHA>]`.
+
+The installer workflow resolves the supplied receipt via GitHub's runner token,
+requires the same branch, successful frontend workflow and accepted ancestor,
+and rejects application/native/renderer source differences. It does not wait for
+a source workflow in the shared concurrency group. Manual dispatch remains
+supported. Clone/read access alone is not proof of push permission.

@@ -17,7 +17,7 @@ import {
   retainDocumentPngImages,
 } from '@milkup/core/internal/document-png-image'
 import { createMarkdownWindowContextReader, type MarkdownContextSource } from '@milkup/markdown'
-import type { DocumentPresentationConfig } from '@milkup/view-dom'
+import type { DocumentPresentationConfig, DocumentPresentationWindow } from '@milkup/view-dom'
 
 export interface DesktopDocumentRenderer extends DocumentRendererDeclaration {
   readonly pluginId: string
@@ -27,6 +27,9 @@ export interface DesktopDocumentPresentationOptions {
     { readonly source: MarkdownContextSource; readonly identity: object } | undefined
   readonly theme: () => 'light' | 'dark'
   readonly target?: 'screen' | 'export'
+  readonly getMermaidRenderMode?: () => 'source' | 'preview' | 'live'
+  /** Opt in only for the authenticated host PNG renderer; never run generic plugins ahead. */
+  readonly prefetch?: boolean
   readonly renderers: () => readonly DesktopDocumentRenderer[]
   /** Host activation epoch; never supplied by the plugin. */
   readonly rendererGeneration?: (pluginId: string) => number
@@ -47,6 +50,37 @@ export function createDesktopDocumentPresentationService(
   options: DesktopDocumentPresentationOptions,
 ) {
   let revision = 0
+  const counters = {
+    cacheHits: 0,
+    renders: 0,
+    prefetchRenders: 0,
+    prefetchReady: 0,
+    prefetchPasses: 0,
+  }
+  let prefetchController: AbortController | undefined
+  let prefetchTimer: ReturnType<typeof setTimeout> | undefined
+  let prefetchIdentity: object | undefined
+  let prefetchSignature = ''
+  const prefetchKeys = new Set<string>()
+  let foregroundKeys = new Set<string>()
+  const stopPrefetch = () => {
+    clearTimeout(prefetchTimer)
+    prefetchTimer = undefined
+    prefetchController?.abort()
+    // A background-only owner has no visible consumer to protect.
+    for (const key of prefetchKeys) {
+      if (foregroundKeys.has(key)) continue
+      const pending = pendingFences.get(key)
+      if (pending) {
+        pending.controller.abort()
+        pendingFences.delete(key)
+      }
+    }
+    prefetchController = undefined
+    prefetchIdentity = undefined
+    prefetchSignature = ''
+    prefetchKeys.clear()
+  }
   // A rendered fence can change the measured source window without changing
   // that fence. Retain completed, validated units across those layout passes.
   // The full request remains part of the key: ordinary plugins may depend on
@@ -130,6 +164,8 @@ export function createDesktopDocumentPresentationService(
     disposeDocumentPngImages(entry.result)
   }
   const clearFenceCache = () => {
+    stopPrefetch()
+    foregroundKeys.clear()
     cancelPending()
     for (const key of fenceCache.keys()) evict(key)
     cacheIdentity = undefined
@@ -140,7 +176,11 @@ export function createDesktopDocumentPresentationService(
     continuationPasses = 0
   }
   const context = createMarkdownWindowContextReader({ source: () => options.current()?.source })
-  const provide: DocumentPresentationConfig['provide'] = async (window, operation) => {
+  const provideInternal = async (
+    window: DocumentPresentationWindow,
+    operation: Parameters<DocumentPresentationConfig['provide']>[1],
+    background = false,
+  ): Promise<Awaited<ReturnType<DocumentPresentationConfig['provide']>>> => {
     const owned = new Set<DocumentPresentationResult>()
     try {
       const initial = options.current()
@@ -223,7 +263,17 @@ export function createDesktopDocumentPresentationService(
         target: options.target ?? 'screen',
         width: Math.min(8192, Math.max(1, window.width)),
       })
-      const declarations = options.renderers().map((renderer) => ({ ...renderer }))
+      const declarations = options
+        .renderers()
+        .filter(
+          (renderer) =>
+            !(
+              options.getMermaidRenderMode?.() === 'source' &&
+              renderer.pluginId === 'milkup.diagrams' &&
+              renderer.id === 'diagrams.mermaid'
+            ),
+        )
+        .map((renderer) => ({ ...renderer }))
       const generations = new Map(
         declarations.map((renderer) => [
           renderer.pluginId,
@@ -270,7 +320,7 @@ export function createDesktopDocumentPresentationService(
         window.visibleFrom,
         window.visibleTo,
       ])
-      if (continuationScope !== progressScope) {
+      if (!background && continuationScope !== progressScope) {
         continuationScope = progressScope
         continuationPasses = 0
       }
@@ -308,6 +358,13 @@ export function createDesktopDocumentPresentationService(
           )
         }
       }
+      if (background) {
+        for (const key of activeFenceKeys) prefetchKeys.add(key)
+        for (const key of foregroundKeys) activeFenceKeys.add(key)
+      } else {
+        foregroundKeys = new Set(activeFenceKeys)
+        for (const key of prefetchKeys) activeFenceKeys.add(key)
+      }
       for (const [key, entry] of pendingFences) {
         if (!activeFenceKeys.has(key)) {
           entry.controller.abort()
@@ -341,6 +398,7 @@ export function createDesktopDocumentPresentationService(
         const cacheKey = fenceKey(declaration, input)
         const cached = cacheKey === undefined ? undefined : fenceCache.get(cacheKey)
         if (cached) {
+          if (!background) counters.cacheHits++
           // A separate reference belongs to this invocation, even if another
           // window invalidates/evicts the cache while later units are awaiting.
           const value = cached.pure
@@ -362,6 +420,8 @@ export function createDesktopDocumentPresentationService(
           return result
         }
         const renderFresh = async (signal: AbortSignal) => {
+          counters.renders++
+          if (background) counters.prefetchRenders++
           const value = await options.render(declaration.pluginId, declaration.id, input, {
             signal,
             deadline,
@@ -413,6 +473,7 @@ export function createDesktopDocumentPresentationService(
                   fenceCache.set(cacheKey, { result, cost, pure })
                   nativeCacheProgress ||= pure
                   cacheCost += cost
+                  if (background) counters.prefetchReady++
                   for (const key of inactiveKeys().slice(0, -8)) evict(key)
                 } else resourceLimited = true
               } else resourceLimited = true
@@ -450,7 +511,7 @@ export function createDesktopDocumentPresentationService(
       }
       // Text and mixed-context providers retain their full trusted window. Pure
       // fence providers receive one host-recognized complete fence per invocation.
-      const whole = declarations.filter((d) => d.contexts.includes('text'))
+      const whole = background ? [] : declarations.filter((d) => d.contexts.includes('text'))
       const outcomes = await Promise.allSettled(whole.map((d) => renderOne(d, request)))
       assertCurrent()
       let complete = true
@@ -491,6 +552,7 @@ export function createDesktopDocumentPresentationService(
         const language = (block.info ?? '').trim().split(/\s+/u)[0] ?? ''
         const providers = declarations.filter(
           (d) =>
+            (!background || isPure(d)) &&
             !d.contexts.includes('text') &&
             d.contexts.includes('fence') &&
             d.fenceLanguages?.includes(language),
@@ -583,6 +645,8 @@ export function createDesktopDocumentPresentationService(
           nativeUnitAdmitted ||= needsNative
           // A scheduling unit includes every competing provider. Budget pressure
           // must never choose a winner by silently omitting the other provider.
+          // Background preparation is an optimization, never a provider winner:
+          // foreground aggregation still validates all competing declarations.
           const results = await Promise.allSettled(unit.providers.map((d) => renderOne(d, input)))
           assertCurrent()
           for (const outcome of results) {
@@ -629,7 +693,7 @@ export function createDesktopDocumentPresentationService(
         // unit, and the existing fragment ceiling bounds the whole sequence.
         ...(deferredNativeUnit &&
         nativeCacheProgress &&
-        ++continuationPasses < DOCUMENT_PRESENTATION_LIMITS.fragments
+        (background || ++continuationPasses < DOCUMENT_PRESENTATION_LIMITS.fragments)
           ? { continueAfterPaint: true }
           : {}),
         ...(resourceLimited ? { resourceLimited: true } : {}),
@@ -638,8 +702,133 @@ export function createDesktopDocumentPresentationService(
       for (const result of owned) disposeDocumentPngImages(result)
     }
   }
+  const schedulePrefetch = (window: DocumentPresentationWindow) => {
+    if (
+      !options.prefetch ||
+      options.target === 'export' ||
+      options.getMermaidRenderMode?.() === 'source'
+    )
+      return
+    const initial = options.current()
+    if (
+      !initial ||
+      initial.identity !== window.sourceIdentity ||
+      !options
+        .renderers()
+        .some(
+          (r) =>
+            !r.contexts.includes('text') && options.cacheableFence?.(r.pluginId, r.id) === true,
+        )
+    )
+      return
+    const signature = JSON.stringify([
+      initial.source.version,
+      window.fromLine,
+      window.toLine,
+      window.width,
+      options.theme(),
+    ])
+    if (prefetchIdentity === initial.identity && prefetchSignature === signature) return
+    stopPrefetch()
+    prefetchIdentity = initial.identity
+    prefetchSignature = signature
+    const controller = new AbortController()
+    prefetchController = controller
+    const source = initial.source,
+      version = source.version,
+      generation = revision
+    const current = () =>
+      !controller.signal.aborted &&
+      revision === generation &&
+      options.current()?.identity === initial.identity &&
+      options.current()?.source === source &&
+      source.version === version
+    // Let visible output paint first. No idle callback: hidden WebView/iframe idle
+    // throttling must not postpone nearby diagrams until they enter the viewport.
+    prefetchTimer = setTimeout(() => {
+      prefetchTimer = undefined
+      void (async () => {
+        try {
+          if (!current()) return
+          const fromLine = Math.max(1, window.toLine - 48)
+          const slice = await source.readLineWindow(
+            fromLine,
+            Math.min(source.lineCount, fromLine + 255),
+            DOCUMENT_PRESENTATION_LIMITS.inputUtf16,
+          )
+          if (
+            !current() ||
+            !slice.lines.length ||
+            slice.text.length > DOCUMENT_PRESENTATION_LIMITS.inputUtf16 ||
+            slice.lines.length > 256
+          )
+            return
+          const first = slice.lines[0]!,
+            last = slice.lines.at(-1)!
+          const nearby: DocumentPresentationWindow = {
+            ...window,
+            source: slice.text,
+            from: slice.from,
+            to: slice.to,
+            fromLine: first.number,
+            toLine: last.number,
+            completeStart: slice.from === 0,
+            completeEnd: last.number === source.lineCount,
+          }
+          const started = counters.prefetchRenders
+          // Each pass admits at most one new authenticated fence. The shared
+          // byte/fragment ceilings remain in force, plus a strict eight-fence
+          // speculation ceiling independent of document size or continuation.
+          for (
+            let pass = 0;
+            pass < 8 && current() && counters.prefetchRenders - started < 8;
+            pass++
+          ) {
+            counters.prefetchPasses++
+            const response = await provideInternal(
+              nearby,
+              {
+                signal: controller.signal,
+                deadline: performance.now() + 10_000,
+              },
+              true,
+            )
+            const again = response.continueAfterPaint === true && !response.resourceLimited
+            disposeDocumentPngImages(response.result)
+            if (!again) break
+            await new Promise((resolve) => setTimeout(resolve, 0))
+          }
+        } catch {
+          // Prefetch never replaces source, reports renderer failure, or retries
+          // endlessly. The normal visible request remains authoritative.
+        } finally {
+          if (prefetchController === controller) {
+            prefetchController = undefined
+            prefetchKeys.clear()
+          }
+        }
+      })()
+    }, 0)
+  }
+  const provide: DocumentPresentationConfig['provide'] = async (window, operation) => {
+    const response = await provideInternal(window, operation)
+    if (!operation.signal.aborted) schedulePrefetch(window)
+    return response
+  }
   return Object.freeze({
     provide,
+    pausePrefetch: stopPrefetch,
+    diagnostics: () =>
+      Object.freeze({
+        ...counters,
+        cacheEntries: fenceCache.size,
+        cacheBytes: cacheCost,
+        pending: pendingFences.size,
+        prefetchActive: !!prefetchController,
+        maxCacheBytes: 64 * 1024 * 1024,
+        maxPrefetchFences: 8,
+        maxPrefetchLines: 256,
+      }),
     invalidate: () => {
       revision++
       clearFenceCache()

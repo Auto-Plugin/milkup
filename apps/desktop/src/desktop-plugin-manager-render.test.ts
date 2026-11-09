@@ -232,3 +232,15 @@ it.each([
     expect(details).toContain('<h4>随应用提供的新版 1.0.1</h4>')
   }
 })
+
+it('places the persistent Mermaid strategy only in diagrams plugin details', () => {
+  const diagrams = { ...record, manifest: { ...record.manifest, id: 'milkup.diagrams' } }
+  const model = { ...state(), records: [diagrams, record], mermaidRenderMode: 'source' as const }
+  expect(renderDesktopPluginManager(model)).not.toContain('data-mermaid-render-mode')
+  const details = renderDesktopPluginManager(model, { selectedPluginId: 'milkup.diagrams' })
+  expect(details).toContain('<option value="source" selected>源码</option>')
+  expect(details).toContain('Mermaid 渲染策略')
+  expect(renderDesktopPluginManager(model, { selectedPluginId: record.manifest.id })).not.toContain(
+    'data-mermaid-render-mode',
+  )
+})

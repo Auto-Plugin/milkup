@@ -1437,11 +1437,11 @@ html[data-sidebar-resizing='true'] * {
 }
 
 .editor-panel {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .editor-host {
-  grid-row: 3;
+  grid-row: 2;
   min-height: 0;
 }
 
@@ -2937,53 +2937,4 @@ html[data-theme='dark'] .milkup-code-token-comment {
 }
 html[data-theme='dark'] .milkup-code-token-property {
   color: #ffa657;
-}
-
-/* The primary mode control remains visible above the document, including old profiles. */
-.document-modebar {
-  grid-row: 2;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--chrome-bg);
-  color: var(--text-muted);
-  font-size: 12px;
-}
-.document-mode-buttons {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.document-mode-buttons button {
-  min-width: 54px;
-  min-height: 30px;
-  padding: 4px 12px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-.document-mode-buttons button[aria-pressed='true'] {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 600;
-}
-.document-mode-buttons button:hover {
-  background: var(--accent-soft);
-}
-.document-mode-buttons button:focus-visible {
-  outline: 2px solid var(--accent-strong);
-  outline-offset: 2px;
-}
-@media (max-width: 520px) {
-  .document-mode-help {
-    flex-basis: 100%;
-  }
 }

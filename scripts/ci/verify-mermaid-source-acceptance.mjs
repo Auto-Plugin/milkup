@@ -11,7 +11,12 @@ export function verifySourceAcceptance(receipt, runId, sha, rendererMode = 'nati
   assert.equal(receipt.status, 'completed', 'Source run must be completed')
   assert.equal(receipt.conclusion, 'success', 'Source run must pass')
   assert.equal(receipt.head_sha, sha, 'Exact accepted source SHA')
-  assert.equal(receipt.head_branch, 'dot/mermaid-stability-20261104', 'Source branch')
+  assert(
+    ['dot/mermaid-stability-20261104', 'dot/mermaid-plugin-modes-20261109'].includes(
+      receipt.head_branch,
+    ),
+    'Source branch',
+  )
   assert.equal(
     receipt.path,
     rendererMode === 'frontend'

@@ -4,7 +4,7 @@ name: Mermaid Windows installed test delivery
 # No Release, tag, main merge, runtime provisioning, or original-instance access.
 on:
   push:
-    branches: [dot/mermaid-stability-20261104]
+    branches: [dot/mermaid-stability-20261104, dot/mermaid-plugin-modes-20261109]
   workflow_dispatch:
     inputs:
       accepted_source_run:
@@ -29,7 +29,7 @@ jobs:
   package:
     if: >-
       github.repository == 'Auto-Plugin/milkup' &&
-      github.ref == 'refs/heads/dot/mermaid-stability-20261104' &&
+      (github.ref == 'refs/heads/dot/mermaid-stability-20261104' || github.ref == 'refs/heads/dot/mermaid-plugin-modes-20261109') &&
       github.event.repository.private == false &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.deleted == false &&
@@ -68,12 +68,24 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $head = @(git rev-parse HEAD)
           if ($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0].Trim() -cne $env:GITHUB_SHA) { throw 'Wrong source candidate' }
+          # Push delivery uses explicit receipt identities in the commit message.
+          # Never wait for another workflow sharing this concurrency group.
+          if ($env:GITHUB_EVENT_NAME -ceq 'push') {
+            $event = Get-Content -LiteralPath $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
+            $runs = [regex]::Matches($event.head_commit.message, '\[accepted-source-run:([1-9][0-9]*)\]')
+            $shas = [regex]::Matches($event.head_commit.message, '\[accepted-source-sha:([a-f0-9]{40})\]')
+            if ($runs.Count -ne 1 -or $shas.Count -ne 1) { throw 'Push delivery requires exactly one source run and SHA receipt' }
+            $env:ACCEPTED_SOURCE_RUN = $runs[0].Groups[1].Value
+            $env:ACCEPTED_SOURCE_SHA = $shas[0].Groups[1].Value
+          }
           if ($env:ACCEPTED_SOURCE_RUN -cnotmatch '^[0-9]+$' -or $env:ACCEPTED_SOURCE_SHA -cnotmatch '^[a-f0-9]{40}$') { throw 'Invalid exact source acceptance identity' }
           $sourceRun = (& gh api ('repos/Auto-Plugin/milkup/actions/runs/' + $env:ACCEPTED_SOURCE_RUN) | ConvertFrom-Json)
           if ($LASTEXITCODE -ne 0 -or $sourceRun.status -cne 'completed' -or $sourceRun.conclusion -cne 'success' -or
               $sourceRun.head_sha -cne $env:ACCEPTED_SOURCE_SHA -or
-              $sourceRun.head_branch -cne 'dot/mermaid-stability-20261104' -or
+              $sourceRun.head_branch -cne $env:GITHUB_REF_NAME -or
               $sourceRun.path -cne '.github/workflows/mermaid-windows-frontend-compat.yml') { throw 'Exact dual-account source acceptance has not passed' }
+          'ACCEPTED_SOURCE_RUN=' + $env:ACCEPTED_SOURCE_RUN >> $env:GITHUB_ENV
+          'ACCEPTED_SOURCE_SHA=' + $env:ACCEPTED_SOURCE_SHA >> $env:GITHUB_ENV
           git merge-base --is-ancestor b139a9891a086685d7e0e9e85472a29a629f7a45 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Candidate is outside accepted implementation' }
           git merge-base --is-ancestor $env:ACCEPTED_SOURCE_SHA HEAD
@@ -167,8 +179,6 @@ jobs:
         id: packaged
         env:
           GH_TOKEN: ${{ github.token }}
-          ACCEPTED_SOURCE_RUN: ${{ inputs.accepted_source_run || '' }}
-          ACCEPTED_SOURCE_SHA: ${{ inputs.accepted_source_sha || '' }}
         run: |
           ./scripts/ci/build-windows-mermaid-trial.ps1 -AcceptedSourceRunId $env:ACCEPTED_SOURCE_RUN -AcceptedSourceSha $env:ACCEPTED_SOURCE_SHA -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-build-evidence') -OutputDirectory (Join-Path $env:RUNNER_TEMP 'mermaid-trial-delivery')
       - name: Strict final source gate before installer execution
