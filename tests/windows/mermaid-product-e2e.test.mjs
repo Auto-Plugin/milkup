@@ -9,6 +9,9 @@ import {
   fixtures,
   createStartupTimeline,
   serializeProductEvidence,
+  encodeProductEvidence,
+  decodeProductEvidence,
+  MAX_EXPANDED_PRODUCT_REPORT_BYTES,
   MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
   validatePluginRenderModes,
@@ -2844,4 +2847,64 @@ test('plugin strategies reject document-mode leakage, stale persistence and chan
     mutate(bad)
     assert.throws(() => validatePluginRenderModes(bad))
   }
+})
+
+test('lossless bounded product transport retains all states and rejects corrupt or incomplete evidence', () => {
+  const report = {
+    status: 'passed',
+    steps: [
+      { before: { source: '中文😀'.repeat(180000) }, after: { source: '中文😀'.repeat(180000) } },
+    ],
+    launches: [{ creationFileTime: '123' }],
+    nativeAudit: [{ phase: 'finished' }],
+    inputs: [{ key: 'wheel' }],
+  }
+  const encoded = encodeProductEvidence(report)
+  assert(Buffer.byteLength(encoded) < MAX_PRODUCT_REPORT_BYTES)
+  assert.deepEqual(decodeProductEvidence(encoded), report)
+  assert.deepEqual(decodeProductEvidence(encodeProductEvidence({ status: 'failed' })), {
+    status: 'failed',
+  })
+  for (const mutate of [
+    (value) => {
+      value.rawSha256 = '0'.repeat(64)
+    },
+    (value) => {
+      value.packedSha256 = '0'.repeat(64)
+    },
+    (value) => {
+      value.rawBytes--
+    },
+    (value) => {
+      value.rawBytes = MAX_EXPANDED_PRODUCT_REPORT_BYTES + 1
+    },
+    (value) => {
+      value.packedBytes--
+    },
+    (value) => {
+      value.counts.steps = 0
+    },
+    (value) => {
+      delete value.counts.inputs
+    },
+    (value) => {
+      value.data = value.data.slice(0, -4)
+    },
+    (value) => {
+      delete value.data
+    },
+    (value) => {
+      value.encoding = 'unknown'
+    },
+  ]) {
+    const value = JSON.parse(encoded)
+    mutate(value)
+    assert.throws(() => decodeProductEvidence(JSON.stringify(value)))
+  }
+  assert.throws(() => decodeProductEvidence(encoded.slice(0, -4)))
+  assert.throws(
+    () => encodeProductEvidence({ data: 'x'.repeat(MAX_EXPANDED_PRODUCT_REPORT_BYTES) }),
+    /4 MiB/,
+  )
+  assert.throws(() => decodeProductEvidence(' '.repeat(MAX_PRODUCT_REPORT_BYTES + 1)), /1 MiB/)
 })

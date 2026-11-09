@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { syntaxCases } from './mermaid-product-e2e.mjs'
+import { syntaxCases, decodeProductEvidence } from './mermaid-product-e2e.mjs'
 import { GUI_EVIDENCE_NAMES, validateGuiIdentity } from './mermaid-gui-contract.mjs'
 
 const steps = [
@@ -117,7 +117,8 @@ export function stageEvidence(source, destination, candidateSha) {
         '89504e470d0a1a0a',
         'PNG signature required',
       )
-    if (name.endsWith('.json')) JSON.parse(bytes.toString('utf8'))
+    if (name.endsWith('mermaid-product-e2e.json')) decodeProductEvidence(bytes)
+    else if (name.endsWith('.json')) JSON.parse(bytes.toString('utf8'))
     return { name, bytes, sha256: hash(bytes) }
   })
   const byName = new Map(files.map((file) => [file.name, file]))

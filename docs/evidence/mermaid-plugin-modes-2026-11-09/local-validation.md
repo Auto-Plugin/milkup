@@ -49,3 +49,36 @@ The harness correction first captures and asserts unchanged editor mode/version/
 Filtered native metadata: owner `17f2edcf20ec441bbeb8facae0aa934b`, process 3648 / creation FILETIME `134386679290474774`; assets-read at Unix ms 1794194331412, frame-load 1713, native frame 5 created 1716, fixed-document navigation permitted 1727. There is no DOM-content-loaded, frame hello or renderer admission. Navigation completes unsuccessfully at 1794194341399 with webErrorStatus 9, frame destruction at 1408, failed connection at 1412, owner release at 1735. The roughly 9.7-second interval ends at the existing connection deadline; the evidence does not establish whether the fixed-document protocol handler had received or returned the request. It must not be relabeled as a syntax error or hidden by a later successful run.
 
 New opt-in native diagnostics record fixed-document request receipt and response construction using only fixed stage names, allowed boolean and body byte count, with a 128-record fail-closed bound and the existing writer/evidence limits. They retain no URI or source and provide no owner/readiness/release proof. Frontend callers cannot inject the native event through the audit command. Eight frontend contract tests pass, including rejection of malformed metadata and refusal to substitute response diagnostics for boundary or release proof. A native budget/forgery regression is added but cannot run locally because this executor has no Rust compiler; Windows must compile and test it. Request allowlisting, immutable body, CSP, navigation guard, deadlines and cleanup gates are unchanged. Focus-corrected source run 42555197153 captures 8a9b43d0 and does not contain this later diagnostic change.
+
+## 8a9b43d0 product evidence and bounded report transport
+
+Run 42555197153 reached real product execution in both accounts. The first eight
+steps passed, including real-focus plugin source/render/mixed transitions, hot
+enable, unchanged editor mode/version/dirty, Markdown and Math. The syntax step
+retained twelve PNG observations and offscreen prefetch measurements, but neither
+product report completed: final serialization threw `Structured evidence exceeds
+1 MiB coordinator budget`. This is a failed product run, not completed acceptance.
+
+Each initial offscreen pass prepared eight charts with no pending work and about
+4.9 MiB of cache. First-visible to decoded rAF samples were 0 ms / 0.1 ms. Both
+matched a renderer request completed before scrolling. These are sampled partial
+observations, not cold startup timings or a complete run verdict. Later scrolling
+admitted additional bounded prefetch work; initial eight does not mean eight total
+requests for the entire document.
+
+The follow-up stores oversized reports as a lossless gzip envelope within the
+unchanged 1 MiB file ceiling. Expanded JSON has a separate 4 MiB ceiling, bounded
+streaming decompression, compressed/raw byte lengths and SHA-256, and original
+step/launch/audit/input counts. The coordinator restores all fields before existing
+identity/status checks; migration receipts and artifact staging use the same
+contract. No state, event, PNG proof, or failure record is discarded. Generic JSON
+inputs keep their existing limit. Readiness/scroll diagnostics are retained before
+assertions so threshold failures remain inspectable.
+
+Local checks: 338 Node source-workflow contract tests passed; 124 PowerShell wrapper
+fixture cases passed (including actual Node encoder → PowerShell decoder and
+corrupt/truncated/missing/hash/count/expanded-bound failures). PowerShell fixtures
+do not execute Windows native APIs or installers. Synthetic final-state expansion
+of the retained reports round-tripped byte-equivalent JSON objects: 1,094,955 →
+124,209 stored bytes and 1,089,785 → 123,797. Those expansions are codec fixtures,
+not missing final Windows evidence. Real Windows verification remains required.

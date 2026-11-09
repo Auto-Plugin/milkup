@@ -9,7 +9,7 @@ $wrapper = Join-Path $PSScriptRoot '../../scripts/ci/run-windows-mermaid-product
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Get-LifecycleBaselineIdentity', 'Assert-PinnedDeliveredLifecycle', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
+$wanted = @('Set-ProcessEnvironmentValue', 'Assert-AccountMode', 'Assert-PlainPath', 'Assert-Contained', 'Read-SmallJson', 'Read-ProductJson', 'Write-Json', 'File-Proof', 'Assert-Hash', 'Get-ChildEvidenceNames', 'Get-LifecycleBaselineIdentity', 'Assert-PinnedDeliveredLifecycle', 'Assert-InstallationManifest', 'Assert-SourcePluginInventory', 'Assert-InstallationCoordinator', 'Write-LifecycleProgress', 'Invoke-StandardInstallation')
 foreach ($name in $wanted) {
     $node = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($node.Count -ne 1) { throw "Missing or ambiguous wrapper function: $name" }
@@ -312,6 +312,31 @@ try {
         $rejected = $false
         try { Read-SmallJson $file | Out-Null } catch { $rejected = $true }
         Assert-True $rejected 'Truncated evidence accepted'
+    }
+    Case 'actual Node compressed evidence restores in coordinator and rejects corrupted proofs' {
+        $file = Join-Path $testRoot 'compressed-product.json'
+        $module = Join-Path $PSScriptRoot 'mermaid-product-e2e.mjs'
+        & node --input-type=module -e 'import {writeFileSync} from "node:fs"; const {pathToFileURL}=await import("node:url"); const moduleUrl=pathToFileURL(process.argv[1]).href;process.argv[1]="evidence-codec-test";const {encodeProductEvidence}=await import(moduleUrl);writeFileSync(process.argv[2],encodeProductEvidence({status:"passed",steps:[{source:"中文😀".repeat(180000)}],launches:[{creationFileTime:"123"}],nativeAudit:[{phase:"finished"}],inputs:[{key:"wheel"}]}))' $module $file
+        Assert-True ($LASTEXITCODE -eq 0) 'Node evidence encoder failed'
+        $original = [IO.File]::ReadAllText($file)
+        $read = Read-ProductJson $file
+        Assert-True ($read.status -ceq 'passed' -and $read.steps[0].source -ceq ('中文😀' * 180000) -and $read.launches[0].creationFileTime -ceq '123') 'Lossless restoration failed'
+        foreach ($mutation in @('hash', 'packed', 'counts', 'truncate', 'missing', 'bound', 'raw-length')) {
+            $value = $original | ConvertFrom-Json -AsHashtable
+            switch ($mutation) {
+                'hash' { $value.rawSha256 = '0' * 64 }
+                'packed' { $value.packedSha256 = '0' * 64 }
+                'counts' { $value.counts.steps = 0 }
+                'truncate' { $value.data = $value.data.Substring(0, $value.data.Length - 4) }
+                'missing' { $value.Remove('data') }
+                'bound' { $value.rawBytes = 4MB + 1 }
+                'raw-length' { $value.rawBytes-- }
+            }
+            [IO.File]::WriteAllText($file, ($value | ConvertTo-Json -Depth 16 -Compress))
+            $rejected = $false
+            try { Read-ProductJson $file | Out-Null } catch { $rejected = $true }
+            Assert-True $rejected ('Invalid compressed evidence accepted: ' + $mutation)
+        }
     }
     $scratch = Join-Path $testRoot 'scratch'; $evidence = Join-Path $testRoot 'evidence'
     New-Item -ItemType Directory -Path $scratch, $evidence | Out-Null

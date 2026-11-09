@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import { spawn, execFile, execFileSync } from 'node:child_process'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
+import { gzipSync, gunzipSync } from 'node:zlib'
 import { writeSync } from 'node:fs'
 import { mkdir, readFile, writeFile, lstat, readdir, realpath } from 'node:fs/promises'
 import { createServer } from 'node:net'
@@ -1483,6 +1484,58 @@ export function serializeProductEvidence(report) {
   return body
 }
 
+// Stored transport remains <=1 MiB. Expanded reports have a separate 4 MiB
+// ceiling; SHA-256 and array counts bind every original observation, not a summary.
+export const MAX_EXPANDED_PRODUCT_REPORT_BYTES = 4 * 1024 * 1024
+const productEvidenceHash = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const productEvidenceCounts = (report) =>
+  Object.fromEntries(
+    ['steps', 'launches', 'nativeAudit', 'inputs'].map((key) => [
+      key,
+      Array.isArray(report[key]) ? report[key].length : 0,
+    ]),
+  )
+export function encodeProductEvidence(report) {
+  const raw = Buffer.from(JSON.stringify(report) + '\n')
+  assert(raw.length <= MAX_EXPANDED_PRODUCT_REPORT_BYTES, 'Expanded product evidence exceeds 4 MiB')
+  if (raw.length <= MAX_PRODUCT_REPORT_BYTES) return raw.toString('utf8')
+  const packed = gzipSync(raw)
+  return serializeProductEvidence({
+    encoding: 'milkup-product-gzip-v1',
+    rawBytes: raw.length,
+    rawSha256: productEvidenceHash(raw),
+    packedBytes: packed.length,
+    packedSha256: productEvidenceHash(packed),
+    counts: productEvidenceCounts(report),
+    data: packed.toString('base64'),
+  })
+}
+export function decodeProductEvidence(bytes) {
+  bytes = Buffer.from(bytes)
+  assert(bytes.length <= MAX_PRODUCT_REPORT_BYTES, 'Stored product evidence exceeds 1 MiB')
+  const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+  if (!Object.hasOwn(envelope, 'encoding')) return envelope
+  assert.equal(envelope.encoding, 'milkup-product-gzip-v1')
+  assert(
+    Number.isSafeInteger(envelope.rawBytes) &&
+      envelope.rawBytes > MAX_PRODUCT_REPORT_BYTES &&
+      envelope.rawBytes <= MAX_EXPANDED_PRODUCT_REPORT_BYTES,
+    'Expanded product evidence bound',
+  )
+  assert(typeof envelope.data === 'string' && envelope.data.length <= MAX_PRODUCT_REPORT_BYTES)
+  const packed = Buffer.from(envelope.data, 'base64')
+  assert.equal(packed.toString('base64'), envelope.data, 'Canonical compressed bytes')
+  assert.equal(packed.length, envelope.packedBytes)
+  assert.equal(productEvidenceHash(packed), envelope.packedSha256)
+  const raw = gunzipSync(packed, { maxOutputLength: envelope.rawBytes })
+  assert.equal(raw.length, envelope.rawBytes)
+  assert.equal(productEvidenceHash(raw), envelope.rawSha256)
+  const report = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(raw))
+  assert(!Object.hasOwn(report, 'encoding'), 'Nested product evidence rejected')
+  assert.deepEqual(productEvidenceCounts(report), envelope.counts)
+  return report
+}
+
 export const MIGRATION_BASELINE_SHA256 =
   '5d4df1a7f6e7962be12d624437f620fe5775885e79b7a97b4b519a676ec95d84'
 export const MIGRATION_BASELINES = Object.freeze({
@@ -1749,7 +1802,7 @@ export async function main() {
     const receiptBytes = await readFile(receiptPath)
     assert(receiptBytes.length <= 2 * 1024 * 1024)
     assert.equal(sha(receiptBytes), required('MIGRATION_RECEIPT_SHA256'))
-    migrationReceipt = JSON.parse(receiptBytes)
+    migrationReceipt = decodeProductEvidence(receiptBytes)
     validateMigrationReceipt(migrationReceipt, {
       runId,
       candidateSha,
@@ -1903,7 +1956,7 @@ export async function main() {
   }
   const reportFile = path.join(evidence, 'mermaid-product-e2e.json')
   await writeFile(reportFile, '{}\n', { flag: 'wx' })
-  const persist = () => writeFile(reportFile, serializeProductEvidence(report))
+  const persist = () => writeFile(reportFile, encodeProductEvidence(report))
   let driver,
     product,
     session,
@@ -3408,6 +3461,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             // input; no direct scrollTop, editor command or cache mutation is used.
             const diagnostics = () =>
               execute('return window.__milkupDesktopTest.getMermaidPresentationDiagnostics()')
+            const prefetchEvidence = (row.prefetch = {
+              documentLines: fixtures.syntax.split('\n').length,
+              maxVisibleWaitMs: 100,
+              readinessSamples: [],
+            })
             const firstFrom = fixtures.syntax.indexOf('```mermaid')
             assert.equal(
               (await state()).images.some((image) => image.visible),
@@ -3417,6 +3475,10 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             const warm = await until(
               async () => {
                 const value = await diagnostics()
+                // Keep the latest bounded observations even if readiness times out.
+                if (prefetchEvidence.readinessSamples.length === 32)
+                  prefetchEvidence.readinessSamples.shift()
+                prefetchEvidence.readinessSamples.push({ at: iso(), ...value })
                 return value.prefetchReady > 0 && value.pending === 0 && !value.prefetchActive
                   ? value
                   : false
@@ -3424,6 +3486,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               'Offscreen Mermaid is ready before scrolling',
               45000,
             )
+            prefetchEvidence.beforeScroll = warm
             assert(
               warm.prefetchRenders <= warm.maxPrefetchFences,
               'Initial prefetch stays within fence budget',
@@ -3442,6 +3505,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
                   (event.status === 'ready' || event.successful === true),
               )
               .map((event) => event.requestId)
+            prefetchEvidence.readyIds = readyIds
             assert(readyIds.length > 0, 'Offscreen readiness has actual renderer audit')
             await execute(
               `window.__mermaidScrollObservation={firstVisible:null,decoded:null,samples:0};
@@ -3477,6 +3541,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
                 ],
               })
               observed = await execute('return window.__mermaidScrollObservation')
+              prefetchEvidence.observed = observed
               if (observed.decoded !== null) break
             }
             assert(
@@ -3488,23 +3553,16 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
               'No visible renderer wait after prefetched fence enters viewport (100 ms gate)',
             )
             const warmedImage = await readImage('syntax-prefetched-first', false, firstFrom)
+            prefetchEvidence.warmedImage = warmedImage
             assert(
               readyIds.includes(warmedImage.native.requestId),
               'Visible image reuses render completed before scrolling',
             )
             const afterScroll = await diagnostics()
+            prefetchEvidence.afterScroll = afterScroll
             assert(afterScroll.cacheHits > warm.cacheHits, 'Scroll consumed prefetched cache')
             assert(afterScroll.cacheBytes <= afterScroll.maxCacheBytes)
             assert(afterScroll.pending <= 8)
-            row.prefetch = {
-              beforeScroll: warm,
-              afterScroll,
-              observed,
-              warmedImage,
-              readyIds,
-              documentLines: fixtures.syntax.split('\n').length,
-              maxVisibleWaitMs: 100,
-            }
             row.syntaxCases = []
             for (const example of syntaxCases) {
               const heading = fixtures.syntax.indexOf('# Syntax ' + example.id + '\n')

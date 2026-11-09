@@ -104,6 +104,41 @@ function Read-SmallJson([string]$Path) {
     if ((Get-Item -LiteralPath $Path).Length -gt 1MB) { throw 'JSON evidence exceeds its budget' }
     return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json -AsHashtable
 }
+# Only product reports use this transport. All identities and acceptance checks
+# below consume the fully restored report. Generic inputs remain <=1 MiB plain JSON.
+function Read-ProductJson([string]$Path) {
+    $value = Read-SmallJson $Path
+    if (-not $value.ContainsKey('encoding')) { return $value }
+    if ($value.encoding -cne 'milkup-product-gzip-v1' -or
+        $value.rawBytes -isnot [long] -and $value.rawBytes -isnot [int] -or
+        $value.rawBytes -le 1MB -or $value.rawBytes -gt 4MB -or
+        $value.data -isnot [string] -or $value.data.Length -gt 1MB) { throw 'Invalid bounded compressed product report' }
+    $packed = [Convert]::FromBase64String($value.data)
+    if ([Convert]::ToBase64String($packed) -cne $value.data -or $packed.Length -ne $value.packedBytes -or
+        [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($packed)).ToLowerInvariant() -cne $value.packedSha256) { throw 'Compressed product bytes mismatch' }
+    $inputStream = [IO.MemoryStream]::new($packed, $false)
+    $outputStream = [IO.MemoryStream]::new()
+    $gzip = [IO.Compression.GZipStream]::new($inputStream, [IO.Compression.CompressionMode]::Decompress)
+    try {
+        $buffer = [byte[]]::new(65536)
+        while (($count = $gzip.Read($buffer, 0, $buffer.Length)) -gt 0) {
+            if ($outputStream.Length + $count -gt $value.rawBytes) { throw 'Expanded product evidence exceeds declared bound' }
+            $outputStream.Write($buffer, 0, $count)
+        }
+        $raw = $outputStream.ToArray()
+    } finally { $gzip.Dispose(); $inputStream.Dispose(); $outputStream.Dispose() }
+    if ($raw.Length -ne $value.rawBytes -or
+        [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($raw)).ToLowerInvariant() -cne $value.rawSha256) { throw 'Expanded product bytes mismatch' }
+    $report = ([Text.UTF8Encoding]::new($false, $true)).GetString($raw) | ConvertFrom-Json -AsHashtable
+    if ($report.ContainsKey('encoding')) { throw 'Nested product evidence rejected' }
+    if ($value.counts.Count -ne 4) { throw 'Product record counts missing' }
+    foreach ($key in @('steps', 'launches', 'nativeAudit', 'inputs')) {
+        $actual = 0
+        if ($report.ContainsKey($key) -and $report[$key] -is [array]) { $actual = $report[$key].Count }
+        if (-not $value.counts.ContainsKey($key) -or $value.counts[$key] -ne $actual) { throw 'Product record counts mismatch' }
+    }
+    return $report
+}
 function Write-Json([string]$Path, $Value) {
     if (Test-Path -LiteralPath $Path) { Assert-PlainPath $Path }
     $json = $Value | ConvertTo-Json -Depth 24
@@ -527,7 +562,7 @@ function Prepare-RealOldPluginChoice($Spec, $Context, [string]$Scratch, [string]
         Write-LifecycleProgress $Spec $Evidence 'old-profile-ui-prepare-finish' @{ status = $run.status; elapsedMs = $run.elapsedMs }
         if ($run.status -cne 'passed') { throw "Real old profile preparation failed: $($run.error)" }
         $reportPath = Join-Path $output 'mermaid-product-e2e.json'
-        $report = Read-SmallJson $reportPath
+        $report = Read-ProductJson $reportPath
         if ($report.status -cne 'passed' -or $report.runId -cne $Spec.runId -or $report.context.actualSid -cne $Spec.expectedSid -or
             $report.migration.phase -cne 'prepare' -or $report.migration.choice -cne $oldChoice -or
             $report.applicationSha256 -cne $variables.MILKUP_WINDOWS_MERMAID_APP_SHA256 -or
@@ -828,7 +863,7 @@ function Invoke-StandardChild {
         $result.nodeExitCode = $result.nodeRun.exitCode
         if ($result.nodeRun.status -cne 'passed') { throw "Windows product Node harness failed: $($result.nodeRun.error)" }
         $reportName = $(if ($spec.harnessMode -ceq 'gui-regression') { 'gui-regression.json' } else { 'mermaid-product-e2e.json' })
-        $report = Read-SmallJson (Join-Path $evidence $reportName)
+        $report = if ($spec.harnessMode -ceq 'gui-regression') { Read-SmallJson (Join-Path $evidence $reportName) } else { Read-ProductJson (Join-Path $evidence $reportName) }
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
         if ($report.rendererMode -cne $spec.rendererMode) { throw 'Renderer acceptance mode mismatch' }
         if ($spec.harnessMode -ceq 'product' -and $report.applicationCandidateSha -cne $spec.applicationCandidateSha) { throw 'Product report did not bind the installed application identity' }
