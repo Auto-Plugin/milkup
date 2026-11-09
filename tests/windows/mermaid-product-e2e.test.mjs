@@ -2809,7 +2809,9 @@ test('plugin strategies reject document-mode leakage, stale persistence and chan
     restoredMode: 'live',
     transitions: ['source', 'preview', 'live'].map((strategy) => ({
       strategy,
+      appliedEditorMode: 'live',
       editorMode: 'live',
+      editorFocused: true,
       versionBefore: 1,
       versionAfter: 1,
       dirtyBefore: false,
@@ -2828,6 +2830,8 @@ test('plugin strategies reject document-mode leakage, stale persistence and chan
     (v) => (v.defaultMode = 'preview'),
     (v) => v.transitions.pop(),
     (v) => (v.transitions[0].editorMode = 'source'),
+    (v) => (v.transitions[0].appliedEditorMode = 'source'),
+    (v) => (v.transitions[2].editorFocused = false),
     (v) => (v.transitions[0].persisted = 'live'),
     (v) => (v.transitions[1].inside = false),
     (v) => (v.transitions[2].outside = false),

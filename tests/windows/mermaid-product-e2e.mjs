@@ -170,7 +170,13 @@ export function validatePluginRenderModes(row) {
     ['source', 'preview', 'live'],
   )
   for (const value of row.transitions) {
+    assert.equal(
+      value.appliedEditorMode,
+      'live',
+      'Plugin strategy must not change mode before refocusing',
+    )
     assert.equal(value.editorMode, 'live', 'Plugin strategy must not change document mode')
+    assert.equal(value.editorFocused, true, 'Inside-fence editing requires real editor focus')
     assert.equal(value.versionAfter, value.versionBefore)
     assert.equal(value.dirtyAfter, value.dirtyBefore)
     assert.equal(typeof value.markdownBefore, 'string')
@@ -3016,12 +3022,27 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           const beforeStrategy = await state(),
             otherBefore = await unaffected()
           await setMermaidStrategy(strategy)
+          const appliedState = await state()
+          assert.equal(
+            appliedState.mode,
+            beforeStrategy.mode,
+            'Plugin preference preserves editor mode before any focus normalization',
+          )
+          assert.equal(appliedState.version, beforeStrategy.version)
+          assert.equal(appliedState.dirty, beforeStrategy.dirty)
+          // Closing settings leaves focus on the menu button. Mixed mode correctly
+          // shows the image until the user actually resumes editing the fence.
+          // Use existing native pointer/keys, and retain the pre-normalization
+          // mode evidence so this action cannot conceal a plugin mode leak.
+          await position(fixtures.ordinary, fixtures.ordinary.indexOf('flowchart LR'))
           await rendered(strategy === 'preview')
           const afterStrategy = await state(),
             otherAfter = await unaffected()
           const transition = {
             strategy,
+            appliedEditorMode: appliedState.mode,
             editorMode: afterStrategy.mode,
+            editorFocused: afterStrategy.editorFocused,
             versionBefore: beforeStrategy.version,
             versionAfter: afterStrategy.version,
             dirtyBefore: beforeStrategy.dirty,
