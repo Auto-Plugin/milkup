@@ -66,6 +66,7 @@ if ($env:TAURI_CONFIG -or (Test-Path apps/desktop/src-tauri/tauri.windows.conf.j
     throw 'Unexpected installer/runtime/update configuration'
 }
 if (-not $env:CARGO_TARGET_DIR) { throw 'An isolated Cargo target directory is required' }
+& "$PSScriptRoot/prepare-windows-nsis-tools.ps1" -EvidenceDirectory $EvidenceDirectory
 $env:CARGO_BUILD_TARGET = 'x86_64-pc-windows-msvc'
 Checked pnpm @('--filter', '@milkup/desktop', 'exec', 'tauri', 'build', '--target', 'x86_64-pc-windows-msvc', '--bundles', 'nsis', '--config', $overlay, '--ci', '--', '--locked')
 $release = Join-Path $env:CARGO_TARGET_DIR 'x86_64-pc-windows-msvc/release'

@@ -217,3 +217,36 @@ x86_64-pc-windows-msvc. Full local desktop cross-check is blocked at ring's nati
 build because this Linux environment lacks MSVC lib.exe; it does not establish
 Windows test success. The next real Windows workflow must compile and execute
 both new tests and the original failing test before product/GUI acceptance.
+
+## Exact source acceptance and installer tool availability
+
+42563952707 / 9e7b825a completed successfully. Independent raw verification:
+Windows desktop Rust 239 passed / 3 ignored; both product reports 11/11 and outer
+product audits passed, including exact PNGs and frontend launch identities. Both
+GUI full contracts passed, twelve compact and twelve spaced diagrams plus returns,
+eighteen trusted rapid wheel inputs, and normal idle/busy closure with internal
+cleanup. Window observers complete without overflow, positive controls passed,
+zero visible product or unattributed consoles. Prefetch renders stayed 8 -> 8
+across the nearby scroll (seven further cache hits), rather than the earlier 8 ->
+30 churn. Cold ordinary process-birth -> decoded was 8072.6 / 3407.8 ms, one sample
+per account with debugger attached; 5131.4 / 488.0 ms preceded navigation. This
+single pair does not establish the cause or distribution of startup variability.
+Complete artifact 13651681542 ZIP SHA-256:
+3561dd378d0d8da29317f6d43038af0f984a9630775a67c5b6a6d95de2401643.
+
+Installer run 42566346681 attempts 1 and 2 both compiled the release executable,
+then the official NSIS ZIP download returned HTTP 504. No installer or installed
+validation was produced. Move this build prerequisite ahead of compilation: use
+exact official GitHub release asset IDs, uploaded metadata, byte lengths, SHA-256
+and the unchanged locked Tauri 2.11.4 SHA-1 checks. Allow at most three requests
+only on explicit upstream 502/503/504; permission, authentication, timeout, budget
+and integrity failures stop immediately. No alternative/unverified binary is
+accepted. Extract into fresh bounded staging with safe paths and plain required
+files, then let Tauri perform its normal checks. Retain the receipt with packaging
+evidence. Application source remains identical to accepted 9e7b825a.
+
+Local verification: exact official NSIS ZIP downloaded through its public asset
+API, 2361546 bytes, 441 entries, 7134287 uncompressed bytes, all CRC/path/mode
+checks passed; hashes match both pins. Seven new negative/positive tool-download
+tests and the packaging suite passed (56 total); PowerShell AST parses. The new
+Windows preparation/build and actual installations remain to be executed.
