@@ -459,3 +459,72 @@ binary and exact installed Runtime version checks. `8fdad5c2` also moves child
 Node receipt/health execution onto the established bounded stream/EOF capture
 helper. Run `43152924203` validates these corrections against the unchanged
 `bf8a2d50` package; installed editing/configuration health is still pending.
+
+## Latest installs, newly found close defect, and next application candidate
+
+`43153087839 / ca39599b` used only the original `5d79147a` packages. Standard
+Windows install, normal close, missing-executable same-package repair, second
+normal close and actual NSIS uninstall passed, no forced cleanup. Restored EXE
+SHA is `4ff93b8dd448243426a5faf3a095fa94cc84dc1cc1a206df0093ab4f9f174a9e`.
+Artifact `13914469011` SHA is
+`c83ecfedb2dff5c27d08416eb196ef869abf2cd6564da664def53434210c6a1a`.
+Linux package installation/removal also passed (GUI not exercised).
+
+Offline Windows failed **after repair**, not during installation: installer and
+repair each exited 0, initial close exited 0, restored EXE SHA matched
+`09d30998758c26b8a978a6c7dab4e28def9dc65d6a8ec0e32200f4640144fbca`.
+The repaired process exposed its owned Tauri window after 655.21 ms. The real
+native close request did not exit within the unchanged 15-second budget;
+forcedCleanup=true and uninstall was not reached. Artifact `13914722195` SHA is
+`597f1e51991e0a7cbcb42ad9f248c70317bbe65a265d09949aad626e411e1a77`.
+This failure is retained; neither the standard pass nor a later rerun erases it.
+
+Inspection found a reproducible application defect consistent with this timing:
+main prevents native close, then documentTransitions.request silently returns
+while loading/saving is busy. `8a537208` retains one pending window-close intent,
+rechecks the current document after loading/saving/transition completion, keeps
+ordinary unsaved-change confirmation and cleanup, and clears the intent on
+cancellation. No close timeout, save or cleanup requirement was loosened.
+69 transition/workspace tests, desktop TypeScript checking and three real
+Chromium UI tests passed (including save failure followed by unsaved-content
+confirmation). The first browser invocation could not start within nested
+bubblewrap; the approved retry outside bubblewrap retained Chromium's sandbox
+and passed. This is not Windows validation. Actual offline failure causality
+still requires the next native installation run.
+
+Application/source candidate `8a5372080f1ce72426d90a370796c87a40bb3ac9` now has
+source run `43154244097` and distribution run `43154244021`. Previous `5d79147a`
+package/source results must not be assigned to this changed application.
+
+## Startup-order mitigation product result
+
+`43151150510 / f7efe4ef` original product artifact `13915150383` is 1,088,691
+bytes, SHA-256 `f73a340c1480477c34a4b91ce2f0a2b07087a44e820fe1604a0d5443704349b8`.
+Both product reports were independently restored after validating packed/raw
+SHA and lengths; both passed 11/11 and both external account audits passed.
+Both did reach the initial-document-ready observation before native geometry;
+geometry then took about 3.81 ms / 3.41 ms, avoiding the earlier 30-second stall
+in this run. Independent GUI is still running at this checkpoint.
+
+This is **not** a uniform startup performance pass: pure-standard first decoded
+image was 17,493.1 ms after navigation (about 20,634 ms after process start),
+filtered-admin 2,722.2 ms after navigation (about 3,434 ms after process start).
+Pure-standard shell-created-to-first-paint was about 4694 ms, multiple initial
+IPC requests took about 1195-1199 ms, and catalogue preparation also had slow
+calls. These observations do not isolate a single cause or establish a p95.
+
+## Repair-health harness now reaches the installed UI
+
+`43152924203` identified that child Node name lookup was unavailable. The next
+exact-image attempt `43153242826` exposed the specific cause: Get-Command
+returned two Node installations, coerced into one invalid path. `4bafc426`
+selects the first resolved executable and binds its absolute path/hash through
+the read-only child spec, as the established account wrapper does.
+`43153859562` then installed `5d79147a`, attached to the production WebView,
+opened the exact document and changed the real Diagrams switch true -> false.
+It failed trying to click a nonexistent zero-numbered source line; no editing
+or repair health is claimed. Artifact `13915720275` SHA is
+`d413f7814f1902bcb50ffad667fe3f14e6e3aa91635550edeb72d9ebc3fab5a2`.
+`d4cca75a / 43154235678` selects an actually visible source line, sends Enter as
+a real WebDriver key, and preserves failure DOM/screenshot evidence. It still
+uses the original `5d79147a` package; the new close fix is not in those bytes.
