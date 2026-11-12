@@ -153,7 +153,12 @@ export function render(state?: State): SdkRendererOutput {
     children.push(text('输出使用开始时的内容；之后的编辑不会加入本次输出。'))
     for (const warning of state.snapshot.warnings) children.push(text(warning.message, 'status'))
   }
-  const status = state ? messages[state.phase] : '正在准备导出工具…'
+  const status =
+    state?.phase === 'cancelled' && state.format === 'print'
+      ? '已停止等待本次打印。若已在系统窗口确认，请先检查打印队列，勿重复打印。'
+      : state
+        ? messages[state.phase]
+        : '正在准备导出工具…'
   if (status) children.push(text(status, 'status'))
   if (state?.phase === 'done')
     children.push(

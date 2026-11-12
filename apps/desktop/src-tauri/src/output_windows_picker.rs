@@ -283,6 +283,27 @@ pub(in crate::output) fn choose_target(job: &Arc<Job>, title: String) -> Result<
     if job.format == Format::Print {
         return Err("Print uses the native print dialog".into());
     }
+    choose_target_extension(
+        job,
+        title,
+        if job.format == Format::Pdf {
+            "pdf"
+        } else {
+            "html"
+        },
+    )
+}
+pub(in crate::output) fn choose_pdf_target(
+    job: &Arc<Job>,
+    title: String,
+) -> Result<Option<Target>> {
+    choose_target_extension(job, title, "pdf")
+}
+fn choose_target_extension(
+    job: &Arc<Job>,
+    title: String,
+    extension: &str,
+) -> Result<Option<Target>> {
     let name: String = title
         .chars()
         .filter(|c| !c.is_control() && !"\\/:<>\"|?*".contains(*c))
@@ -295,11 +316,7 @@ pub(in crate::output) fn choose_target(job: &Arc<Job>, title: String) -> Result<
         } else {
             name.trim_end_matches([' ', '.'])
         },
-        if job.format == Format::Pdf {
-            "pdf"
-        } else {
-            "html"
-        }
+        extension
     );
     let mut command = Command::new(std::env::current_exe().map_err(error)?);
     command.arg("--milkup-internal-output-helper");

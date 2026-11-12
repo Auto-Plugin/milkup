@@ -68,6 +68,6 @@ await run(['run', 'build'], 'build.log')
 await run(['test'], 'test.log')
 await writeFile(
   resolve(target, 'verification.json'),
-  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: 'dist/milkup.export-print-1.0.0.milkup-plugin' }, null, 2)}\n`,
+  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: 'dist/milkup.export-print-1.0.1.milkup-plugin' }, null, 2)}\n`,
 )
 console.log(`Independent export-print plugin verified: ${target}`)

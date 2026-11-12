@@ -14,7 +14,7 @@ $env:MILKUP_PDF_EVIDENCE_DIR = $evidence
 $summary = [ordered]@{
   schema = 1; candidateSha = $sha; platform = [Environment]::OSVersion.VersionString
   nativeContracts = 'not-run'; installedWebView2Pdf = 'not-run'
-  guiPicker = 'not-run'; printedToQueue = 'unsupported'; physicalPrint = 'not-run'
+  guiPicker = 'not-run'; printedToQueue = 'not-run'; physicalPrint = 'not-run'
   textAndVisualFidelity = 'not-run'; linuxRegression = 'not-run'; releaseReady = $false
 }
 try {

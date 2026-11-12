@@ -63,11 +63,22 @@ native helper-only fixture as a substitute for that acceptance.
 
 ## Still open, not hidden by this patch
 
-1. **Windows printing remains unavailable.** `ShowPrintUI` returns without a
-   print-completed/cancelled result. Calling it and returning `printed` would
-   falsely report success and allow lease cleanup to kill an active dialog.
-   A real owned native selection/submission lifecycle must be implemented and
-   verified, including cancel, queue failure and safe file-printer destinations.
+1. **Windows printing now has a candidate implementation, not native acceptance.**
+   It uses the native printer chooser and WebView2 `Print` callback, rather than
+   equating `ShowPrintUI` with success. Queue acceptance, native cancellation,
+   printer failure, copies, collation, page range, standard/explicit media size,
+   orientation, color and duplex are represented. The built-in English-named
+   Microsoft Print to PDF destination returns bytes to a second, host-owned
+   PDF save picker. Other known FILE:/PORTPROMPT: destinations are rejected;
+   renamed/localized or third-party virtual printer behavior still needs
+   validation. Unknown paper sizes are rejected, not silently changed to A4.
+   Arbitrary vendor-specific DEVMODE properties/tray choices are not mapped by
+   WebView2's public print settings; these are a remaining acceptance boundary.
+   The physical printer and file-printer GUI paths have **not run here**.
+   The export-print plugin is bumped to 1.0.1 and no longer tells users that a
+   canceled wait retracts an already submitted queue entry. The integrator must
+   rebuild/update its bundled package and inventories; this patch does not
+   silently edit their hashes or publish an archive.
 2. **Linux PDF text/copy/search and long-block pagination are not repaired.**
    The prior user decision is to keep existing dependencies and pursue a WebKit
    patch, not add system Chromium or bundle a large private engine. See
@@ -83,3 +94,22 @@ native helper-only fixture as a substitute for that acceptance.
 
 Gap 1 therefore remains **open** until those missing features and platform
 acceptance are complete. None of this evidence authorizes formal publication.
+
+## Latest Linux dependency check (2026-11-12)
+
+The latest stable release page checked is WebKitGTK 2.54.2 (2026-10-23).
+Both its tagged `FontSkia.cpp` and upstream main pinned to
+`98d4e2c3ae520d58ad0c5c06a76f3cef90293181` still build glyph-only blobs with
+`allocRunPos` / `allocRunPosH`, not original-text/cluster-bearing runs. See
+[exact URLs, hashes and line observations](webkit-upstream-check.json).
+This source check does **not** claim the current release binary was tested;
+it shows no verified upstream repair to adopt for the identified metadata loss.
+A full matched WebKit patch/build plus normal-distribution delivery remains
+necessary under the chosen dependency constraint. No extra engine, hidden text
+layer, glyph-to-Unicode guessing, Unicode normalization, clipping or document
+container splitting was used to mask the open fidelity/pagination failures.
+
+Second-stage checks: isolated Windows-target type-check including the printer
+module and protocol tests passed. Independent export-print 1.0.1 build,
+TypeScript check and 18 Vitest tests passed using the public SDK 0.3.8 tarball.
+Those tests are plugin/controller tests, not Windows printing or Linux output.

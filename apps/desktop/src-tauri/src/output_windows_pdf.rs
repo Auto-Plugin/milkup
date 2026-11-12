@@ -22,10 +22,21 @@ use webview2_com::{Microsoft::Web::WebView2::Win32::*, *};
 
 const URL: &str = "milkup-output://job/document";
 const CSP: &str = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+#[path = "output_windows_printer.rs"]
+mod printer;
+
+enum Rendered {
+    Pdf(Vec<u8>),
+    PdfPrint(Vec<u8>),
+    Printed,
+    Cancelled,
+}
+
 const RENDER_TIME: Duration = Duration::from_secs(90);
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Input {
+    print: bool,
     html: String,
     page_size: PageSize,
     landscape: bool,
@@ -109,11 +120,6 @@ pub(in crate::output) fn render(
     page_size: PageSize,
     landscape: bool,
 ) -> Result<NativeResult> {
-    if job.format == Format::Print {
-        // ShowPrintUI has no completion/cancel callback. Do not report opening
-        // that UI as a completed print or kill it immediately after opening it.
-        return Err("Native Windows printing is not available on this platform".into());
-    }
     let mut command = Command::new(std::env::current_exe().map_err(error)?);
     command.arg("--milkup-internal-pdf-helper");
     render_with_command(job, html, page_size, landscape, command)
@@ -127,7 +133,9 @@ fn render_with_command(
 ) -> Result<NativeResult> {
     job.active()?;
     let private = Private::new()?;
+    let printing = job.format == Format::Print;
     let input = serde_json::to_vec(&Input {
+        print: printing,
         html,
         page_size,
         landscape,
@@ -168,9 +176,19 @@ fn render_with_command(
         let mut reader = BufReader::new(stdout);
         let mut status = [0];
         let result = reader.read_exact(&mut status).map_err(error).and_then(|_| {
-            let bytes = frame_read(&mut reader, if status[0] == 0 { MAX_PDF } else { 4096 })?;
+            let bytes = frame_read(
+                &mut reader,
+                if status[0] == 0 || status[0] == 4 {
+                    MAX_PDF
+                } else {
+                    4096
+                },
+            )?;
             match status[0] {
-                0 if bytes.starts_with(b"%PDF-") => Ok(bytes),
+                0 if bytes.starts_with(b"%PDF-") => Ok(Rendered::Pdf(bytes)),
+                2 if bytes == b"printed" => Ok(Rendered::Printed),
+                3 if bytes == b"cancelled" => Ok(Rendered::Cancelled),
+                4 if bytes.starts_with(b"%PDF-") => Ok(Rendered::PdfPrint(bytes)),
                 1 => Err(String::from_utf8_lossy(&bytes).into_owned()),
                 _ => Err("Invalid native PDF response".into()),
             }
@@ -219,9 +237,22 @@ fn render_with_command(
     let read = reader.join().map_err(|_| "PDF reader failed".to_owned());
     read??;
     private.clean()?;
-    let bytes = result?;
+    let result = result?;
     written??;
-    Ok(NativeResult::Pdf(bytes, None))
+    match result {
+        Rendered::Pdf(bytes) if !printing => Ok(NativeResult::Pdf(bytes, None)),
+        Rendered::Printed if printing => Ok(NativeResult::Printed),
+        Rendered::Cancelled if printing => Ok(NativeResult::Cancelled),
+        Rendered::PdfPrint(bytes) if printing => {
+            // The known PDF printer is treated as a guarded file destination,
+            // never passed to a driver that could overwrite an arbitrary file.
+            match super::picker::choose_pdf_target(job, "document".into())? {
+                Some(target) => Ok(NativeResult::Pdf(bytes, Some(target))),
+                None => Ok(NativeResult::Cancelled),
+            }
+        }
+        _ => Err("Output helper returned a mismatched operation".into()),
+    }
 }
 
 fn pump<T>(rx: &mpsc::Receiver<T>, deadline: Instant) -> Result<T> {
@@ -262,13 +293,13 @@ fn fatal() -> ! {
     std::process::exit(2)
 }
 
-fn pdf(input: Input) -> Result<Vec<u8>> {
+fn pdf(input: Input) -> Result<Rendered> {
     unsafe {
         CoInitializeEx(None, COINIT_APARTMENTTHREADED)
             .ok()
             .map_err(error)?;
     }
-    let deadline = Instant::now() + RENDER_TIME;
+    let deadline = Instant::now() + if input.print { LEASE } else { RENDER_TIME };
     let directory = wide(
         input
             .directory
@@ -333,7 +364,7 @@ fn pdf(input: Input) -> Result<Vec<u8>> {
             .map_err(error)?;
     }
     let controller = pump(&rx, deadline)?.map_err(error)?;
-    let result = (|| -> ::windows::core::Result<Vec<u8>> {
+    let result = (|| -> ::windows::core::Result<Rendered> {
         unsafe {
             controller.SetBounds(RECT {
                 left: 0,
@@ -510,6 +541,34 @@ fn pdf(input: Input) -> Result<Vec<u8>> {
             settings.SetMarginBottom(0.0)?;
             settings.SetMarginLeft(0.0)?;
             settings.SetMarginRight(0.0)?;
+            let selection = if input.print {
+                printer::choose(&settings, window, input.page_size, input.landscape)?
+            } else {
+                printer::Selection::Pdf
+            };
+            if selection == printer::Selection::Cancelled {
+                return Ok(Rendered::Cancelled);
+            }
+            if selection == printer::Selection::Printer {
+                let (tx, rx) = mpsc::channel();
+                view.cast::<ICoreWebView2_16>()?.Print(
+                    &settings,
+                    &PrintCompletedHandler::create(Box::new(move |hr, status| {
+                        let _ = tx.send(hr.map(|_| status));
+                        Ok(())
+                    })),
+                )?;
+                let status =
+                    pump(&rx, deadline).map_err(|_| ::windows::core::Error::from(E_FAIL))??;
+                return if status == COREWEBVIEW2_PRINT_STATUS_SUCCEEDED {
+                    Ok(Rendered::Printed)
+                } else {
+                    Err(::windows::core::Error::new(
+                        E_FAIL,
+                        format!("Printer did not accept document (status {})", status.0),
+                    ))
+                };
+            }
             let (tx, rx) = mpsc::channel();
             view.cast::<ICoreWebView2_16>()?.PrintToPdfStream(
                 &settings,
@@ -539,7 +598,11 @@ fn pdf(input: Input) -> Result<Vec<u8>> {
                     break;
                 }
             }
-            Ok(bytes)
+            Ok(if input.print {
+                Rendered::PdfPrint(bytes)
+            } else {
+                Rendered::Pdf(bytes)
+            })
         }
     })();
     unsafe {
@@ -563,8 +626,14 @@ pub(in crate::output) fn run_pdf_helper() {
     #[cfg(test)]
     let mut output = std::io::stderr().lock();
     match result {
-        Ok(bytes) => {
-            let _ = output.write_all(&[0]);
+        Ok(result) => {
+            let (status, bytes) = match result {
+                Rendered::Pdf(bytes) => (0, bytes),
+                Rendered::PdfPrint(bytes) => (4, bytes),
+                Rendered::Printed => (2, b"printed".to_vec()),
+                Rendered::Cancelled => (3, b"cancelled".to_vec()),
+            };
+            let _ = output.write_all(&[status]);
             let _ = frame_write(&mut output, &bytes);
         }
         Err(failure) => {
@@ -650,6 +719,12 @@ mod tests {
                     .write_all(&[0, 5, 0, 0, 0, b'%', b'P', b'D', b'F', b'-', 42])
                     .unwrap();
             }
+            "printed" | "cancelled" => {
+                std::io::stderr()
+                    .write_all(&[if mode == "printed" { 2 } else { 3 }])
+                    .unwrap();
+                frame_write(&mut std::io::stderr(), mode.as_bytes()).unwrap();
+            }
             "hang" => {}
             _ => panic!("Unknown fixture"),
         }
@@ -669,6 +744,42 @@ mod tests {
             )
             .is_err());
         }
+    }
+    #[test]
+    fn print_protocol_distinguishes_submission_cancel_and_mismatched_pdf_leases() {
+        let mut job = lease();
+        Arc::get_mut(&mut job).unwrap().format = Format::Print;
+        assert!(matches!(
+            render_with_command(
+                &job,
+                "<p>test</p>".into(),
+                PageSize::A4,
+                false,
+                fixture_command("printed")
+            )
+            .unwrap(),
+            NativeResult::Printed
+        ));
+        assert!(matches!(
+            render_with_command(
+                &job,
+                "<p>test</p>".into(),
+                PageSize::A4,
+                false,
+                fixture_command("cancelled")
+            )
+            .unwrap(),
+            NativeResult::Cancelled
+        ));
+        assert!(render_with_command(
+            &lease(),
+            "<p>test</p>".into(),
+            PageSize::A4,
+            false,
+            fixture_command("printed")
+        )
+        .is_err());
+        // Protocol fixtures do not submit a printer job or prove a native dialog.
     }
     #[test]
     fn cancellation_terminates_helper_without_publishing() {
