@@ -24,6 +24,8 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  if ((Get-Item -LiteralPath $ChildSpec).Length -gt 16384) { throw 'Bounded immutable spec required' }
  $spec=Get-Content -LiteralPath $ChildSpec -Raw | ConvertFrom-Json
  if ($spec.harnessSha -cne $env:GITHUB_SHA -or $spec.id -cnotmatch '^[a-f0-9]{32}$') { throw 'Child spec candidate mismatch' }
+ Plain $spec.node.path
+ if (![IO.Path]::IsPathFullyQualified($spec.node.path) -or (Get-FileHash -LiteralPath $spec.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $spec.node.sha256) { throw 'Exact parent-verified Node image required' }
  $identity=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
  if (!$identity.ContainsKey('token') -or $identity.token.sid -cne $spec.sid -or ![WindowsMermaidStandardUser]::MatchesExpectedAccountKind($identity.token,'pure-standard') -or $identity.token.sessionId -ne $spec.session) { throw 'Exact child identity gate failed' }
  $desktop=[WindowsMermaidStandardUser]::ObserveCurrentContext()
@@ -39,7 +41,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Json (Join-Path $scratch 'child-identity.json') @{identity=$identity;desktop=$desktop;knownFolders=@{profile=$profile;roaming=$roaming;local=$local};sourceSha=$spec.sourceSha;harnessSha=$spec.harnessSha}
  Set-Location $repo
  try {
-  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth
+  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -NodeExecutable $spec.node.path
   exit 0
  } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 }
 }
@@ -88,8 +90,11 @@ try {
  $inputRoot=Join-Path $stage 'input';NewDir $inputRoot
  foreach($source in @((Join-Path $Directory 'manifest.json'),$receipt.installer.path)) {Plain $source;Copy-Item -LiteralPath $source -Destination $inputRoot}
  $specFile=Join-Path $code 'repair-spec.json'
- Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant}
  $node=(Get-Command node -CommandType Application).Source;$pwsh=(Get-Command pwsh -CommandType Application).Source
+ Plain $node
+ $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
+ $audit['node']=$nodeProof
+ Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof}
  $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'

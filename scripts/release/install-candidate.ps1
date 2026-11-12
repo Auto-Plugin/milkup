@@ -1,9 +1,10 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[string]$NodeExecutable)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
+if ($RepairHealth -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
 New-Item -ItemType Directory $EvidenceDirectory | Out-Null
@@ -53,7 +54,7 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   if ($RepairHealth) {
     $healthPhase=if ($Prefix) {'after'} else {'before'}
     $healthRun=[WindowsMermaidStandardUser]::RunNodeScript(
-      (Get-Command node -CommandType Application).Source,
+      $NodeExecutable,
       [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory),
       $PSScriptRoot,(Join-Path $EvidenceDirectory "health-$healthPhase.stdout.log"),(Join-Path $EvidenceDirectory "health-$healthPhase.stderr.log"),190000)
     Phase ($Prefix + 'health-node-exit') $healthRun
@@ -175,7 +176,7 @@ try {
   if ($RepairHealth) {
     $receiptFile=Join-Path $EvidenceDirectory 'verified-receipt.json'
     $receiptRun=[WindowsMermaidStandardUser]::RunNodeScript(
-      (Get-Command node -CommandType Application).Source,
+      $NodeExecutable,
       [string[]]@((Join-Path $PSScriptRoot 'verify-candidate.mjs'),$Directory,$SourceSha,$Variant),
       $PSScriptRoot,$receiptFile,(Join-Path $EvidenceDirectory 'receipt.stderr.log'),30000)
     Phase 'receipt-verifier-exit' $receiptRun
