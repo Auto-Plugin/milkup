@@ -1,7 +1,10 @@
 name: Cross-platform distribution candidate (no release)
 
-# Explicit invocation only. No tag, Release, signing secret, cache or deployment.
+# Exact integration branch + explicit commit marker, or manual invocation.
+# No tag, Release, signing secret, cache or deployment.
 on:
+  push:
+    branches: [dot/release-quality-integration-20261112]
   workflow_dispatch:
     inputs:
       expected_sha:
@@ -20,7 +23,12 @@ concurrency:
   cancel-in-progress: false
 jobs:
   package:
-    if: github.repository == 'Auto-Plugin/milkup'
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.ref == 'refs/heads/dot/release-quality-integration-20261112' &&
+        github.event.deleted == false &&
+        contains(github.event.head_commit.message, '[distribution-candidate]')))
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -33,7 +41,7 @@ jobs:
           - os: ubuntu-24.04
             variant: linux-deb
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 120
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
@@ -51,7 +59,7 @@ jobs:
           persist-credentials: false
       - name: Match explicitly selected source
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ github.event_name == 'push' && github.sha || inputs.expected_sha }}
         run: |
           test "$EXPECTED_SHA" = "$GITHUB_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
@@ -93,6 +101,18 @@ jobs:
         env:
           VARIANT: ${{ matrix.variant }}
         run: node scripts/release/build-candidate.mjs "$VARIANT" "$RUNNER_TEMP/milkup-candidate" "$GITHUB_SHA"
+      - name: Actual Windows PDF contracts and installed WebView2 output
+        if: matrix.variant == 'windows-standard'
+        shell: pwsh
+        run: ./tests/native/windows-pdf-backend.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'windows-pdf-evidence')
+      - name: Preserve Windows PDF evidence including failures
+        if: always() && matrix.variant == 'windows-standard'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-windows-pdf-${{ github.sha }}
+          path: ${{ runner.temp }}/windows-pdf-evidence/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Inspect Linux package metadata and installed payload without executing
         if: runner.os == 'Linux'
         run: |
@@ -109,7 +129,7 @@ jobs:
           cat "$RUNNER_TEMP/milkup-candidate/deliverable/manifest.json"
           echo "$VARIANT: compilation/packaging only. Native install, upgrade, uninstall, missing-Runtime/offline and rollback acceptance NOT RUN. Not a formal release." >> "$GITHUB_STEP_SUMMARY"
       - name: Retain explicitly requested unsigned candidate
-        if: inputs.upload_candidates
+        if: github.event_name == 'push' || inputs.upload_candidates
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milkup-${{ matrix.variant }}-${{ github.sha }}
