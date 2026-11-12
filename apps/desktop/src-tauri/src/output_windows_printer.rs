@@ -25,6 +25,12 @@ pub(super) enum Selection {
 fn unsupported(message: &str) -> ::windows::core::Error {
     ::windows::core::Error::new(E_NOTIMPL, format!("Unsupported print option: {message}"))
 }
+fn file_destination_port(port: &str) -> bool {
+    let upper = port.to_ascii_uppercase();
+    matches!(upper.as_str(), "PORTPROMPT:" | "FILE:" | "XPSPORT:")
+        || port.contains(['\\', '/'])
+        || (port.as_bytes().get(1) == Some(&b':') && port.as_bytes()[0].is_ascii_alphabetic())
+}
 struct Dialog(PRINTDLGW);
 impl Drop for Dialog {
     fn drop(&mut self) {
@@ -196,8 +202,9 @@ pub(super) unsafe fn choose(
     if copies == 0 {
         return Err(unsupported("invalid copy count"));
     }
-    let file_printer =
-        port.eq_ignore_ascii_case("PORTPROMPT:") || port.eq_ignore_ascii_case("FILE:");
+    // A configured Local Port can be an absolute/relative filename, not just
+    // FILE:. Never send those destinations to a driver outside our save lease.
+    let file_printer = file_destination_port(&port);
     let pdf = name.eq_ignore_ascii_case("Microsoft Print to PDF");
     if file_printer && !pdf {
         return Err(unsupported("use Export PDF instead of this file printer"));
@@ -259,6 +266,24 @@ pub(super) unsafe fn choose(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn file_and_path_ports_cannot_bypass_the_guarded_save_target() {
+        for port in [
+            "FILE:",
+            "portprompt:",
+            "XPSPort:",
+            "C:\\source.md",
+            "C:source.md",
+            "\\\\server\\share\\source.md",
+            "relative/output.pdf",
+            "relative\\output.pdf",
+        ] {
+            assert!(file_destination_port(port), "{port}");
+        }
+        for port in ["USB001", "LPT1:", "IP_192.0.2.1", "WSD-fixture"] {
+            assert!(!file_destination_port(port), "{port}");
+        }
+    }
     #[test]
     fn known_and_explicit_paper_sizes_are_preserved_unknown_sizes_rejected() {
         unsafe {

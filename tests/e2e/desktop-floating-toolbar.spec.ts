@@ -470,8 +470,9 @@ for (const windowed of [false, true])
       })
     })
     try {
-      if (windowed) await page.keyboard.press('Control+2')
-      else await page.locator('[data-mode-toggle]').click()
+      // The cycle button now visits preview before live. Select the existing
+      // live command directly so this still tests the source-to-live boundary.
+      await page.keyboard.press('Control+2')
       const transition = await page.evaluate(() => {
         const { samples } = Reflect.get(window, '__floatingModeTrace')
         return {

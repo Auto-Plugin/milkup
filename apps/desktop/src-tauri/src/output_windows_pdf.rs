@@ -163,6 +163,17 @@ fn render_with_command(
     command.stderr(Stdio::piped());
     let mut child = command.spawn().map_err(error)?;
     owner.assign(&mut child)?;
+    #[cfg(test)]
+    if let Some((_, Some(marker))) = command
+        .get_envs()
+        .find(|(name, _)| *name == "MILKUP_PRINT_GUI_PID_FILE")
+    {
+        use std::os::windows::io::AsRawHandle;
+        let born = tests::process_birth(child.as_raw_handle())?;
+        // The parent records the actual assigned child, not a PID self-reported
+        // by a later process. The observer requires this precise generation.
+        fs::write(marker, format!("{} {born}", child.id())).map_err(error)?;
+    }
     let mut stdin = child.stdin.take().ok_or("Missing PDF input pipe")?;
     #[cfg(not(test))]
     let stdout = child.stdout.take().ok_or("Missing PDF result pipe")?;
@@ -652,6 +663,19 @@ pub(in crate::output) fn run_pdf_helper() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    pub(super) fn process_birth(handle: windows_sys::Win32::Foundation::HANDLE) -> Result<u64> {
+        use windows_sys::Win32::{Foundation::FILETIME, System::Threading::GetProcessTimes};
+        let mut created = FILETIME::default();
+        let mut exited = FILETIME::default();
+        let mut kernel = FILETIME::default();
+        let mut user = FILETIME::default();
+        if unsafe { GetProcessTimes(handle, &mut created, &mut exited, &mut kernel, &mut user) }
+            == 0
+        {
+            return Err(error(std::io::Error::last_os_error()));
+        }
+        Ok((u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime))
+    }
     #[test]
     fn bounded_frame_rejects_empty_oversized_and_truncated_messages() {
         for bytes in [vec![0, 0, 0, 0], vec![5, 0, 0, 0], vec![3, 0, 0, 0, 1]] {
@@ -692,9 +716,6 @@ mod tests {
             return;
         };
         if mode == "native" || mode == "native-print" {
-            if let Some(marker) = std::env::var_os("MILKUP_PRINT_GUI_PID_FILE") {
-                fs::write(marker, std::process::id().to_string()).unwrap();
-            }
             run_pdf_helper();
         }
         let _ = frame_read(&mut std::io::stdin().lock(), MAX_HTML * 6 + 65536).unwrap();
@@ -808,6 +829,14 @@ mod tests {
     #[ignore = "real Windows native print dialog cancellation; requires interactive desktop and printer"]
     fn native_print_dialog_cancel_returns_cancelled_without_submission() {
         use ::windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
+        use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
+        use windows_sys::Win32::{
+            Foundation::WAIT_TIMEOUT,
+            System::Threading::{
+                OpenProcess, WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
+                PROCESS_SYNCHRONIZE,
+            },
+        };
         struct Found {
             pid: u32,
             window: HWND,
@@ -843,10 +872,27 @@ mod tests {
                     cancel.cancelled.store(true, Ordering::Release);
                     return Err("No real print dialog appeared within the native GUI gate".into());
                 }
-                if let Ok(pid) = fs::read_to_string(&marker_read)
-                    .unwrap_or_default()
-                    .parse::<u32>()
-                {
+                let identity = fs::read_to_string(&marker_read).unwrap_or_default();
+                if let Some((pid, born)) = identity.split_once(' ') {
+                    let pid = pid.parse::<u32>().map_err(error)?;
+                    let born = born.parse::<u64>().map_err(error)?;
+                    let raw = unsafe {
+                        OpenProcess(
+                            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+                            0,
+                            pid,
+                        )
+                    };
+                    if raw.is_null() {
+                        return Err("Assigned print helper is no longer accessible".into());
+                    }
+                    let process = unsafe { OwnedHandle::from_raw_handle(raw) };
+                    if process_birth(process.as_raw_handle())? != born
+                        || unsafe { WaitForSingleObject(process.as_raw_handle(), 0) }
+                            != WAIT_TIMEOUT
+                    {
+                        return Err("Print helper generation or live identity changed".into());
+                    }
                     let mut found = Found {
                         pid,
                         window: HWND::default(),
@@ -859,6 +905,13 @@ mod tests {
                         // Only this test's exact helper process and actual native
                         // dialog. No global key injection or printer submission.
                         unsafe {
+                            let mut current_pid = 0;
+                            GetWindowThreadProcessId(found.window, Some(&mut current_pid));
+                            if current_pid != pid
+                                || WaitForSingleObject(process.as_raw_handle(), 0) != WAIT_TIMEOUT
+                            {
+                                return Err("Owned print dialog retired before Cancel".into());
+                            }
                             if SendMessageTimeoutW(
                                 found.window,
                                 WM_COMMAND,
