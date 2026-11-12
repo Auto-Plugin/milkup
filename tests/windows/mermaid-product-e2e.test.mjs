@@ -2719,7 +2719,12 @@ test('startup timeline preserves slow stage measurements without changing budget
   timeline.mark('initial-document-ready')
   assert.equal(timeline.rows[2].elapsedMs - timeline.rows[1].elapsedMs, 7000)
   assert.equal(timeline.rows.at(-1).elapsedMs, 7401)
-  assert.equal(timeline.rows.length, 8)
+  timeline.mark('native-window-geometry-started')
+  mono += 40
+  wall += 40
+  timeline.mark('native-window-geometry-observed')
+  assert.equal(timeline.rows.at(-1).elapsedMs, 7441)
+  assert.equal(timeline.rows.length, 10)
   assert.throws(() => timeline.mark('initial-document-ready'), /Bounded startup/)
   assert.throws(() => timeline.mark(undefined), /Bounded startup/)
 })

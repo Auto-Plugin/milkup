@@ -26,6 +26,8 @@ export function createStartupTimeline(now = () => performance.now(), wall = () =
     'webdriver-attach-started',
     'webdriver-attached',
     'initial-document-ready',
+    'native-window-geometry-started',
+    'native-window-geometry-observed',
   ]
   const origin = now()
   const rows = []
