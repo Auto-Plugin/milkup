@@ -641,3 +641,74 @@ All four PDF lengths/hashes match the original summary. pdfinfo confirms A4
 All 20 document-network listeners recorded WouldBlock/no connection; actual
 print-dialog cancellation passed. Physical printing, positive queue delivery,
 system picker and general text/visual fidelity remain unaccepted.
+
+## 8a complete source acceptance and package construction
+
+`43154244097 / 8a537208` completed successfully. Product artifact `13915099316`
+ZIP SHA `ef0450c320d4855009cf75866f4dc1faf67b468597e723968ff8926bcae0c6c8`
+contains both 11/11 passed reports and passed external account audits.
+Fresh cold first decode was 6161.1 / 3526.7 ms after process start (pure / filtered),
+with actual first render 325 / 320 ms. The close fix does not alter the performance
+path; these samples are not evidence that the earlier startup outlier is fixed.
+
+Full artifact `13916054577` is 2,303,823 bytes, ZIP SHA
+`a3815752d1f954ae5e9512d6ebee33dd758a576c1b2bdcca58d671dc8eab0a44`.
+Both complete GUI reports independently pass `verifyGuiEvidence(..., 'frontend')`,
+including exact process-generation, renderer rejection/release, PNG, 12-diagram
+scroll/revisit, idle/busy close and window contracts. Each account has 106/106
+resolved SHOW events, complete=true, positive control passed, overflow=false,
+zero attributed/unattributed visible consoles and no observer errors. Original
+window chunk/raw lengths and SHA were independently checked. Raw hashes:
+
+- pure: `fc82972240432f0688093be56af5fc7b50c120a52d4d8c2f4839d91667a82792`
+- filtered: `f2a478cd6f8dff20d2eb3ef6423078f13cd6ce979aed7a99f843005645898fd5`
+
+Build `43154244021 / 8a537208` also completed with all three native packages.
+Standard bytes/hash are recorded above. Other original build receipts:
+
+| Variant | Installer bytes | Installer SHA-256 | Artifact |
+| --- | ---: | --- | --- |
+| Windows offline | 225029295 | `f6ab2a1860231ab9ccf0e006cb5fea29082f80c9fae295b033ad05645e4f62fe` | 13916118521 |
+| Linux deb | 9831224 | `fdd7e65729612bd4d9eb6d08005eb5f476691d9743a75cb9ceb99635a7dd3992` | 13917210494 |
+
+All filenames retain `2.0.0-beta.10` and `8a5372080f1c`. Offline/deb ZIP SHAs are
+`5df79cae043db4ab096e6b8d48b37a96d791746ead2bad7398fe80d09e2d730b` and
+`91f1266f6b42703654d56e1c258ec3dc5d1a71189519dd7643987edcc1d38c73`.
+Build logs explicitly stage Outline 1.3.4 and Export/Print 1.0.1. Packages remain
+unsigned and unpublished; package artifact retention is one day.
+
+## 8a actual installation/repair close comparison
+
+`43157834318 / harness a41d6634` used only original build `43154244021` packages
+and completed successfully. Standard/offline original installation reports were
+independently checked against installer hashes and exact 8a source identity.
+Both install and missing-file same-package repair exited 0, restored the exact
+original installed EXE, then exited normally after native close without forced
+cleanup. Both actual NSIS uninstalls exited 0 and preserved the fixture document.
+
+| Variant | First native window ms | Repaired native window ms | Restored EXE SHA-256 |
+| --- | ---: | ---: | --- |
+| Standard | 3786.34 | 559.95 | `30e0dab05d156c9d6cc34381cb4637d67cc6b6f20231fc8f88b7d57ccb965702` |
+| Offline | 5338.09 | 914.29 | `6a44cc41cb89fd28d9c51e878345eec025d5fc1e603d9355f4062283fe1deebd` |
+
+These timings measure only the unique visible native Tauri window, not first
+paint, diagram decode or interaction readiness. In particular the formerly
+failed offline repaired-close scenario passed this run under the same 15-second
+limit; the old 5d failure remains retained. Static/local tests explain the lost
+close intent while busy, but one succeeding native run is not a frequency bound.
+
+Original installation evidence ZIPs:
+
+- standard `13916891011`, 4954 bytes,
+  `77fb12406146c3736706d42a17c36590c02f1e81f6e15f97915e6745ba59a634`
+- offline `13916353991`, 4986 bytes,
+  `18f9ae91a932d151478bbfbbb1176aeed04c782760bf049db84eebaf1aa13a71`
+- Linux `13917166352`, 9890 bytes,
+  `ac3010fc7f2652c8e79e92931285e1c10215faa9084fd9f615bf314e4a98c879`
+
+Separate fresh pure-standard repair editing/configuration/untouched cold diagram
+health is running as `43157893545`, harness `a41d6634`, same original standard
+installer. The new test records the initial decoded image and startup marks
+before any input, then performs the prior disable/edit/save/repair/restart/
+reenable flow. It does not call the after-repair sample a cold start. Diagnostic
+source candidate `af9da78b / 43155908889` has now started; its result is separate.
