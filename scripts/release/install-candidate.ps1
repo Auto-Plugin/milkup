@@ -101,7 +101,7 @@ try {
   } catch { $environment.errors+=('input-language-probe: ' + $_.Exception.Message) }
   Phase 'available-input-and-office-environment' $environment
   if ($RepairHealth) {
-    Add-Type -Path (Join-Path $PSScriptRoot '../ci/WindowsMermaidStandardUser.cs')
+    if (-not ('WindowsMermaidStandardUser' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot '../ci/WindowsMermaidStandardUser.cs') }
     $healthHost=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
     Phase 'health-host-token' $healthHost
     if (!$healthHost.ContainsKey('token') -or $healthHost.token.elevated -ne $false -or $healthHost.token.integrityRid -ne 8192) {

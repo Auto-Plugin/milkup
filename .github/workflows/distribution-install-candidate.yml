@@ -90,7 +90,13 @@ jobs:
       - name: Windows native install, visible window, normal close and uninstall
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/release/install-candidate.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -RepairSameVersion:($env:REPAIR_SAME_VERSION -ceq 'true') -RepairHealth:($env:REPAIR_HEALTH -ceq 'true')
+        run: |
+          if ($env:REPAIR_HEALTH -ceq 'true') {
+            if ($env:REPAIR_SAME_VERSION -cne 'true') { throw 'Health requires repair' }
+            ./scripts/release/run-repair-health-standard.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence')
+          } else {
+            ./scripts/release/install-candidate.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -RepairSameVersion:($env:REPAIR_SAME_VERSION -ceq 'true')
+          }
       - name: Linux native package installation and removal
         if: runner.os == 'Linux'
         run: bash scripts/release/install-candidate-linux.sh "$RUNNER_TEMP/candidate-input" "$SOURCE_SHA" "$RUNNER_TEMP/candidate-install-evidence"
