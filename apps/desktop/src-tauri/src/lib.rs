@@ -22,6 +22,9 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 mod startup_timing;
+#[cfg(test)]
+#[path = "../../../../vendor/wry/src/webview2/startup_timing.rs"]
+mod wry_startup_timing_contracts;
 mod appearance_theme;
 mod appearance_theme_store;
 mod frontend_mermaid_guard;

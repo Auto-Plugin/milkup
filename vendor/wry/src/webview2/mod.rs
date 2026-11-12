@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 mod drag_drop;
+mod startup_timing;
 mod util;
 
 use std::{
@@ -962,6 +963,7 @@ impl InnerWebView {
 
     webview.add_WebResourceRequested(
       &WebResourceRequestedEventHandler::create(Box::new(move |_, args| {
+        let mut startup = startup_timing::RequestStart::capture();
         let Some(args) = args else {
           return Ok(());
         };
@@ -972,6 +974,9 @@ impl InnerWebView {
 
         // Request uri
         let webview_request = args.Request()?;
+        if let Some(startup) = &mut startup {
+          startup.request_acquired();
+        }
 
         // Request uri
         let uri = {
@@ -979,6 +984,8 @@ impl InnerWebView {
           webview_request.Uri(&mut uri)?;
           take_pwstr(uri)
         };
+        let timing = startup.and_then(|started| started.classify(&uri));
+        use startup_timing::{mark, Stage};
         #[cfg(feature = "tracing")]
         span.record("uri", &uri);
 
@@ -990,42 +997,72 @@ impl InnerWebView {
           {
             Ok(req) => req,
             Err(e) => {
+              mark(&timing, Stage::PrepareFailed);
               let err_response = Self::prepare_web_request_err(&env, e)?;
               args.SetResponse(&err_response)?;
               return Ok(());
             }
           };
+          mark(&timing, Stage::RequestPrepared);
 
           let env = env.clone();
           let deferral = args.GetDeferral();
+          mark(&timing, if deferral.is_ok() {
+            Stage::DeferralAcquired
+          } else {
+            Stage::DeferralUnavailable
+          });
+          let responder_timing = timing.clone();
 
           let async_responder = Box::new(move |sent_response| {
+            mark(&responder_timing, Stage::ResponderReceived);
+            let handler_timing = responder_timing.clone();
             let handler = move || {
+              mark(&handler_timing, Stage::ResponseHandlerEntered);
               match Self::prepare_web_request_response(&env, &sent_response) {
                 Ok(response) => {
-                  let _ = args.SetResponse(&response);
+                  mark(&handler_timing, Stage::ResponseBuilt);
+                  let result = args.SetResponse(&response);
+                  mark(&handler_timing, if result.is_ok() {
+                    Stage::ResponseSet
+                  } else {
+                    Stage::ResponseSetFailed
+                  });
                 }
                 Err(e) => {
+                  mark(&handler_timing, Stage::ResponseBuildFailed);
                   if let Ok(err_response) = Self::prepare_web_request_err(&env, e) {
-                    let _ = args.SetResponse(&err_response);
+                    let result = args.SetResponse(&err_response);
+                    mark(&handler_timing, if result.is_ok() {
+                      Stage::ErrorResponseSet
+                    } else {
+                      Stage::ErrorResponseSetFailed
+                    });
                   }
                 }
               }
 
               if let Ok(deferral) = &deferral {
-                let _ = deferral.Complete();
+                let result = deferral.Complete();
+                mark(&handler_timing, if result.is_ok() {
+                  Stage::DeferralCompleted
+                } else {
+                  Stage::DeferralFailed
+                });
               }
             };
 
             if std::thread::current().id() == main_thread_id {
               handler();
             } else {
+              mark(&responder_timing, Stage::DispatchQueued);
               Self::dispatch_handler(hwnd, handler);
             }
           });
 
           #[cfg(feature = "tracing")]
           let _span = tracing::info_span!("wry::custom_protocol::call_handler").entered();
+          mark(&timing, Stage::HandlerCalled);
           custom_protocol_handler(
             &webview_id,
             request,
@@ -1033,6 +1070,7 @@ impl InnerWebView {
               responder: async_responder,
             },
           );
+          mark(&timing, Stage::HandlerReturned);
         }
 
         Ok(())
