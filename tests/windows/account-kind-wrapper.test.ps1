@@ -23,14 +23,21 @@ function Case([string]$Name, [scriptblock]$Body) {
 }
 function Assert-True([bool]$Value, [string]$Message) { if (-not $Value) { throw $Message } }
 if ($IsWindows) {
-    Case 'integration branch preserves hosted repository and exact-ref restrictions' {
+    Case 'frontend workflow branches preserve hosted repository and exact-ref restrictions' {
         $expected = @{ GITHUB_ACTIONS='true'; RUNNER_ENVIRONMENT='github-hosted'; GITHUB_REPOSITORY='Auto-Plugin/milkup'; GITHUB_REF='refs/heads/dot/release-quality-integration-20261112' }
         $prior = @{}
         foreach ($name in $expected.Keys) { $prior[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
         try {
             foreach ($name in $expected.Keys) { [Environment]::SetEnvironmentVariable($name, $expected[$name], 'Process') }
-            Assert-HostedCandidate
-            foreach ($pair in @(@('GITHUB_ACTIONS','false'), @('RUNNER_ENVIRONMENT','self-hosted'), @('GITHUB_REPOSITORY','other/milkup'), @('GITHUB_REF','refs/heads/main'), @('GITHUB_REF','refs/heads/dot/release-quality-integration-20261112-other'))) {
+            $workflow = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../.github/workflows/mermaid-windows-frontend-compat.yml') -Raw
+            $refs = @([regex]::Matches($workflow, "github\.ref == '(refs/heads/[^']+)'") | ForEach-Object { $_.Groups[1].Value })
+            Assert-True ($refs.Count -gt 0 -and 'refs/heads/dot/startup-empty-anchor-20261112' -cin $refs) 'Missing explicit startup workflow ref'
+            foreach ($ref in $refs) {
+                [Environment]::SetEnvironmentVariable('GITHUB_REF', $ref, 'Process')
+                Assert-HostedCandidate
+            }
+            [Environment]::SetEnvironmentVariable('GITHUB_REF', $expected.GITHUB_REF, 'Process')
+            foreach ($pair in @(@('GITHUB_ACTIONS','false'), @('RUNNER_ENVIRONMENT','self-hosted'), @('GITHUB_REPOSITORY','other/milkup'), @('GITHUB_REF','refs/heads/main'), @('GITHUB_REF','refs/heads/dot/release-quality-integration-20261112-other'), @('GITHUB_REF','refs/heads/dot/startup-empty-anchor-20261112-other'), @('GITHUB_REF','refs/heads/DOT/startup-empty-anchor-20261112'), @('GITHUB_REF','refs/tags/dot/startup-empty-anchor-20261112'))) {
                 [Environment]::SetEnvironmentVariable($pair[0], $pair[1], 'Process')
                 $rejected = $false
                 try { Assert-HostedCandidate } catch { $rejected = $true }
