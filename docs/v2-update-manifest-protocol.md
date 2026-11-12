@@ -1,6 +1,6 @@
 # 更新清单签名与获取合同
 
-本合同由宿主的固定渠道配置启用。`release/update-channel.json` 仍是空 endpoints / null publicKey，应用仍为 `2.0.0-beta.1`；本轮不配置正式渠道、生成正式密钥、构建或安装升级包。独立更新插件只取得不透明候选 ID、版本说明和状态，不能指定 URL、公钥、渠道策略或待安装字节。
+本合同由宿主的固定渠道配置启用。`release/update-channel.json` 仍是空 endpoints / null publicKey；当前源版本以根 `package.json` 为准，正式渠道尚未启用。前端更新界面只取得不透明候选 ID、版本说明和状态，不能指定 URL、公钥、渠道策略或待安装字节。关于窗口的更新入口不依赖独立更新插件。候选分发与离线签名预检见[分发/更新就绪清单](distribution-and-update-readiness.md)，该预检不会配置渠道、生成正式密钥或发布更新。
 
 ## 线格式与绑定
 
