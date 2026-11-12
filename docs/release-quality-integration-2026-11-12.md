@@ -787,3 +787,39 @@ typecheck and 4 real Chromium editor/menu/focus/close regressions passed. Two
 fixed startup marks identify this constructor in the next Windows sample.
 This is not claimed to explain or eliminate the full old outlier. It must be
 validated as a new candidate; the accepted 8a installers are not modified.
+
+## af9 completed GUI and deeper native startup observations
+
+`43155908889 / af9da78b` completed successfully. Original full artifact
+`13918415692` has 2,312,606 bytes and SHA-256
+`cd1a6b19e456eebb33be735345120f6cab72e2c84657a150cca15632c6d9a5f1`.
+Both original encoded reports were rerun through `verifyGuiEvidence(...,
+'frontend')`: 8/8 functional steps, idle/busy normal close, complete positive
+control and lifetime audit, no overflow/errors or visible attributed/unattributed
+console. Independent gzip chunk/raw verification found 103/103 and 104/104 SHOW
+resolved, respectively. Raw window SHA-256 values are
+`020e92c5747635df3780c110f1677df8c22cded47e21d7cab986243057c000f6`
+and `1af9a68a09c69aea3208c0e8b8ef51b094d11965a6d567be92281b2932da07d2`.
+This validates af9 source behavior; it is not an af9 installed-package result.
+
+`b59a6557 / 43160163101` is the hidden-menu geometry optimization candidate.
+At this checkpoint Windows source linking is running. Its cold-start comparison
+and complete GUI result are pending; the accepted installed bytes remain 8a.
+
+A subsequent diagnostic-only patch adds native catalogue command-entry clocks
+carried into blocking workers. It records queue, in-process/file lock, load,
+recovery, package verification, staged writes and existing Windows flush/rename
+boundaries. It is opt-in under the existing native audit environment, at most
+64 traces and 64 fixed-name stages per trace, with explicit limit/truncation
+records and no paths, document contents or error text. Original operation
+results propagate unchanged; a closed diagnostic stderr cannot cause a panic.
+No approval, generation/revision check, write-through, flush or cleanup rule is
+removed. Traces are observations and cannot authorize catalogue operations.
+
+Local production-catalog harness: 60 unit tests plus 4 separate-process recovery/
+lock tests pass. Windows MSVC target catalogue test compilation passes on Linux;
+that is not Windows execution or Tauri command-wrapper runtime evidence. Tests
+include worker queue/store scope, thread isolation, bounds, original failure
+propagation and panic cleanup before worker-thread reuse. Real Windows data is
+still required to distinguish the observed 1055.3 ms approval round trip from
+queueing, lock contention, verification or disk synchronization.

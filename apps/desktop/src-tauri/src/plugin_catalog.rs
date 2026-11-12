@@ -10,6 +10,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "plugin_catalog_timing.rs"]
+pub(crate) mod timing;
+
 type Result<T> = std::result::Result<T, String>;
 const MAX_FILE: usize = 32 * 1024 * 1024;
 const MAX_PACKAGE: usize = 64 * 1024 * 1024;
@@ -920,7 +923,9 @@ struct Store {
 impl Store {
     fn open(root: &Path) -> Result<Self> {
         let dir = Dir::open(root, true)?;
+        timing::mark("directory-opened");
         let lock = dir.lock()?;
+        timing::mark("file-lock-acquired");
         Ok(Self {
             dir,
             root: root.to_owned(),
@@ -972,6 +977,7 @@ impl Store {
         Ok(Catalog::default())
     }
     fn save(&self, c: &mut Catalog) -> Result<()> {
+        timing::mark("save-start");
         c.revision = next(c.revision)?;
         let bytes = encode(c)?;
         if self.dir.exists(CATALOG)? {
@@ -979,10 +985,14 @@ impl Store {
             decode(&old)?;
             self.dir.atomic(BACKUP, &old)?;
         }
+        timing::mark("backup-stage-complete");
         failpoint("before-catalog-replace")?;
-        self.dir.atomic(CATALOG, &bytes)
+        let result = self.dir.atomic(CATALOG, &bytes);
+        timing::mark("catalog-write-returned");
+        result
     }
     fn wire(&self, c: &Catalog) -> Result<Value> {
+        timing::mark("snapshot-start");
         let mut out = serde_json::to_value(c).map_err(|e| err("io", e))?;
         for entry in out["entries"]
             .as_array_mut()
@@ -1000,6 +1010,7 @@ impl Store {
                 self.wire_generation(&id, &mut entry["pending"]["generation"]);
             }
         }
+        timing::mark("snapshot-complete");
         Ok(out)
     }
     fn wire_generation(&self, id: &str, g: &mut Value) {
@@ -1042,6 +1053,7 @@ impl Store {
             .dir
             .path(&format!("{id}/generations/{generation}"), true)?;
         let mut seals = BTreeMap::new();
+        timing::mark("stage-files-start");
         for (path, bytes) in &files {
             failpoint("stage-file")?;
             dir.create(path, bytes)?;
@@ -1053,6 +1065,7 @@ impl Store {
                 },
             );
         }
+        timing::mark("stage-files-written");
         dir.sync()?;
         self.dir.path(&format!("{id}/generations"), false)?.sync()?;
         self.dir.path(id, false)?.sync()?;
@@ -1072,10 +1085,12 @@ impl Store {
         })
     }
     fn verify(&self, id: &str, g: &Generation) -> Result<()> {
+        timing::mark("verify-start");
         validate_generation(id, g)?;
         let dir = self.dir.path(&generation_relative(id, g), false)?;
         let mut actual = BTreeMap::new();
         collect_files(&dir, "", 0, &mut actual)?;
+        timing::mark("verify-files-read");
         if actual.len() != g.files.len() {
             return Err(err("corrupt", "generation file set changed"));
         }
@@ -1087,6 +1102,7 @@ impl Store {
                 return Err(err("corrupt", "generation bytes changed"));
             }
         }
+        timing::mark("verify-complete");
         Ok(())
     }
     fn gc(&self, c: &Catalog, id: &str) -> Result<()> {
@@ -1266,25 +1282,39 @@ fn recover(store: &Store, c: &mut Catalog) -> Result<()> {
     }
     Ok(())
 }
-fn with_store<T>(root: &Path, f: impl FnOnce(&Store, &mut Catalog) -> Result<T>) -> Result<T> {
-    let _guard = LOCK
-        .lock()
-        .map_err(|_| err("io", "catalog lock poisoned"))?;
-    let store = Store::open(root)?;
-    let mut c = store.load()?;
-    let initialized = INITIALIZED.get_or_init(|| Mutex::new(BTreeSet::new()));
-    let mut initialized = initialized
-        .lock()
-        .map_err(|_| err("io", "initialization lock poisoned"))?;
-    if !initialized.contains(root) {
-        recover(&store, &mut c)?;
-        initialized.insert(root.to_owned());
-    }
-    drop(initialized);
-    f(&store, &mut c)
+fn with_store<T>(
+    root: &Path,
+    operation: &'static str,
+    f: impl FnOnce(&Store, &mut Catalog) -> Result<T>,
+) -> Result<T> {
+    let mut timing_scope = timing::begin(operation);
+    let result = (|| {
+        timing::mark("lock-wait");
+        let _guard = LOCK
+            .lock()
+            .map_err(|_| err("io", "catalog lock poisoned"))?;
+        timing::mark("lock-acquired");
+        let store = Store::open(root)?;
+        timing::mark("store-opened");
+        let mut c = store.load()?;
+        timing::mark("catalog-loaded");
+        let initialized = INITIALIZED.get_or_init(|| Mutex::new(BTreeSet::new()));
+        let mut initialized = initialized
+            .lock()
+            .map_err(|_| err("io", "initialization lock poisoned"))?;
+        if !initialized.contains(root) {
+            recover(&store, &mut c)?;
+            initialized.insert(root.to_owned());
+        }
+        drop(initialized);
+        timing::mark("recovery-complete");
+        f(&store, &mut c)
+    })();
+    timing_scope.finish(result.is_ok());
+    result
 }
 pub fn read(root: &Path) -> Result<Value> {
-    with_store(root, |s, c| s.wire(c))
+    with_store(root, "read", |s, c| s.wire(c))
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -1330,7 +1360,7 @@ pub fn prepare_with_replacement(
         .map_err(|e| err("invalid", e))?;
     let (manifest, files) = archive_decode(archive)?;
     let id = manifest_fields(&manifest)?.0;
-    with_store(root, move |s, c| {
+    with_store(root, "prepare", move |s, c| {
         let index = c.entries.iter().position(|e| e.id == id);
         match index {
             Some(i) => {
@@ -1472,7 +1502,13 @@ pub fn transition(
         return Err(err("invalid", "plugin id"));
     }
     let action: Action = serde_json::from_value(action).map_err(|e| err("invalid", e))?;
-    with_store(root, |s, c| {
+    let operation = match &action {
+        Action::Approve { .. } => "approve",
+        Action::BeginTrial { .. } => "begin-trial",
+        Action::Commit { .. } => "commit",
+        _ => "transition",
+    };
+    with_store(root, operation, |s, c| {
         let e = entry_mut(c, plugin_id, expected_revision)?;
         if e.tombstone && !matches!(action, Action::Remove) {
             return Err(err("conflict", "plugin is removed"));
@@ -1707,7 +1743,7 @@ pub fn migrate(root: &Path, legacy_raw: &str, validation: Option<Value>) -> Resu
         return Err(err("quota", "legacy registry exceeds 16MiB"));
     }
     let receipt = digest(legacy_raw.as_bytes());
-    with_store(root, |s, c| {
+    with_store(root, "migrate", |s, c| {
         if let Some(old) = &c.migration_receipt {
             return if old == &receipt {
                 s.wire(c)
@@ -1917,7 +1953,7 @@ fn selected<'a>(e: &'a Entry, generation: &str) -> Result<&'a Generation> {
         .ok_or_else(|| err("conflict", "generation is not authorized for activation"))
 }
 pub fn read_worker_module(root: &Path, plugin_id: &str, generation: &str) -> Result<String> {
-    with_store(root, |s, c| {
+    with_store(root, "read-worker", |s, c| {
         let e = c
             .entries
             .iter()
@@ -1950,7 +1986,7 @@ pub fn read_worker_module(root: &Path, plugin_id: &str, generation: &str) -> Res
     })
 }
 pub fn read_dom_module(root: &Path, plugin_id: &str, expected: &Value) -> Result<String> {
-    with_store(root, |s, c| {
+    with_store(root, "read-dom", |s, c| {
         let e = c
             .entries
             .iter()
@@ -1994,7 +2030,7 @@ pub fn read_dom_module(root: &Path, plugin_id: &str, expected: &Value) -> Result
     })
 }
 pub fn read_icon(root: &Path, plugin_id: &str) -> Result<Vec<u8>> {
-    with_store(root, |s, c| {
+    with_store(root, "read-icon", |s, c| {
         let e = c
             .entries
             .iter()

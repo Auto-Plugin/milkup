@@ -475,8 +475,11 @@ impl Dir {
             NON_DIRECTORY | WRITE_THROUGH,
             SHARE_READ,
         )?;
+        timing::mark("write-handle-opened");
         file.write_all(bytes).map_err(|e| err("io", e))?;
+        timing::mark("bytes-written");
         file.sync_all().map_err(|e| err("io", e))?;
+        timing::mark("pre-publish-flush-complete");
         dir.sync()
     }
     /// Validate the pinned directory; see module-level durability limitation.
@@ -512,8 +515,11 @@ impl Dir {
             NON_DIRECTORY | WRITE_THROUGH,
             SHARE_READ,
         )?;
+        timing::mark("write-handle-opened");
         file.write_all(bytes).map_err(|e| err("io", e))?;
+        timing::mark("bytes-written");
         file.sync_all().map_err(|e| err("io", e))?;
+        timing::mark("pre-publish-flush-complete");
         // repr(C) offset includes native pointer alignment on x86/x64/ARM64.
         // Microsoft requires sizeof(FILE_RENAME_INFORMATION) plus name bytes,
         // including the trailing C-struct padding, not just the field offset.
@@ -545,12 +551,14 @@ impl Dir {
                 10,
             )
         })?; // FileRenameInformation
+        timing::mark("rename-complete");
         file.sync_all().map_err(|e| {
             err(
                 "io",
                 format!("replacement may be committed; reread catalog before retry: {e}"),
             )
         })?;
+        timing::mark("post-publish-flush-complete");
         self.sync()
     }
     pub fn lock(&self) -> Result<File> {

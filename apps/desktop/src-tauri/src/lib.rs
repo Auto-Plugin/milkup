@@ -422,14 +422,18 @@ fn delete_plugin_file(path: String) -> Result<bool, String> {
 
 #[tauri::command]
 async fn plugin_catalog_read(app: AppHandle) -> Result<serde_json::Value, String> {
+    let mut timing = plugin_catalog::timing::queued("read");
     let root = app
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("plugins");
-    tauri::async_runtime::spawn_blocking(move || plugin_catalog::read(&root))
-        .await
-        .map_err(|e| e.to_string())?
+    timing.mark("root-resolved");
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_catalog::timing::dispatched(timing, || plugin_catalog::read(&root))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -440,19 +444,23 @@ async fn plugin_catalog_prepare(
     expected_revision: Option<u64>,
     replace_pending: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
+    let mut timing = plugin_catalog::timing::queued("prepare");
     let root = app
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("plugins");
+    timing.mark("root-resolved");
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_catalog::prepare_with_replacement(
-            &root,
-            archive,
-            source_path,
-            expected_revision,
-            replace_pending,
-        )
+        plugin_catalog::timing::dispatched(timing, || {
+            plugin_catalog::prepare_with_replacement(
+                &root,
+                archive,
+                source_path,
+                expected_revision,
+                replace_pending,
+            )
+        })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -465,13 +473,17 @@ async fn plugin_catalog_transition(
     expected_revision: u64,
     action: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
+    let mut timing = plugin_catalog::timing::queued("transition");
     let root = app
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("plugins");
+    timing.mark("root-resolved");
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_catalog::transition(&root, &plugin_id, expected_revision, action)
+        plugin_catalog::timing::dispatched(timing, || {
+            plugin_catalog::transition(&root, &plugin_id, expected_revision, action)
+        })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -483,13 +495,17 @@ async fn plugin_catalog_migrate(
     legacy_raw: String,
     validation: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
+    let mut timing = plugin_catalog::timing::queued("migrate");
     let root = app
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("plugins");
+    timing.mark("root-resolved");
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_catalog::migrate(&root, &legacy_raw, validation)
+        plugin_catalog::timing::dispatched(timing, || {
+            plugin_catalog::migrate(&root, &legacy_raw, validation)
+        })
     })
     .await
     .map_err(|e| e.to_string())?
@@ -501,13 +517,17 @@ async fn plugin_catalog_read_worker_module(
     plugin_id: String,
     generation: String,
 ) -> Result<String, String> {
+    let mut timing = plugin_catalog::timing::queued("read-worker");
     let root = app
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("plugins");
+    timing.mark("root-resolved");
     tauri::async_runtime::spawn_blocking(move || {
-        plugin_catalog::read_worker_module(&root, &plugin_id, &generation)
+        plugin_catalog::timing::dispatched(timing, || {
+            plugin_catalog::read_worker_module(&root, &plugin_id, &generation)
+        })
     })
     .await
     .map_err(|e| e.to_string())?
