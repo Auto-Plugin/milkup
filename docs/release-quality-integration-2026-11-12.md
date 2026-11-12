@@ -259,3 +259,47 @@ Correction commit `d9f627be2366e7b78f03e431a23f6b4dc03865c1` is pushed; its
 [Windows run 43148218776](https://github.com/Auto-Plugin/milkup/actions/runs/43148218776)
 is pending. This commit changes acceptance and its evidence only, not application
 source. Both author and committer are the requested LarryZhu-dev identity.
+
+## Actual same-version missing-file repair (03:32 UTC)
+
+[Run 43148634413](https://github.com/Auto-Plugin/milkup/actions/runs/43148634413)
+passed using harness `ae5930d466875982153b652c648c5bf3322c351a` and the unchanged
+standard installer from `bf8a2d50` build `43141877202`. Original artifact
+`13913255309` was downloaded, its 4937-byte ZIP checked against SHA-256
+`db1e04217134666aafdcfa23793ebf8f8aa1cd48fca910983110f1fafcfe0f0e`, and its
+`installation.json` examined independently.
+
+After an initial normal close, the test backed up the exact owned executable,
+removed only that file inside the newly created ephemeral installation, and
+proved it absent. It rechecked the original installer's SHA before same-version
+installation. Installer exit was 0 and the restored application SHA exactly
+matched the original:
+`9cad2223566f6cfdbc7a9fbeae53a6a5f36e4773129dd105f0e2b15e8c96575c`.
+The fixture document was unchanged. Repair startup reached the exact Tauri root
+in 925.849 ms (initial launch: 3997.5772 ms), then normal close and actual NSIS
+uninstall both exited 0. There was no forced cleanup. These two window timings
+are not document-ready or renderer timings.
+
+This proves the installer repair mechanism for missing executable bytes, not
+full recovery health. Document open/edit/save after repair, actual plugin/config
+restoration, older-version migration and signed recovery authorization are not
+verified. The checked-in channel has `endpoints: []` and `publicKey: null`; the
+real channel validator returns `Production update channel is not configured`.
+No test key or unsigned candidate is substituted for the formal trust gate.
+Automatic rollback remains unimplemented.
+
+The same Windows runner again reported no Office/Word executable at the checked
+Office16 locations and only the en-US input method. Current native Word 2016 and
+Chinese IME coverage therefore remains open. Local Linux has no DISPLAY/Xvfb,
+no installed tauri-driver and no system webkit2gtk-4.1 pkg-config entry. The older
+sysroot's WebKitWebDriver alone does not establish a runnable native GUI; browser
+Chromium results and dpkg success do not substitute for it.
+
+Application source correspondence was checked between `5d79147a` and harness
+`ae5930d4`: apps, packages, plugins, lockfile, root package and distribution build
+script have no differences. Git tree IDs are respectively
+`d04d68f9f88f02c62c035a27279c182cf3a99d3e`,
+`5d601750e638bca562b821ef0e2956973725c1bd`, and
+`2e2e9ad49080431a73d96a8eb7a9e582f4ccec03` for apps/packages/plugins on both commits.
+This establishes source equality only; exact installer receipts and original
+package hashes must still be verified for the pending `5d79147a` build.
