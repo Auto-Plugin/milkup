@@ -53,6 +53,40 @@ import {
   assertCleanCloseConfirmation,
 } from './mermaid-product-e2e.mjs'
 
+test('frontend workflow refs reach the same exact hosted-wrapper allowlist', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const workflow = await readFile(
+    new URL('../../.github/workflows/mermaid-windows-frontend-compat.yml', import.meta.url),
+    'utf8',
+  )
+  const wrapper = await readFile(
+    new URL('../../scripts/ci/run-windows-mermaid-product-e2e.ps1', import.meta.url),
+    'utf8',
+  )
+  const pushBlock = workflow.match(/push:\s+branches:\s+\[([^\]]+)\]/)?.[1]
+  assert(pushBlock, 'Explicit push branch list required')
+  const pushRefs = pushBlock
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => `refs/heads/${s}`)
+    .sort()
+  const jobRefs = [...workflow.matchAll(/github\.ref == '(refs\/heads\/[^']+)'/g)]
+    .map((m) => m[1])
+    .sort()
+  const wrapperList = wrapper.match(/\$env:GITHUB_REF -cnotin @\(([^)]+)\)/)?.[1]
+  assert(wrapperList, 'Case-sensitive exact-ref wrapper gate required')
+  const wrapperRefs = [...wrapperList.matchAll(/'(refs\/heads\/[^']+)'/g)].map((m) => m[1]).sort()
+  assert.deepEqual(jobRefs, pushRefs, 'Push and job gates disagree')
+  assert.deepEqual(
+    wrapperRefs,
+    jobRefs,
+    'Accepted workflow branch is rejected before product launch',
+  )
+  assert(wrapperRefs.includes('refs/heads/dot/startup-empty-anchor-20261112'))
+  assert(wrapperRefs.every((ref) => /^refs\/heads\/dot\/[a-z0-9-]+$/.test(ref)))
+})
+
 test('wide diagrams fit the measured padded content box while retaining intrinsic pixels', () => {
   const image = {
     naturalWidth: 2000,
