@@ -5192,7 +5192,9 @@ function formatCharacterCount(): string {
 }
 
 function getNextViewMode(mode: ViewMode): SessionViewMode {
-  return mode === 'source' ? 'preview' : mode === 'preview' ? 'live' : 'source'
+  // The editor's established toggle is source/live. The three-way rendering
+  // strategy belongs to the Diagrams plugin, independently of document editing.
+  return mode === 'source' ? 'live' : 'source'
 }
 
 function isPrimaryShortcut(event: KeyboardEvent): boolean {
