@@ -71,14 +71,18 @@ native helper-only fixture as a substitute for that acceptance.
 1. **Windows printing now has a candidate implementation, not native acceptance.**
    It uses the native printer chooser and WebView2 `Print` callback, rather than
    equating `ShowPrintUI` with success. Queue acceptance, native cancellation,
-   printer failure, copies, collation, page range, standard/explicit media size,
-   orientation, color and duplex are represented. The built-in English-named
-   Microsoft Print to PDF destination returns bytes to a second, host-owned
-   PDF save picker. Other known FILE:/PORTPROMPT: destinations are rejected;
-   renamed/localized or third-party virtual printer behavior still needs
-   validation. Unknown paper sizes are rejected, not silently changed to A4.
-   Arbitrary vendor-specific DEVMODE properties/tray choices are not mapped by
-   WebView2's public print settings; these are a remaining acceptance boundary.
+   printer failure, copies, collation and page range are represented. A4/Letter
+   and orientation stay with the plugin's explicit options. The native chooser
+   disables and intercepts Properties instead of accepting unmapped paper-tray,
+   quality or vendor choices; color/duplex use printer defaults. Its button
+   identity follows Microsoft's PrnSetup.Dlg/psh2, verifies the native template,
+   and fails closed if it cannot enforce this limit. Re-enabling on printer
+   change is countered after notifications, with command interception throughout.
+   The plugin explains the limited chooser before confirmation.
+   The built-in English-named Microsoft Print to PDF destination returns bytes
+   to a second, host-owned PDF save picker. Other known FILE:/PORTPROMPT:
+   destinations are rejected; renamed/localized or third-party virtual printer
+   behavior still needs validation.
    The physical printer and file-printer GUI paths have **not run here**.
    The export-print plugin is bumped to 1.0.1 and no longer tells users that a
    canceled wait retracts an already submitted queue entry. The integrator must
@@ -116,5 +120,15 @@ container splitting was used to mask the open fidelity/pagination failures.
 
 Second-stage checks: isolated Windows-target type-check including the printer
 module and protocol tests passed. Independent export-print 1.0.1 build,
-TypeScript check and 18 Vitest tests passed using the public SDK 0.3.8 tarball.
+TypeScript check and 19 Vitest tests passed using the public SDK 0.3.8 tarball.
 Those tests are plugin/controller tests, not Windows printing or Linux output.
+
+## Independent native-code review follow-up
+
+Three findings were fixed before the next candidate handoff: the parent now
+uses the original print lease for human choice rather than the PDF's 90 seconds;
+cleanup drops the Job owner before bounded try-wait/thread completion checks,
+so failed termination cannot hang on unconditional waits; and the native chooser
+no longer accepts vendor Properties that WebView2 cannot forward. Added tests
+cover deadline choice, bounded pipe-thread cleanup and native control enforcement.
+Actual printer switching/keyboard interaction still require Windows execution.

@@ -24,6 +24,7 @@ describe('output panel and command contract', () => {
   it('does not promise to retract a submitted print job when cancelling', () => {
     const nodes = flatten(render(state({ format: 'print', phase: 'cancelled' })))
     expect(JSON.stringify(nodes)).toContain('请先检查打印队列，勿重复打印')
+    expect(JSON.stringify(nodes)).toContain('其他属性沿用打印机默认值')
     expect(JSON.stringify(nodes)).not.toContain('可以调整选项后重新开始')
     expect(JSON.stringify(flatten(render(state({ format: 'pdf', phase: 'cancelled' }))))).toContain(
       '本次输出已取消',

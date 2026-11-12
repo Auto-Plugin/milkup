@@ -144,6 +144,10 @@ export function render(state?: State): SdkRendererOutput {
         ['landscape', '横向'],
       ]),
     )
+  if (state?.format === 'print')
+    children.push(
+      text('系统窗口可选择打印机、页码和份数；纸张与方向使用上方选项，其他属性沿用打印机默认值。'),
+    )
   if (state?.snapshot) {
     children.push(
       text(

@@ -15,7 +15,7 @@ use ::windows::{
 use std::{
     io::BufReader,
     os::windows::process::CommandExt,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
     sync::mpsc,
 };
 use webview2_com::{Microsoft::Web::WebView2::Win32::*, *};
@@ -229,7 +229,7 @@ fn render_with_command(
             Err(e) => Err(error(e)),
         }
     });
-    let deadline = Instant::now() + RENDER_TIME;
+    let deadline = operation_deadline(job, Instant::now());
     let result = (|| loop {
         job.active()?;
         if Instant::now() >= deadline {
@@ -245,24 +245,22 @@ fn render_with_command(
         }
     })();
     // Completion is not exposed until the owned process tree is empty.
-    owner.stop()?;
-    let cleanup_deadline = Instant::now() + Duration::from_secs(2);
-    loop {
-        if child.try_wait().map_err(error)?.is_some()
-            && writer.is_finished()
-            && reader.is_finished()
-        {
-            break;
-        }
-        if Instant::now() >= cleanup_deadline {
-            return Err("Native PDF process or pipe cleanup not confirmed".into());
-        }
-        std::thread::sleep(Duration::from_millis(5));
+    let stopped = owner.stop();
+    drop(owner); // kill-on-close fallback; never reported as successful cleanup
+    if stopped.is_err() {
+        let _ = child.kill();
     }
-    let written = writer.join().map_err(|_| "PDF writer failed".to_owned());
-    let read = reader.join().map_err(|_| "PDF reader failed".to_owned());
-    read??;
-    private.clean()?;
+    let cleanup_deadline = Instant::now() + Duration::from_secs(2);
+    let reaped = reap_bounded(&mut child, cleanup_deadline);
+    let written = join_bounded(writer, cleanup_deadline);
+    let read = join_bounded(reader, cleanup_deadline);
+    let cleaned = private.clean();
+    if let Err(failure) = stopped {
+        return Err(format!("Cannot confirm output process cleanup: {failure}; reap={:?}; writer={:?}; reader={:?}; profile={:?}", reaped.err(), written.err(), read.err(), cleaned.err()));
+    }
+    reaped?;
+    read??; // Preserve exact EOF/trailing-byte rejection from the integrated reader.
+    cleaned?;
     let result = result?;
     written??;
     match result {
@@ -278,6 +276,41 @@ fn render_with_command(
             }
         }
         _ => Err("Output helper returned a mismatched operation".into()),
+    }
+}
+
+fn reap_bounded(child: &mut Child, deadline: Instant) -> Result<()> {
+    loop {
+        if child.try_wait().map_err(error)?.is_some() {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err("Output helper reaping deadline reached".into());
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+fn join_bounded<T>(worker: std::thread::JoinHandle<T>, deadline: Instant) -> Result<T> {
+    while !worker.is_finished() {
+        if Instant::now() >= deadline {
+            // Detach rather than block forever on a failed OS cleanup. The
+            // operation remains failed, with no publication authorization.
+            return Err("Output pipe worker cleanup deadline reached".into());
+        }
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    worker
+        .join()
+        .map_err(|_| "Output pipe worker failed".into())
+}
+
+fn operation_deadline(job: &Job, now: Instant) -> Instant {
+    if job.format == Format::Print {
+        // A human may still be choosing a printer. Do not charge that wait to
+        // the PDF render budget; the original lease is never renewed.
+        job.created + LEASE
+    } else {
+        now + RENDER_TIME
     }
 }
 
@@ -737,6 +770,25 @@ mod tests {
         Ok((u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime))
     }
     #[test]
+    fn pipe_cleanup_deadline_never_joins_a_blocked_worker() {
+        let worker = std::thread::spawn(|| std::thread::sleep(Duration::from_millis(200)));
+        let started = Instant::now();
+        assert!(join_bounded(worker, started + Duration::from_millis(10)).is_err());
+        assert!(started.elapsed() < Duration::from_millis(100));
+    }
+    #[test]
+    fn printer_choice_uses_original_lease_not_pdf_render_deadline() {
+        let now = Instant::now();
+        let mut job = lease();
+        let mutable = Arc::get_mut(&mut job).unwrap();
+        mutable.created = now - Duration::from_secs(100);
+        mutable.format = Format::Print;
+        assert_eq!(operation_deadline(&job, now), job.created + LEASE);
+        assert!(operation_deadline(&job, now) > now + RENDER_TIME);
+        Arc::get_mut(&mut job).unwrap().format = Format::Pdf;
+        assert_eq!(operation_deadline(&job, now), now + RENDER_TIME);
+    }
+    #[test]
     fn bounded_frame_rejects_empty_oversized_and_truncated_messages() {
         for bytes in [vec![0, 0, 0, 0], vec![5, 0, 0, 0], vec![3, 0, 0, 0, 1]] {
             assert!(frame_read(&mut bytes.as_slice(), 4).is_err());
@@ -962,6 +1014,18 @@ mod tests {
                             EnumWindows(Some(find), LPARAM((&mut found as *mut Found) as isize));
                     }
                     if !found.window.is_invalid() {
+                        let properties =
+                            unsafe { GetDlgItem(Some(found.window), 0x0401) }.map_err(error)?;
+                        if unsafe {
+                            ::windows::Win32::UI::Input::KeyboardAndMouse::IsWindowEnabled(
+                                properties,
+                            )
+                        }
+                        .as_bool()
+                        {
+                            std::thread::sleep(Duration::from_millis(25));
+                            continue;
+                        }
                         // Only this test's exact helper process and actual native
                         // dialog. No global key injection or printer submission.
                         unsafe {

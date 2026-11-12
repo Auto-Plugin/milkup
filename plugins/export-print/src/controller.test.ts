@@ -128,6 +128,16 @@ describe('export and print lifecycle', () => {
     expect(f.controller.state.phase).toBe('done')
     expect(f.controller.state.result?.name).toBe('中文笔记.html')
   })
+  it('warns against duplicate submission after a native print error', async () => {
+    const f = fixture()
+    f.controller.change('format', 'print')
+    f.output.print.mockRejectedValueOnce({ code: 'unavailable' })
+    f.controller.start(f.host)
+    await f.controller.settled()
+    expect(f.controller.state.phase).toBe('error')
+    expect(f.controller.state.error).toContain('请先检查系统打印队列')
+    expect(f.output.print).toHaveBeenCalledTimes(1)
+  })
   it('prints captured selection with paper options and supports print cancellation', async () => {
     const f = fixture()
     f.controller.change('format', 'print')

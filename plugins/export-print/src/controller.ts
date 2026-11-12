@@ -134,9 +134,12 @@ export function createController(changed: () => void) {
     } catch (error) {
       if (current(work)) {
         const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : ''
+        const printWasStarted = request.format === 'print' && state.phase === 'printing'
         state.phase = code === 'aborted' || code === 'cancelled' ? 'cancelled' : 'error'
-        if (state.phase === 'error')
+        if (state.phase === 'error') {
           state.error = errors[code] ?? '输出未完成，请检查文档与保存位置后重试。'
+          if (printWasStarted) state.error += ' 请先检查系统打印队列，确认没有本次任务后再重试。'
+        }
         emit()
       }
     } finally {

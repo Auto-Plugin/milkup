@@ -4,12 +4,16 @@
 //! save picker and publication, while other file formats are rejected.
 use super::{wide, PageSize};
 use ::windows::{
-    core::{Interface, PCWSTR},
+    core::{w, Interface, PCWSTR},
     Win32::{
-        Foundation::{GlobalFree, E_FAIL, E_NOTIMPL, HGLOBAL, HWND},
+        Foundation::{GlobalFree, E_FAIL, E_NOTIMPL, HANDLE, HGLOBAL, HWND, LPARAM, WPARAM},
         Graphics::Gdi::*,
         System::Memory::{GlobalLock, GlobalSize, GlobalUnlock},
-        UI::Controls::Dialogs::*,
+        UI::{
+            Controls::Dialogs::*,
+            Input::KeyboardAndMouse::{EnableWindow, IsWindowEnabled},
+            WindowsAndMessaging::*,
+        },
     },
 };
 use std::mem::size_of;
@@ -76,18 +80,6 @@ impl Locked {
             .ok_or_else(|| ::windows::core::Error::from(E_FAIL))?;
         String::from_utf16(&name[..end]).map_err(|_| E_FAIL.into())
     }
-    unsafe fn mode(&self) -> Result<DEVMODEW> {
-        if self.len < size_of::<DEVMODEW>() {
-            return Err(E_FAIL.into());
-        }
-        let mode = self.ptr.cast::<DEVMODEW>().read_unaligned();
-        if (mode.dmSize as usize) < size_of::<DEVMODEW>()
-            || mode.dmSize as usize + mode.dmDriverExtra as usize > self.len
-        {
-            return Err(E_FAIL.into());
-        }
-        Ok(mode)
-    }
 }
 impl Drop for Locked {
     fn drop(&mut self) {
@@ -97,36 +89,94 @@ impl Drop for Locked {
     }
 }
 
-unsafe fn paper_inches(mode: &DEVMODEW) -> Result<(f64, f64)> {
-    let printer = mode.Anonymous1.Anonymous1;
-    if mode.dmFields.contains(DM_PAPERWIDTH | DM_PAPERLENGTH)
-        && printer.dmPaperWidth > 0
-        && printer.dmPaperLength > 0
-    {
-        return Ok((
-            printer.dmPaperWidth as f64 / 254.0,
-            printer.dmPaperLength as f64 / 254.0,
-        ));
-    }
-    // A bounded standard paper table avoids trusting a driver's unbounded
-    // DeviceCapabilities buffer write. Unknown media is rejected, not replaced.
-    let mm = match printer.dmPaperSize as u32 {
-        DMPAPER_LETTER => (215.9, 279.4),
-        DMPAPER_LEGAL => (215.9, 355.6),
-        DMPAPER_A3 => (297.0, 420.0),
-        DMPAPER_A4 => (210.0, 297.0),
-        DMPAPER_A5 => (148.0, 210.0),
-        DMPAPER_B4 => (257.0, 364.0),
-        DMPAPER_B5 => (182.0, 257.0),
-        DMPAPER_EXECUTIVE => (184.15, 266.7),
-        DMPAPER_TABLOID => (279.4, 431.8),
-        _ => {
-            return Err(unsupported(
-                "unsupported paper size; choose A4/Letter or explicit dimensions",
-            ))
+// Microsoft's PrnSetup.Dlg maps Properties to psh2; dlgs.h defines 0x0401.
+// https://raw.githubusercontent.com/microsoft/win32metadata/main/generation/WinSDK/RecompiledIdlHeaders/um/PrnSetup.Dlg
+const PROPERTIES: i32 = 0x0401;
+const ENFORCE_OPTIONS: u32 = WM_APP + 27;
+#[derive(Default)]
+struct ChoiceGuard {
+    initialized: bool,
+    failed: bool,
+}
+unsafe fn enforce_options(window: HWND, guard: &mut ChoiceGuard) {
+    let valid = (|| -> Result<()> {
+        let button = GetDlgItem(Some(window), PROPERTIES)?;
+        let mut class = [0u16; 32];
+        let length = GetClassNameW(button, &mut class);
+        let style = GetWindowLongPtrW(button, GWL_STYLE) as u32 & BS_TYPEMASK as u32;
+        if String::from_utf16_lossy(&class[..length.max(0) as usize]) != "Button"
+            || (style != BS_PUSHBUTTON as u32 && style != BS_DEFPUSHBUTTON as u32)
+        {
+            return Err(E_FAIL.into());
         }
-    };
-    Ok((mm.0 / 25.4, mm.1 / 25.4))
+        let _ = EnableWindow(button, false);
+        if IsWindowEnabled(button).as_bool() {
+            return Err(E_FAIL.into());
+        }
+        Ok(())
+    })();
+    if valid.is_err() {
+        guard.failed = true;
+        // PrintHookProc must not call EndDialog. Preserve failure separately
+        // from a user cancel, then use the documented IDABORT command.
+        let _ = PostMessageW(
+            Some(window),
+            WM_COMMAND,
+            WPARAM(IDABORT.0 as usize),
+            LPARAM(0),
+        );
+    }
+}
+unsafe extern "system" fn print_hook(
+    window: HWND,
+    message: u32,
+    word: WPARAM,
+    param: LPARAM,
+) -> usize {
+    if message == WM_INITDIALOG {
+        let dialog = param.0 as *const PRINTDLGW;
+        if dialog.is_null() {
+            return 0;
+        }
+        let guard = (*dialog).lCustData.0 as *mut ChoiceGuard;
+        if guard.is_null() {
+            return 0;
+        }
+        (*guard).initialized = true;
+        if SetPropW(
+            window,
+            w!("MilkupOutputChoiceGuard"),
+            Some(HANDLE(guard.cast())),
+        )
+        .is_err()
+        {
+            (*guard).failed = true;
+            let _ = PostMessageW(
+                Some(window),
+                WM_COMMAND,
+                WPARAM(IDABORT.0 as usize),
+                LPARAM(0),
+            );
+        } else {
+            enforce_options(window, &mut *guard);
+            let _ = PostMessageW(Some(window), ENFORCE_OPTIONS, WPARAM(0), LPARAM(0));
+        }
+    } else if message == WM_COMMAND && word.0 & 0xffff == PROPERTIES as usize {
+        // Consume mouse and keyboard activation even if the native dialog
+        // temporarily re-enabled Properties while changing the printer.
+        return 1;
+    } else if message == WM_COMMAND {
+        let _ = PostMessageW(Some(window), ENFORCE_OPTIONS, WPARAM(0), LPARAM(0));
+    } else if message == ENFORCE_OPTIONS {
+        let guard = GetPropW(window, w!("MilkupOutputChoiceGuard")).0 as *mut ChoiceGuard;
+        if !guard.is_null() {
+            enforce_options(window, &mut *guard);
+        }
+        return 1;
+    } else if message == WM_DESTROY {
+        let _ = RemovePropW(window, w!("MilkupOutputChoiceGuard"));
+    }
+    0
 }
 
 pub(super) unsafe fn choose(
@@ -135,46 +185,39 @@ pub(super) unsafe fn choose(
     page: PageSize,
     landscape: bool,
 ) -> Result<Selection> {
+    let mut guard = ChoiceGuard::default();
     let mut dialog = Dialog(PRINTDLGW {
         lStructSize: size_of::<PRINTDLGW>() as u32,
         hwndOwner: owner,
-        Flags: PD_RETURNDEFAULT,
+        Flags: PD_NOSELECTION | PD_DISABLEPRINTTOFILE | PD_HIDEPRINTTOFILE | PD_ENABLEPRINTHOOK,
+        lpfnPrintHook: Some(print_hook),
+        lCustData: LPARAM((&mut guard as *mut ChoiceGuard) as isize),
         ..Default::default()
     });
-    // Seed the dialog with this output's paper/orientation when a default printer
-    // exists. If no default exists, the actual dialog can still select one.
-    if PrintDlgW(&mut dialog.0).as_bool() {
-        let locked = Locked::new(dialog.0.hDevMode)?;
-        let mut mode = locked.mode()?;
-        mode.dmFields |= DM_PAPERSIZE | DM_ORIENTATION;
-        mode.dmFields &= !(DM_PAPERWIDTH | DM_PAPERLENGTH);
-        mode.Anonymous1.Anonymous1.dmPaperSize = match page {
-            PageSize::A4 => DMPAPER_A4 as i16,
-            PageSize::Letter => DMPAPER_LETTER as i16,
-        };
-        mode.Anonymous1.Anonymous1.dmOrientation = if landscape {
-            DMORIENT_LANDSCAPE as i16
-        } else {
-            DMORIENT_PORTRAIT as i16
-        };
-        locked.ptr.cast::<DEVMODEW>().write_unaligned(mode);
-    } else {
-        let code = CommDlgExtendedError();
-        if code != PDERR_NODEFAULTPRN {
-            return Err(::windows::core::Error::new(
-                E_FAIL,
-                format!("Cannot query default printer: {:#x}", code.0),
-            ));
-        }
-    }
-    dialog.0.Flags = PD_NOSELECTION | PD_DISABLEPRINTTOFILE | PD_HIDEPRINTTOFILE;
     dialog.0.nMinPage = 1;
     dialog.0.nMaxPage = u16::MAX;
     dialog.0.nFromPage = 1;
     dialog.0.nToPage = 1;
     dialog.0.nCopies = 1;
-    if !PrintDlgW(&mut dialog.0).as_bool() {
-        let code = CommDlgExtendedError().0;
+    let accepted = PrintDlgW(&mut dialog.0).as_bool();
+    let dialog_error = if accepted {
+        0
+    } else {
+        CommDlgExtendedError().0
+    };
+    if !accepted && !guard.initialized && dialog_error != 0 {
+        return Err(::windows::core::Error::new(
+            E_FAIL,
+            format!("Native print dialog failed before initialization: {dialog_error:#x}"),
+        ));
+    }
+    if !guard.initialized || guard.failed {
+        return Err(unsupported(
+            "native printer chooser template cannot enforce supported options",
+        ));
+    }
+    if !accepted {
+        let code = dialog_error;
         return if code == 0 {
             Ok(Selection::Cancelled)
         } else {
@@ -197,7 +240,6 @@ pub(super) unsafe fn choose(
     if name.is_empty() || port.is_empty() {
         return Err(E_FAIL.into());
     }
-    let mode = Locked::new(dialog.0.hDevMode)?.mode()?;
     let copies = dialog.0.nCopies;
     if copies == 0 {
         return Err(unsupported("invalid copy count"));
@@ -229,33 +271,21 @@ pub(super) unsafe fn choose(
             wide(&format!("{}-{}", dialog.0.nFromPage, dialog.0.nToPage)).as_ptr(),
         ))?;
     }
-    if mode.dmFields.contains(DM_COLOR) {
-        settings2.SetColorMode(if mode.dmColor == DMCOLOR_COLOR {
-            COREWEBVIEW2_PRINT_COLOR_MODE_COLOR
-        } else {
-            COREWEBVIEW2_PRINT_COLOR_MODE_GRAYSCALE
-        })?;
-    }
-    if mode.dmFields.contains(DM_DUPLEX) {
-        settings2.SetDuplex(match mode.dmDuplex {
-            DMDUP_SIMPLEX => COREWEBVIEW2_PRINT_DUPLEX_ONE_SIDED,
-            DMDUP_VERTICAL => COREWEBVIEW2_PRINT_DUPLEX_TWO_SIDED_LONG_EDGE,
-            DMDUP_HORIZONTAL => COREWEBVIEW2_PRINT_DUPLEX_TWO_SIDED_SHORT_EDGE,
-            _ => return Err(unsupported("unknown duplex mode")),
-        })?;
-    }
-    let printer = mode.Anonymous1.Anonymous1;
-    if mode.dmFields.contains(DM_SCALE) {
-        settings.SetScaleFactor(printer.dmScale as f64 / 100.0)?;
-    }
-    settings.SetOrientation(match printer.dmOrientation {
-        x if x == DMORIENT_LANDSCAPE as i16 => COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE,
-        x if x == DMORIENT_PORTRAIT as i16 => COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT,
-        _ => return Err(unsupported("unknown orientation")),
-    })?;
-    let (width, height) = paper_inches(&mode)?;
+    // The chooser exposes only printer/page-range/copies/collation. Vendor
+    // Properties is blocked, rather than accepting choices we cannot forward.
+    settings2.SetColorMode(COREWEBVIEW2_PRINT_COLOR_MODE_DEFAULT)?;
+    settings2.SetDuplex(COREWEBVIEW2_PRINT_DUPLEX_DEFAULT)?;
+    let (width, height) = match page {
+        PageSize::A4 => (210.0 / 25.4, 297.0 / 25.4),
+        PageSize::Letter => (8.5, 11.0),
+    };
     settings.SetPageWidth(width)?;
     settings.SetPageHeight(height)?;
+    settings.SetOrientation(if landscape {
+        COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE
+    } else {
+        COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT
+    })?;
     Ok(if pdf {
         Selection::Pdf
     } else {
@@ -285,24 +315,55 @@ mod tests {
         }
     }
     #[test]
-    fn known_and_explicit_paper_sizes_are_preserved_unknown_sizes_rejected() {
+    fn native_properties_guard_disables_supported_control_and_rejects_wrong_template() {
         unsafe {
-            let mut mode = DEVMODEW::default();
-            mode.Anonymous1.Anonymous1.dmPaperSize = DMPAPER_LETTER as i16;
-            assert_eq!(paper_inches(&mode).unwrap(), (8.5, 11.0));
-            mode.Anonymous1.Anonymous1.dmPaperSize = DMPAPER_A4 as i16;
-            let (w, h) = paper_inches(&mode).unwrap();
-            assert!((w * 25.4 - 210.0).abs() < 0.001);
-            assert!((h * 25.4 - 297.0).abs() < 0.001);
-            mode.Anonymous1.Anonymous1.dmPaperSize = 30000;
-            assert!(paper_inches(&mode).is_err());
-            mode.dmFields = DM_PAPERWIDTH | DM_PAPERLENGTH;
-            mode.Anonymous1.Anonymous1.dmPaperWidth = 1000;
-            mode.Anonymous1.Anonymous1.dmPaperLength = 2000;
+            let window = CreateWindowExW(
+                Default::default(),
+                w!("STATIC"),
+                w!("Output guard test"),
+                WS_POPUP,
+                0,
+                0,
+                100,
+                100,
+                None,
+                None,
+                None,
+                None,
+            )
+            .unwrap();
+            let mut guard = ChoiceGuard::default();
+            enforce_options(window, &mut guard);
+            assert!(guard.failed);
+            let button = CreateWindowExW(
+                Default::default(),
+                w!("BUTTON"),
+                w!("Properties"),
+                WS_CHILD | WS_VISIBLE,
+                0,
+                0,
+                80,
+                24,
+                Some(window),
+                Some(HMENU(PROPERTIES as usize as *mut _)),
+                None,
+                None,
+            )
+            .unwrap();
+            let mut guard = ChoiceGuard::default();
+            enforce_options(window, &mut guard);
+            assert!(!guard.failed);
+            assert!(!IsWindowEnabled(button).as_bool());
             assert_eq!(
-                paper_inches(&mode).unwrap(),
-                (1000.0 / 254.0, 2000.0 / 254.0)
+                print_hook(window, WM_COMMAND, WPARAM(PROPERTIES as usize), LPARAM(0)),
+                1
             );
+            // A printer change can enable the control again; enforcement must
+            // disable it again rather than accepting unmapped driver settings.
+            let _ = EnableWindow(button, true);
+            enforce_options(window, &mut guard);
+            assert!(!IsWindowEnabled(button).as_bool());
+            DestroyWindow(window).unwrap();
         }
     }
 }
