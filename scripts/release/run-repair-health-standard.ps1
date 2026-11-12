@@ -90,7 +90,8 @@ try {
  $inputRoot=Join-Path $stage 'input';NewDir $inputRoot
  foreach($source in @((Join-Path $Directory 'manifest.json'),$receipt.installer.path)) {Plain $source;Copy-Item -LiteralPath $source -Destination $inputRoot}
  $specFile=Join-Path $code 'repair-spec.json'
- $node=(Get-Command node -CommandType Application).Source;$pwsh=(Get-Command pwsh -CommandType Application).Source
+ $node=(Get-Command node -CommandType Application | Select-Object -First 1).Source
+ $pwsh=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
  Plain $node
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
