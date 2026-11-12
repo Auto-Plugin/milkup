@@ -598,3 +598,46 @@ native catalog call marks (plus an explicit limit marker), no paths/settings or
 package contents, while preserving exact calls, failures and authorization.
 The engine already prewarms on its approved activation epoch; no duplicate
 prewarm or speculative security/timeout change is being introduced.
+
+## Additional independent cold samples and diagnostic candidate
+
+`af9da78b2e96aba9cbb44472c6eddac005018222` adds the bounded startup
+checkpoints only; desktop typecheck, formatting and two real Chromium
+startup/failed-save-close regressions passed. Windows diagnostic run
+`43155908889` is queued behind exact close-fix candidate run `43154244097`.
+It is not a performance optimization or a Windows acceptance result yet.
+
+The original first ordinary-document reports from earlier fresh-account runs
+also contain first-decode marks. `5d79147a`, `d9f627be` and `f7efe4ef` have
+identical application/package/plugin source; harness changes are kept distinct.
+Independent cold samples (process-to-decode, milliseconds) are:
+
+| Candidate / run | Pure standard | Filtered admin | Whole-run boundary |
+| --- | ---: | ---: | --- |
+| 5d / 43145964546 | 5728.4 | 10678.9 | Later stale mode assertion failed |
+| d9 / 43148218776 | 8022.2 | unavailable | Filtered pre-step geometry timeout |
+| f7 / 43151150510 | 20634.2 | 3433.6 | Complete acceptance passed |
+
+These are not repeat measurements on one cached graph, a percentile estimate,
+or proof of an optimization. They demonstrate substantial variation in both
+account kinds. Corresponding first render durations were 348/356 ms (5d),
+260 ms (d9 pure), and 807/302 ms (f7); major variation remains before engine
+loading. Original failed runs retain their failures.
+
+## 8a standard package and native PDF checkpoint
+
+Build `43154244021` standard job completed, while offline/deb are still pending
+completion. Exact standard original installer is
+`milkup-2.0.0-beta.10-windows-standard-8a5372080f1c.exe`, 7,243,969 bytes,
+SHA-256 `d47f0b7965fe42e6088c3fd2af445f15ae235d35450a0f5a931292f809a680d0`.
+Artifact `13916280728` ZIP SHA is
+`599f2e29a04e5a160e827636ba72d2c0919719e8045e2271b7c9a328eafacd5e`;
+the canonical candidate verifier passed. This is still built-not-installed.
+
+PDF artifact `13916375321` ZIP SHA is
+`1dc431dec64bd07ae30ac6179b8509371810f29da4a71ec0078fdab811bebca0`.
+All four PDF lengths/hashes match the original summary. pdfinfo confirms A4
+594.96x841.92 and 841.92x594.96, Letter 612x792 and 792x612, all Rotate=0.
+All 20 document-network listeners recorded WouldBlock/no connection; actual
+print-dialog cancellation passed. Physical printing, positive queue delivery,
+system picker and general text/visual fidelity remain unaccepted.
