@@ -31,6 +31,35 @@ describe('desktop file service', () => {
     vi.clearAllMocks()
   })
 
+  it('dispatches the initial path request before yielding to shell construction', async () => {
+    let complete!: (path: string | null) => void
+    tauriMocks.invoke.mockReturnValueOnce(
+      new Promise<string | null>((resolve) => {
+        complete = resolve
+      }),
+    )
+    const pending = createDesktopFileService().initialOpenFilePath()
+    // Do not await a microtask: native work should already be able to start while
+    // the caller constructs the shell, without exposing a result prematurely.
+    expect(tauriMocks.invoke).toHaveBeenCalledExactlyOnceWith('initial_open_file_path')
+    complete('D:/notes/启动.md')
+    await expect(pending).resolves.toBe('D:/notes/启动.md')
+  })
+
+  it('preserves absent-path and native rejection semantics', async () => {
+    tauriMocks.invoke.mockResolvedValueOnce(null)
+    await expect(createDesktopFileService().initialOpenFilePath()).resolves.toBeUndefined()
+    const failure = new Error('native path denied')
+    tauriMocks.invoke.mockRejectedValueOnce(failure)
+    await expect(createDesktopFileService().initialOpenFilePath()).rejects.toBe(failure)
+  })
+
+  it('does not dispatch native startup requests in the browser host', async () => {
+    Reflect.deleteProperty(globalThis, 'window')
+    await expect(createDesktopFileService().initialOpenFilePath()).resolves.toBeUndefined()
+    expect(tauriMocks.invoke).not.toHaveBeenCalled()
+  })
+
   it('uses the native save dialog for Tauri Save As when no test path override exists', async () => {
     tauriMocks.save.mockResolvedValue('D:/notes/chosen.md')
     tauriMocks.invoke.mockResolvedValue({
