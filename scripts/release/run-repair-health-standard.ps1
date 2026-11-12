@@ -107,7 +107,7 @@ try {
   $profile=[Environment]::ExpandEnvironmentVariables((Get-ItemProperty -LiteralPath $key).ProfileImagePath);Plain $profile
   $scratch=Join-Path $profile ('.milkup-repair-'+$id)
   if ($jobEmpty -and (Test-Path -LiteralPath $scratch)) {
-   foreach($leaf in @('child-identity.json','child-error.json','evidence/installation.json','evidence/unchanged-document.md','evidence/repair-health-before.json','evidence/repair-health-after.json','evidence/repair-health-before.png','evidence/repair-health-after.png','evidence/repair-health-image.png','evidence/driver.stdout.log','evidence/driver.stderr.log','evidence/verified-receipt.json','evidence/receipt.stderr.log','evidence/health-before.stdout.log','evidence/health-before.stderr.log','evidence/health-after.stdout.log','evidence/health-after.stderr.log')) {
+   foreach($leaf in @('child-identity.json','child-error.json','evidence/installation.json','evidence/unchanged-document.md','evidence/repair-health-before.json','evidence/repair-health-after.json','evidence/repair-health-before.png','evidence/repair-health-after.png','evidence/repair-health-image.png','evidence/repair-health-initial-image.png','evidence/driver.stdout.log','evidence/driver.stderr.log','evidence/verified-receipt.json','evidence/receipt.stderr.log','evidence/health-before.stdout.log','evidence/health-before.stderr.log','evidence/health-after.stdout.log','evidence/health-after.stderr.log')) {
     $file=Join-Path $scratch $leaf
     if (!(Test-Path -LiteralPath $file -PathType Leaf)) {continue};Plain $file
     if ((Get-Item -LiteralPath $file).Length -gt 8MB) {throw 'Health evidence file exceeds bounded budget'}

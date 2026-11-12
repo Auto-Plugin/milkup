@@ -45,7 +45,7 @@ export function createStartupTimeline(now = () => performance.now(), wall = () =
   }
 }
 
-const startupPerformanceScript = `const resources=performance.getEntriesByType('resource');return {timeOrigin:performance.timeOrigin,now:performance.now(),
+export const startupPerformanceScript = `const resources=performance.getEntriesByType('resource');return {timeOrigin:performance.timeOrigin,now:performance.now(),
   navigation:performance.getEntriesByType('navigation').map(e=>e.toJSON()),
   resourceCount:resources.length,resourceDetailsComplete:resources.length<=64,
   resources:resources.slice(0,64).map(e=>({name:e.name,initiatorType:e.initiatorType,startTime:e.startTime,duration:e.duration,

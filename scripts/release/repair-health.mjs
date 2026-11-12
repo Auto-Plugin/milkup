@@ -5,7 +5,11 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import { observe, decodeScript } from '../../tests/windows/mermaid-product-e2e.mjs'
+import {
+  observe,
+  decodeScript,
+  startupPerformanceScript,
+} from '../../tests/windows/mermaid-product-e2e.mjs'
 const [phase, driverPort, debugPort, document, output] = process.argv.slice(2)
 assert(['before', 'after'].includes(phase))
 for (const port of [driverPort, debugPort]) assert(/^\d{4,5}$/.test(port) && +port < 65536)
@@ -159,6 +163,30 @@ try {
   assert(['tauri.localhost', 'localhost'].includes(opened.hostname) || opened.protocol === 'tauri:')
   assert.equal(opened.developmentProbe, 'undefined')
   record.observations.push({ name: 'opened', state: opened })
+  if (phase === 'before') {
+    // Fresh installed profile, before any keyboard or pointer input. The after
+    // phase intentionally retains a disabled plugin and is not a cold sample.
+    await until(
+      async () => (await state()).images.some((i) => i.complete && i.naturalWidth > 0),
+      'initial installed default diagram without input',
+    )
+    assert.equal(record.inputs.length, 0)
+    const decoded = await request('POST', `/session/${session}/execute/async`, {
+      script: decodeScript,
+      args: [null],
+    })
+    assert.equal(decoded.ok, true)
+    const { base64, ...image } = decoded.value
+    assert(image.fullyDecoded && image.nonuniform)
+    record.initialDecodedImage = image
+    record.startupPerformance = await execute(startupPerformanceScript)
+    record.startupPerformance.inputsBeforeObservation = record.inputs.length
+    await writeFile(
+      path.join(output, 'repair-health-initial-image.png'),
+      Buffer.from(base64, 'base64'),
+    )
+    await persist()
+  }
   const bytes = await readFile(document)
   if (phase === 'after') {
     const before = JSON.parse(
