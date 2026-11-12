@@ -943,8 +943,10 @@ That activation has no repeated transition: prepare/approve/begin-trial/commit
 each runs once. Read and read-worker do not write. Preparation writes four
 generation files and the initial primary; each following transition writes the
 prior-primary backup and changed primary. Queue/mutex/file-lock waits do not
-explain the seconds-long interval. The largest delays occur at file creation,
-write-through writes and explicit flushes. Distinct crash-recovery checkpoints
+explain the seconds-long interval. The largest delays occur before write-handle
+acquisition, during write-through writes and during explicit flushes. The
+746 ms pre-open interval includes target validation and native open work; it
+does not isolate one system call. Distinct crash-recovery checkpoints
 are not treated as redundant saves; no approval, revision, write-through, flush,
 rename or cleanup guarantees were removed. Browser delivery/initialization,
 storage latency and early WebDriver attachment still require controlled evidence.
