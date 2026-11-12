@@ -85,7 +85,7 @@ jobs:
       - name: Source and release contracts
         run: |
           node scripts/check-versions.mjs
-          node --test scripts/release/distribution.test.mjs scripts/check-updater-vendor.test.mjs
+          node --test scripts/release/distribution.test.mjs scripts/release/recovery.test.mjs scripts/check-updater-vendor.test.mjs
           node scripts/release/update-readiness.mjs --candidate
           pnpm --filter @milkup/desktop typecheck
       - name: Pinned Windows packaging tools

@@ -13,7 +13,7 @@ const labels: Record<ApplicationUpdatePhase, string> = {
   ready: '更新包已通过签名校验，可以请求安装。',
   cancelling: '正在取消下载…',
   confirming: '请在确认窗口中决定是否安装。安装前会检查并保存未保存的文档。',
-  installing: '正在安装更新并重启，请稍候…',
+  installing: '已提交安装请求，尚未确认安装完成或重启成功。请等待安装器结束。',
   error: '更新未完成，请重试。',
 }
 const escape = (value: string) =>
@@ -63,6 +63,10 @@ export function renderApplicationUpdates(state: ApplicationUpdateState): string 
   }
   if (state.error)
     parts.push(`<p class="application-update-error" role="alert">${escape(state.error)}</p>`)
+  if (state.phase === 'ready' || state.phase === 'installing' || state.phase === 'error')
+    parts.push(
+      '<details class="application-update-recovery"><summary>安装失败或重启后无法打开怎么办？</summary><p>本版本不支持自动应用回滚。不要反复启动安装器；请先等待现有安装器结束。</p><p>备份用户文档和应用数据（含未保存恢复副本），不要删除配置或更新信任记录。优先使用发布者提供的已验签同版本安装包修复；旧版本恢复需发布者确认数据兼容性。</p><p>恢复后请在“关于”核对版本，打开原文档与恢复副本并另存新副本。安装器启动或退出不等于恢复成功。</p></details>',
+    )
   const actions: string[] = []
   if (state.phase === 'error' && state.retry === 'check') actions.push(button('check', '重试检查'))
   if (

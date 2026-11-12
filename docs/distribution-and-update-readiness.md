@@ -60,7 +60,8 @@ node scripts/release/update-readiness.mjs --verify envelope.json installer.exe w
 4. 对准确候选验证检查→下载→取消/重试→文档保存→原生确认→安装→重启→版本核对，
    以及坏签名、过期、断网、权限拒绝、安装中断、首次启动失败、用户数据保持。
 5. Windows 标准/离线双包分别验收；Linux `.deb` 验证安装、升级、重装、卸载与文档保持。
-   `.deb` 不属于当前内建 AppImage 自动替换路径，不得以此声称 Linux 应用内自动升级已完成。
+   当前 vendored updater 已有 Deb/RPM 原生安装路径（Deb 调用 `dpkg` 并处理提权），
+   不仅支持 AppImage；但这些代码存在不等于最新候选的 Linux 应用内升级已通过验收。
 
 ## 恢复策略：当前不能声称自动回滚
 
@@ -76,3 +77,46 @@ node scripts/release/update-readiness.mjs --verify envelope.json installer.exe w
 - 记录故障、恢复版本、实际安装位置和文件摘要。未经此实际验证，恢复项保持未通过。
 
 此文档是可执行验收清单，不是“恢复已完成”的证明。
+
+## 可执行的人工恢复包准备工具
+
+新增 `scripts/release/prepare-recovery-kit.mjs`，供发布者在 Windows 准备恢复包：
+
+```sh
+node scripts/release/prepare-recovery-kit.mjs fresh-envelope.json installer.exe 2.0.0-beta.10 NEW_RECOVERY_DIRECTORY
+```
+
+第三个参数是用户/原交付记录报告的实际安装版本，不是假装自动探测的版本。
+工具使用产品配置公钥验证精确清单和安装器字节，要求清单仍新鲜。
+同版本只准备修复安装；旧版本必须在已签名 `release.recovery` 中单独声明恢复范围。
+`rollbackFrom` 只是撤回候选，不能用作已安装应用降级授权。新恢复声明为：
+
+```json
+{
+  "schema": 1,
+  "mode": "manual-reinstall",
+  "fromVersion": "2.0.0-beta.11",
+  "toVersion": "2.0.0-beta.10",
+  "dataBackwardCompatible": true
+}
+```
+
+from/to 必须精确匹配报告的安装版本和包版本；发布者签名声明数据向后兼容，但工具
+没有验证其真实性，仍须实际恢复演练。缺少这项新鲜签名声明时拒绝准备旧版本包，
+不通过改时钟或忽略过期绕过。
+较新版本应使用正常更新流程，不混入恢复入口。
+
+Windows 原生资源检查只读取 PE ProductVersion 和哈希，从不启动安装器；版本与
+签名声明不匹配时拒绝。该检查与宿主全语言表资源验证不是等价替代，也不证明
+压缩安装载荷版本、安装结果或数据兼容性。标准/离线候选构建也使用该检查记录外层版本。
+
+准备成功的目录仅包含安装器、原签名清单、哈希、人工恢复说明和最后写入的
+`recovery-receipt.json`。没有收集或上传用户文档、应用数据或配置；备份仍须在安装前
+由用户完成。失败目录保留 `INCOMPLETE.txt`，不得安装或交付；必须有完成 receipt
+且没有 INCOMPLETE 标记才是准备完成。工具拒绝覆盖已有目录，不启动安装、重启、
+回退数据或清空防回放状态。
+
+此工具的合成测试覆盖同版修复、精确旧版授权、过期/坏签名、版本/哈希不匹配、
+资源检查失败、检查后包被修改及失败不产生完成记录。合成 observer 不是 Windows 实跑。
+当前产品界面也明确把“已提交安装”与“已确认成功”分开，并提供失败/无法重启时的恢复说明。
+它没有新增自动回滚或首次启动健康握手，正式版前仍需准确候选的目标系统恢复演练。

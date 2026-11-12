@@ -102,3 +102,12 @@ describe('built-in updates presentation', () => {
     expect(html).toContain('2.0.0')
   })
 })
+
+it('installation submission is never presented as confirmed success or automatic rollback', () => {
+  const html = renderApplicationUpdates({ ...state, phase: 'installing' })
+  expect(html).toContain('尚未确认安装完成或重启成功')
+  expect(html).toContain('不支持自动应用回滚')
+  expect(html).toContain('不要删除配置或更新信任记录')
+  expect(html).toContain('安装器启动或退出不等于恢复成功')
+  expect(actions(html)).toEqual([])
+})

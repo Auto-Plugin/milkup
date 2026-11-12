@@ -5,6 +5,7 @@ import { copyFile, lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/pr
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { checkChannel } from './update-readiness.mjs'
+import { inspectWindowsInstaller } from './prepare-recovery-kit.mjs'
 
 export const variants = Object.freeze({
   'windows-standard': {
@@ -154,12 +155,24 @@ export async function buildCandidate(name, output, expectedSha) {
   const sha256 = createHash('sha256')
     .update(await readFile(found[0]))
     .digest('hex')
+  let outerInstallerVersion = null
+  if (variant.platform === 'win32') {
+    const inspected = inspectWindowsInstaller(path.join(payload, destination))
+    assert.equal(
+      inspected.productVersion,
+      version,
+      'Installer PE ProductVersion differs from source',
+    )
+    assert.equal(inspected.sha256, sha256, 'PE inspector observed different installer bytes')
+    outerInstallerVersion = inspected.productVersion
+  }
   const record = {
     schema: 1,
     status: 'built-not-installed',
     sourceSha: expectedSha,
     version,
     variant: name,
+    outerInstallerVersion,
     architecture: 'x86_64',
     runtime: variant.runtime,
     channel,

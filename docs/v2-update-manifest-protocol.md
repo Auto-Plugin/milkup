@@ -86,3 +86,14 @@ envelope 和外层 signed statement 拒绝未知字段；schema、product、chan
 测试用 [合成向量](../tests/fixtures/updates/signed-manifest.json) 使用公开、确定性的测试材料，不是正式密钥，未写入产品配置。fixture generator 只用于开发时重建这些静态向量；使用执行器已有 Python 工具，没有给应用、插件、Cargo 或 pnpm 增加依赖。测试的 HTTP 名称通过测试客户端解析到临时 loopback listener，不联系真实发布服务，也不放宽生产 HTTPS 配置。
 
 新增 [版本门禁合成向量](../tests/fixtures/updates/version-gates.json) 复用同一个公开测试 key，PE 样本没有代码段或入口点，从不执行。固定测试时钟只作为私有策略函数参数，不提供生产 IPC 时钟覆盖。验证覆盖真实 minisign、已签名元数据被修改、错误 key/scope、旧包替换、绑定字段改变、Content-Length/chunked/截断/精确上限、跳转目的地零请求、超时、取消和迟到结果。正式签名发行、真实包内版本、升级中断/首次启动失败/应用回滚及目标系统安装行为仍需独立授权和验收。
+
+## 人工恢复包的独立签名范围
+
+`release.recovery` 是维护者恢复包准备工具消费的可选签名声明，**不是宿主自动降级开关**。
+形状为 `{schema: 1, mode: "manual-reinstall", fromVersion, toVersion, dataBackwardCompatible: true}`，
+不得有额外字段。from/to 绑定报告的已安装版本和恢复包版本；声明必须随当前有效清单一同验签。
+它与 `release.milkup.rollbackFrom` 的候选撤回语义分开，后者不能授权已安装应用降级。
+
+仅准备同版本修复包不需要跨版本恢复声明。准备旧版本包必须具有上述独立声明；
+工具仍不执行安装、证明数据兼容性、确认首次启动健康或回退用户数据。
+操作和证据边界见[恢复包工具说明](distribution-and-update-readiness.md#可执行的人工恢复包准备工具)。

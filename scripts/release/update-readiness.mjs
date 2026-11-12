@@ -132,6 +132,10 @@ function compareVersions(a, b) {
   return Math.sign(a.pre.length - b.pre.length)
 }
 
+export function recoveryVersionRelation(installed, candidate) {
+  return compareVersions(semver(candidate), semver(installed))
+}
+
 export function checkSignedRelease(
   envelopeBytes,
   config,
