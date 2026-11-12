@@ -158,7 +158,7 @@ try {
       foreach ($file in @($versionOut,$versionErr)) { if ((Get-Item -LiteralPath $file).Length -gt 4096) { throw 'Driver version evidence exceeds budget' } }
       $version=[IO.File]::ReadAllText($versionOut).Trim()
       Phase 'health-driver-version' @{exitCode=$versionProcess.ExitCode;stdout=$version;stderr=[IO.File]::ReadAllText($versionErr)}
-      if ($versionProcess.ExitCode -ne 0 -or $version -notmatch ('^MSEdgeDriver '+[regex]::Escape($runtime.Name)+'(?:\s|$)')) { throw 'Exact installed Evergreen driver required' }
+      if ($versionProcess.ExitCode -ne 0 -or $version -notmatch ('^(?:Microsoft Edge WebDriver|MSEdgeDriver) '+[regex]::Escape($runtime.Name)+'(?:\s|$)')) { throw 'Exact installed Evergreen driver required' }
     } finally {
       if (!$versionProcess.HasExited) {
         if ($versionProcess.StartTime.ToUniversalTime().Ticks -ne $versionBirth -or ![StringComparer]::OrdinalIgnoreCase.Equals($versionProcess.Path,$driverExe)) { throw 'Driver version cleanup identity mismatch' }
