@@ -356,3 +356,71 @@ suite (`browserName: webview2`, `ms:edgeChromium: true`, debugger address only).
 Run `43149872319` tests this correction against the original `bf8a2d50` installer.
 The new health checks are not yet accepted. They do not represent complete
 configuration migration, formal signed recovery or dual-account isolation.
+
+## Subsequent dual-account evidence and startup gate
+
+`43148218776 / d9f627be` has finished. Pure-standard product passed 11/11,
+including real undo/redo under the independent Mermaid policy. Filtered-admin
+product never entered a test step: after a successful WebDriver attach at
+3376.70 ms, GET `/session/.../window/rect` timed out at 30009.47 ms. Failure
+observations still showed an empty untitled document. Normal failure-path UI
+close, stdio close and inner cleanup succeeded without forced termination.
+This is not evidence that the filtered account completed product acceptance.
+
+Both independent GUI suites passed eight steps and their final contracts.
+Original artifact `13914247685` is 1,725,048 bytes, SHA-256
+`6dca82fe28b8411cde6803fc8edb518e912cea9034cd881b9a08d41a08f5bf02`.
+Both compressed window reports were independently restored with chunk/raw
+length, hash and newline checks. Pure-standard raw SHA is
+`a9fafbbeea277e461d95caac1326b70944674b35ea44bf597227c3f2aea2a2e0`
+(103 SHOW records); filtered-admin is
+`6c220ed919361cb90de880e60bdcfe237744496bb9f913e7ce9d31f6416ae039`
+(104 SHOW records). All SHOW records resolved, complete=true, overflow=false,
+positive control passed, and zero visible product/unattributed consoles were
+observed. These GUI results do not replace the failed product startup gate.
+
+`f7efe4ef / 43151150510` is testing a startup ordering mitigation: first wait
+for the exact initial document, then query native window geometry. The 640x480
+and bounded request gates remain. New geometry-start/observed timestamps are
+part of the checked startup stage list. Its result remains pending; this order
+change is not yet a proven fix for the earlier stall.
+
+## Latest native output build evidence
+
+The Windows standard job of distribution run `43145985835 / 5d79147a`
+succeeded. Original PDF artifact `13913981937`, 207,353 bytes, SHA-256
+`65424d9de3a0e4c9a03a2060eae3171ac17af5e55046d52a07f2299a094d9162`
+was downloaded and verified. `pdfinfo` confirms A4 portrait/landscape
+594.96x841.92 / 841.92x594.96 pt and Letter portrait/landscape 612x792 /
+792x612 pt, all Rotate=0. All 20 document-network listener checks recorded
+WouldBlock (no connection); real print-dialog cancellation passed. Physical
+printing, positive queue submission, general visual fidelity and Linux output
+are still not accepted. Offline and Linux package jobs were still pending at
+this checkpoint; the full build must finish before immutable-package installs.
+
+## Repair-health environment and coordinator failures
+
+The original `bf8a2d50` same-version missing-executable repair remains passed
+in `43148634413`; editing/configuration health is a separate unfinished check.
+The direct elevated-host attempts did not reach document/plugin inputs:
+`43149872319` timed out attaching, and `43150254458` could not observe the debug
+endpoint within 45 seconds. `43150941247` then measured the coordinator token
+as elevated, integrity RID 12288. It rejected that environment before installing.
+The missing endpoint is consistent with the Runtime 150+ elevated-host debug
+hardening described in MicrosoftEdge/WebView2Feedback issue 5645. No HKLM,
+UAC, desktop ACL or debug-policy bypass was introduced.
+
+`28973785` adds a fresh, owned pure-standard account coordinator using the
+existing held-Job/token/SID/session gates, a credential-free child environment,
+read-only staged code/input and exact profile/account cleanup. The first run
+`43151667708` failed before account/install creation because raw .NET parent
+DirectoryInfo objects do not have PowerShell's PSIsContainer decoration.
+`73b08219` switches to the actual DirectoryInfo type while preserving every
+ancestor's reparse rejection. Its run `43152150613` reached account creation
+but Windows rejected the 59-character description (48-character maximum).
+Original artifact `13914208154` is 3,961 bytes, SHA-256
+`6741dc19cc5941493fb41e3278c8066a00a551988f289467163f320351124a32`;
+no account or product was created. `bff604e1` shortens the unique ownership
+marker to 46 characters. These are retained harness failures, not successful
+installed health checks or product failures. A fresh actual Windows run tests
+the corrected coordinator; the original installer bytes are unchanged.
