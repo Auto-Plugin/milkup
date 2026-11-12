@@ -237,6 +237,59 @@ describe('bounded editing and resources', () => {
   })
 })
 describe('editing/resources strict RPC', () => {
+  it('releases issued captures cancelled while their responses are still in transit', async () => {
+    const t = setup(),
+      p = pair()
+    const server = createPluginEditingRpcServer(p.main, t.editing)
+    const client = createRpcPluginEditingBroker(p.worker)
+    const deliver = p.main.postMessage.bind(p.main)
+    const delayed: unknown[] = []
+    let hold = true
+    p.main.postMessage = (value) => {
+      const response = value as { type?: string; ok?: boolean; value?: { id?: string } }
+      if (hold && response.type === 'response' && response.ok && response.value?.id)
+        delayed.push(value)
+      else deliver(value)
+    }
+    try {
+      // Exceed the existing eight-snapshot limit without relaxing that limit.
+      for (let index = 0; index < 12; index++) {
+        const abort = new AbortController()
+        const capture = client.capture({ extent: 'selection' }, { signal: abort.signal })
+        const rejected = expect(capture).rejects.toMatchObject({ code: 'aborted' })
+        await flush()
+        expect(delayed).toHaveLength(index + 1)
+        abort.abort()
+        await rejected
+        await flush()
+        expect(t.edit.release).toHaveBeenCalledTimes(index + 1)
+      }
+      hold = false
+      for (const response of delayed.reverse()) deliver(response)
+      await flush()
+      const latest = await client.capture({ extent: 'selection' })
+      expect(t.edit.release).toHaveBeenCalledTimes(12)
+      // Unknown cancellation cannot release the current accepted snapshot.
+      p.worker.postMessage({
+        protocol: 'milkup.plugin.editing.rpc.v1',
+        type: 'cancel',
+        id: 'unknown',
+      })
+      await flush()
+      expect(t.edit.release).not.toHaveBeenCalledWith(latest.id)
+      await client.release(latest.id)
+      p.worker.postMessage({
+        protocol: 'milkup.plugin.editing.rpc.v1',
+        type: 'cancel',
+        id: 'editing-12',
+      })
+      await flush()
+      expect(t.edit.release).toHaveBeenCalledTimes(13)
+    } finally {
+      client.dispose()
+      server.dispose()
+    }
+  })
   it('roundtrips, rejects forged method/fields and revokes unfinished calls', async () => {
     const t = setup(),
       p = pair()

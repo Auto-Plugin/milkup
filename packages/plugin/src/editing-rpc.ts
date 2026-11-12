@@ -174,14 +174,17 @@ export function createPluginEditingRpcServer(
 ): PluginEditingRpcServer {
   let disposed = false
   const active = new Map<string, AbortController>()
-  const transactions = new Set<string>()
+  // Retain the originating RPC until its snapshot is consumed or released.
+  // A response can already be posted when cancellation arrives from a Worker;
+  // deleting the active request must not orphan that unaccepted snapshot.
+  const transactions = new Map<string, string>()
   const dispose = () => {
     if (disposed) return
     disposed = true
     remove()
     for (const controller of active.values()) controller.abort()
     active.clear()
-    for (const id of transactions) void broker.release(id).catch(() => undefined)
+    for (const id of transactions.keys()) void broker.release(id).catch(() => undefined)
     transactions.clear()
     try {
       endpoint.postMessage({ protocol: PROTOCOL, type: 'revoked' })
@@ -209,9 +212,19 @@ export function createPluginEditingRpcServer(
       return
     if (message.type === 'cancel' && keys(message, ['protocol', 'type', 'id'])) {
       active.get(message.id)?.abort()
+      for (const [snapshotId, requestId] of transactions) {
+        if (requestId !== message.id) continue
+        transactions.delete(snapshotId)
+        await broker.release(snapshotId).catch(() => undefined)
+      }
       return
     }
-    if (message.type !== 'request' || active.has(message.id)) return
+    if (
+      message.type !== 'request' ||
+      active.has(message.id) ||
+      [...transactions.values()].includes(message.id)
+    )
+      return
     const reply = (data: Record<string, unknown>) => {
       if (!disposed)
         endpoint.postMessage({ protocol: PROTOCOL, type: 'response', id: message.id, ...data })
@@ -240,7 +253,7 @@ export function createPluginEditingRpcServer(
         )
         const id = (value as PluginEditingSnapshot).id
         if (controller.signal.aborted || disposed) await broker.release(id).catch(() => undefined)
-        else transactions.add(id)
+        else transactions.set(id, message.id)
       } else if (method === 'apply') {
         value = await broker.apply(payload.request as unknown as PluginEditingApplyRequest, options)
         transactions.delete((payload.request as PluginEditingApplyRequest).snapshotId)
