@@ -32,6 +32,15 @@ function setup(text = '# 中文\n\n正文 **保留**') {
     invoke,
     calls,
     current: () => current,
+    switchDocument: (name: string, text: string) => {
+      current = {
+        ...current,
+        source: new MemoryDocumentSource({ documentId: name, text, version: 4 }),
+        identity: {},
+        title: name + '.md',
+        sourcePath: '/notes/' + name + '.md',
+      }
+    },
     change: () => {
       current = {
         ...current,
@@ -74,6 +83,62 @@ describe('controlled desktop output', () => {
     )
     expect(f.calls).toEqual([])
   })
+  it('rejects switching to another file with the same version during capture', async () => {
+    const f = setup('ONLY-DOCUMENT-A')
+    const source = f.current().source
+    const read = source.readLineWindow.bind(source)
+    source.readLineWindow = async (...args) => {
+      const value = await read(...args)
+      f.switchDocument('document-b', 'ONLY-DOCUMENT-B')
+      return value
+    }
+    await expect(f.service.adapterForPlugin('test').adapter.capture(request)).rejects.toMatchObject(
+      {
+        code: 'stale',
+      },
+    )
+    expect(f.current().source.version).toBe(4)
+    expect(f.calls).toEqual([])
+  })
+  for (const format of ['html', 'pdf'] as const) {
+    it(`${format} retains each captured file identity when the active document changes`, async () => {
+      const f = setup('ONLY-DOCUMENT-A')
+      let nextJob = 0
+      f.invoke.mockImplementation(async (command, args) => {
+        f.calls.push({ command, args })
+        if (command === 'output_prepare') return { id: 'job-' + ++nextJob }
+        if (command === 'output_choose_target')
+          return { id: args.jobId, name: args.title + '.' + format }
+        if (command === 'output_write_' + format)
+          return { name: args.jobId + '.' + format, bytes: 1000 }
+        if (command === 'output_abort') return true
+        throw new Error(command)
+      })
+      const { adapter } = f.service.adapterForPlugin('test')
+      const a = await adapter.capture({ ...request, format })
+      f.switchDocument('document-b', 'ONLY-DOCUMENT-B')
+      const b = await adapter.capture({ ...request, format })
+      expect([a.documentId, b.documentId]).toEqual(['doc', 'document-b'])
+      expect([a.version, b.version]).toEqual([4, 4])
+      const targetA = await adapter.chooseTarget({ snapshotId: a.id })
+      const targetB = await adapter.chooseTarget({ snapshotId: b.id })
+      if (targetA.status !== 'ready' || targetB.status !== 'ready') throw new Error('target')
+      // Reverse completion order must not route the second file into the first job.
+      await adapter.write(targetB.id)
+      await adapter.write(targetA.id)
+      const prepared = f.calls.filter((x) => x.command === 'output_prepare')
+      expect(prepared.map((x) => x.args.sourcePath)).toEqual([
+        '/notes/笔记.md',
+        '/notes/document-b.md',
+      ])
+      const writes = f.calls.filter((x) => x.command === 'output_write_' + format)
+      expect(writes.map((x) => x.args.jobId)).toEqual(['job-2', 'job-1'])
+      expect(writes[0]!.args.html).toContain('ONLY-DOCUMENT-B')
+      expect(writes[0]!.args.html).not.toContain('ONLY-DOCUMENT-A')
+      expect(writes[1]!.args.html).toContain('ONLY-DOCUMENT-A')
+      expect(writes[1]!.args.html).not.toContain('ONLY-DOCUMENT-B')
+    })
+  }
   it('reports a changed renderer activation as stale capture, not revoked output permission', async () => {
     const f = setup()
     let generation = 1
