@@ -95,24 +95,25 @@ was intentionally skipped; these 16 startup trials do not replace the earlier
 product/GUI or installed-package acceptance.
 
 Candidate 29551c34300b1a0ffb3a3fdabe26b8cbec914692; run 43197922164; diagnostic only.
-| Account | Trial/profile | First decode from spawn (ms) | Constructor (ms) | Environment API (ms) | Controller total (ms) | Navigation to handler (ms) |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| pure-standard | 1: a new + first catalogue | 11753.8 | 7022.3 | 3048.9 | 2782.3 | 33.0 |
-| pure-standard | 2: a reuse | 2707.7 | 634.1 | 6.8 | 465.2 | 4.0 |
-| pure-standard | 3: b new | 20289.3 | 2811.6 | 7.6 | 2115.0 | 14105.0 |
-| pure-standard | 4: b reuse | 3258.9 | 843.3 | 6.0 | 608.4 | 3.0 |
-| pure-standard | 5: a reuse | 3243.1 | 782.3 | 3.8 | 559.7 | 3.0 |
-| pure-standard | 6: c new | 4104.0 | 804.7 | 5.3 | 599.7 | 1110.0 |
-| pure-standard | 7: c reuse | 3427.9 | 792.5 | 4.1 | 600.0 | 3.0 |
-| pure-standard | 8: b reuse | 3426.1 | 829.3 | 4.0 | 573.2 | 14.0 |
-| filtered-admin | 1: a new + first catalogue | 3448.4 | 937.4 | 8.2 | 527.4 | 526.0 |
-| filtered-admin | 2: a reuse | 2653.9 | 641.2 | 3.5 | 474.8 | 3.0 |
-| filtered-admin | 3: b new | 3269.6 | 799.8 | 3.8 | 475.0 | 545.0 |
-| filtered-admin | 4: b reuse | 2652.6 | 594.8 | 4.7 | 399.7 | 4.0 |
-| filtered-admin | 5: a reuse | 2843.5 | 638.7 | 3.3 | 471.0 | 4.0 |
-| filtered-admin | 6: c new | 3129.9 | 716.8 | 3.6 | 444.2 | 551.0 |
-| filtered-admin | 7: c reuse | 2586.6 | 587.9 | 4.6 | 424.2 | 3.0 |
-| filtered-admin | 8: b reuse | 2591.2 | 632.7 | 3.9 | 459.5 | 4.0 |
+
+| Account        | Trial/profile              | First decode from spawn (ms) | Constructor (ms) | Environment API (ms) | Controller total (ms) | Navigation to handler (ms) |
+| -------------- | -------------------------- | ---------------------------: | ---------------: | -------------------: | --------------------: | -------------------------: |
+| pure-standard  | 1: a new + first catalogue |                      11753.8 |           7022.3 |               3048.9 |                2782.3 |                       33.0 |
+| pure-standard  | 2: a reuse                 |                       2707.7 |            634.1 |                  6.8 |                 465.2 |                        4.0 |
+| pure-standard  | 3: b new                   |                      20289.3 |           2811.6 |                  7.6 |                2115.0 |                    14105.0 |
+| pure-standard  | 4: b reuse                 |                       3258.9 |            843.3 |                  6.0 |                 608.4 |                        3.0 |
+| pure-standard  | 5: a reuse                 |                       3243.1 |            782.3 |                  3.8 |                 559.7 |                        3.0 |
+| pure-standard  | 6: c new                   |                       4104.0 |            804.7 |                  5.3 |                 599.7 |                     1110.0 |
+| pure-standard  | 7: c reuse                 |                       3427.9 |            792.5 |                  4.1 |                 600.0 |                        3.0 |
+| pure-standard  | 8: b reuse                 |                       3426.1 |            829.3 |                  4.0 |                 573.2 |                       14.0 |
+| filtered-admin | 1: a new + first catalogue |                       3448.4 |            937.4 |                  8.2 |                 527.4 |                      526.0 |
+| filtered-admin | 2: a reuse                 |                       2653.9 |            641.2 |                  3.5 |                 474.8 |                        3.0 |
+| filtered-admin | 3: b new                   |                       3269.6 |            799.8 |                  3.8 |                 475.0 |                      545.0 |
+| filtered-admin | 4: b reuse                 |                       2652.6 |            594.8 |                  4.7 |                 399.7 |                        4.0 |
+| filtered-admin | 5: a reuse                 |                       2843.5 |            638.7 |                  3.3 |                 471.0 |                        4.0 |
+| filtered-admin | 6: c new                   |                       3129.9 |            716.8 |                  3.6 |                 444.2 |                      551.0 |
+| filtered-admin | 7: c reuse                 |                       2586.6 |            587.9 |                  4.6 |                 424.2 |                        3.0 |
+| filtered-admin | 8: b reuse                 |                       2591.2 |            632.7 |                  3.9 |                 459.5 |                        4.0 |
 
 Within-account adjacent new→reuse pairs (B and C only; catalogue initialization excluded):
 pure-standard b: 20289.3 → 3258.9 ms; difference -17030.4 ms.
@@ -121,7 +122,6 @@ filtered-admin b: 3269.6 → 2652.6 ms; difference -617.0 ms.
 filtered-admin c: 3129.9 → 2586.6 ms; difference -543.3 ms.
 
 No OS cache reset, no live browser retained between launches, same early attachment. These paired samples do not identify the internal cause of a platform wait or establish a population performance guarantee.
-
 
 All ten retained-profile samples decoded within 2,586.6–3,427.9 ms. Three of the
 four adjacent B/C new-to-reuse pairs improved by 543.3–676.1 ms; the fourth
@@ -140,8 +140,103 @@ GET /status failure. Six execute/sync probes were aborted during real UI-close
 exit waits; all corresponding products exited normally with EOF. These original
 records are retained, not removed to make the run appear error-free.
 
-A counterbalanced repeat of the same exact candidate, filtered-admin first,
-was started as https://github.com/Auto-Plugin/milkup/actions/runs/43200029365.
-That run uses another hosted VM and must be reviewed separately. It is pending
-at this documentation revision. No application optimization has been made, and
-the internal cause of the platform-boundary long tail remains unproven.
+## Completed filtered-first repeat
+
+- Same source candidate `29551c34300b1a0ffb3a3fdabe26b8cbec914692`.
+- Run https://github.com/Auto-Plugin/milkup/actions/runs/43200029365 completed successfully.
+- Full artifact `13935881026`, 435,864 bytes, ZIP SHA-256
+  `8da7440de6ce22c1e4ef8328f5f2bea6ba808bcc427dc21b1a10909b91e6a8bd`.
+- Application SHA-256 for this build:
+  `2e62059b0fbda2f716aef053be0e85a6a0bdeec249770910f39b9d2de7876b05`.
+- Same selected runtime version and executable hash as the first run. Both
+  accounts within this repeat used the same application bytes. Actual report
+  timestamps confirm filtered-admin finished before pure-standard started.
+
+This is a separately built executable on another hosted VM. Its EXE hash differs
+from the first run. Exact source identity does **not** establish byte-identical
+reproduction. Each run's within-account profile comparison remains controlled;
+cross-run differences cannot be attributed solely to account execution order.
+
+Candidate 29551c34300b1a0ffb3a3fdabe26b8cbec914692; run 43200029365; diagnostic only.
+
+| Account        | Trial/profile              | First decode from spawn (ms) | Constructor (ms) | Environment API (ms) | Controller total (ms) | Navigation to handler (ms) |
+| -------------- | -------------------------- | ---------------------------: | ---------------: | -------------------: | --------------------: | -------------------------: |
+| pure-standard  | 1: a new + first catalogue |                       3419.7 |            880.2 |                  5.5 |                 700.1 |                      732.0 |
+| pure-standard  | 2: a reuse                 |                       2767.5 |            675.2 |                  3.5 |                 507.6 |                        4.0 |
+| pure-standard  | 3: b new                   |                       3346.0 |            675.0 |                  3.4 |                 508.6 |                      777.0 |
+| pure-standard  | 4: b reuse                 |                       2747.5 |            664.0 |                  3.5 |                 499.9 |                        7.0 |
+| pure-standard  | 5: a reuse                 |                       2661.9 |            650.8 |                  4.7 |                 486.1 |                        4.0 |
+| pure-standard  | 6: c new                   |                       3604.0 |            637.2 |                  3.9 |                 464.8 |                     1125.0 |
+| pure-standard  | 7: c reuse                 |                       2882.9 |            737.0 |                  4.5 |                 481.0 |                        3.0 |
+| pure-standard  | 8: b reuse                 |                       2637.3 |            645.8 |                  3.4 |                 474.6 |                        3.0 |
+| filtered-admin | 1: a new + first catalogue |                       5554.5 |           2894.7 |                545.9 |                1623.5 |                        8.0 |
+| filtered-admin | 2: a reuse                 |                       2638.4 |            633.0 |                  5.2 |                 464.1 |                        3.0 |
+| filtered-admin | 3: b new                   |                      19661.9 |           1264.5 |                  4.7 |                 684.6 |                    15060.0 |
+| filtered-admin | 4: b reuse                 |                       3227.7 |            839.0 |                  3.4 |                 545.9 |                        3.0 |
+| filtered-admin | 5: a reuse                 |                       3408.1 |            916.7 |                  5.9 |                 699.1 |                        3.0 |
+| filtered-admin | 6: c new                   |                       9484.3 |            837.4 |                  4.0 |                 555.4 |                     6532.0 |
+| filtered-admin | 7: c reuse                 |                       3291.2 |            736.1 |                  4.8 |                 548.9 |                        4.0 |
+| filtered-admin | 8: b reuse                 |                       2561.5 |            607.2 |                  4.4 |                 424.3 |                        4.0 |
+
+Within-account adjacent new→reuse pairs (B and C only; catalogue initialization excluded):
+pure-standard b: 3346.0 → 2747.5 ms; difference -598.5 ms.
+pure-standard c: 3604.0 → 2882.9 ms; difference -721.1 ms.
+filtered-admin b: 19661.9 → 3227.7 ms; difference -16434.2 ms.
+filtered-admin c: 9484.3 → 3291.2 ms; difference -6193.1 ms.
+
+No OS cache reset, no live browser retained between launches, same early attachment. These paired samples do not identify the internal cause of a platform wait or establish a population performance guarantee.
+
+Independent replay again verified all 16 images, exact launch generations,
+directory identities, catalogue transitions, normal UI closes, exit 0, EOF,
+owner release, and final complete zero-owned-WebView censuses. Filtered-admin
+trials 1 and 5 needed respectively three and two bounded census attempts before
+completeness/absence was established; they were not force-killed or allowed to
+proceed using incomplete evidence. The attempt summaries retain completeness
+and match counts; only the final full snapshot is retained, so the transient
+incomplete snapshots' detailed cause cannot be reconstructed. All other censuses
+passed on the first attempt. Temporary account/profile/stage cleanup passed.
+
+The first catalogue startup in each account produced two successful requests;
+the other fourteen starts each produced one. Driver readiness transiently failed
+once per account. One aborted execute/sync probe and four target-gone 404 probes
+occurred after the exact product's real UI-close request and before its normal
+exit/EOF. These records are retained; the run is not described as error-free.
+
+The filtered-admin B-new launch decoded at 19,661.9 ms, with 15,060 ms before the
+Wry page handler and a 347 ms matched successful render. All 61 main-loop probes
+returned, maximum 12.414 ms. C-new decoded at 9,484.3 ms with 6,532 ms before the
+page handler. The ten retained-profile samples were 2,561.5–3,408.1 ms.
+
+## What the two completed experiments establish
+
+There are 32 verified launches, with 20 retained-profile samples between
+2,561.5 and 3,427.9 ms. That is a descriptive observed range across two builds
+and VMs, not a statistical guarantee. Five of the eight adjacent B/C pairs
+improved by 543.3–721.1 ms; the other three included long new-profile samples.
+Large navigation delays appeared under the first-tested account in each run,
+including filtered-admin when the execution order was reversed. The evidence
+does not support treating the delay as specific to the pure-standard token.
+It also does not isolate OS cache, host load, profile initialization, or runtime
+internals as the cause.
+
+Early WebDriver attachment was held constant. In the first run's long B-new
+sample, attachment completed 57 ms before application setup. A measurement-tool
+contribution is therefore not excluded. Temporary browser profiles are under
+the owned CI work directory, rather than an existing user's normal LocalAppData
+profile. Runtime/app hashes are read by the harness; no disk-cache coldness is
+claimed. The existing installed-package comparison remains separate.
+
+For the first completed run, engine resource timing was 186.2–322.8 ms, and all
+16 resource observations reported the same 5,495,101-byte transfer size. It does
+not explain the 14-second pre-handler wait. This is not proof of a Mermaid asset
+cache improvement either.
+
+No application performance optimization was made. Existing local profile
+retention and one frontend engine connection should remain intact. An early
+native startup indicator is a possible feedback improvement, not evidence of
+reduced first-image latency. Further attribution needs a controlled late/no-
+attachment comparison for this profile matrix and bounded runtime/OS timing
+evidence. Current observations do not justify disabling security, bypassing
+persistent writes, introducing arbitrary delays, or calling the platform cause
+uncontrollable. No installation/export tests were repeated and nothing was
+released.
