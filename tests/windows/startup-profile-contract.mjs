@@ -15,30 +15,19 @@ export function verifyProfileReuse(previous, current) {
   return current
 }
 export function verifyNoOwnedWebView(snapshot, sid, runtime) {
+  assert.equal(snapshot.scope, 'exact-sid-webview-runtime')
   assert.equal(snapshot.sid, sid)
+  for (const key of ['enumeratedCount', 'excludedByImageName', 'candidateCount'])
+    assert(Number.isInteger(snapshot[key]) && snapshot[key] >= 0 && snapshot[key] <= 4096)
+  assert.equal(snapshot.enumeratedCount, snapshot.excludedByImageName + snapshot.candidateCount)
+  assert(snapshot.matchCount <= snapshot.candidateCount)
   assert.equal(snapshot.readOnly, true)
   assert.equal(snapshot.complete, true)
   assert.deepEqual(snapshot.errors, [])
   assert.equal(snapshot.matchCount, snapshot.records.length)
   assert(snapshot.records.length <= 64)
-  for (const r of snapshot.records) {
-    assert.equal(r.enumeratedSid, sid)
-    assert.equal(r.token.sid, sid)
-    assert.equal(r.imageTruncated, false)
-    assert.equal(r.enumeratedImageTruncated, false)
-    assert.equal(typeof r.image, 'string')
-    assert.equal(typeof r.enumeratedImage, 'string')
-    assert.notEqual(
-      r.image.toLowerCase(),
-      runtime.toLowerCase(),
-      'Previous WebView runtime still alive',
-    )
-    assert.notEqual(
-      r.enumeratedImage.toLowerCase(),
-      'msedgewebview2.exe',
-      'Owned WebView must exit before reuse',
-    )
-  }
+  assert.equal(snapshot.matchCount, 0, 'Every owned WebView runtime must exit before reuse')
+  assert.match(runtime, /[\\/]msedgewebview2\.exe$/i, 'Known runtime image required')
   return true
 }
 export function verifyCatalogRestart(beforeBytes, afterBytes) {

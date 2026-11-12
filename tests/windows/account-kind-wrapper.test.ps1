@@ -49,6 +49,18 @@ if ($IsWindows) {
         }
     }
 }
+Case 'startup census filters only complete kernel image names before querying unrelated tokens' {
+    $select = [WindowsMermaidStandardUser].GetMethod('IsWebViewSnapshotCandidate', [Reflection.BindingFlags]'Static,NonPublic')
+    Assert-True ($select.Invoke($null, @([uint32]123, 'msedgewebview2.exe'))) 'Runtime excluded'
+    Assert-True ($select.Invoke($null, @([uint32]123, 'MSEdgeWebView2.EXE'))) 'Case variant excluded'
+    Assert-True (-not $select.Invoke($null, @([uint32]123, 'lsass.exe'))) 'Unrelated protected process selected'
+    Assert-True (-not $select.Invoke($null, @([uint32]4, $null))) 'Kernel PID selected'
+    foreach ($name in @($null, '', ('x' * 257), 'C:\msedgewebview2.exe', 'dir/msedgewebview2.exe', "msedgewebview2.exe`0other")) {
+        $rejected = $false
+        try { $null = $select.Invoke($null, @([uint32]123, $name)) } catch { $rejected = $true }
+        Assert-True $rejected 'Incomplete or non-basename image silently excluded'
+    }
+}
 function New-Token([string]$Kind) {
     $filtered = $Kind -ceq 'filtered-admin'
     $value = [Collections.Generic.Dictionary[string,object]]::new()

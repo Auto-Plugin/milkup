@@ -373,26 +373,52 @@ public static class WindowsMermaidStandardUser
         if (String.IsNullOrEmpty(observedSid)) throw new InvalidOperationException("Process-owner SID query returned no identity");
         return observedSid;
     }
+    // The profile experiment needs absence of this runtime, not permission to
+    // inspect unrelated SYSTEM/protected tokens. Filter only by the complete
+    // kernel-supplied WTS image name; missing names and candidate SID failures
+    // remain errors. The all-process cleanup census below stays unchanged.
+    static bool IsWebViewSnapshotCandidate(uint pid, string name) {
+        if (pid == 0 || pid == 4) return false;
+        if (String.IsNullOrEmpty(name) || name.Length > 256 || name.IndexOf('\0') >= 0 ||
+            name.IndexOf('\\') >= 0 || name.IndexOf('/') >= 0)
+            throw new InvalidOperationException("Incomplete WTS process image name");
+        return String.Equals(name, "msedgewebview2.exe", StringComparison.OrdinalIgnoreCase);
+    }
     public static Dictionary<string, object> ObserveExactSidProcesses(string expectedSid) {
+        return ObserveSidProcesses(expectedSid, false);
+    }
+    public static Dictionary<string, object> ObserveExactSidWebViewProcesses(string expectedSid) {
+        return ObserveSidProcesses(expectedSid, true);
+    }
+    static Dictionary<string, object> ObserveSidProcesses(string expectedSid, bool webViewOnly) {
         if (!System.Text.RegularExpressions.Regex.IsMatch(expectedSid, @"^S-1-5-21-\d+-\d+-\d+-\d+$"))
             throw new ArgumentException("Expected exact temporary local-account SID");
         var records = new List<Dictionary<string, object>>();
         var errors = new List<string>();
         var result = new Dictionary<string, object> {
             { "sid", expectedSid }, { "readOnly", true }, { "complete", false },
-            { "recordLimit", 64 }, { "kernelEntriesWithoutSid", 0 }
+            { "recordLimit", 64 }, { "kernelEntriesWithoutSid", 0 },
+            { "scope", webViewOnly ? "exact-sid-webview-runtime" : "exact-sid-all-processes" },
+            { "enumeratedCount", 0 }, { "excludedByImageName", 0 }, { "candidateCount", 0 }
         };
         IntPtr memory = IntPtr.Zero;
         try {
             uint count;
             Check(WTSEnumerateProcessesW(IntPtr.Zero, 0, 1, out memory, out count), "Observe local process-owner SID snapshot");
             if (count > 4096) throw new InvalidOperationException("Local process snapshot exceeds observation budget");
+            result["enumeratedCount"] = count;
             int stride = Marshal.SizeOf<WtsProcess>();
             int matchingEntries = 0;
             for (int index = 0; index < count; index++) {
                 var entry = Marshal.PtrToStructure<WtsProcess>(IntPtr.Add(memory, index * stride));
+                string name = Marshal.PtrToStringUni(entry.name);
                 string ownerSid;
                 try {
+                    if (webViewOnly && !IsWebViewSnapshotCandidate(entry.pid, name)) {
+                        result["excludedByImageName"] = (int)result["excludedByImageName"] + 1;
+                        continue;
+                    }
+                    result["candidateCount"] = (int)result["candidateCount"] + 1;
                     ownerSid = ResolveProcessSid(entry.pid, entry.sid == IntPtr.Zero ? null : Sid(entry.sid), QueryProcessSid);
                 } catch (Exception error) {
                     errors.Add("PID " + entry.pid + " owner SID remains unconfirmed: " + error.Message);
@@ -418,7 +444,6 @@ public static class WindowsMermaidStandardUser
                 string image = record.TryGetValue("image", out imageValue) ? imageValue as string : null;
                 record["imageTruncated"] = image != null && image.Length > 1024;
                 if (image != null) record["image"] = image.Substring(0, Math.Min(image.Length, 1024));
-                string name = Marshal.PtrToStringUni(entry.name);
                 record["enumeratedImageTruncated"] = name != null && name.Length > 256;
                 record["enumeratedImage"] = name == null ? null : name.Substring(0, Math.Min(name.Length, 256));
                 records.Add(record);

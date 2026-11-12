@@ -955,7 +955,7 @@ if ($InspectProcesses -or $InspectStartupSid) {
         $current.token.sessionId -ne [uint32]$env:MILKUP_WINDOWS_MERMAID_EXPECTED_SESSION_ID) { throw 'Process observation requires the exact expected account kind and session' }
     if ($InspectStartupSid) {
         if ($InspectStartupSid -cne $env:MILKUP_WINDOWS_MERMAID_EXPECTED_SID -or $env:MILKUP_WINDOWS_STARTUP_PROFILE_COMPARISON -cne '1') { throw 'Startup process census requires exact owned diagnostic SID' }
-        [WindowsMermaidStandardUser]::ObserveExactSidProcesses($InspectStartupSid) | ConvertTo-Json -Depth 12 -Compress -EscapeHandling EscapeNonAscii
+        [WindowsMermaidStandardUser]::ObserveExactSidWebViewProcesses($InspectStartupSid) | ConvertTo-Json -Depth 12 -Compress -EscapeHandling EscapeNonAscii
         exit 0
     }
     $records = [WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]($ProcessIds.Split(',')))

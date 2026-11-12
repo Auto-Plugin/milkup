@@ -27,33 +27,39 @@ test('reuse requires exact same directory generation', () => {
 const sid = 'S-1-5-21-1-2-3-4',
   runtime = 'C:\\Runtime\\msedgewebview2.exe'
 const snapshot = () => ({
+  scope: 'exact-sid-webview-runtime',
   sid,
   readOnly: true,
   complete: true,
+  enumeratedCount: 150,
+  excludedByImageName: 150,
+  candidateCount: 0,
   errors: [],
-  matchCount: 1,
-  records: [
-    {
-      enumeratedSid: sid,
-      token: { sid },
-      imageTruncated: false,
-      enumeratedImageTruncated: false,
-      image: 'C:\\Tools\\node.exe',
-      enumeratedImage: 'node.exe',
-    },
-  ],
+  matchCount: 0,
+  records: [],
 })
-test('process census rejects live WebView, incomplete ownership, or truncated identities', () => {
+test('runtime census requires complete bounded image enumeration and no owned runtime', () => {
   assert.equal(verifyNoOwnedWebView(snapshot(), sid, runtime), true)
   for (const mutate of [
     (s) => (s.complete = false),
+    (s) => (s.scope = 'exact-sid-all-processes'),
     (s) => (s.sid += '1'),
-    (s) => s.errors.push('unknown'),
+    (s) => s.errors.push('candidate SID denied'),
     (s) => s.matchCount++,
-    (s) => (s.records[0].image = runtime),
-    (s) => (s.records[0].enumeratedImage = 'msedgewebview2.exe'),
-    (s) => (s.records[0].imageTruncated = true),
-    (s) => (s.records[0].token.sid += '1'),
+    (s) => s.candidateCount++,
+    (s) => (s.enumeratedCount = 4097),
+    (s) => (s.excludedByImageName = -1),
+    (s) => {
+      s.excludedByImageName--
+      s.candidateCount++
+      s.matchCount++
+      s.records.push({
+        enumeratedSid: sid,
+        token: { sid },
+        image: runtime,
+        enumeratedImage: 'msedgewebview2.exe',
+      })
+    },
   ]) {
     const s = snapshot()
     mutate(s)

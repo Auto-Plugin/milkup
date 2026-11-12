@@ -2981,6 +2981,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         )
         await closeProduct(true)
         const attempts = []
+        row.processExitObservationAttempts = attempts
         await until(
           async () => {
             const { stdout } = await promisify(execFile)(
@@ -2999,7 +3000,9 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
             attempts.push({ complete: snapshot.complete, matchCount: snapshot.matchCount })
             row.processesAfterClose = snapshot
             try {
-              return verifyNoOwnedWebView(snapshot, expectedSid, runtimeExe)
+              const verified = verifyNoOwnedWebView(snapshot, expectedSid, runtimeExe)
+              delete row.processExitObservationError
+              return verified
             } catch (error) {
               row.processExitObservationError = String(error)
               return false
