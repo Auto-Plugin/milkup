@@ -81,6 +81,9 @@ export class TitlebarMenu {
   }
 
   private readonly placeBelowTitlebar = (): void => {
+    // The hidden menu has no geometry to present. Do not flush the new shell's
+    // layout during startup or background resizes; setOpen measures after reveal.
+    if (this.disposed || this.menu.hidden) return
     this.menu.style.top = `${Math.max(0, this.titlebar.getBoundingClientRect().bottom)}px`
   }
 

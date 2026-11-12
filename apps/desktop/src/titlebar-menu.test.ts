@@ -71,11 +71,33 @@ function fixture(reduced = false, animate = true) {
 describe('titlebar menu visual lifecycle', () => {
   it('measures actual titlebar geometry without covering its controls', () => {
     const f = fixture()
-    expect(f.menu.style.top).toBe('37px')
+    expect(f.titlebar.getBoundingClientRect).not.toHaveBeenCalled()
+    f.resize(41)
+    expect(f.titlebar.getBoundingClientRect).not.toHaveBeenCalled()
+    f.controller.setOpen(true)
+    expect(f.menu.style.top).toBe('41px')
     f.resize(46.25)
     expect(f.menu.style.top).toBe('46.25px')
     f.controller.dispose()
+    f.resize(60)
+    expect(f.menu.style.top).toBe('46.25px')
     expect(f.disconnect).toHaveBeenCalledOnce()
+  })
+
+  it('remeasures after hidden resizes without discarding closing-overlay geometry', async () => {
+    const f = fixture()
+    f.controller.setOpen(true)
+    f.controller.setOpen(false)
+    f.resize(44)
+    expect(f.menu.style.top).toBe('44px')
+    await vi.advanceTimersByTimeAsync(240)
+    const reads = vi.mocked(f.titlebar.getBoundingClientRect).mock.calls.length
+    f.resize(55)
+    expect(f.titlebar.getBoundingClientRect).toHaveBeenCalledTimes(reads)
+    expect(f.menu.hidden).toBe(true)
+    f.controller.setOpen(true)
+    expect(f.menu.style.top).toBe('55px')
+    f.controller.dispose()
   })
 
   it('keeps the exit shield present but removes closing controls immediately', async () => {

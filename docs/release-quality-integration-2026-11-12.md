@@ -746,3 +746,44 @@ and pure-standard installed health. It is not arbitrary old-profile migration,
 signed recovery, automatic rollback, physical print, IME/DPI or Linux GUI. The
 20.6-second cold-start outlier is still unexplained; no speculative optimization
 or timeout relaxation is credited for this faster sample.
+
+## Bounded startup diagnosis: product results
+
+`af9da78b / 43155908889` product artifact `13917421997` (1,096,999 bytes) has
+verified ZIP SHA `0aa392d9c68f3a3d7064b9214c8b2f25cd206b02d6a859184df246b8fd41f367`.
+Both original product reports and outer account audits pass 11/11. Independent
+GUI is still running at this checkpoint. Earliest no-input snapshot containing
+the first-decode mark is used, and resource/call analysis stops at that mark;
+later catalogue work is not attributed to initial preview latency.
+
+| Stage (ms after process start) | Pure standard | Filtered admin |
+| --- | ---: | ---: |
+| Navigation time origin | 2729.2 | 1437.7 |
+| Shell created | 2972.3 | 1922.6 |
+| Settings construction begins | 3339.8 | 1988.1 |
+| Plugin manager constructed | 3342.9 | 1990.6 |
+| Initial shell paint | 3568.2 | 2058.1 |
+| Initial native catalogue read completes | 3677.7 | 2151.8 |
+| First bundled prepare completes | 4214.6 | 2315.5 |
+| First catalogue transition completes | 4274.0 | 3372.3 |
+| Engine asset read begins | 4460 | 3661 |
+| First render starts / finishes | 5073 / 5410 | 4246 / 4561 |
+| First image decoded | 5423.0 | 4571.4 |
+
+The first catalogue transition round-trip was 57.5 / 1055.3 ms. The fresh bundled
+initialization path identifies this first transition as approval; internal lock,
+file verification, write/flush and scheduler times are not separately measured,
+so none is claimed as its established cause. Catalogue work runs on native
+spawn_blocking, not directly on the UI thread. The 20.6-second outlier did not
+recur and remains unexplained.
+
+Source inspection found independent avoidable startup work in TitlebarMenu:
+its constructor and hidden resize callback synchronously read the titlebar rect,
+forcing layout although the menu is hidden. The small follow-up skips geometry
+reads while hidden/disposed, but still measures immediately after reveal and
+through closing-overlay/resizing. Tests cover fresh geometry after hidden
+resize, visible and closing positions, and disposal. 9 unit tests, desktop
+typecheck and 4 real Chromium editor/menu/focus/close regressions passed. Two
+fixed startup marks identify this constructor in the next Windows sample.
+This is not claimed to explain or eliminate the full old outlier. It must be
+validated as a new candidate; the accepted 8a installers are not modified.

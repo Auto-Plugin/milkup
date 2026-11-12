@@ -623,10 +623,12 @@ let sidebarWidth = initialSidebarWidth
 let menuOpen = false
 let menuReturnFocus: HTMLElement | null = null
 let menuLastFocus: HTMLElement | null = null
+markStartupStage('titlebar-menu-create-start')
 const titlebarMenu = new TitlebarMenu(
   appRoot.querySelector<HTMLElement>('[data-app-menu]')!,
   appRoot.querySelector<HTMLElement>('.titlebar')!,
 )
+markStartupStage('titlebar-menu-created')
 let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
 let activeSearchResultIndex = -1
