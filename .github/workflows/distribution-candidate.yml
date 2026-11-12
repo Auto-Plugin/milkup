@@ -19,7 +19,9 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: distribution-candidate-${{ github.ref }}
+  # An unrelated push has no build job. Give that no-op its own group so it
+  # cannot replace an explicitly selected package run waiting for a runner.
+  group: ${{ (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[distribution-candidate]')) && format('distribution-candidate-{0}', github.ref) || format('distribution-noop-{0}', github.run_id) }}
   cancel-in-progress: false
 jobs:
   package:

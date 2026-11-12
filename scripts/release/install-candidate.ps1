@@ -5,7 +5,7 @@ $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
 New-Item -ItemType Directory $EvidenceDirectory | Out-Null
-$record=[ordered]@{schema=1;status='running';sourceSha=$SourceSha;variant=$Variant;accountSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;phases=@();guiAcceptance='window-smoke-only';dualAccount='not-run';missingRuntime='not-run';offlineRuntimeProvisioning='not-run';upgrade='not-run';rollback='not-implemented';forcedCleanup=$false}
+$record=[ordered]@{schema=1;status='running';sourceSha=$SourceSha;variant=$Variant;accountSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;phases=@();guiAcceptance='window-smoke-only';dualAccount='not-run';missingRuntime='not-run';offlineRuntimeProvisioning='not-run';upgrade='not-run';rollback='not-implemented';wordTablePaste='not-run';nativeIme='not-run';installedDelayedCaret='not-run';forcedCleanup=$false}
 function Persist { $record | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $EvidenceDirectory 'installation.json') -Encoding utf8 }
 function Phase([string]$Name,$Detail) { $record.phases+=@{name=$Name;utc=[DateTime]::UtcNow.ToString('o');detail=$Detail}; Persist }
 function OwnedMaintenance([string]$File,[string[]]$Arguments) {
@@ -17,6 +17,23 @@ function OwnedMaintenance([string]$File,[string[]]$Arguments) {
 }
 $product=$null
 try {
+  # Presence is diagnostic only: Office 16 also includes newer Office editions,
+  # and an installed language does not prove that a real IME composition worked.
+  $environment=[ordered]@{wordExecutables=@();inputLanguages=@();errors=@()}
+  foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)})) {
+    if (!$base) { continue }
+    foreach ($suffix in @('Microsoft Office/root/Office16/WINWORD.EXE','Microsoft Office/Office16/WINWORD.EXE')) {
+      $word=Join-Path $base $suffix
+      if (Test-Path -LiteralPath $word -PathType Leaf) {
+        $version=(Get-Item -LiteralPath $word).VersionInfo
+        $environment.wordExecutables+=@{path=$word;fileVersion=$version.FileVersion;productVersion=$version.ProductVersion}
+      }
+    }
+  }
+  try {
+    $environment.inputLanguages=@(Get-WinUserLanguageList | Select-Object -First 16 | ForEach-Object { @{languageTag=$_.LanguageTag;inputMethodTips=@($_.InputMethodTips)} })
+  } catch { $environment.errors+=('input-language-probe: ' + $_.Exception.Message) }
+  Phase 'available-input-and-office-environment' $environment
   $raw=& node scripts/release/verify-candidate.mjs $Directory $SourceSha $Variant
   if ($LASTEXITCODE -ne 0) { throw 'Installer receipt verification failed' }
   $receipt=$raw | ConvertFrom-Json
@@ -31,6 +48,7 @@ try {
   $document=Join-Path $EvidenceDirectory 'unchanged-document.md'
   [IO.File]::WriteAllText($document,"# Installed candidate`n`n中文与 emoji 😀`n",[Text.UTF8Encoding]::new($false))
   $documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
+  $startup=[Diagnostics.Stopwatch]::StartNew()
   $product=Start-Process -FilePath $binary -ArgumentList @($document) -PassThru
   $creation=$product.StartTime.ToUniversalTime().ToString('o')
   Phase 'application-start' @{pid=$product.Id;creationUtc=$creation;image=$binary}
@@ -43,7 +61,8 @@ try {
   } while ([DateTime]::UtcNow -lt $deadline)
   if ($product.MainWindowHandle -eq 0) { throw 'No visible native main window within 45 seconds' }
   if (![StringComparer]::OrdinalIgnoreCase.Equals($product.Path,$binary) -or $product.StartTime.ToUniversalTime().ToString('o') -cne $creation) { throw 'Owned application identity mismatch' }
-  Phase 'native-window-observed' @{hwnd=$product.MainWindowHandle.ToInt64();title=$product.MainWindowTitle;image=$product.Path;creationUtc=$creation}
+  $startup.Stop()
+  Phase 'native-window-observed' @{hwnd=$product.MainWindowHandle.ToInt64();title=$product.MainWindowTitle;image=$product.Path;creationUtc=$creation;launchToNativeWindowMs=$startup.Elapsed.TotalMilliseconds;measurementBoundary='native window only; not document loaded, first paint, Mermaid ready or interactive'}
   if (!$product.CloseMainWindow()) { throw 'Native main-window close rejected' }
   if (!$product.WaitForExit(15000)) { throw 'Application did not close normally within 15 seconds' }
   if ($product.ExitCode -ne 0) { throw 'Application close was not successful' }
