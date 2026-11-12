@@ -176,6 +176,14 @@ fn render_with_command(
             }
         });
         let _ = tx.send(result);
+        // The owner terminates the helper after receiving the frame. Require
+        // exact protocol EOF before publication; a valid prefix is insufficient.
+        let mut trailing = [0u8; 1];
+        match reader.read(&mut trailing) {
+            Ok(0) => Ok(()),
+            Ok(_) => Err("Trailing bytes after native PDF response".to_owned()),
+            Err(e) => Err(error(e)),
+        }
     });
     let deadline = Instant::now() + RENDER_TIME;
     let result = (|| loop {
@@ -193,13 +201,23 @@ fn render_with_command(
         }
     })();
     // Completion is not exposed until the owned process tree is empty.
-    let stopped = owner.stop();
-    let reaped = child.wait().map_err(error);
+    owner.stop()?;
+    let cleanup_deadline = Instant::now() + Duration::from_secs(2);
+    loop {
+        if child.try_wait().map_err(error)?.is_some()
+            && writer.is_finished()
+            && reader.is_finished()
+        {
+            break;
+        }
+        if Instant::now() >= cleanup_deadline {
+            return Err("Native PDF process or pipe cleanup not confirmed".into());
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
     let written = writer.join().map_err(|_| "PDF writer failed".to_owned());
     let read = reader.join().map_err(|_| "PDF reader failed".to_owned());
-    stopped?;
-    reaped?;
-    read?;
+    read??;
     private.clean()?;
     let bytes = result?;
     written??;
@@ -625,6 +643,13 @@ mod tests {
                 std::io::stderr().write_all(&[0]).unwrap();
                 frame_write(&mut std::io::stderr(), b"not a PDF").unwrap();
             }
+            "trailing" => {
+                // One write includes the entire frame and forbidden trailer,
+                // ensuring the counterexample cannot race helper termination.
+                std::io::stderr()
+                    .write_all(&[0, 5, 0, 0, 0, b'%', b'P', b'D', b'F', b'-', 42])
+                    .unwrap();
+            }
             "hang" => {}
             _ => panic!("Unknown fixture"),
         }
@@ -634,7 +659,7 @@ mod tests {
     }
     #[test]
     fn owned_helper_rejects_truncated_oversized_and_non_pdf_results() {
-        for mode in ["partial", "oversized", "invalid"] {
+        for mode in ["partial", "oversized", "invalid", "trailing"] {
             assert!(render_with_command(
                 &lease(),
                 "<p>test</p>".into(),
