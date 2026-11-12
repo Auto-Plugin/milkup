@@ -33,6 +33,8 @@ async function openDocument(page: Page, windowed: boolean, theme = 'light') {
   })
   await formattingFixture(page)
   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  // Enabling Formatting leaves the menu's remembered category on Plugins.
+  await page.getByRole('button', { name: '文件', exact: true }).click()
   await page.getByRole('button', { name: '打开', exact: true }).click()
   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
   await expect(page.locator('.milkup-source-document-view')).toHaveCount(windowed ? 1 : 0)
