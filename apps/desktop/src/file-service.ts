@@ -6,6 +6,7 @@ import type {
   RevealInFolderAction,
 } from '@milkup/tauri-bridge'
 import { createFileWatchEvent, FILE_WATCH_EVENT_NAME } from '@milkup/tauri-bridge'
+import { invoke as invokeNative } from '@tauri-apps/api/core'
 
 export type FileWatchEventHandler = (event: FileWatchEvent) => void
 
@@ -216,8 +217,9 @@ function createTauriFileService(): DesktopFileService {
       return invoke<DesktopTextFileMetadata>('stat_text_file', { path })
     },
     async initialOpenFilePath(): Promise<string | undefined> {
-      const { invoke } = await import('@tauri-apps/api/core')
-      const path = await invoke<string | null>('initial_open_file_path')
+      // Dispatch before synchronous shell/layout work; importing the bridge here
+      // postpones the first native request until after that work has completed.
+      const path = await invokeNative<string | null>('initial_open_file_path')
 
       return path ?? undefined
     },

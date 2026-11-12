@@ -14,6 +14,7 @@ import {
   revealDesktopPluginDetails,
 } from './desktop-plugin-manager-ui'
 import { createDesktopPluginCatalog } from './desktop-plugin-catalog'
+import { invoke as invokeNative } from '@tauri-apps/api/core'
 import { validateClosedWorkerBundle } from './closed-worker-bundle'
 import { createDesktopPluginWorker } from './plugin-worker-factory'
 import { loadDesktopPluginIcon } from './plugin-icon'
@@ -895,8 +896,9 @@ let pluginUiViewportTimer: ReturnType<typeof setTimeout> | undefined
 let pluginUiViewportIdleCallback: number | undefined
 
 async function recoveryInvoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
-  const { invoke } = await import('@tauri-apps/api/core')
-  return invoke<T>(command, args)
+  // Startup catalog reads can overlap shell construction. Keep the native bridge
+  // ready rather than queuing its import behind the initial synchronous layout.
+  return invokeNative<T>(command, args)
 }
 
 let lastRecoveryError: string | undefined
