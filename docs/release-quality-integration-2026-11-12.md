@@ -429,11 +429,11 @@ the corrected coordinator; the original installer bytes are unchanged.
 
 All three jobs of `43145985835 / 5d79147a` now passed. Exact original receipts:
 
-| Variant | Bytes | SHA-256 |
-| --- | ---: | --- |
-| Windows standard | 7243882 | `9e94706c2b144d92dad5d0f65a7b6b3ffa014de7e61d698a59a1d1813cde687c` |
-| Windows offline | 225033696 | `bd7e9db7d7ff464b8b39faf2abe7d93aedf19c0d5ef7422602cff2affc05f5c1` |
-| Linux deb | 9830936 | `32ad2b5d0f52cac501212f14389e1b7e8bf5039d07b02d1bea6b7a8d1bdae41c` |
+| Variant          |     Bytes | SHA-256                                                            |
+| ---------------- | --------: | ------------------------------------------------------------------ |
+| Windows standard |   7243882 | `9e94706c2b144d92dad5d0f65a7b6b3ffa014de7e61d698a59a1d1813cde687c` |
+| Windows offline  | 225033696 | `bd7e9db7d7ff464b8b39faf2abe7d93aedf19c0d5ef7422602cff2affc05f5c1` |
+| Linux deb        |   9830936 | `32ad2b5d0f52cac501212f14389e1b7e8bf5039d07b02d1bea6b7a8d1bdae41c` |
 
 Original package artifact IDs are `13913767237`, `13913364273`, `13915005041`.
 The standard ZIP was independently downloaded, its archive hash verified, and
@@ -580,14 +580,14 @@ The first diagram was decoded about 20,634.2 ms / 3,433.6 ms after process start
 Process-to-navigation was 3,141.1 / 711.4 ms. Native-audited frontend milestones,
 relative to process start, separate the remaining work:
 
-| Milestone | Pure standard ms | Filtered admin ms |
-| --- | ---: | ---: |
-| Frontend engine assets read | 18331 | 2530 |
-| Opaque frame loaded | 18575 | 2752 |
-| Engine ready, boundary checks complete | 19802 | 3111 |
-| First render started | 19814 | 3121 |
-| First render finished | 20621 | 3423 |
-| First decoded observation | 20634.2 | 3433.6 |
+| Milestone                              | Pure standard ms | Filtered admin ms |
+| -------------------------------------- | ---------------: | ----------------: |
+| Frontend engine assets read            |            18331 |              2530 |
+| Opaque frame loaded                    |            18575 |              2752 |
+| Engine ready, boundary checks complete |            19802 |              3111 |
+| First render started                   |            19814 |              3121 |
+| First render finished                  |            20621 |              3423 |
+| First decoded observation              |          20634.2 |            3433.6 |
 
 Thus actual first render was about 807 / 302 ms, with about 13.2 / 10.6 ms
 until decode observation. Most of the outlier predates engine loading. Existing
@@ -612,11 +612,11 @@ also contain first-decode marks. `5d79147a`, `d9f627be` and `f7efe4ef` have
 identical application/package/plugin source; harness changes are kept distinct.
 Independent cold samples (process-to-decode, milliseconds) are:
 
-| Candidate / run | Pure standard | Filtered admin | Whole-run boundary |
-| --- | ---: | ---: | --- |
-| 5d / 43145964546 | 5728.4 | 10678.9 | Later stale mode assertion failed |
-| d9 / 43148218776 | 8022.2 | unavailable | Filtered pre-step geometry timeout |
-| f7 / 43151150510 | 20634.2 | 3433.6 | Complete acceptance passed |
+| Candidate / run  | Pure standard | Filtered admin | Whole-run boundary                 |
+| ---------------- | ------------: | -------------: | ---------------------------------- |
+| 5d / 43145964546 |        5728.4 |        10678.9 | Later stale mode assertion failed  |
+| d9 / 43148218776 |        8022.2 |    unavailable | Filtered pre-step geometry timeout |
+| f7 / 43151150510 |       20634.2 |         3433.6 | Complete acceptance passed         |
 
 These are not repeat measurements on one cached graph, a percentile estimate,
 or proof of an optimization. They demonstrate substantial variation in both
@@ -666,10 +666,10 @@ window chunk/raw lengths and SHA were independently checked. Raw hashes:
 Build `43154244021 / 8a537208` also completed with all three native packages.
 Standard bytes/hash are recorded above. Other original build receipts:
 
-| Variant | Installer bytes | Installer SHA-256 | Artifact |
-| --- | ---: | --- | --- |
-| Windows offline | 225029295 | `f6ab2a1860231ab9ccf0e006cb5fea29082f80c9fae295b033ad05645e4f62fe` | 13916118521 |
-| Linux deb | 9831224 | `fdd7e65729612bd4d9eb6d08005eb5f476691d9743a75cb9ceb99635a7dd3992` | 13917210494 |
+| Variant         | Installer bytes | Installer SHA-256                                                  | Artifact    |
+| --------------- | --------------: | ------------------------------------------------------------------ | ----------- |
+| Windows offline |       225029295 | `f6ab2a1860231ab9ccf0e006cb5fea29082f80c9fae295b033ad05645e4f62fe` | 13916118521 |
+| Linux deb       |         9831224 | `fdd7e65729612bd4d9eb6d08005eb5f476691d9743a75cb9ceb99635a7dd3992` | 13917210494 |
 
 All filenames retain `2.0.0-beta.10` and `8a5372080f1c`. Offline/deb ZIP SHAs are
 `5df79cae043db4ab096e6b8d48b37a96d791746ead2bad7398fe80d09e2d730b` and
@@ -686,10 +686,10 @@ Both install and missing-file same-package repair exited 0, restored the exact
 original installed EXE, then exited normally after native close without forced
 cleanup. Both actual NSIS uninstalls exited 0 and preserved the fixture document.
 
-| Variant | First native window ms | Repaired native window ms | Restored EXE SHA-256 |
-| --- | ---: | ---: | --- |
-| Standard | 3786.34 | 559.95 | `30e0dab05d156c9d6cc34381cb4637d67cc6b6f20231fc8f88b7d57ccb965702` |
-| Offline | 5338.09 | 914.29 | `6a44cc41cb89fd28d9c51e878345eec025d5fc1e603d9355f4062283fe1deebd` |
+| Variant  | First native window ms | Repaired native window ms | Restored EXE SHA-256                                               |
+| -------- | ---------------------: | ------------------------: | ------------------------------------------------------------------ |
+| Standard |                3786.34 |                    559.95 | `30e0dab05d156c9d6cc34381cb4637d67cc6b6f20231fc8f88b7d57ccb965702` |
+| Offline  |                5338.09 |                    914.29 | `6a44cc41cb89fd28d9c51e878345eec025d5fc1e603d9355f4062283fe1deebd` |
 
 These timings measure only the unique visible native Tauri window, not first
 paint, diagram decode or interaction readiness. In particular the formerly
@@ -756,19 +756,19 @@ GUI is still running at this checkpoint. Earliest no-input snapshot containing
 the first-decode mark is used, and resource/call analysis stops at that mark;
 later catalogue work is not attributed to initial preview latency.
 
-| Stage (ms after process start) | Pure standard | Filtered admin |
-| --- | ---: | ---: |
-| Navigation time origin | 2729.2 | 1437.7 |
-| Shell created | 2972.3 | 1922.6 |
-| Settings construction begins | 3339.8 | 1988.1 |
-| Plugin manager constructed | 3342.9 | 1990.6 |
-| Initial shell paint | 3568.2 | 2058.1 |
-| Initial native catalogue read completes | 3677.7 | 2151.8 |
-| First bundled prepare completes | 4214.6 | 2315.5 |
-| First catalogue transition completes | 4274.0 | 3372.3 |
-| Engine asset read begins | 4460 | 3661 |
-| First render starts / finishes | 5073 / 5410 | 4246 / 4561 |
-| First image decoded | 5423.0 | 4571.4 |
+| Stage (ms after process start)          | Pure standard | Filtered admin |
+| --------------------------------------- | ------------: | -------------: |
+| Navigation time origin                  |        2729.2 |         1437.7 |
+| Shell created                           |        2972.3 |         1922.6 |
+| Settings construction begins            |        3339.8 |         1988.1 |
+| Plugin manager constructed              |        3342.9 |         1990.6 |
+| Initial shell paint                     |        3568.2 |         2058.1 |
+| Initial native catalogue read completes |        3677.7 |         2151.8 |
+| First bundled prepare completes         |        4214.6 |         2315.5 |
+| First catalogue transition completes    |        4274.0 |         3372.3 |
+| Engine asset read begins                |          4460 |           3661 |
+| First render starts / finishes          |   5073 / 5410 |    4246 / 4561 |
+| First image decoded                     |        5423.0 |         4571.4 |
 
 The first catalogue transition round-trip was 57.5 / 1055.3 ms. The fresh bundled
 initialization path identifies this first transition as approval; internal lock,
@@ -832,10 +832,10 @@ Both product reports and outer audits pass 11/11. Complete GUI remains pending.
 The same existing WebView2 156.0.4314.58 is recorded in af9 and b59.
 
 | No-input first ordinary preview, ms | af9 pure / filtered | b59 pure / filtered |
-| --- | ---: | ---: |
-| Process start to first image decode | 5423.0 / 4571.4 | 5420.7 / 10412.9 |
-| Process start to engine assets read | 4460 / 3661 | 4721 / 9796 |
-| Engine render started to finished | 337 / 315 | 248 / 216 |
+| ----------------------------------- | ------------------: | ------------------: |
+| Process start to first image decode |     5423.0 / 4571.4 |    5420.7 / 10412.9 |
+| Process start to engine assets read |         4460 / 3661 |         4721 / 9796 |
+| Engine render started to finished   |           337 / 315 |           248 / 216 |
 
 b59's hidden titlebar constructor takes 0.1 / 0.3 ms. The earlier interval from
 initial-path request to settings construction shrinks from 333.2 / 32.0 ms to
@@ -845,7 +845,7 @@ initial-path request to settings construction shrinks from 333.2 / 32.0 ms to
 responseStart=6004.9 ms: the main HTML response wait precedes application module,
 plugin or Mermaid execution.
 
-Reviewing the *other* af9 launches found a separate long-delay reproduction:
+Reviewing the _other_ af9 launches found a separate long-delay reproduction:
 pure-standard wide first decode=20776.5 ms, navigation origin=5541.0 ms after
 process start, main HTML requestStart=3.0 and responseStart=12769.0 ms relative
 to navigation. HTML-ready=18323.2 ms after process start; engine render takes
@@ -882,3 +882,76 @@ allocation. These are mocked native output calls, not actual PDF/HTML files or
 installed GUI proof. 73 focused service/transition/file tests, desktop typecheck,
 and 9 real Chromium dirty-document/close regressions pass. Actual simultaneous
 installed processes and current-document native export remain uncovered.
+
+## b877 exact-package document identity and sidebar PDF acceptance
+
+Accepted application candidate: `b877746f5dfd236dfc13f718ed23d837b8e4f89d`.
+Source run `43176724739` passes both accounts' 11 product steps, outer audits,
+and all 8 GUI scenarios. Independent replay of the strict GUI verifier accepts
+both original reports: 103/103 SHOW records per account, complete observation,
+no overflow or visible console, and normal idle/busy closes with internal cleanup
+and no forced termination. Final artifact `13926552833` is 2,280,788 bytes;
+ZIP SHA-256 `37d5df82dfbc8ad4e36bdeef49842b82d53d91b62e7257ff6983e9b9a46dce63`.
+
+Build `43176766599` produced three independently hash-verified packages:
+
+| Variant          | Package SHA-256                                                    |
+| ---------------- | ------------------------------------------------------------------ |
+| Windows standard | `605a428bd3f985e82854ead0f6f24026780449df0402257793ba474f8a45a425` |
+| Windows offline  | `bf6ae351d874dd51e38d981afca86338d790d331098d3ce98cb45dca828150d0` |
+| Linux deb        | `36c4873d840a06e85bf08398e119f9ddb494c813727eff6479aa4e434141f86e` |
+
+The previously observed installed sidebar defect was real: the unbounded export
+form was clipped by its parent's hidden overflow. `12a290ee`, included in b877,
+constrains sidebar forms and permits vertical scrolling; it leaves modal forms
+and virtualized trees alone. Both new browser regression cases failed before the
+fix; all 15 sidebar/form cases passed after it and after integration.
+
+Run `43182444625` then tested the **same standard installer** in an isolated,
+verified pure-standard account. Actual pointer/wheel/key input and six guarded
+native pickers exercised editing/saving A, exporting A HTML/PDF, switching to B,
+editing/saving and exporting B, discarding an unsaved B edit on switching back,
+cancelling an unsaved A close, and saving A on the next close. Ten checkpoints
+compare both files. Independent HTML/PDF text extraction verifies all four output
+hashes and the correct file's unique marker, excluding the other file's marker.
+The app exits normally with code 0; uninstall removes the app and retains both
+documents. Explicit Diagrams disable survives same-version binary repair, and
+manual hot enable produces a decoded image. Artifact `13927875753` is 233,314
+bytes; ZIP SHA-256
+`08bc9208e92d028416c7dbf06520b35be00bf44686f25b7c71e15df84274cf3d`.
+This closes the single-window sequential file-identity/current-document export
+gap above, not simultaneous processes or full PDF visual/Unicode fidelity.
+
+Follow-on run `43182892985` uses the original three build artifacts. Windows
+standard/offline pass install, removal of the owned executable, exact same-version
+repair, visible-window/normal-close checks, uninstall and document preservation.
+Linux passes native deb installation/removal and fixture preservation only. The
+automatic coordinator issued exactly these two installation runs, after the exact
+build and source gates succeeded. No Release, tag or distribution was published.
+
+### Startup limits remain open
+
+The installed pure-standard cold sample decodes its first diagram 5,133.3 ms
+after process creation, with main HTML response wait 59.7 ms and zero test input
+before observation. It is one fresh profile, not proof of a long-tail repair.
+The b877 filtered-admin source sample still takes 11,984.4 ms: navigation to Wry
+callback is 5,458 ms, while Wry itself takes 2.399 ms. First plugin preparation,
+approval, trial admission and commit take about 4.64 seconds combined; the first
+Mermaid render itself takes 212 ms. Original stage records remain intact.
+
+That activation has no repeated transition: prepare/approve/begin-trial/commit
+each runs once. Read and read-worker do not write. Preparation writes four
+generation files and the initial primary; each following transition writes the
+prior-primary backup and changed primary. Queue/mutex/file-lock waits do not
+explain the seconds-long interval. The largest delays occur at file creation,
+write-through writes and explicit flushes. Distinct crash-recovery checkpoints
+are not treated as redundant saves; no approval, revision, write-through, flush,
+rename or cleanup guarantees were removed. Browser delivery/initialization,
+storage latency and early WebDriver attachment still require controlled evidence.
+The separate process-stage diagnostic candidate `328be7c6` / run `43178839764`
+has not completed acceptance at this checkpoint and is not part of these packages.
+
+These remain unsigned candidates with an unconfigured update channel. Same-version
+repair is not cross-version upgrade, signed recovery or automatic rollback.
+Missing-Runtime provisioning, Linux GUI, real IME, Word 2016 paste and full PDF
+fidelity are not established by these runs.
