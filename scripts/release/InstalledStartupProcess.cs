@@ -25,7 +25,11 @@ public sealed class InstalledStartupProcess : IDisposable {
             var info = new ProcessStartInfo(image) { UseShellExecute = false, CreateNoWindow = true,
                 RedirectStandardOutput = true, RedirectStandardError = true };
             info.ArgumentList.Add(document);
-            foreach (DictionaryEntry item in environment) info.Environment[(string)item.Key] = (string)item.Value;
+            // PowerShell command results (for example Join-Path) arrive wrapped
+            // in PSObject even when the contained value is a string.
+            foreach (DictionaryEntry item in environment)
+                info.Environment[Convert.ToString(item.Key, System.Globalization.CultureInfo.InvariantCulture)] =
+                    Convert.ToString(item.Value, System.Globalization.CultureInfo.InvariantCulture);
             capture.Product = new Process { StartInfo = info };
             if (!capture.Product.Start()) throw new InvalidOperationException("Installed process start failed");
             capture.stdoutTask = capture.Copy(capture.Product.StandardOutput.BaseStream, outFile, false);
