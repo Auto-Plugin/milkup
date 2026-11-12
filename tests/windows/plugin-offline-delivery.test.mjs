@@ -132,7 +132,16 @@ test('build accepts only the exact offline overlay and verifies public SDK build
   assert.match(probe, /'pack', '--pack-destination'/)
   assert.match(probe, /process.execPath, \[pnpmCli/)
   assert.match(probe, /'exec', 'vitest', 'run'/)
-  assert.doesNotMatch(probe, /shell: true|alias:/)
+  assert.doesNotMatch(probe, /shell: true/)
+  // The frozen DOM rebuild binds exactly one import to a byte-verified,
+  // locally installed public SDK. A blanket alias ban incorrectly rejects
+  // this guard; workspace/private resolver aliases must still be forbidden.
+  const verifiedSdkAlias = "alias: { '@milkup/plugin-sdk': sdkEntry },"
+  assert.equal(probe.split(verifiedSdkAlias).length, 2)
+  assert.doesNotMatch(probe.replace(verifiedSdkAlias, ''), /alias:/)
+  assert.match(probe, /frozenSdk = await resolvePublicPluginSdkEntry\(target, entry\)/)
+  assert.match(probe, /const sdkEntry = frozenSdk\.entryPath/)
+  assert.match(probe, /verifyPublicPluginBundle\(target, entry, built\.metafile, \{ sdkEntry \}\)/)
 })
 
 async function payloadFixture(t) {
