@@ -121,8 +121,22 @@ impl Private {
         }
         Ok(Self(path))
     }
-    fn clean(self) -> Result<()> {
-        fs::remove_dir_all(&self.0).map_err(|e| format!("Cannot clean private PDF profile: {e}"))
+    fn clean(self, deadline: Instant) -> Result<()> {
+        // Job accounting can reach zero before Windows releases the last file
+        // object. Spend only the remaining existing cleanup budget on sharing
+        // violations; permission and all other failures remain immediate.
+        loop {
+            match fs::remove_dir_all(&self.0) {
+                Ok(()) => return Ok(()),
+                Err(error)
+                    if matches!(error.raw_os_error(), Some(32 | 33))
+                        && Instant::now() < deadline =>
+                {
+                    std::thread::sleep(Duration::from_millis(5));
+                }
+                Err(error) => return Err(format!("Cannot clean private PDF profile: {error}")),
+            }
+        }
     }
 }
 impl Drop for Private {
@@ -258,7 +272,7 @@ fn render_with_command(
     let reaped = reap_bounded(&mut child, cleanup_deadline);
     let written = join_bounded(writer, cleanup_deadline);
     let read = join_bounded(reader, cleanup_deadline);
-    let cleaned = private.clean();
+    let cleaned = private.clean(cleanup_deadline);
     if let Err(failure) = stopped {
         return Err(format!("Cannot confirm output process cleanup: {failure}; reap={:?}; writer={:?}; reader={:?}; profile={:?}", reaped.err(), written.err(), read.err(), cleaned.err()));
     }
@@ -769,6 +783,48 @@ mod tests {
         let started = Instant::now();
         assert!(join_bounded(worker, started + Duration::from_millis(10)).is_err());
         assert!(started.elapsed() < Duration::from_millis(100));
+    }
+    #[test]
+    fn profile_cleanup_waits_for_an_exclusive_handle_within_original_budget() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let private = Private::new().unwrap();
+        let path = private.0.clone();
+        let file = fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .share_mode(0)
+            .open(path.join("held-profile"))
+            .unwrap();
+        let release = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(50));
+            drop(file);
+        });
+        private
+            .clean(Instant::now() + Duration::from_secs(1))
+            .unwrap();
+        release.join().unwrap();
+        assert!(!path.exists());
+    }
+    #[test]
+    fn profile_cleanup_never_accepts_a_still_held_file() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let private = Private::new().unwrap();
+        let path = private.0.clone();
+        let file = fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .share_mode(0)
+            .open(path.join("held-profile"))
+            .unwrap();
+        let started = Instant::now();
+        let result = private.clean(started + Duration::from_millis(30));
+        assert!(result
+            .unwrap_err()
+            .contains("Cannot clean private PDF profile"));
+        assert!(started.elapsed() < Duration::from_secs(1));
+        assert!(path.exists());
+        drop(file);
+        fs::remove_dir_all(path).unwrap();
     }
     #[test]
     fn printer_choice_uses_original_lease_not_pdf_render_deadline() {

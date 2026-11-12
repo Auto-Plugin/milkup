@@ -40,7 +40,12 @@ impl TokenSink for StaticTokens {
             }
             // Do not pass malformed input to a different parser and assume both
             // engines will repair it identically. The serializer emits valid HTML.
-            Token::ParseError(_) | Token::NullCharacterToken => self.forbidden.set(true),
+            // Comments are not emitted by the serializer. Reject them too: a
+            // tokenizer without tree-builder raw-text context could otherwise
+            // hide </style><iframe> inside a comment the browser sees as CSS.
+            Token::ParseError(_) | Token::NullCharacterToken | Token::CommentToken(_) => {
+                self.forbidden.set(true)
+            }
             _ => {}
         }
         TokenSinkResult::Continue
@@ -77,6 +82,9 @@ mod tests {
             "<base href='x'>",
             "<iframe\0 src='x'>",
             "<img src='unterminated>",
+            "<style><!--</style><iframe src='x'>-->",
+            "<script><!--</script><iframe src='x'>-->",
+            "<![CDATA[<iframe src='x'>]]>",
         ] {
             assert!(validate(html).is_err(), "{html}");
         }
