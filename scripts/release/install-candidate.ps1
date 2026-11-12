@@ -1,8 +1,9 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
+if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
 New-Item -ItemType Directory $EvidenceDirectory | Out-Null
@@ -18,7 +19,9 @@ function OwnedMaintenance([string]$File,[string[]]$Arguments) {
 }
 function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   $startup=[Diagnostics.Stopwatch]::StartNew()
-  $script:product=Start-Process -FilePath $binary -ArgumentList @($document) -PassThru
+  $launch=@{FilePath=$binary;ArgumentList=@($document);PassThru=$true}
+  if ($RepairHealth) { $launch.Environment=@{WEBVIEW2_USER_DATA_FOLDER=$healthProfile;WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=$debugPort --remote-debugging-address=127.0.0.1";TAURI_WEBVIEW_AUTOMATION='true'} }
+  $script:product=Start-Process @launch
   $creation=$product.StartTime.ToUniversalTime().ToString('o')
   $creationTicks=$product.StartTime.ToUniversalTime().Ticks
   Phase ($Prefix + 'application-start') @{pid=$product.Id;creationUtc=$creation;image=$binary}
@@ -46,12 +49,33 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   if (![StringComparer]::OrdinalIgnoreCase.Equals($product.Path,$binary) -or $product.StartTime.ToUniversalTime().ToString('o') -cne $creation) { throw 'Owned application identity mismatch' }
   $startup.Stop()
   Phase ($Prefix + 'native-window-observed') @{hwnd=$window.hwnd;title=$window.title;className=$window.className;image=$product.Path;creationUtc=$creation;launchToNativeWindowMs=$startup.Elapsed.TotalMilliseconds;measurementBoundary='unique visible Tauri window only; not first paint, Mermaid ready or interactive'}
+  $healthSession=$null
+  if ($RepairHealth) {
+    $healthPhase=if ($Prefix) {'after'} else {'before'}
+    & node (Join-Path $PSScriptRoot 'repair-health.mjs') $healthPhase $driverPort $debugPort $document $EvidenceDirectory
+    if ($LASTEXITCODE -ne 0) { throw "Real installed repair health failed: $healthPhase" }
+    $health=Get-Content -LiteralPath (Join-Path $EvidenceDirectory "repair-health-$healthPhase.json") -Raw | ConvertFrom-Json
+    if ($health.status -cne 'passed' -or !$health.sessionId -or !$health.saved.sha256) { throw 'Complete repair health evidence required' }
+    $healthSession=$health.sessionId
+    $script:documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
+    if ($script:documentHash.ToLowerInvariant() -cne $health.saved.sha256) { throw 'Health saved document mismatch' }
+    Phase ($Prefix + 'real-document-plugin-health') @{report="repair-health-$healthPhase.json";savedSha256=$health.saved.sha256;pluginBefore=$health.pluginBefore.checked;pluginAfter=$health.pluginAfter.checked}
+  }
   [MilkupInstallWindow]::Close($window.hwnd,$product.Id,$creationTicks,$binary)
   if (!$product.WaitForExit(15000)) { throw 'Application did not close normally within 15 seconds' }
   if ($product.ExitCode -ne 0) { throw 'Application close was not successful' }
   Phase ($Prefix + 'normal-close') @{exitCode=$product.ExitCode}
+  if ($healthSession) {
+    try { $null=Invoke-RestMethod -Uri "http://127.0.0.1:$driverPort/session/$healthSession" -Method Delete -TimeoutSec 10 }
+    catch { Phase ($Prefix + 'driver-detach-diagnostic') @{error=$_.Exception.Message;afterNormalProductExit=$true} }
+  }
 }
 $product=$null
+$healthDriver=$null
+function FreeLocalPort {
+  $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0)
+  try { $listener.Start(); return $listener.LocalEndpoint.Port } finally { $listener.Stop() }
+}
 try {
   # Presence is diagnostic only: Office 16 also includes newer Office editions,
   # and an installed language does not prove that a real IME composition worked.
@@ -70,6 +94,49 @@ try {
     $environment.inputLanguages=@(Get-WinUserLanguageList | Select-Object -First 16 | ForEach-Object { @{languageTag=$_.LanguageTag;inputMethodTips=@($_.InputMethodTips)} })
   } catch { $environment.errors+=('input-language-probe: ' + $_.Exception.Message) }
   Phase 'available-input-and-office-environment' $environment
+  if ($RepairHealth) {
+    $runtimes=@()
+    foreach ($base in @(${env:ProgramFiles(x86)}, $env:ProgramFiles) | Select-Object -Unique) {
+      if (!$base) { continue }
+      $root=Join-Path $base 'Microsoft/EdgeWebView/Application'
+      if (Test-Path -LiteralPath $root) {
+        $runtimes+=@(Get-ChildItem -LiteralPath $root -Directory | Where-Object { $_.Name -cmatch '^\d+\.\d+\.\d+\.\d+$' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'msedgewebview2.exe')) })
+      }
+    }
+    if (!$runtimes.Count) { throw 'Existing Evergreen required; no Runtime installation fallback' }
+    $runtime=@($runtimes | Sort-Object { [version]$_.Name })[-1]
+    $driverRoot=Join-Path $env:RUNNER_TEMP 'milkup-repair-health-driver'
+    $healthProfile=Join-Path $env:RUNNER_TEMP 'milkup-repair-health-browser'
+    if ((Test-Path -LiteralPath $driverRoot) -or (Test-Path -LiteralPath $healthProfile)) { throw 'Health directories must be fresh' }
+    $null=New-Item -ItemType Directory $driverRoot
+    $null=New-Item -ItemType Directory $healthProfile
+    $archive=Join-Path $driverRoot 'driver.zip'
+    $driverUrl="https://msedgedriver.microsoft.com/$($runtime.Name)/edgedriver_win64.zip"
+    Invoke-WebRequest -Uri $driverUrl -OutFile $archive -TimeoutSec 60
+    if ((Get-Item -LiteralPath $archive).Length -gt 64MB) { throw 'Bounded driver archive required' }
+    $zip=[IO.Compression.ZipFile]::OpenRead($archive)
+    try {
+      if ($zip.Entries.Count -gt 64) { throw 'Driver archive entry budget' }
+      [long]$expanded=0
+      foreach ($entry in $zip.Entries) {
+        $dest=[IO.Path]::GetFullPath((Join-Path $driverRoot $entry.FullName))
+        if (!$dest.StartsWith($driverRoot + [IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or ($entry.ExternalAttributes -shr 16 -band 0xF000) -eq 0xA000) { throw 'Unsafe driver archive path' }
+        $expanded+=$entry.Length
+      }
+      if ($expanded -gt 256MB) { throw 'Expanded driver archive budget' }
+    } finally { $zip.Dispose() }
+    Expand-Archive -LiteralPath $archive -DestinationPath $driverRoot
+    $driverExe=Join-Path $driverRoot 'msedgedriver.exe'
+    $signature=Get-AuthenticodeSignature -LiteralPath $driverExe
+    if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') { throw 'Valid Microsoft driver signature required' }
+    $version=(& $driverExe --version).Trim()
+    if ($LASTEXITCODE -ne 0 -or $version -notmatch [regex]::Escape($runtime.Name)) { throw 'Exact installed Evergreen driver required' }
+    $driverPort=FreeLocalPort
+    do { $debugPort=FreeLocalPort } while ($debugPort -eq $driverPort)
+    $healthDriver=Start-Process -FilePath $driverExe -ArgumentList @("--port=$driverPort",'--allowed-ips=127.0.0.1') -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $EvidenceDirectory 'driver.stdout.log') -RedirectStandardError (Join-Path $EvidenceDirectory 'driver.stderr.log')
+    $driverBirth=$healthDriver.StartTime.ToUniversalTime().Ticks
+    Phase 'health-driver-start' @{pid=$healthDriver.Id;creationTicks=$driverBirth;image=$driverExe;sha256=(Get-FileHash -LiteralPath $driverExe -Algorithm SHA256).Hash.ToLowerInvariant();version=$version;runtime=$runtime.Name;source=$driverUrl;signature='Valid Microsoft';profile=$healthProfile}
+  }
   $raw=& node scripts/release/verify-candidate.mjs $Directory $SourceSha $Variant
   if ($LASTEXITCODE -ne 0) { throw 'Installer receipt verification failed' }
   $receipt=$raw | ConvertFrom-Json
@@ -83,6 +150,10 @@ try {
   $record['installedBinary']=@{path=$binary;sha256=(Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant();version=(Get-Item -LiteralPath $binary).VersionInfo.FileVersion}
   $document=Join-Path $EvidenceDirectory 'unchanged-document.md'
   [IO.File]::WriteAllText($document,"# Installed candidate`n`n中文与 emoji 😀`n",[Text.UTF8Encoding]::new($false))
+  if ($RepairHealth) {
+    $healthText=@('# Installed repair health','','中文与 emoji 😀','','```mermaid','flowchart LR',' A[Before] --> B[After]','```','','Outside diagram','') -join "`n"
+    [IO.File]::WriteAllText($document,$healthText,[Text.UTF8Encoding]::new($false))
+  }
   $documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
   VerifyOwnedStartupAndClose '' 'startupWindows'
   if ($RepairSameVersion) {
@@ -108,7 +179,7 @@ try {
     Phase 'repair-exact-application-restored' @{sha256=$repairedHash;documentUnchanged=$true}
     VerifyOwnedStartupAndClose 'repair-' 'repairStartupWindows'
     $record.sameVersionRepair='exact-binary-and-window-close-passed'
-    $record.recoveryHealth='native-window-only; document-open-edit-save and plugin/config restoration not verified'
+    $record.recoveryHealth=if ($RepairHealth) {'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health'} else {'native-window-only; document-open-edit-save and plugin/config restoration not verified'}
     # Retain hash/receipt evidence, not an extra runnable application artifact.
     Remove-Item -LiteralPath $backup
   }
@@ -129,6 +200,13 @@ try {
   if ($null -ne $product -and !$product.HasExited) {
     $record.forcedCleanup=$true
     try { $product.Kill($true); $null=$product.WaitForExit(5000) } catch { $record['cleanupError']=$_ | Out-String }
+  }
+  if ($null -ne $healthDriver -and !$healthDriver.HasExited) {
+    try {
+      $healthDriver.Refresh()
+      if ($healthDriver.StartTime.ToUniversalTime().Ticks -ne $driverBirth -or ![StringComparer]::OrdinalIgnoreCase.Equals($healthDriver.Path,$driverExe)) { throw 'Driver cleanup identity mismatch' }
+      $healthDriver.Kill(); if (!$healthDriver.WaitForExit(5000)) { throw 'Owned driver did not exit' }
+    } catch { $record.status='failed'; $record['driverCleanupError']=$_ | Out-String; Persist; throw }
   }
   Persist
 }
