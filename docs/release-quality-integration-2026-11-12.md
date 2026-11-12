@@ -303,3 +303,56 @@ script have no differences. Git tree IDs are respectively
 `2e2e9ad49080431a73d96a8eb7a9e582f4ccec03` for apps/packages/plugins on both commits.
 This establishes source equality only; exact installer receipts and original
 package hashes must still be verified for the pending `5d79147a` build.
+
+## Completed GUI evidence and queue diagnosis
+
+`43145964546 / 5d79147a` finished with overall failure from the previously recorded
+obsolete product assertion. Both independent GUI reports passed all eight steps.
+The original final artifact is `13912913400`, 1,475,382 bytes, ZIP SHA-256
+`a77d545169ea81f32a18bd2f6cca65ac5cd0eb4dd2e836868bcde441359f237f`.
+Both gzip window reports were independently restored, checking each chunk length,
+chunk SHA, combined length, raw length, raw SHA and newline count. Raw SHAs:
+
+- pure-standard: `2cf5464d4a71735a1bab3b07a8d531f472224f759b2cf9d83346312f59e02911`;
+- filtered-admin: `a033935c4b168e04db92dcf31a9160b933c0430119016317d464b34ea349d139`.
+
+Each account resolved 103 SHOW records (56 child, 47 root), with complete=true,
+no overflow, positive control passed, and zero observed product/unattributed
+visible consoles. Both compact and spaced documents contain 12 diagram offsets,
+include visits/revisits and 18 trusted rapid wheel events, with unchanged source.
+Idle and busy closes have pending counts 0 and 1 respectively, real UI close,
+exit 0, no forced termination, and verified inner cleanup. This later success
+does not erase `988a0f73`'s retained pure-standard lifetime-proof failure.
+
+The source queue is explained by the explicit shared concurrency group
+`mermaid-rebuild-windows-compile`; `43148218776 / d9f627be` started at 03:36:25 UTC
+once the prior source run ended. The distribution queue is also explicit:
+`distribution-candidate-${ref}` and matrix `max-parallel: 1`. The `988a0f73` run
+`43143356894` completed all three builds successfully at about 03:39 UTC, and the
+latest `5d79147a` build `43145985835` then began. This is observed serial execution,
+not evidence of unavailable Windows runners. Neither active run was cancelled.
+
+The `988a0f73` original build receipts report these exact package hashes (not
+installation acceptance, and not the later application candidate):
+
+| Variant          |     Bytes | SHA-256                                                            |
+| ---------------- | --------: | ------------------------------------------------------------------ |
+| Windows standard |   7243492 | `df820ce92727130a7ed55c6b1bbfd4215b322d1ef65706d571911e6f51aac6b9` |
+| Windows offline  | 225027394 | `a8a89159ac302acc52d85d771f3c67d6bc6641185b0019c23f2c3b72213953ba` |
+| Linux deb        |   9831208 | `1b76fa6ea5c80853a45a09ccea8928d6775af2ab02c0aabd2e25f4cbc2b3123a` |
+
+## Repair health extension: first protocol failure retained
+
+`961c105d` adds optional real installed edit/save and Diagrams switch persistence
+checks before/after same-package repair, through W3C input and read-only shipped
+DOM observations. Each phase has a 180-second total bound. The first run
+`43149596177` failed before inputs: EdgeDriver rejected the `detach` option during
+session creation. Artifact `13912998024`, 6456 bytes, SHA-256
+`074b74a69a50bb8ac1796e02d2e6591cb56b69f882a6d9fd86e65b234e16c74f`, preserves that
+failure. It is not a document-editing or recovery-product failure.
+
+`53667c84` now uses the same WebView2 capabilities as the established dual-account
+suite (`browserName: webview2`, `ms:edgeChromium: true`, debugger address only).
+Run `43149872319` tests this correction against the original `bf8a2d50` installer.
+The new health checks are not yet accepted. They do not represent complete
+configuration migration, formal signed recovery or dual-account isolation.
