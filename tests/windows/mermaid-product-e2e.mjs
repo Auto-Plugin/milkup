@@ -2556,16 +2556,22 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
       pageLoad: 45000,
       implicit: 0,
     })
-    current.windowRect = await request('GET', `/session/${session}/window/rect`)
-    assert(
-      current.windowRect.width >= 640 && current.windowRect.height >= 480,
-      'Visible usable native window; no synthetic viewport/DPI',
-    )
     await until(async () => {
       const current = await state()
       return current.path && samePath(current.path, files[name].path) && current.loading === 'ready'
     }, 'Literal production file-argument open')
     startupTimeline.mark('initial-document-ready')
+    // Query native window geometry after the shipped startup/file-open path has
+    // completed. On WebView2, querying it immediately after attach can block
+    // while the initial app navigation is still being initialized. Keep the
+    // exact geometry/identity requirements and original request timeout.
+    startupTimeline.mark('native-window-geometry-started')
+    current.windowRect = await request('GET', `/session/${session}/window/rect`)
+    assert(
+      current.windowRect.width >= 640 && current.windowRect.height >= 480,
+      'Visible usable native window; no synthetic viewport/DPI',
+    )
+    startupTimeline.mark('native-window-geometry-observed')
     current.startupPerformance = await execute(startupPerformanceScript)
     current.startupPerformance.inputsBeforeObservation = report.inputs.length
     current.startupPerformance.inputsBeforeLaunch = inputsBeforeLaunch

@@ -101,6 +101,13 @@ try {
   } catch { $environment.errors+=('input-language-probe: ' + $_.Exception.Message) }
   Phase 'available-input-and-office-environment' $environment
   if ($RepairHealth) {
+    Add-Type -Path (Join-Path $PSScriptRoot '../ci/WindowsMermaidStandardUser.cs')
+    $healthHost=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
+    Phase 'health-host-token' $healthHost
+    if (!$healthHost.ContainsKey('token') -or $healthHost.token.elevated -ne $false -or $healthHost.token.integrityRid -ne 8192) {
+      $record['healthEnvironmentBlocked']='Requires an observed medium-integrity coordinator; WebView2 Runtime 150+ drops environment debug overrides in an elevated host'
+      throw $record.healthEnvironmentBlocked
+    }
     $runtimes=@()
     foreach ($base in @(${env:ProgramFiles(x86)}, $env:ProgramFiles) | Select-Object -Unique) {
       if (!$base) { continue }
