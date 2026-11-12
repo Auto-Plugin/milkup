@@ -1774,6 +1774,20 @@ export async function main() {
       'Delivered beta.10 uses real unchanged profiles only',
     )
   const initiallyEnabled = migrationPhase !== 'verify' || migrationChoice !== 'disabled'
+  const profileComparison = process.env.MILKUP_WINDOWS_STARTUP_PROFILE_COMPARISON === '1'
+  assert([undefined, '0', '1'].includes(process.env.MILKUP_WINDOWS_STARTUP_PROFILE_COMPARISON))
+  if (profileComparison) {
+    assert.equal(migrationPhase, 'none')
+    assert.equal(process.env.MILKUP_WINDOWS_MERMAID_RENDERER_MODE, 'frontend')
+    assert.equal(process.env.MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA, candidateSha)
+  }
+  const {
+    profileOrder,
+    profileTrial,
+    verifyProfileReuse,
+    verifyCatalogRestart,
+    verifyNoOwnedWebView,
+  } = profileComparison ? await import('./startup-profile-contract.mjs') : {}
   const expectedPluginInventory = parseExpectedPluginInventory(
     process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY,
   )
@@ -1914,6 +1928,7 @@ export async function main() {
     driverPort = await freePort()
   const report = {
     status: 'running',
+    acceptancePurpose: profileComparison ? 'startup-profile-diagnostic' : 'product-acceptance',
     rendererMode,
     ...(migrationPhase === 'none'
       ? {}
@@ -2406,6 +2421,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     return ledger.verifyAll(product.pid)
   }
   const readBrowserAppearance = () => execute(migrationAppearanceScript)
+  const comparisonProfiles = new Map()
   const startProduct = async (name, restart = false) => {
     const inputsBeforeLaunch = report.inputs.length
     if (restart) {
@@ -2418,17 +2434,20 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     const port = await freePort()
     const reuseOldBrowserProfile =
       migrationPhase === 'verify' && name === 'ordinary' && report.launches.length === 0
-    const profile = reuseOldBrowserProfile
-      ? validateMigrationProfileReuse(migrationReceipt, {
-          runId,
-          candidateSha,
-          sid: expectedSid,
-          sessionId: expectedSessionId,
-          choice: migrationChoice,
-          baselineKind,
-          scratchRoot: context.scratchRoot,
-        })
-      : path.join(profileRoot, name)
+    const trial = profileComparison ? profileTrial(report.launches.length) : null
+    const profile = trial
+      ? path.join(profileRoot, `comparison-${trial.name}`)
+      : reuseOldBrowserProfile
+        ? validateMigrationProfileReuse(migrationReceipt, {
+            runId,
+            candidateSha,
+            sid: expectedSid,
+            sessionId: expectedSessionId,
+            choice: migrationChoice,
+            baselineKind,
+            scratchRoot: context.scratchRoot,
+          })
+        : path.join(profileRoot, name)
     if (reuseOldBrowserProfile) {
       const identity = await browserProfileIdentity(profile)
       assert.deepEqual(
@@ -2446,6 +2465,13 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         })),
         oldProcessesClosedByUi: true,
       }
+    } else if (trial) {
+      if (!trial.reused) await mkdir(profile)
+      const identity = await browserProfileIdentity(profile)
+      verifyProfileReuse(comparisonProfiles.get(trial.name), identity)
+      assert.equal(comparisonProfiles.has(trial.name), trial.reused)
+      comparisonProfiles.set(trial.name, identity)
+      trial.directoryIdentity = identity
     } else await mkdir(profile, { recursive: restart })
     const env = { ...process.env }
     for (const key of Object.keys(env))
@@ -2464,6 +2490,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     })
     launch = {
       fixture: name,
+      ...(trial ? { profileTrial: trial, logPrefix: `startup-${trial.index}` } : {}),
       ...(restart ? { restartedOldProfile: true } : {}),
       ...(reuseOldBrowserProfile ? { reusedMigrationBrowserProfile: true } : {}),
       productPid: product.pid,
@@ -2592,6 +2619,11 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     assert.equal(initial.visibility, 'visible')
     assert.equal(initial.developmentProbe, 'undefined')
     assert.equal(initial.diagnostics, 'undefined')
+    if (profileComparison) {
+      assert.equal(report.inputs.length, inputsBeforeLaunch)
+      current.inputsBeforeObservation = inputsBeforeLaunch
+      return
+    }
     if ((restart || reuseOldBrowserProfile) && baselineKind === 'delivered-beta10') {
       const expectedAppearance = (restart ? report : migrationReceipt).migration.browserPreference
       validateMigrationAppearance(expectedAppearance)
@@ -2847,7 +2879,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         await writeFile(
           path.join(
             evidence,
-            `${record.fixture}${record.restartedOldProfile ? '-restart' : ''}-product.log`,
+            `${record.logPrefix ?? record.fixture}${record.restartedOldProfile ? '-restart' : ''}-product.log`,
           ),
           record.applicationOutput,
         )
@@ -2906,7 +2938,97 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     )
     await observeProcesses(false)
     await startProduct('ordinary')
-    if (migrationPhase === 'prepare') {
+    if (profileComparison) {
+      report.profileComparison = {
+        order: profileOrder,
+        trials: [],
+        systemCacheReset: false,
+        attachment: 'same early attachment for every trial',
+        boundary:
+          'First launch also initializes the native catalogue; later launches retain approved packages. Only owned temporary profiles. No OS cache flush or installed-product acceptance.',
+      }
+      const catalogPath = path.join(
+        context.knownFolders.roamingAppData,
+        'app.milkup.desktop',
+        'plugins',
+        'catalog-v1.json',
+      )
+      let previousCatalog
+      for (let index = 0; index < profileOrder.length; index++) {
+        if (index) await startProduct('ordinary')
+        const row = {
+          ...launch.profileTrial,
+          status: 'running',
+          productPid: launch.productPid,
+          creationFileTime: launch.creationFileTime,
+          logPrefix: launch.logPrefix,
+        }
+        report.profileComparison.trials.push(row)
+        await rendered(true)
+        row.image = await readImage(`startup-${index}`)
+        row.firstDecodedObservation = launch.firstDecodedObservation
+        assert.equal(
+          report.inputs.length,
+          launch.inputsBeforeObservation,
+          'No editor input before startup observation',
+        )
+        await until(
+          async () =>
+            (await execute(startupPerformanceScript)).marks.some(
+              (m) => m.name === 'milkup:startup:plugin-catalog-ready',
+            ),
+          'Complete catalogue startup before controlled close',
+        )
+        await closeProduct(true)
+        const attempts = []
+        await until(
+          async () => {
+            const { stdout } = await promisify(execFile)(
+              pwsh,
+              [
+                '-NoLogo',
+                '-NoProfile',
+                '-File',
+                processObserver,
+                '-InspectStartupSid',
+                expectedSid,
+              ],
+              { encoding: 'utf8', windowsHide: true, timeout: 15000, maxBuffer: 1024 * 1024 },
+            )
+            const snapshot = JSON.parse(stdout.replace(/^\uFEFF/, ''))
+            attempts.push({ complete: snapshot.complete, matchCount: snapshot.matchCount })
+            row.processesAfterClose = snapshot
+            try {
+              return verifyNoOwnedWebView(snapshot, expectedSid, runtimeExe)
+            } catch (error) {
+              row.processExitObservationError = String(error)
+              return false
+            }
+          },
+          'All prior owned WebView processes exit before profile reuse',
+          15000,
+          false,
+        )
+        row.processExitObservationAttempts = attempts
+        await noLinks(catalogPath)
+        assert((await lstat(catalogPath)).size <= 128 * 1024)
+        const catalog = await readFile(catalogPath)
+        row.catalog = {
+          sha256: sha(catalog),
+          bytes: catalog.length,
+          utf8: catalog.toString('utf8'),
+        }
+        if (previousCatalog) row.catalogRestart = verifyCatalogRestart(previousCatalog, catalog)
+        previousCatalog = catalog
+        assert((await readFile(files.ordinary.path)).equals(files.ordinary.bytes))
+        assert.equal(sha(await readFile(application)), expectedBinarySha)
+        assert.equal(sha(await readFile(runtimeExe)), report.runtime.sha256)
+        row.status = 'passed'
+        await persist()
+      }
+      assert.equal(report.profileComparison.trials.length, 8)
+      assert(report.launches.every((l) => l.closedByUi && l.stdioClosedAt && l.exitCode === 0))
+    } else if (migrationPhase === 'prepare') {
       await step('00-prepare-old-plugin-choice', async (row) => {
         await menu()
         // waitForPluginCard returns its public observation; read again for exact UI state.

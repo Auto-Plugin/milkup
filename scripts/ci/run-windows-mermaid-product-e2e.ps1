@@ -8,6 +8,7 @@ param(
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('product', 'gui-regression', IgnoreCase = $false)][string]$HarnessMode = 'product',
     [Parameter(ParameterSetName = 'Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$ApplicationCandidateSha,
     [Parameter(ParameterSetName = 'Parent')][switch]$FrontendBoundaryProbe,
+    [Parameter(ParameterSetName = 'Parent')][switch]$StartupProfileComparison,
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('native','frontend', IgnoreCase = $false)][string]$RendererMode = 'native',
     [Parameter(ParameterSetName = 'Parent')][ValidateSet('pure-standard', 'filtered-admin', IgnoreCase = $false)][string]$AccountKind = 'pure-standard',
     [Parameter(ParameterSetName = 'Parent')][switch]$PinnedDeliveredLifecycle,
@@ -22,7 +23,8 @@ param(
     [Parameter(Mandatory, ParameterSetName = 'Child')][switch]$Child,
     [Parameter(Mandatory, ParameterSetName = 'Child')][string]$ChildSpecPath,
     [Parameter(Mandatory, ParameterSetName = 'Inspect')][switch]$InspectProcesses,
-    [Parameter(Mandatory, ParameterSetName = 'Inspect')][ValidatePattern('^[0-9]+(,[0-9]+){0,7}$')][string]$ProcessIds
+    [Parameter(Mandatory, ParameterSetName = 'Inspect')][ValidatePattern('^[0-9]+(,[0-9]+){0,7}$')][string]$ProcessIds,
+    [Parameter(Mandatory, ParameterSetName = 'StartupInspect')][ValidatePattern('^S-1-5-21-\d+-\d+-\d+-\d+$')][string]$InspectStartupSid
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -186,6 +188,7 @@ function Get-ChildEvidenceNames {
     $names.Add('migration-old-enabled-diagram.png', 'migration-old-enabled-diagram.png')
     $names.Add('migration-old-restarted-diagram.png', 'migration-old-restarted-diagram.png')
     $names.Add('ordinary-restart-product.log', 'ordinary-restart-product.log')
+    foreach ($index in 0..7) { foreach ($suffix in @('-product.log','-diagram.png')) { $name = "startup-$index$suffix"; $names.Add($name,$name) } }
     foreach ($name in @('migration-synthetic-catalog.json', 'migration-synthetic-catalog.log')) { $names.Add($name, $name) }
     $names.Add('unhandled-failure-window.png', 'unhandled-failure-window.png')
     $names.Add('syntax-prefetched-first-diagram.png', 'syntax-prefetched-first-diagram.png')
@@ -747,6 +750,7 @@ function Invoke-StandardChild {
     if ($spec.harnessMode -cnotin @('product', 'gui-regression') -or $spec.applicationCandidateSha -cnotmatch '^[a-f0-9]{40}$' -or
         ($spec.harnessMode -ceq 'product' -and $spec.applicationCandidateSha -cne $spec.candidateSha -and -not $spec.pinnedDeliveredLifecycle)) { throw 'Invalid separated harness/application identity' }
     if ($spec.frontendBoundaryProbe -and ($spec.harnessMode -cne 'gui-regression' -or $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
+    if ($spec.startupProfileComparison -and ($spec.harnessMode -cne 'product' -or $spec.rendererMode -cne 'frontend' -or $spec.mode -cne 'linked-binary' -or $spec.applicationCandidateSha -cne $spec.candidateSha)) { throw 'Startup comparison is current linked frontend diagnostic only' }
     if ($spec.pinnedDeliveredLifecycle) {
         Assert-PinnedDeliveredLifecycle $spec.applicationCandidateSha $spec.installer.sha256 $spec.binary.sha256 $spec.expectedVersion $spec.harnessMode $spec.rendererMode $spec.lifecycle $spec.migrationChoice
         if ($spec.binaryRole -cne 'reconstructedComparisonInput') { throw 'Delivered lifecycle must record reconstructed comparison provenance' }
@@ -818,6 +822,7 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $spec.candidateSha
             MILKUP_WINDOWS_MERMAID_RENDERER_MODE = $spec.rendererMode
             MILKUP_WINDOWS_MERMAID_HARNESS_MODE = $spec.harnessMode
+            MILKUP_WINDOWS_STARTUP_PROFILE_COMPARISON = $(if ($spec.startupProfileComparison) { '1' } else { '0' })
             MILKUP_WINDOWS_MERMAID_FRONTEND_BOUNDARY_PROBE = $(if ($spec.frontendBoundaryProbe) { '1' } else { '0' })
             MILKUP_WINDOWS_MERMAID_HARNESS_CANDIDATE_SHA = $spec.candidateSha
             MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA = $spec.applicationCandidateSha
@@ -866,6 +871,10 @@ function Invoke-StandardChild {
         $reportName = $(if ($spec.harnessMode -ceq 'gui-regression') { 'gui-regression.json' } else { 'mermaid-product-e2e.json' })
         $report = if ($spec.harnessMode -ceq 'gui-regression') { Read-SmallJson (Join-Path $evidence $reportName) } else { Read-ProductJson (Join-Path $evidence $reportName) }
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
+        if ($spec.startupProfileComparison) {
+            if ($report.acceptancePurpose -cne 'startup-profile-diagnostic' -or $report.profileComparison.trials.Count -ne 8 -or
+                @($report.profileComparison.trials | Where-Object { $_.status -cne 'passed' }).Count -ne 0 -or $report.steps.Count -ne 0) { throw 'Complete explicit startup diagnostic required, not product acceptance' }
+        } elseif ($report.Contains('acceptancePurpose') -and $report.acceptancePurpose -cne 'product-acceptance') { throw 'Diagnostic cannot substitute for product acceptance' }
         if ($report.rendererMode -cne $spec.rendererMode) { throw 'Renderer acceptance mode mismatch' }
         if ($spec.harnessMode -ceq 'product' -and $report.applicationCandidateSha -cne $spec.applicationCandidateSha) { throw 'Product report did not bind the installed application identity' }
         if ($spec.harnessMode -ceq 'gui-regression' -and ($report.applicationCandidateSha -cne $spec.applicationCandidateSha -or
@@ -932,7 +941,7 @@ function Invoke-StandardChild {
     exit 1
 }
 
-if ($InspectProcesses) {
+if ($InspectProcesses -or $InspectStartupSid) {
     # Node decodes UTF-8; a fresh non-elevated PowerShell can inherit an OEM
     # console encoding. Escape every non-ASCII JSON character at this boundary.
     [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
@@ -944,6 +953,11 @@ if ($InspectProcesses) {
     if (-not $current.ContainsKey('token') -or
         -not [WindowsMermaidStandardUser]::MatchesExpectedAccountKind($current.token, $env:MILKUP_WINDOWS_MERMAID_EXPECTED_ACCOUNT_KIND) -or
         $current.token.sessionId -ne [uint32]$env:MILKUP_WINDOWS_MERMAID_EXPECTED_SESSION_ID) { throw 'Process observation requires the exact expected account kind and session' }
+    if ($InspectStartupSid) {
+        if ($InspectStartupSid -cne $env:MILKUP_WINDOWS_MERMAID_EXPECTED_SID -or $env:MILKUP_WINDOWS_STARTUP_PROFILE_COMPARISON -cne '1') { throw 'Startup process census requires exact owned diagnostic SID' }
+        [WindowsMermaidStandardUser]::ObserveExactSidProcesses($InspectStartupSid) | ConvertTo-Json -Depth 12 -Compress -EscapeHandling EscapeNonAscii
+        exit 0
+    }
     $records = [WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]($ProcessIds.Split(',')))
     foreach ($record in $records) { $record['expectedAccountKind'] = $env:MILKUP_WINDOWS_MERMAID_EXPECTED_ACCOUNT_KIND }
     ConvertTo-Json -InputObject @($records) -Depth 12 -Compress -EscapeHandling EscapeNonAscii
@@ -965,6 +979,7 @@ if ($MigrationChoice -and -not $LifecycleBaselineInstaller) { throw 'Real migrat
 if ($LifecycleBaselineInstaller -and (-not $installerMode -or $HarnessMode -cne 'product')) { throw 'Lifecycle probe requires current-candidate installed product mode' }
 if ($HarnessMode -ceq 'product' -and $ApplicationCandidateSha -and -not $PinnedDeliveredLifecycle) { throw 'Separate application identity is allowed only in explicit GUI regression mode' }
 if (-not $ApplicationCandidateSha) { $ApplicationCandidateSha = $ExpectedCommit }
+if ($StartupProfileComparison -and ($installerMode -or $HarnessMode -cne 'product' -or $RendererMode -cne 'frontend' -or $ApplicationCandidateSha -cne $ExpectedCommit)) { throw 'Startup comparison cannot run installation or ordinary acceptance' }
 if ($FrontendBoundaryProbe -and ($HarnessMode -cne 'gui-regression' -or $ApplicationCandidateSha -cne $ExpectedCommit)) { throw 'Optional frontend diagnostic is only allowed for current-candidate GUI mode' }
 if ($ApplicationCandidateSha -cne $ExpectedCommit -and -not $PinnedDeliveredLifecycle) {
     # The sole mixed-source case is the independently hashed, already delivered beta.9 baseline.
@@ -999,6 +1014,7 @@ $harness = Join-Path $repository ('tests/windows/' + $harnessLeaf)
 $audit = [ordered]@{
     schema = 1; status = 'failed'; source = $ExpectedCommit; runId = $env:GITHUB_RUN_ID; localRunId = $runId
     expectedAccountKind = $AccountKind; rendererMode = $RendererMode; harnessMode = $HarnessMode; applicationCandidateSha = $ApplicationCandidateSha
+    acceptancePurpose = $(if ($StartupProfileComparison) { 'startup-profile-diagnostic' } else { $HarnessMode })
     mode = $(if ($installerMode) { 'nsis-current-user' } else { 'linked-binary' }); installation = $null
     installedDirectoryRemoved = $null
     attempt = $env:GITHUB_RUN_ATTEMPT; runtime = $null; binary = $null; driver = $null; runnerContext = $null
@@ -1080,6 +1096,12 @@ try {
     Copy-Item -LiteralPath $frontendContractSource -Destination $frontendContractDestination -ErrorAction Stop
     if ((File-Proof $frontendContractSource).sha256 -cne (File-Proof $frontendContractDestination).sha256) { throw 'Frontend contract staging mismatch' }
     $additionalHarnessFiles += File-Proof $frontendContractDestination
+    $source = Join-Path $repository 'tests/windows/startup-profile-contract.mjs'
+    $destination = Join-Path $code 'startup-profile-contract.mjs'
+    Assert-PlainPath $source
+    Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
+    if ((File-Proof $source).sha256 -cne (File-Proof $destination).sha256) { throw 'Startup contract staging mismatch' }
+    $additionalHarnessFiles += File-Proof $destination
     if ($MigrationChoice) {
         $source = Join-Path $repository 'tests/windows/mermaid-beta9-audit-fixture.mjs'
         $destination = Join-Path $code 'mermaid-beta9-audit-fixture.mjs'
@@ -1193,6 +1215,7 @@ try {
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; rendererMode = $RendererMode; harnessMode = $HarnessMode
         pinnedDeliveredLifecycle = [bool]$PinnedDeliveredLifecycle
+        startupProfileComparison = [bool]$StartupProfileComparison
         frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice; lifecycleBaselineKind = $LifecycleBaselineKind
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
         sourcePluginInventory = $sourceInventoryProof

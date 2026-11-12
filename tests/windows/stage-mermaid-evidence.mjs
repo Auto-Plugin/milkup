@@ -29,6 +29,7 @@ const screenshots = new Set(
 )
 const diagrams = new Set(
   [
+    ...Array.from({ length: 8 }, (_, i) => `startup-${i}`),
     'migration-old-enabled',
     'migration-old-restarted',
     '02-enabled',
@@ -44,6 +45,7 @@ const diagrams = new Set(
 )
 const fixtures = ['ordinary', 'wide', 'c4', 'syntax', 'invalid']
 const metadata = new Set([
+  ...Array.from({ length: 8 }, (_, i) => `startup-${i}-product.log`),
   'ordinary-restart-product.log',
   'migration-synthetic-catalog.json',
   'migration-synthetic-catalog.log',

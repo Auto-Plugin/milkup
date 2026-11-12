@@ -17,6 +17,16 @@ on:
         dot/startup-empty-anchor-20261112,
       ]
   workflow_dispatch:
+    inputs:
+      startup_profile_comparison:
+        type: boolean
+        default: false
+        description: 'Diagnostic only: eight fresh/reused temporary WebView profiles; no installation or full GUI acceptance'
+      account_order:
+        type: choice
+        options: [standard-first, filtered-first]
+        default: standard-first
+        description: 'Account execution order for the explicit diagnostic'
 
 permissions:
   contents: read
@@ -46,6 +56,8 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_PROFILE_TEST_DEBUG: '0'
       CARGO_TERM_COLOR: never
+      STARTUP_PROFILE_COMPARISON: ${{ inputs.startup_profile_comparison && '1' || '0' }}
+      STARTUP_ACCOUNT_ORDER: ${{ inputs.account_order || 'standard-first' }}
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       GIT_CONFIG_COUNT: '1'
       GIT_CONFIG_KEY_0: core.longpaths
@@ -120,7 +132,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Wry startup observation tests did not compile' }
           & $timingTest
           if ($LASTEXITCODE -ne 0) { throw 'Wry startup observation contracts failed' }
-          node --test tests/windows/mermaid-observer-finalization.test.mjs tests/windows/mermaid-frontend-contract.test.mjs tests/windows/mermaid-product-e2e.test.mjs scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/stage-mermaid-evidence.test.mjs tests/windows/mermaid-gui-regression.test.mjs tests/windows/mermaid-gui-startup.test.mjs scripts/ci/read-linked-gui-plugin-inventory.test.mjs
+          node --test tests/windows/startup-profile-contract.test.mjs tests/windows/mermaid-observer-finalization.test.mjs tests/windows/mermaid-frontend-contract.test.mjs tests/windows/mermaid-product-e2e.test.mjs scripts/ci/prepare-mermaid-trial-payload.test.mjs tests/windows/stage-mermaid-evidence.test.mjs tests/windows/mermaid-gui-regression.test.mjs tests/windows/mermaid-gui-startup.test.mjs scripts/ci/read-linked-gui-plugin-inventory.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Account/close/payload evidence regression failed' }
           ./tests/windows/account-kind-wrapper.test.ps1
           ./tests/windows/installer-wrapper.test.ps1
@@ -224,15 +236,16 @@ jobs:
           if ($treeExit -ne 0) { throw 'Build changed a source, lockfile or unexpected output; see exact preserved status' }
           if ($dirty.Count -ne 0) { throw 'Build tree remains dirty; exact changes are retained for review, including known generated schemas' }
           'Pre-launch source gate: dirty generated files still fail pending explicit diagnosis/review. Product UI acceptance has not run at this step.' >> $env:GITHUB_STEP_SUMMARY
-      - name: Run distinct pure-standard and filtered-admin product acceptance
+      - name: Run distinct account product acceptance or explicit startup diagnostic
         run: |
           $ErrorActionPreference = 'Stop'
           $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-desktop.exe'
           $hash = (Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
           $failures = @()
-          foreach ($kind in @('pure-standard', 'filtered-admin')) {
+          $order = if ($env:STARTUP_ACCOUNT_ORDER -ceq 'filtered-first') { @('filtered-admin','pure-standard') } else { @('pure-standard','filtered-admin') }
+          foreach ($kind in $order) {
             try {
-              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -RendererMode frontend -Binary $binary -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-account-$kind") -ExpectedCommit $env:GITHUB_SHA -ExpectedBinarySha256 $hash -ProductionAssetsConfirmed -AccountKind $kind
+              ./scripts/ci/run-windows-mermaid-product-e2e.ps1 -StartupProfileComparison:($env:STARTUP_PROFILE_COMPARISON -ceq '1') -RendererMode frontend -Binary $binary -EvidenceDirectory (Join-Path $env:RUNNER_TEMP "mermaid-account-$kind") -ExpectedCommit $env:GITHUB_SHA -ExpectedBinarySha256 $hash -ProductionAssetsConfirmed -AccountKind $kind
             } catch {
               $failures += "$kind : $($_.Exception.Message)"
               Write-Host "::error::$kind failed; original reports are retained"
@@ -273,7 +286,7 @@ jobs:
           if-no-files-found: error
           include-hidden-files: false
       - name: Run independent GUI regression under both account kinds
-        if: always() && steps.linked.outcome == 'success' && steps.source_gate.outcome == 'success'
+        if: always() && steps.linked.outcome == 'success' && steps.source_gate.outcome == 'success' && inputs.startup_profile_comparison != true
         run: |
           $ErrorActionPreference = 'Stop'
           $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-desktop.exe'
