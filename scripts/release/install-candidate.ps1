@@ -1,9 +1,10 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[string]$NodeExecutable)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$StartupComparison,[string]$NodeExecutable)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
+if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
 if ($DocumentHealth -and !$RepairHealth) { throw 'Document health requires isolated repair health' }
 if ($RepairHealth -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
@@ -233,6 +234,10 @@ try {
     $record.recoveryHealth=if ($RepairHealth) {'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health'} else {'native-window-only; document-open-edit-save and plugin/config restoration not verified'}
     # Retain hash/receipt evidence, not an extra runnable application artifact.
     Remove-Item -LiteralPath $backup
+  }
+  if ($StartupComparison) {
+    & (Join-Path $PSScriptRoot 'startup-comparison.ps1') -Binary $binary -Document $document -EvidenceDirectory $EvidenceDirectory -NodeExecutable $NodeExecutable -DriverPort $driverPort -RuntimeVersion $runtime.Name -SourceSha $SourceSha
+    Phase 'installed-startup-comparison' @{report='startup-comparison.json';completed=$true;inputs=0}
   }
   $uninstaller=Join-Path $install 'uninstall.exe'
   $copy=Join-Path $EvidenceDirectory 'owned-uninstaller.exe'

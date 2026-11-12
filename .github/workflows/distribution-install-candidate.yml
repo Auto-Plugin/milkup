@@ -24,6 +24,10 @@ on:
         description: Real installed A/B identity, current-document HTML/PDF and unsaved close checks
         type: boolean
         default: false
+      startup_comparison:
+        description: Same installed bytes with early, late and absent WebDriver attachment (standard repair health only)
+        type: boolean
+        default: false
       variant:
         description: Test all variants or only the variant affected by an installation-harness fix
         type: choice
@@ -62,6 +66,7 @@ jobs:
       REPAIR_SAME_VERSION: ${{ inputs.repair_same_version }}
       REPAIR_HEALTH: ${{ inputs.repair_health }}
       DOCUMENT_HEALTH: ${{ inputs.document_health }}
+      STARTUP_COMPARISON: ${{ inputs.startup_comparison }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -77,7 +82,7 @@ jobs:
           if [ "$GITHUB_EVENT_NAME" = push ]; then
             node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('release/candidate-install-input.json'));if(!/^[0-9]+$/.test(p.buildRun)||!/^[a-f0-9]{40}$/.test(p.sourceSha))throw Error('Invalid package identity');fs.appendFileSync(process.env.GITHUB_ENV,'BUILD_RUN='+p.buildRun+'\nSOURCE_SHA='+p.sourceSha+'\n')"
           fi
-          node --test scripts/release/verify-candidate.test.mjs
+          node --test scripts/release/verify-candidate.test.mjs scripts/release/startup-comparison.test.mjs
       - name: Verify completed build identity and download original package
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,6 +114,10 @@ jobs:
             }
           } finally {$self.Dispose()}
           $tokens=$null; $errors=$null
+          foreach ($leaf in @('scripts/release/startup-comparison.ps1','scripts/release/install-candidate.ps1','scripts/release/run-repair-health-standard.ps1')) {
+            $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $leaf),[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
           $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/release/installed-dialog-input.ps1'),[ref]$tokens,[ref]$errors)
           if ($errors.Count) { throw ($errors | Out-String) }
       - name: Windows native install, visible window, normal close and uninstall
@@ -117,8 +126,9 @@ jobs:
         run: |
           if ($env:REPAIR_HEALTH -ceq 'true') {
             if ($env:REPAIR_SAME_VERSION -cne 'true') { throw 'Health requires repair' }
-            ./scripts/release/run-repair-health-standard.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -DocumentHealth:($env:DOCUMENT_HEALTH -ceq 'true')
+            ./scripts/release/run-repair-health-standard.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -DocumentHealth:($env:DOCUMENT_HEALTH -ceq 'true') -StartupComparison:($env:STARTUP_COMPARISON -ceq 'true')
           } else {
+            if ($env:STARTUP_COMPARISON -ceq 'true') { throw 'Startup comparison requires isolated repair health' }
             if ($env:DOCUMENT_HEALTH -ceq 'true') { throw 'Document health requires isolated repair health' }
             ./scripts/release/install-candidate.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -RepairSameVersion:($env:REPAIR_SAME_VERSION -ceq 'true')
           }
