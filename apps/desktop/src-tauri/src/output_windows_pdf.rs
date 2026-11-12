@@ -446,6 +446,30 @@ fn pdf(input: Input) -> Result<Rendered> {
             settings.SetIsPasswordAutosaveEnabled(false)?;
             settings.SetIsGeneralAutofillEnabled(false)?;
             settings.SetAreBrowserAcceleratorKeysEnabled(false)?;
+            // Resource interception/CSP can reject a load after speculative
+            // connection setup. Put this dedicated static-output target offline
+            // before navigating, and fail closed if the runtime cannot apply it.
+            // This changes no system/browser flags and exposes no CDP endpoint.
+            for (method, parameters) in [
+                ("Network.enable", "{}"),
+                (
+                    "Network.emulateNetworkConditions",
+                    r#"{"offline":true,"latency":0,"downloadThroughput":-1,"uploadThroughput":-1}"#,
+                ),
+            ] {
+                let (tx, rx) = mpsc::channel();
+                view.CallDevToolsProtocolMethod(
+                    &::windows::core::HSTRING::from(method),
+                    &::windows::core::HSTRING::from(parameters),
+                    &CallDevToolsProtocolMethodCompletedHandler::create(Box::new(
+                        move |result, _| {
+                            let _ = tx.send(result);
+                            Ok(())
+                        },
+                    )),
+                )?;
+                pump(&rx, deadline).map_err(|_| ::windows::core::Error::from(E_FAIL))??;
+            }
             let env = environment.clone();
             let html = guarded_document(&input.html, input.page_size, input.landscape);
             let callback = WebResourceRequestedEventHandler::create(Box::new(move |_, args| {
@@ -1077,9 +1101,21 @@ mod tests {
     #[ignore = "requires installed Evergreen WebView2; run explicitly on Windows native acceptance"]
     fn installed_webview2_renders_static_pdf_without_document_network_access() {
         use std::net::TcpListener;
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        listener.set_nonblocking(true).unwrap();
-        let address = listener.local_addr().unwrap();
+        let listeners: Vec<_> = ["image", "script", "frame", "style", "preconnect"]
+            .into_iter()
+            .map(|kind| {
+                let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+                listener.set_nonblocking(true).unwrap();
+                (kind, listener)
+            })
+            .collect();
+        let addresses: Vec<_> = listeners
+            .iter()
+            .map(|(_, listener)| listener.local_addr().unwrap())
+            .collect();
+        let [image, script, frame, style, preconnect] = addresses.as_slice() else {
+            unreachable!()
+        };
         for (size, landscape, css, name, width, height) in [
             (PageSize::A4, false, "A4", "a4.pdf", 595.28, 841.89),
             (
@@ -1111,7 +1147,7 @@ mod tests {
             // describe the SAME requested sheet. A fixed @page A4 portrait
             // contradicts Letter landscape and is not a valid product fixture.
             let html = format!(
-                r#"<!doctype html><meta charset=utf-8><style>@page{{size:{css};margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{address}/blocked'><script>fetch('http://{address}/script')</script><iframe src='http://{address}/frame'></iframe>"#
+                r#"<!doctype html><meta charset=utf-8><style>@page{{size:{css};margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{image}/blocked'><script>fetch('http://{script}/script')</script><iframe src='http://{frame}/frame'></iframe><style>body{{background-image:url(http://{style}/background)}}</style><link rel='preconnect' href='http://{preconnect}'>"#
             );
             let result =
                 render_with_command(&lease(), html, size, landscape, fixture_command("native"))
@@ -1127,11 +1163,12 @@ mod tests {
                 fs::write(PathBuf::from(root).join(name), &bytes).unwrap();
             }
             assert_pdf_media_boxes(&bytes, width, height);
-            match listener.accept() {
+            for (kind, listener) in &listeners {
+                match listener.accept() {
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    eprintln!("{name}: document-network listener has no connection (WouldBlock)");
+                    eprintln!("{name}/{kind}: document-network listener has no connection (WouldBlock)");
                 }
-                Err(e) => panic!("{name}: network observation failed, not proof of connection: kind={:?}, os={:?}, error={e}", e.kind(), e.raw_os_error()),
+                Err(e) => panic!("{name}/{kind}: network observation failed, not proof of connection: kind={:?}, os={:?}, error={e}", e.kind(), e.raw_os_error()),
                 Ok((mut stream, peer)) => {
                     stream.set_nonblocking(false).unwrap();
                     let _ = stream.set_read_timeout(Some(Duration::from_millis(250)));
@@ -1141,8 +1178,9 @@ mod tests {
                         Ok(count) => String::from_utf8_lossy(&request[..count]).into_owned(),
                         Err(e) => format!("read error: {e}"),
                     };
-                    panic!("{name}: unexpected connection from {peer}; request={detail:?}");
+                    panic!("{name}/{kind}: unexpected connection from {peer}; request={detail:?}");
                 }
+            }
             }
         }
         // Dimensions and network denial are NOT text, pixel, pagination or GUI acceptance.
