@@ -29,7 +29,9 @@ const request = async (method, route, body) => {
     method,
     headers: { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - Date.now()))),
+    signal: AbortSignal.timeout(
+      Math.max(1, Math.min(route === '/session' ? 60000 : 15000, deadline - Date.now())),
+    ),
   })
   const result = await response.json()
   if (!response.ok || result.value?.error) throw Error(JSON.stringify(result).slice(0, 3000))
@@ -108,6 +110,25 @@ try {
       return false
     }
   }, 'owned driver ready')
+  record.devTools = await until(
+    async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:${debugPort}/json/version`, {
+          signal: AbortSignal.timeout(1000),
+        })
+        if (!response.ok) return false
+        const value = await response.json()
+        assert(typeof value.webSocketDebuggerUrl === 'string')
+        return value
+      } catch (error) {
+        record.lastDevToolsError = String(error)
+        return false
+      }
+    },
+    'owned WebView2 loopback readiness before attachment',
+    45000,
+  )
+  await persist()
   const response = await request('POST', '/session', {
     capabilities: {
       alwaysMatch: {

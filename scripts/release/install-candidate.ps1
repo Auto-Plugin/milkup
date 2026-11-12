@@ -24,7 +24,7 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   $script:product=Start-Process @launch
   $creation=$product.StartTime.ToUniversalTime().ToString('o')
   $creationTicks=$product.StartTime.ToUniversalTime().Ticks
-  Phase ($Prefix + 'application-start') @{pid=$product.Id;creationUtc=$creation;image=$binary}
+  Phase ($Prefix + 'application-start') @{pid=$product.Id;creationUtc=$creation;image=$binary;debugPort=$debugPort;healthProfile=$healthProfile}
   $deadline=[DateTime]::UtcNow.AddSeconds(45)
   $record[$WindowKey]=@()
   $lastWindows=$null
@@ -53,7 +53,13 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   if ($RepairHealth) {
     $healthPhase=if ($Prefix) {'after'} else {'before'}
     & node (Join-Path $PSScriptRoot 'repair-health.mjs') $healthPhase $driverPort $debugPort $document $EvidenceDirectory
-    if ($LASTEXITCODE -ne 0) { throw "Real installed repair health failed: $healthPhase" }
+    if ($LASTEXITCODE -ne 0) {
+      try {
+        $children=@(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($product.Id)" | Select-Object -First 16 | ForEach-Object { @{pid=$_.ProcessId;parentPid=$_.ParentProcessId;image=$_.ExecutablePath;creation=$_.CreationDate;hasExpectedDebugPort=($_.CommandLine -match ("--remote-debugging-port=" + $debugPort + '(\s|$)'));hasExpectedProfile=($_.CommandLine -like ('*' + $healthProfile + '*'))} })
+        Phase ($Prefix + 'health-failure-child-diagnostics') $children
+      } catch { Phase ($Prefix + 'health-diagnostics-error') @{error=$_.Exception.Message} }
+      throw "Real installed repair health failed: $healthPhase"
+    }
     $health=Get-Content -LiteralPath (Join-Path $EvidenceDirectory "repair-health-$healthPhase.json") -Raw | ConvertFrom-Json
     if ($health.status -cne 'passed' -or !$health.sessionId -or !$health.saved.sha256) { throw 'Complete repair health evidence required' }
     $healthSession=$health.sessionId
