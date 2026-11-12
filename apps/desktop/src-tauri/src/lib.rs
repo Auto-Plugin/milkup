@@ -21,6 +21,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 
+mod startup_timing;
 mod appearance_theme;
 mod appearance_theme_store;
 mod frontend_mermaid_guard;
@@ -1053,7 +1054,8 @@ fn frontend_mermaid_audit(registry: State<frontend_mermaid_guard::Registry>, eve
 fn frontend_mermaid_audit_flush(registry: State<frontend_mermaid_guard::Registry>, owner_id: String) -> Result<(), String> { registry.flush(&owner_id) }
 
 pub fn run() {
-    tauri::Builder::default()
+    startup_timing::mark("application-run-enter");
+    let app = tauri::Builder::default()
         .register_uri_scheme_protocol("milkup-mermaid", |context, request| {
             let allowed = frontend_mermaid_document::allowed_request(request.method().as_str(), &request.uri().to_string());
             let registry = context.app_handle().state::<frontend_mermaid_guard::Registry>();
@@ -1079,6 +1081,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
+            startup_timing::mark("setup-enter");
             #[cfg(windows)]
             {
                 let registry = app
@@ -1088,11 +1091,18 @@ pub fn run() {
                 app.get_webview_window("main")
                     .ok_or("Main WebView missing")?
                     .with_webview(move |webview| {
+                        startup_timing::mark("main-webview-callback-enter");
                         let result = unsafe { webview.controller().CoreWebView2() }
-                            .and_then(|view| frontend_mermaid_guard::install(&view, registry));
+                            .and_then(|view| {
+                                if startup_timing::install(&view).is_err() {
+                                    startup_timing::mark("main-resource-observers-unavailable");
+                                }
+                                frontend_mermaid_guard::install(&view, registry)
+                            });
                         if result.is_err() {
                             eprintln!("MILKUP_FRONTEND_BOUNDARY guard unavailable");
                         }
+                        startup_timing::mark("main-webview-callback-finished");
                     })?;
             }
             app.manage(recovery::RecoveryStore::new(
@@ -1102,6 +1112,7 @@ pub fn run() {
             thread::spawn(move || {
                 let _ = cleanup_large_file_working_temps_in_dir(&temp_dir);
             });
+            startup_timing::mark("setup-finished");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1209,29 +1220,35 @@ pub fn run() {
             watch_markdown_file,
             unwatch_markdown_file
         ])
-        .build(tauri::generate_context!())
-        .expect("failed to build milkup desktop app")
-        .run(|app, event| {
-            if let tauri::RunEvent::ExitRequested { api, .. } = &event {
-                if app
-                    .state::<frontend_mermaid_guard::Registry>()
-                    .prepare_exit()
-                    .is_err()
-                {
-                    api.prevent_exit();
-                    // The normal UI close awaits all frontend owner retirement.
-                    // Keep a fallback exit from discarding active output authority.
-                }
+        .build({
+            startup_timing::mark("context-start");
+            let context = tauri::generate_context!();
+            startup_timing::mark("context-ready");
+            context
+        })
+        .expect("failed to build milkup desktop app");
+    startup_timing::mark("application-built");
+    app.run(|app, event| {
+        if let tauri::RunEvent::ExitRequested { api, .. } = &event {
+            if app
+                .state::<frontend_mermaid_guard::Registry>()
+                .prepare_exit()
+                .is_err()
+            {
+                api.prevent_exit();
+                // The normal UI close awaits all frontend owner retirement.
+                // Keep a fallback exit from discarding active output authority.
             }
-            if matches!(event, tauri::RunEvent::Exit) {
-                app.state::<plugin_dom::DomRegistry>().stop_all();
-                // Covers exit paths that do not emit ExitRequested. The normal
-                // UI close already awaits frame destruction before destroying its window.
-                let _ = app
-                    .state::<frontend_mermaid_guard::Registry>()
-                    .prepare_exit();
-            }
-        });
+        }
+        if matches!(event, tauri::RunEvent::Exit) {
+            app.state::<plugin_dom::DomRegistry>().stop_all();
+            // Covers exit paths that do not emit ExitRequested. The normal
+            // UI close already awaits frame destruction before destroying its window.
+            let _ = app
+                .state::<frontend_mermaid_guard::Registry>()
+                .prepare_exit();
+        }
+    });
 }
 
 fn snapshot_hash(text: &str) -> String {

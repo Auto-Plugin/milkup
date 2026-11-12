@@ -823,3 +823,62 @@ include worker queue/store scope, thread isolation, bounds, original failure
 propagation and panic cleanup before worker-thread reuse. Real Windows data is
 still required to distinguish the observed 1055.3 ms approval round trip from
 queueing, lock contention, verification or disk synchronization.
+
+## b59 product comparison and a separate main-document response delay
+
+The b59 product artifact `13918506946` is 1,098,100 bytes; verified ZIP SHA-256
+`2070543745ad8adb3c68851bfc19c9a7f96bc1c8df3425872060673bcc9199a9`.
+Both product reports and outer audits pass 11/11. Complete GUI remains pending.
+The same existing WebView2 156.0.4314.58 is recorded in af9 and b59.
+
+| No-input first ordinary preview, ms | af9 pure / filtered | b59 pure / filtered |
+| --- | ---: | ---: |
+| Process start to first image decode | 5423.0 / 4571.4 | 5420.7 / 10412.9 |
+| Process start to engine assets read | 4460 / 3661 | 4721 / 9796 |
+| Engine render started to finished | 337 / 315 | 248 / 216 |
+
+b59's hidden titlebar constructor takes 0.1 / 0.3 ms. The earlier interval from
+initial-path request to settings construction shrinks from 333.2 / 32.0 ms to
+0.6 / 0.7 ms, but pure-standard first-editor construction now absorbs about
+320.6 ms. This does not establish a net startup gain or explain the original
+20.6-second outlier. In b59 filtered-admin, navigation requestStart=2.5 ms and
+responseStart=6004.9 ms: the main HTML response wait precedes application module,
+plugin or Mermaid execution.
+
+Reviewing the *other* af9 launches found a separate long-delay reproduction:
+pure-standard wide first decode=20776.5 ms, navigation origin=5541.0 ms after
+process start, main HTML requestStart=3.0 and responseStart=12769.0 ms relative
+to navigation. HTML-ready=18323.2 ms after process start; engine render takes
+486 ms. No additional test input occurred before the initial document observation
+(634 before launch and 634 at observation). The syntax launch similarly has
+requestStart=4.1 and responseStart=12249.5 ms. These are fresh processes/browser
+profiles with an existing approved catalogue, not fresh-install ordinary samples.
+The syntax later resource snapshot is incomplete and is not used to exclude
+unseen work. Navigation timings themselves were preserved at initial observation.
+Thus the long delay cannot all be attributed to catalogue approval or Mermaid;
+WebView/Tauri request dispatch/response scheduling remains to be separated.
+
+A follow-up adds opt-in fixed-name native app/setup and main-document resource
+request/response/content-loading marks, bounded to 64 records. It does not add
+resource filters, change responses, acquire deferrals, cancel navigation or inject
+scripts. Exact main document URLs are classified and never logged. Existing
+native security hooks run unchanged. The new module passes Linux classification
+tests and Windows MSVC API compilation; real Windows observations are pending.
+
+## Historical file-identity and unsaved-close scope
+
+Historical #171/#178/#200 are leads, not evidence of a current defect. Current
+main.ts owns one active session and the Tauri configuration creates one main
+window; no tabbed-document UI is assumed. Existing native output contracts
+protect the captured source identity, hard-link aliases and other registered
+open documents. Existing browser coverage includes dirty new/open/close cancel,
+failed/cancelled save, late save continuation and browser reload cancellation.
+
+Added HTML/PDF service regressions use two different file identities with the
+same version number, unique text markers and reversed output completion order.
+They prove capture/target tokens and native command payloads stay with their
+original file; switching identity during capture is rejected before native
+allocation. These are mocked native output calls, not actual PDF/HTML files or
+installed GUI proof. 73 focused service/transition/file tests, desktop typecheck,
+and 9 real Chromium dirty-document/close regressions pass. Actual simultaneous
+installed processes and current-document native export remain uncovered.
