@@ -1,4 +1,7 @@
-//! Read-only, opt-in startup observations; never used as security evidence.
+#[cfg(windows)]
+#[path = "startup_process_timing.rs"]
+mod process_timing;
+// Read-only, opt-in startup observations; never used as security evidence.
 use serde_json::json;
 use std::io::Write;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -51,8 +54,22 @@ pub(crate) fn install(
     if !enabled() {
         return Ok(());
     }
+    let environment = unsafe {
+        view.cast::<ICoreWebView2_2>()
+            .and_then(|view| view.Environment())
+            .and_then(|environment| environment.cast::<ICoreWebView2Environment8>())
+    }
+    .ok();
+    if let Some(environment) = &environment {
+        process_timing::snapshot(environment, "observers-installing");
+    } else {
+        mark("webview-process-observer-unavailable");
+    }
+    let navigation_environment = environment.clone();
+    let content_environment = environment.clone();
     let loaded = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let navigation_loaded = loaded.clone();
+    let loaded_for_process_events = loaded.clone();
     let started = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     // No added resource filters, deferrals, responses, cancellation or script injection.
     // Observe the existing Wry document resource subscription only.
@@ -70,6 +87,9 @@ pub(crate) fn install(
                     args.Uri(&mut uri)?;
                     if main_document(&take(uri)) {
                         mark("main-navigation-started");
+                        if let Some(environment) = &navigation_environment {
+                            process_timing::snapshot(environment, "navigation-started");
+                        }
                         if !started.swap(true, Ordering::Relaxed) {
                             observe_main_loop(app.clone(), navigation_loaded.clone());
                         }
@@ -116,12 +136,35 @@ pub(crate) fn install(
                     if main_document(&take(uri)) {
                         mark("main-content-loading");
                         loaded.store(true, Ordering::Release);
+                        if let Some(environment) = &content_environment {
+                            process_timing::snapshot(environment, "content-loading");
+                        }
                     }
                 }
                 Ok(())
             })),
             &mut token,
         )?;
+    }
+    if let Some(environment) = environment {
+        let callback_loaded = loaded_for_process_events;
+        let mut token = 0;
+        unsafe {
+            environment.add_ProcessInfosChanged(
+                &ProcessInfosChangedEventHandler::create(Box::new(move |sender, _| {
+                    if !callback_loaded.load(Ordering::Acquire) {
+                        if let Some(sender) = sender {
+                            process_timing::snapshot(
+                                &sender.cast::<ICoreWebView2Environment8>()?,
+                                "process-infos-changed",
+                            );
+                        }
+                    }
+                    Ok(())
+                })),
+                &mut token,
+            )?;
+        }
     }
     mark("main-resource-observers-installed");
     Ok(())
