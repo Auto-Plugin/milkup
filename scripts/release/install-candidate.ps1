@@ -52,8 +52,12 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   $healthSession=$null
   if ($RepairHealth) {
     $healthPhase=if ($Prefix) {'after'} else {'before'}
-    & node (Join-Path $PSScriptRoot 'repair-health.mjs') $healthPhase $driverPort $debugPort $document $EvidenceDirectory
-    if ($LASTEXITCODE -ne 0) {
+    $healthRun=[WindowsMermaidStandardUser]::RunNodeScript(
+      (Get-Command node -CommandType Application).Source,
+      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory),
+      $PSScriptRoot,(Join-Path $EvidenceDirectory "health-$healthPhase.stdout.log"),(Join-Path $EvidenceDirectory "health-$healthPhase.stderr.log"),190000)
+    Phase ($Prefix + 'health-node-exit') $healthRun
+    if ($healthRun.status -cne 'passed') {
       try {
         $children=@(Get-CimInstance Win32_Process -Filter "ParentProcessId = $($product.Id)" | Select-Object -First 16 | ForEach-Object { @{pid=$_.ProcessId;parentPid=$_.ParentProcessId;image=$_.ExecutablePath;creation=$_.CreationDate;hasExpectedDebugPort=($_.CommandLine -match ("--remote-debugging-port=" + $debugPort + '(\s|$)'));hasExpectedProfile=($_.CommandLine -like ('*' + $healthProfile + '*'))} })
         Phase ($Prefix + 'health-failure-child-diagnostics') $children
@@ -168,8 +172,19 @@ try {
     $driverBirth=$healthDriver.StartTime.ToUniversalTime().Ticks
     Phase 'health-driver-start' @{pid=$healthDriver.Id;creationTicks=$driverBirth;image=$driverExe;sha256=(Get-FileHash -LiteralPath $driverExe -Algorithm SHA256).Hash.ToLowerInvariant();version=$version;runtime=$runtime.Name;source=$driverUrl;signature='Valid Microsoft';profile=$healthProfile}
   }
-  $raw=& node scripts/release/verify-candidate.mjs $Directory $SourceSha $Variant
-  if ($LASTEXITCODE -ne 0) { throw 'Installer receipt verification failed' }
+  if ($RepairHealth) {
+    $receiptFile=Join-Path $EvidenceDirectory 'verified-receipt.json'
+    $receiptRun=[WindowsMermaidStandardUser]::RunNodeScript(
+      (Get-Command node -CommandType Application).Source,
+      [string[]]@((Join-Path $PSScriptRoot 'verify-candidate.mjs'),$Directory,$SourceSha,$Variant),
+      $PSScriptRoot,$receiptFile,(Join-Path $EvidenceDirectory 'receipt.stderr.log'),30000)
+    Phase 'receipt-verifier-exit' $receiptRun
+    if ($receiptRun.status -cne 'passed' -or (Get-Item -LiteralPath $receiptFile).Length -gt 64KB) { throw 'Bounded installer receipt verification failed' }
+    $raw=Get-Content -LiteralPath $receiptFile -Raw
+  } else {
+    $raw=& node scripts/release/verify-candidate.mjs $Directory $SourceSha $Variant
+    if ($LASTEXITCODE -ne 0) { throw 'Installer receipt verification failed' }
+  }
   $receipt=$raw | ConvertFrom-Json
   $record['receipt']=$receipt
   $install=Join-Path $env:RUNNER_TEMP "milkup-install-$Variant"
