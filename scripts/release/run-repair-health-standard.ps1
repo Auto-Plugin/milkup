@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cne 'refs/heads/dot/release-quality-integration-20261112') { throw 'Exact ephemeral candidate runner required' }
 function Plain([string]$Path) {
  $item=Get-Item -LiteralPath $Path -Force
- do { if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse input/ancestor rejected' }; $item=if ($item.PSIsContainer) {$item.Parent} else {$item.Directory} } while ($null -ne $item)
+ do { if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse input/ancestor rejected' }; $item=if ($item -is [IO.DirectoryInfo]) {$item.Parent} else {$item.Directory} } while ($null -ne $item)
 }
 function NewDir([string]$Path) { if(Test-Path -LiteralPath $Path){throw 'Owned path already exists'}; $null=New-Item -ItemType Directory -Path $Path; Plain $Path }
 function Json([string]$Path,$Value) { $Value | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $Path -Encoding utf8 }
