@@ -230,7 +230,7 @@ build `43145985835` is still pending behind the already-running `988a0f73` build
 The latest source/package conclusions remain open. No running verification was
 cancelled, and no formal release has been published.
 
-## Second product harness correction (03:30 UTC checkpoint)
+## Second product harness correction (03:26 UTC checkpoint)
 
 Run [43145964546](https://github.com/Auto-Plugin/milkup/actions/runs/43145964546)
 at application candidate `5d79147ac0c27be58f4e3697b127b6c2d98561df` passed product
@@ -254,3 +254,8 @@ No application bytes changed after `5d79147a` in this correction. Its exact
 three-package build [43145985835](https://github.com/Auto-Plugin/milkup/actions/runs/43145985835)
 is pending behind the earlier `988a0f73` build. Earlier `bf8a2d50` installation
 successes above cannot establish acceptance of this newer application.
+
+Correction commit `d9f627be2366e7b78f03e431a23f6b4dc03865c1` is pushed; its
+[Windows run 43148218776](https://github.com/Auto-Plugin/milkup/actions/runs/43148218776)
+is pending. This commit changes acceptance and its evidence only, not application
+source. Both author and committer are the requested LarryZhu-dev identity.
