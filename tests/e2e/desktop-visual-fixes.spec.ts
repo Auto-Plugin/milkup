@@ -80,7 +80,29 @@ for (const theme of ['light', 'dark']) {
       // Browser focus/scroll events can follow the key event; require the same
       // eventual viewport invariant as End instead of racing that delivery.
       await expect.poll(visible).toBe(true)
-      await expect(page.locator('.milkup-selection')).toHaveCount(1)
+      await test.info().attach('shift-selection-geometry', {
+        body: JSON.stringify(
+          await page.locator('.milkup-selection').evaluateAll((nodes) =>
+            nodes.map((node) => ({
+              html: node.outerHTML,
+              rect: node.getBoundingClientRect().toJSON(),
+              visibility: getComputedStyle(node).visibility,
+            })),
+          ),
+        ),
+        contentType: 'application/json',
+      })
+      // Chromium can return a hidden zero-width boundary rectangle alongside
+      // the selected glyph. Check the visible highlight and logical range.
+      await expect(page.locator('.milkup-selection:visible')).toHaveCount(1)
+      const ranges = await page.locator('.milkup-selection').evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          from: (node as HTMLElement).dataset.from,
+          to: (node as HTMLElement).dataset.to,
+        })),
+      )
+      expect(new Set(ranges.map(({ from, to }) => `${from}:${to}`)).size).toBe(1)
+      expect(Number(ranges[0]!.to) - Number(ranges[0]!.from)).toBe(1)
       await page.keyboard.insertText('Z')
       await page.keyboard.press('Control+z')
       await page.keyboard.press('Control+1')

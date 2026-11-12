@@ -1400,6 +1400,9 @@ export class DocumentPresentation {
       this.samePaintContext({ ...before, sourceFocused: context.sourceFocused }, context) &&
       response.result.fragments.every(
         (fragment) =>
+          // Inline source visibility depends on the selection, not focus. A
+          // caret in Math must not replace an unrelated image during focusin.
+          fragment.layout !== 'block' ||
           Math.min(currentSelection.anchor, currentSelection.head) > fragment.to ||
           Math.max(currentSelection.anchor, currentSelection.head) < fragment.from,
       )
@@ -1677,7 +1680,10 @@ export class DocumentPresentation {
   private sameImagePaintContext(owner: FragmentImages, context: PaintContext): boolean {
     const before = owner.context
     return (
-      this.samePaintContext(before, context) ||
+      // Focus is a source/preview visibility rule, never renderer input. Keep
+      // decoded bytes through a focus handoff and later viewport settlement;
+      // selection, source identity/version and config checks still apply.
+      this.samePaintContext({ ...before, sourceFocused: context.sourceFocused }, context) ||
       (this.retainHostPng() &&
         owner.fragment.content.type === 'host-png-image' &&
         before.mode === context.mode &&

@@ -141,4 +141,48 @@ for (const windowed of [false, true]) {
     expect(document.activeElement).toBe(v.inputDOM)
     expect(v.contentDOM.querySelector('svg')).toBe(svg)
   })
+  it(`retains block focus while the caret stays inside unrelated inline source (${windowed})`, async () => {
+    const v = await setup()
+    const selection = Selection.cursor(text.length - 3)
+    if (v instanceof SourceDocumentView) await v.revealSelection(6, selection)
+    else v.updateState(new EditorState({ doc: v.state.doc, selection }))
+    const base = config()
+    v.setDocumentPresentation({
+      ...base,
+      provide: async (...args) => {
+        const response = await base.provide(...args)
+        return {
+          ...response,
+          declarations: [{ id: 'test', contexts: ['fence', 'text'], fenceLanguages: ['mermaid'] }],
+          result: {
+            ...response.result,
+            fragments: [
+              ...response.result.fragments,
+              {
+                from: end + 2,
+                to: text.length,
+                layout: 'inline',
+                accessibleText: 'Inline preview',
+                content: { type: 'text', text: 'Inline preview' },
+              },
+            ],
+          },
+        }
+      },
+    })
+    await settle()
+    const preview = v.contentDOM.querySelector<HTMLElement>('[data-document-presentation]')!
+    const svg = preview.querySelector('svg')!
+    expect(svg).not.toBeNull()
+    expect(v.contentDOM.textContent).toContain('Outside')
+    preview.focus()
+    await settle()
+    expect(document.activeElement).toBe(preview)
+    expect(v.contentDOM.querySelector('svg')).toBe(svg)
+    expect(v.contentDOM.textContent).toContain('Outside')
+    v.inputDOM.focus()
+    await settle()
+    expect(v.contentDOM.querySelector('svg')).toBe(svg)
+    expect(document.activeElement).toBe(v.inputDOM)
+  })
 }

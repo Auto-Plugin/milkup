@@ -959,10 +959,25 @@ for (const anchoring of ['auto', 'none'])
           coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
         },
       )
+      // Two deadlines exhaust the bounded automatic retry. Explicit refresh is
+      // the supported recovery action; a third automatic retry is not promised.
       await expect
-        .poll(() => page.evaluate(() => (window as any).noticeLayoutProbe.requests.length), {
-          timeout: 30000,
-        })
+        .poll(
+          () =>
+            page.evaluate(
+              () =>
+                (window as any).noticeLayoutProbe.observations.filter(
+                  (entry: any) => entry.reason === 'deadline-abort',
+                ).length,
+            ),
+          { timeout: 30000 },
+        )
+        .toBe(2)
+      await page.evaluate(() =>
+        (window as any).noticeLayoutProbe.view.refreshDocumentPresentation(),
+      )
+      await expect
+        .poll(() => page.evaluate(() => (window as any).noticeLayoutProbe.requests.length))
         .toBeGreaterThanOrEqual(3)
       await expect(
         page.locator('[data-notice-layout-probe] [data-document-presentation]'),

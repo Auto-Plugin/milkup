@@ -1029,9 +1029,14 @@ for (const mode of ['source', 'live'] as const) {
     await page.locator('.milkup-input-proxy').focus()
     const code = '```js\n- literal\n  value\n```'
     await page.keyboard.insertText(code)
-    await page.keyboard.press('Control+a')
-    await page.keyboard.press('ArrowLeft')
-    for (let i = 0; i < code.indexOf('\n  value'); i++) await page.keyboard.press('ArrowRight')
+    // Live navigation skips the hidden opening fence. Locate the visible line
+    // with a real click, then verify the exact source position before Enter.
+    await page.locator('.milkup-line[data-line="2"]').click()
+    await page.keyboard.press('End')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+      'data-position',
+      String(code.indexOf('\n  value')),
+    )
     await page.keyboard.press('Enter')
     await expect
       .poll(() =>

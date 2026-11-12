@@ -180,6 +180,26 @@ async function assertUnchanged(
 }
 
 for (const windowed of [false, true]) {
+  it(`keeps decoded ownership after source focus changes and a provider refresh (${windowed})`, async () => {
+    const view = await make(windowed)
+    view.inputDOM.focus()
+    await settle()
+    for (const decode of decodes) decode.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector('img')!
+    const preview = image.closest<HTMLElement>('[data-document-presentation]')!
+    const decodeCount = decodes.length
+    const revokedCount = revoked.length
+    preview.focus()
+    await settle()
+    expect(document.activeElement).toBe(preview)
+    view.refreshDocumentPresentation()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBe(image)
+    expect(decodes).toHaveLength(decodeCount)
+    expect(revoked).toHaveLength(revokedCount)
+    expect(document.activeElement).toBe(image.closest('[data-document-presentation]'))
+  })
   it(`keeps full mapped source until decode, then mounts an inert owned image (${windowed})`, async () => {
     const view = await make(windowed)
     const previous = view instanceof EditorView ? view.state : view.source
