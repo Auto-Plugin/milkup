@@ -712,3 +712,37 @@ installer. The new test records the initial decoded image and startup marks
 before any input, then performs the prior disable/edit/save/repair/restart/
 reenable flow. It does not call the after-repair sample a cold start. Diagnostic
 source candidate `af9da78b / 43155908889` has now started; its result is separate.
+
+## Exact 8a installed pure-standard repair health passed
+
+`43157893545 / a41d6634` completed successfully against the original standard
+8a installer SHA `d47f0b7965fe42e6088c3fd2af445f15ae235d35450a0f5a931292f809a680d0`.
+Original artifact `13917460464`, 66,884 bytes, independently verified ZIP SHA
+`3583d2c2deb9e0c19f0dfaf76f1be1142cad859aeca9d29b8ae85a4182b3d243`.
+
+- Fresh user/profile, verified medium integrity 8192, no administrator group,
+  exact ordinary user SID; no existing desktop ACL or security policy changes.
+- Initial real 448x95 nonuniform diagram decoded before any keyboard/pointer
+  input. Process creation to WebView navigation was 3312.6 ms; to first decode
+  5629.8 ms. Window-shown mark was 4285.1 ms, initial-document-ready 4602.8 ms.
+  Thus initial diagram appeared about 1344.7 ms after the native show mark in
+  this sample. This is a fresh installed-profile sample, not repair cache reuse.
+- Before repair, actual switch true -> false; real edit/save produced 132 bytes,
+  SHA `e73aa5bc78a4b8660cc54f10d21c1aa20ad08bf4fec116ff843eccb4f998a83d`.
+- Exact same installer repaired the missing EXE to original SHA
+  `30e0dab05d156c9d6cc34381cb4637d67cc6b6f20231fc8f88b7d57ccb965702`.
+  Restart retained edited bytes and disabled plugin choice.
+- Actual switch false -> true, then real edit/save produced 145 bytes,
+  SHA `5776941db374510f0d0ad9eeb2d006e909e02b7fd2581b035a63e5de597538ac`.
+  Real diagram appeared without another restart. The screenshot visibly shows
+  Before -> After, Chinese/emoji, and both REPAIR-BEFORE / REPAIR-AFTER lines.
+- Both native closes exited 0. Actual NSIS uninstall exited 0, removed the app
+  and preserved the edited document. forcedCleanup=false. Child coordinator
+  exited 0, activeBeforeOuterCleanup=0, Job empty; account/profile/stage removed,
+  no cleanup errors. Outer cleanup is explicitly not product-cleanup evidence.
+
+Scope remains one document/plugin preference, same-version missing-file repair
+and pure-standard installed health. It is not arbitrary old-profile migration,
+signed recovery, automatic rollback, physical print, IME/DPI or Linux GUI. The
+20.6-second cold-start outlier is still unexplained; no speculative optimization
+or timeout relaxation is credited for this faster sample.
