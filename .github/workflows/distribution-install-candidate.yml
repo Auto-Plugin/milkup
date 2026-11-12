@@ -12,6 +12,11 @@ on:
         description: Exact source SHA of those installers
         required: true
         type: string
+      variant:
+        description: Test all variants or only the variant affected by an installation-harness fix
+        type: choice
+        default: all
+        options: [all, windows-standard, windows-offline, linux-deb]
 permissions:
   contents: read
   actions: read
@@ -29,13 +34,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        include:
-          - os: windows-2025
-            variant: windows-standard
-          - os: windows-2025
-            variant: windows-offline
-          - os: ubuntu-24.04
-            variant: linux-deb
+        include: ${{ fromJSON(inputs.variant == 'windows-standard' && '[{"os":"windows-2025","variant":"windows-standard"}]' || inputs.variant == 'windows-offline' && '[{"os":"windows-2025","variant":"windows-offline"}]' || inputs.variant == 'linux-deb' && '[{"os":"ubuntu-24.04","variant":"linux-deb"}]' || '[{"os":"windows-2025","variant":"windows-standard"},{"os":"windows-2025","variant":"windows-offline"},{"os":"ubuntu-24.04","variant":"linux-deb"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     defaults:

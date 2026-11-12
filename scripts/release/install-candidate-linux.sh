@@ -20,6 +20,9 @@ if dpkg-query --status "$package_name" >/dev/null 2>&1; then
 fi
 printf '# Keep this document\n\n中文与 emoji 😀\n' > "$evidence_dir/document.md"
 sha256sum "$evidence_dir/document.md" > "$evidence_dir/document.sha256"
+# Hosted images can carry stale APT indexes pointing at superseded dependency
+# versions. Refresh signed repository metadata before resolving this local deb.
+sudo apt-get update 2>&1 | tee "$evidence_dir/apt-update.log"
 sudo apt-get install -y --no-install-recommends "$installer_path" 2>&1 | tee "$evidence_dir/install.log"
 dpkg-query --show --showformat='${Package} ${Version} ${Status}\n' "$package_name" > "$evidence_dir/installed-package.txt"
 test -x /usr/bin/milkup-desktop
