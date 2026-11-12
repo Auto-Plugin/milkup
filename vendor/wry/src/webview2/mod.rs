@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 mod drag_drop;
+mod startup_init_timing;
 mod startup_timing;
 mod util;
 
@@ -113,9 +114,13 @@ impl InnerWebView {
     pl_attrs: super::PlatformSpecificWebViewAttributes,
     is_child: bool,
   ) -> Result<Self> {
+    use startup_init_timing::{mark as init_mark, Stage as InitStage};
+    let mut init = startup_init_timing::Scope::capture();
     let _ = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) };
+    init_mark(&init.handle, InitStage::ComInitialized);
 
     let hwnd = Self::create_container_hwnd(parent, &attributes, is_child)?;
+    init_mark(&init.handle, InitStage::ContainerCreated);
 
     let drop_handler = attributes.drag_drop_handler.take();
     let bounds = attributes.bounds;
@@ -132,11 +137,19 @@ impl InnerWebView {
     };
 
     let env = if let Some(env) = &pl_attrs.environment {
+      init_mark(&init.handle, InitStage::ReusedEnvironment);
       env.clone()
     } else {
-      Self::create_environment(&attributes, pl_attrs.clone())?
+      Self::create_environment(&attributes, pl_attrs.clone(), &init.handle)?
     };
-    let controller = Self::create_controller(hwnd, &env, attributes.incognito, background_color)?;
+    let controller = Self::create_controller(
+      hwnd,
+      &env,
+      attributes.incognito,
+      background_color,
+      &init.handle,
+    )?;
+    init_mark(&init.handle, InitStage::SettingsBegin);
     let webview = Self::init_webview(
       parent,
       hwnd,
@@ -148,6 +161,7 @@ impl InnerWebView {
       is_child,
     )?;
 
+    init_mark(&init.handle, InitStage::SettingsFinished);
     let drag_drop_controller = drop_handler.map(|handler| {
       // Disable file drops, so our handler can capture it
       unsafe {
@@ -175,6 +189,8 @@ impl InnerWebView {
       w.resize_to_parent()?;
     }
 
+    init_mark(&init.handle, InitStage::BoundsFinished);
+    init.succeeded();
     Ok(w)
   }
 
@@ -284,7 +300,10 @@ impl InnerWebView {
   fn create_environment(
     attributes: &WebViewAttributes,
     pl_attrs: super::PlatformSpecificWebViewAttributes,
+    timing: &startup_init_timing::Handle,
   ) -> Result<ICoreWebView2Environment> {
+    use startup_init_timing::{mark, Stage};
+    mark(timing, Stage::EnvironmentBegin);
     let data_directory = attributes
       .context
       .as_deref()
@@ -341,6 +360,9 @@ impl InnerWebView {
 
       options.set_scroll_bar_style(scroll_bar_style);
 
+      mark(timing, Stage::EnvironmentOptionsReady);
+      let callback_timing = timing.clone();
+      mark(timing, Stage::EnvironmentCall);
       CreateCoreWebView2EnvironmentWithOptions(
         PCWSTR::null(),
         &data_directory.unwrap_or_default(),
@@ -350,6 +372,7 @@ impl InnerWebView {
         // by manually creating the callback handler and use webview2_com::with_with_bump
         &CreateCoreWebView2EnvironmentCompletedHandler::create(Box::new(
           move |error_code, environment| {
+            mark(&callback_timing, Stage::EnvironmentCallback);
             let result = (|| {
               error_code?;
               environment.ok_or_else(|| windows::core::Error::from(E_POINTER).into())
@@ -361,7 +384,10 @@ impl InnerWebView {
       )?;
     }
 
-    webview2_com::wait_with_pump(rx)?
+    mark(timing, Stage::EnvironmentCallReturned);
+    let result = webview2_com::wait_with_pump(rx)?;
+    mark(timing, Stage::EnvironmentWaitReturned);
+    result
   }
 
   #[inline]
@@ -370,7 +396,11 @@ impl InnerWebView {
     env: &ICoreWebView2Environment,
     incognito: bool,
     background_color: Option<(u8, u8, u8, u8)>,
+    timing: &startup_init_timing::Handle,
   ) -> Result<ICoreWebView2Controller> {
+    use startup_init_timing::{mark, Stage};
+    mark(timing, Stage::ControllerBegin);
+    let callback_timing = timing.clone();
     let (tx, rx) = mpsc::channel();
 
     // we don't use CreateCoreWebView2ControllerCompletedHandler::wait_for_async
@@ -378,6 +408,7 @@ impl InnerWebView {
     // by manually creating the callback handler and use webview2_com::with_with_bump
     let handler = CreateCoreWebView2ControllerCompletedHandler::create(Box::new(
       move |error_code, controller| {
+        mark(&callback_timing, Stage::ControllerCallback);
         let result = (|| {
           error_code?;
           controller.ok_or_else(|| windows::core::Error::from(E_POINTER).into())
@@ -406,13 +437,18 @@ impl InnerWebView {
         }
 
         controller_opts.SetIsInPrivateModeEnabled(incognito)?;
+        mark(timing, Stage::ControllerCall);
         env10.CreateCoreWebView2ControllerWithOptions(hwnd, &controller_opts, &handler)?;
       } else {
+        mark(timing, Stage::ControllerCall);
         env.CreateCoreWebView2Controller(hwnd, &handler)?
       }
     }
 
-    webview2_com::wait_with_pump(rx)?
+    mark(timing, Stage::ControllerCallReturned);
+    let result = webview2_com::wait_with_pump(rx)?;
+    mark(timing, Stage::ControllerWaitReturned);
+    result
   }
 
   #[allow(clippy::too_many_arguments)]
