@@ -96,9 +96,10 @@ jobs:
           Add-Type -Path scripts/release/InstalledDialogInput.cs
           $self=[Diagnostics.Process]::GetCurrentProcess()
           try {
-            foreach($wrong in @(@($self.StartTime.ToUniversalTime().Ticks+1,$self.MainModule.FileName),@($self.StartTime.ToUniversalTime().Ticks,$self.MainModule.FileName+'.wrong'))) {
+            $cases=@(@{birth=$self.StartTime.ToUniversalTime().Ticks+1;image=$self.MainModule.FileName},@{birth=$self.StartTime.ToUniversalTime().Ticks;image=$self.MainModule.FileName+'.wrong'})
+            foreach($wrong in $cases) {
               $rejected=$false
-              try {[InstalledDialogInput]::Submit($self.Id,$wrong[0],$wrong[1],'not-used','') | Out-Null} catch {$rejected=$true}
+              try {[InstalledDialogInput]::Submit($self.Id,$wrong.birth,$wrong.image,'not-used','') | Out-Null} catch {$rejected=$true}
               if (!$rejected) {throw 'Native dialog accepted changed process identity'}
             }
           } finally {$self.Dispose()}

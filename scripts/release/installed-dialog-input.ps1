@@ -22,18 +22,18 @@ try {
  [IO.File]::WriteAllText($Receipt+'.ready','ready')
  $targetProcess=$product;$title=''
  if($Mode -cne 'open') {
-  $end=[DateTime]::UtcNow.AddSeconds(20);$matches=@()
+  $end=[DateTime]::UtcNow.AddSeconds(20);$helperRows=@()
   do {
    Identity
-   $matches=@(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ProductId" | Where-Object { [StringComparer]::OrdinalIgnoreCase.Equals($_.ExecutablePath,$Image) -and $_.CommandLine -match '^"?[^"\r\n]+\.exe"?\s+--milkup-internal-output-helper\s*$' })
-   if($matches.Count -gt 1){throw 'Ambiguous native output helper'}
-   if($matches.Count -eq 1){break};Start-Sleep -Milliseconds 25
+   $helperRows=@(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ProductId" | Where-Object { [StringComparer]::OrdinalIgnoreCase.Equals($_.ExecutablePath,$Image) -and $_.CommandLine -match '^"?[^"\r\n]+\.exe"?\s+--milkup-internal-output-helper\s*$' })
+   if($helperRows.Count -gt 1){throw 'Ambiguous native output helper'}
+   if($helperRows.Count -eq 1){break};Start-Sleep -Milliseconds 25
   } while([DateTime]::UtcNow -lt $end)
-  if($matches.Count -ne 1){throw 'Exact direct output helper absent'}
-  $targetProcess=[Diagnostics.Process]::GetProcessById($matches[0].ProcessId)
+  if($helperRows.Count -ne 1){throw 'Exact direct output helper absent'}
+  $targetProcess=[Diagnostics.Process]::GetProcessById($helperRows[0].ProcessId)
   if($targetProcess.StartTime.ToUniversalTime().Ticks -le $CreationTicks){throw 'Output helper predates current product'}
   $title=if($Mode -ceq 'pdf'){'Export PDF'}else{'Export HTML'}
-  $result['helperParentPid']=$matches[0].ParentProcessId
+  $result['helperParentPid']=$helperRows[0].ParentProcessId
  }
  $result['input']=[InstalledDialogInput]::Submit($targetProcess.Id,$targetProcess.StartTime.ToUniversalTime().Ticks,$Image,$file,$title)
  Identity
