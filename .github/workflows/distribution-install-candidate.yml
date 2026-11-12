@@ -12,6 +12,10 @@ on:
         description: Exact source SHA of those installers
         required: true
         type: string
+      repair_same_version:
+        description: Exercise missing-executable repair using the same verified Windows installer
+        type: boolean
+        default: false
       variant:
         description: Test all variants or only the variant affected by an installation-harness fix
         type: choice
@@ -21,7 +25,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: distribution-install-candidate-${{ github.ref }}
+  group: distribution-install-candidate-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[install-candidate]')) && 'execute' || github.run_id }}
   cancel-in-progress: false
 jobs:
   install:
@@ -47,6 +51,7 @@ jobs:
       BUILD_RUN: ${{ inputs.build_run }}
       SOURCE_SHA: ${{ inputs.source_sha }}
       VARIANT: ${{ matrix.variant }}
+      REPAIR_SAME_VERSION: ${{ inputs.repair_same_version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -80,7 +85,7 @@ jobs:
       - name: Windows native install, visible window, normal close and uninstall
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/release/install-candidate.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence')
+        run: ./scripts/release/install-candidate.ps1 -Directory (Join-Path $env:RUNNER_TEMP 'candidate-input') -SourceSha $env:SOURCE_SHA -Variant $env:VARIANT -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'candidate-install-evidence') -RepairSameVersion:($env:REPAIR_SAME_VERSION -ceq 'true')
       - name: Linux native package installation and removal
         if: runner.os == 'Linux'
         run: bash scripts/release/install-candidate-linux.sh "$RUNNER_TEMP/candidate-input" "$SOURCE_SHA" "$RUNNER_TEMP/candidate-install-evidence"
