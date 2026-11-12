@@ -73,10 +73,12 @@ const chord = (key) =>
 const typeText = (text) =>
   actions(
     'key',
-    [...text].flatMap((value) => [
-      { type: 'keyDown', value },
-      { type: 'keyUp', value },
-    ]),
+    [...text]
+      .map((value) => (value === '\n' ? '\uE007' : value))
+      .flatMap((value) => [
+        { type: 'keyDown', value },
+        { type: 'keyUp', value },
+      ]),
   )
 const click = async (selector) => {
   const point = await until(
@@ -182,7 +184,11 @@ try {
   await click('[data-menu-close]')
   await chord('1')
   await until(async () => (await state()).mode === 'source', 'editable source mode')
-  await click('.milkup-line[data-line="0"]')
+  const sourceLine = await execute(
+    `const root=document.querySelector('.milkup-editor'),b=root.getBoundingClientRect();const e=[...root.querySelectorAll('.milkup-line')].find(e=>{const r=e.getBoundingClientRect();return r.height>0&&r.top>=b.top&&r.bottom<=Math.min(b.bottom,innerHeight)});return e?'.milkup-line[data-line="'+e.dataset.line+'"]':null`,
+  )
+  assert(sourceLine, 'Actual visible source line required')
+  await click(sourceLine)
   await until(async () => (await state()).editorFocused, 'editor real focus')
   await chord('\uE010') // Ctrl+End
   await until(
@@ -224,6 +230,17 @@ try {
 } catch (error) {
   record.status = 'failed'
   record.error = error.stack
+  if (session) {
+    try {
+      record.failureState = await state()
+      await writeFile(
+        path.join(output, `repair-health-${phase}.png`),
+        Buffer.from(await request('GET', `/session/${session}/screenshot`), 'base64'),
+      )
+    } catch (diagnosticError) {
+      record.diagnosticError = String(diagnosticError)
+    }
+  }
   process.exitCode = 1
 } finally {
   await persist()
