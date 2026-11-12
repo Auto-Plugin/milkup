@@ -146,10 +146,11 @@ test('disabled renderers disappear and leave Unicode editing and save available'
   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(2)
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  for (const name of ['数学公式', 'Controlled Document Image Fixture', 'Milkup Footnotes']) {
-    await page.getByRole('button', { name, exact: true }).click()
-    await page.getByRole('button', { name: '禁用', exact: true }).click()
-    await page.locator('[data-plugin-action=back]').click()
+  for (const id of ['milkup.math', 'test.document-image', 'milkup.footnotes']) {
+    const toggle = page.locator(`.plugin-summary-card[data-plugin-id="${id}"]`).getByRole('switch')
+    await expect(toggle).toHaveAttribute('aria-checked', 'true')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-checked', 'false')
   }
   await page.locator('[data-menu-close]').click()
   await expect(page.locator('[data-document-presentation]')).toHaveCount(0)
@@ -1639,12 +1640,13 @@ test.describe('windowed asynchronous navigation reflow', () => {
   }, info) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(String(error)))
-    await page.addInitScript(() =>
+    await page.addInitScript(() => {
+      if (window !== window.top) return
       localStorage.setItem(
         'milkup.desktop.plugins.registry.v1',
         JSON.stringify({ version: 1, records: [], auditRecords: [] }),
-      ),
-    )
+      )
+    })
     await page.goto('/')
     await page.locator('.milkup-input-proxy').waitFor()
     try {

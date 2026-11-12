@@ -54,14 +54,13 @@ export async function markdownExtensionFixture(
       errors: [],
     })
   }
-  await page.addInitScript(
-    (records) =>
-      localStorage.setItem(
-        'milkup.desktop.plugins.registry.v1',
-        JSON.stringify({ version: 1, records, auditRecords: [] }),
-      ),
-    records,
-  )
+  await page.addInitScript((records) => {
+    if (window !== window.top) return
+    localStorage.setItem(
+      'milkup.desktop.plugins.registry.v1',
+      JSON.stringify({ version: 1, records, auditRecords: [] }),
+    )
+  }, records)
   await page.goto('/')
   await expect(page.locator('.milkup-input-proxy')).toHaveCount(1)
   // Restored records already say enabled before their Workers activate. Wait for

@@ -11,8 +11,10 @@ const panelAction = (page: Page) =>
 const button = (page: Page, label: string) =>
   view(page).getByRole('button', { name: label, exact: true })
 async function menu(page: Page) {
-  if (!(await page.locator('[data-app-menu]').isVisible()))
+  // A closing menu stays visually present for its exit animation but is inert.
+  if ((await page.locator('[data-menu-toggle]').getAttribute('aria-expanded')) !== 'true')
     await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await expect(page.locator('[data-app-menu]')).toHaveAttribute('aria-hidden', 'false')
 }
 async function open(page: Page) {
   await menu(page)
@@ -25,6 +27,7 @@ async function close(page: Page) {
   await page.keyboard.press('Escape')
   await expect(view(page)).toHaveCount(0)
   await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
+  await expect(page.locator('[data-app-menu]')).toHaveAttribute('data-phase', 'closed')
 }
 async function setup(page: Page, approved = true) {
   await installPreferencesFixture(page, { enabled: approved, approved })

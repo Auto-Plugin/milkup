@@ -12,6 +12,7 @@ import { formattingFixture } from '../helpers/formatting-plugin'
 
 async function runMenuCommand(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: '菜单' }).click()
+  await page.getByRole('button', { name: '文件', exact: true }).click()
   await page.getByRole('button', { name, exact: true }).click()
 }
 

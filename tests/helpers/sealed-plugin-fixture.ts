@@ -86,6 +86,7 @@ async function installStandaloneFixture(
   )
   await page.addInitScript(
     ({ manifest, directory, enabled, approved }) => {
+      if (window !== window.top) return
       const marker = `milkup.test.${directory}-fixture.seeded`
       if (sessionStorage.getItem(marker)) return
       sessionStorage.setItem(marker, '1')
