@@ -1,9 +1,10 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[string]$NodeExecutable)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[string]$NodeExecutable)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
+if ($DocumentHealth -and !$RepairHealth) { throw 'Document health requires isolated repair health' }
 if ($RepairHealth -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
@@ -55,7 +56,7 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
     $healthPhase=if ($Prefix) {'after'} else {'before'}
     $healthRun=[WindowsMermaidStandardUser]::RunNodeScript(
       $NodeExecutable,
-      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory),
+      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory,$DocumentHealth.ToString().ToLowerInvariant(),$product.Id,$creationTicks,$binary),
       $PSScriptRoot,(Join-Path $EvidenceDirectory "health-$healthPhase.stdout.log"),(Join-Path $EvidenceDirectory "health-$healthPhase.stderr.log"),190000)
     Phase ($Prefix + 'health-node-exit') $healthRun
     if ($healthRun.status -cne 'passed') {
@@ -72,7 +73,10 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
     if ($script:documentHash.ToLowerInvariant() -cne $health.saved.sha256) { throw 'Health saved document mismatch' }
     Phase ($Prefix + 'real-document-plugin-health') @{report="repair-health-$healthPhase.json";savedSha256=$health.saved.sha256;pluginBefore=$health.pluginBefore.checked;pluginAfter=$health.pluginAfter.checked}
   }
-  [MilkupInstallWindow]::Close($window.hwnd,$product.Id,$creationTicks,$binary)
+  if ($DocumentHealth -and $Prefix) {
+    if ($health.documentHealth.status -cne 'passed-ui-await-native-exit-and-pdf-audit' -or !$health.documentHealth.close.saveRequested) { throw 'Document close-save UI proof required' }
+    Phase 'document-health-await-normal-close' @{report='installed-document-health.json';closeRequestedByRealUi=$true;pdfTextAudit='pending'}
+  } else { [MilkupInstallWindow]::Close($window.hwnd,$product.Id,$creationTicks,$binary) }
   if (!$product.WaitForExit(15000)) { throw 'Application did not close normally within 15 seconds' }
   if ($product.ExitCode -ne 0) { throw 'Application close was not successful' }
   Phase ($Prefix + 'normal-close') @{exitCode=$product.ExitCode}

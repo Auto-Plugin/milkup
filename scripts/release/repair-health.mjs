@@ -10,7 +10,17 @@ import {
   decodeScript,
   startupPerformanceScript,
 } from '../../tests/windows/mermaid-product-e2e.mjs'
-const [phase, driverPort, debugPort, document, output] = process.argv.slice(2)
+const [
+  phase,
+  driverPort,
+  debugPort,
+  document,
+  output,
+  documentHealth,
+  productPid,
+  productBirth,
+  productImage,
+] = process.argv.slice(2)
 assert(['before', 'after'].includes(phase))
 for (const port of [driverPort, debugPort]) assert(/^\d{4,5}$/.test(port) && +port < 65536)
 const record = {
@@ -250,10 +260,33 @@ try {
     record.decodedImage = image
     await writeFile(path.join(output, 'repair-health-image.png'), Buffer.from(base64, 'base64'))
   }
-  await writeFile(
-    path.join(output, `repair-health-${phase}.png`),
-    Buffer.from(await request('GET', `/session/${session}/screenshot`), 'base64'),
-  )
+  if (phase === 'after' && documentHealth === 'true') {
+    const { checkInstalledDocuments } = await import('./installed-document-health.mjs')
+    const result = await checkInstalledDocuments(
+      {
+        execute,
+        state,
+        click,
+        chord,
+        typeText,
+        until,
+        actions,
+        capture: async (name) =>
+          writeFile(
+            path.join(output, name),
+            Buffer.from(await request('GET', `/session/${session}/screenshot`), 'base64'),
+          ),
+      },
+      { document, output, pid: productPid, birth: productBirth, image: productImage },
+    )
+    record.documentHealth = result.report
+    record.saved = result.saved
+  }
+  if (!record.documentHealth?.close.saveRequested)
+    await writeFile(
+      path.join(output, `repair-health-${phase}.png`),
+      Buffer.from(await request('GET', `/session/${session}/screenshot`), 'base64'),
+    )
   record.status = 'passed'
 } catch (error) {
   record.status = 'failed'
