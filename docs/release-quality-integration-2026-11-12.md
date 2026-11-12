@@ -558,3 +558,43 @@ This proves this one plugin choice and document's same-version repair health;
 it does not establish all configuration migration, signed update recovery,
 automatic rollback, filtered-admin repair health or acceptance of the later
 `8a537208` application. That later candidate still requires its own package tests.
+
+## f7 complete native acceptance and cold-start breakdown
+
+`43151150510 / f7efe4ef` completed successfully at 04:30:41 UTC. Full original
+artifact `13915227891` (2,301,250 bytes) has verified ZIP SHA-256
+`79d42c866547cfb0c91543e3f6328e8bd8ae0b6d71483ea8d69d528e74adb14d`.
+Both accounts passed all eight GUI steps including 12-diagram scrolling/revisit
+and real idle/busy closes; final contracts passed. Both original compressed
+window reports were independently restored with each chunk length/hash and raw
+length/hash checked. Each has 103 resolved SHOW records, zero unresolved,
+complete=true, positiveControlPassed=true, overflow=false, no observer errors,
+and zero attributed or unattributed visible consoles. Raw report hashes:
+
+- pure-standard: `44e043ec586e8f3dd39bfeef7c6c43326a0c223208fb8eca194c6aed04a783f2`
+- filtered-admin: `ed17a3d7d88981c3d0524727a35714b5b7a427d19d829cde783ed186ac9cfae0`
+
+The initial ordinary document was observed without input in each fresh account.
+The first diagram was decoded about 20,634.2 ms / 3,433.6 ms after process start
+(pure / filtered); these are individual cold samples, not a p95 or cache revisit.
+Process-to-navigation was 3,141.1 / 711.4 ms. Native-audited frontend milestones,
+relative to process start, separate the remaining work:
+
+| Milestone | Pure standard ms | Filtered admin ms |
+| --- | ---: | ---: |
+| Frontend engine assets read | 18331 | 2530 |
+| Opaque frame loaded | 18575 | 2752 |
+| Engine ready, boundary checks complete | 19802 | 3111 |
+| First render started | 19814 | 3121 |
+| First render finished | 20621 | 3423 |
+| First decoded observation | 20634.2 | 3433.6 |
+
+Thus actual first render was about 807 / 302 ms, with about 13.2 / 10.6 ms
+until decode observation. Most of the outlier predates engine loading. Existing
+marks show a 4694 ms shell-create/paint gap and slow initial IPC/catalog calls;
+they do not yet distinguish synchronous startup work from scheduling or native
+I/O. The next diagnostic adds fixed startup checkpoints and at most 128 paired
+native catalog call marks (plus an explicit limit marker), no paths/settings or
+package contents, while preserving exact calls, failures and authorization.
+The engine already prewarms on its approved activation epoch; no duplicate
+prewarm or speculative security/timeout change is being introduced.

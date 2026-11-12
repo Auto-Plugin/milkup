@@ -941,6 +941,7 @@ function reportSettingsError(error: unknown): void {
   notice = `设置未保存或应用失败：${getErrorMessage(error)}`
   renderSession()
 }
+markStartupStage('settings-create-start')
 const desktopSettings = createDesktopSettingsService({
   ...(desktopStorage ? { storage: desktopStorage } : {}),
   applyView: (values: PluginSettingsValues, signal?: AbortSignal) =>
@@ -974,6 +975,7 @@ const desktopSettings = createDesktopSettingsService({
   onError: reportSettingsError,
 })
 const settingsReady = desktopSettings.ready.catch(reportSettingsError)
+markStartupStage('settings-created')
 systemTheme.addEventListener('change', refreshSystemTheme)
 refreshSystemTheme()
 async function changeNativeZoom(direction: -1 | 0 | 1): Promise<void> {
@@ -1104,6 +1106,7 @@ const resourceService = createDesktopResourceService({
 
 let resourceDocumentId = session.documentId
 
+markStartupStage('editing-create-start')
 const desktopEditing = createDesktopEditingService({
   current: getDesktopEditingCurrent,
   async runExclusive<T>(action: () => Promise<T>, signal?: AbortSignal): Promise<T> {
@@ -1431,6 +1434,7 @@ const protectedInstallGate = createProtectedInstallGate({
   returnFocus: () => appRoot.querySelector<HTMLElement>('.plugin-ui-modal')?.focus(),
 })
 
+markStartupStage('editing-created')
 const desktopActionRegistry = new ActionRegistry(createDesktopActions())
 const desktopActionPermissions = Object.freeze([
   'app:plugins',
@@ -1511,6 +1515,9 @@ const desktopOutput = createDesktopOutputService({
   render: (pluginId, rendererId, request, options) =>
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
+markStartupStage('plugin-manager-create-start')
+let startupCatalogCalls = 0
+let startupCatalogComplete = false
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   privateMermaid: {
     createOwner: () =>
@@ -1529,7 +1536,27 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
     manifest.host === 'dom' && platform !== 'linux'
       ? '当前平台不支持此插件的独立 DOM 执行环境'
       : undefined,
-  ...(isTauriRuntime() ? { catalog: createDesktopPluginCatalog(recoveryInvoke) } : {}),
+  ...(isTauriRuntime()
+    ? {
+        catalog: createDesktopPluginCatalog(async (command, args) => {
+          // Diagnostics only: no document paths, package bytes or user settings.
+          // Preserve the exact native call/result, and bound startup observations.
+          const index = startupCatalogComplete ? undefined : startupCatalogCalls++
+          const stage =
+            index !== undefined && index < 128 ? `catalog-${index}-${command}` : undefined
+          if (index === 128) markStartupStage('catalog-trace-limit')
+          if (stage) markStartupStage(`${stage}-start`)
+          try {
+            const result = await recoveryInvoke(command, args)
+            if (stage) markStartupStage(`${stage}-finished`)
+            return result
+          } catch (error) {
+            if (stage) markStartupStage(`${stage}-failed`)
+            throw error
+          }
+        }),
+      }
+    : {}),
   actionRegistry: desktopActionRegistry,
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
@@ -1629,6 +1656,7 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   }),
   loadDomModule: loadDesktopPluginDomModule,
 })
+markStartupStage('plugin-manager-created')
 // One controller for the application lifetime, started only after legacy plugin retirement.
 let applicationUpdatesReady = false
 let applicationUpdatesMigrationError: string | undefined
@@ -1763,6 +1791,7 @@ const hostContextActions = createHostContextActions({
   selectAll: selectAllFromHostContext,
   history: applyHostContextHistory,
 })
+markStartupStage('plugin-ui-create-start')
 const desktopPluginUi: DesktopPluginUiController = new DesktopPluginUiController(
   appRoot,
   {
@@ -1846,15 +1875,19 @@ const editorContextMenu = new EditorContextMenu(
     },
   },
 )
+markStartupStage('plugin-ui-created')
 invalidatePluginUi = (pluginId, viewId) => desktopPluginUi.invalidate(pluginId, viewId)
 
 for (const action of createDesktopPluginActions(desktopPluginManager)) {
   desktopActionRegistry.register(action)
 }
 
+markStartupStage('plugin-manager-render-start')
 renderPluginManager()
+markStartupStage('plugin-manager-rendered')
 
 view = createEditorView()
+markStartupStage('editor-view-created')
 
 const themeStyleElement = document.createElement('style')
 themeStyleElement.dataset.appearanceTheme = 'true'
@@ -1922,7 +1955,9 @@ appearancePanel = createAppearancePanel({
   native: isTauriRuntime(),
 })
 
+markStartupStage('initial-session-render-start')
 renderSession()
+markStartupStage('initial-session-rendered')
 updateModeToggle(view.viewMode)
 focusActiveView()
 void waitForNextPaint().then(() => {
@@ -1939,6 +1974,7 @@ void initialDocumentOpenPromise.finally(async () => {
 })
 void desktopPluginManager.ready.then(
   async () => {
+    startupCatalogComplete = true
     markStartupStage('plugin-catalog-ready')
     applicationUpdatesReady = true
     void applicationUpdates.start()
@@ -1955,6 +1991,8 @@ void desktopPluginManager.ready.then(
     }
   },
   (error: unknown) => {
+    startupCatalogComplete = true
+    markStartupStage('plugin-catalog-failed')
     // Only manager initialization failures block the new updater from starting.
     applicationUpdatesMigrationError = `更新功能暂不可用：插件初始化失败。请重启后重试。${getErrorMessage(error)}`
     importantNotice = true
@@ -3161,7 +3199,9 @@ async function openSelectedDocumentAfterConfirmation(
     }
 
     tracker.mark('native-dialog-selected', selected)
+    if (messages.startup) markStartupStage('initial-metadata-start')
     const metadata = await fileService.getFileMetadata(selected)
+    if (messages.startup) markStartupStage('initial-metadata-finished')
     tracker.mark('file-metadata', `${metadata.sizeBytes} bytes`)
     const openPolicy = resolveDesktopOpenPolicy(metadata)
     const pluginDocumentCandidate = desktopPluginManager
@@ -3189,6 +3229,7 @@ async function openSelectedDocumentAfterConfirmation(
     }
 
     tracker.mark('file-read-start', selected)
+    if (messages.startup) markStartupStage('initial-file-read-start')
     const result = await fileService.openPath(selected, {
       metadata,
       onProgress: (event) => {
@@ -3197,6 +3238,7 @@ async function openSelectedDocumentAfterConfirmation(
         }
       },
     })
+    if (messages.startup) markStartupStage('initial-file-read-finished')
     tracker.mark(
       'plugin-check-start',
       messages.preferBuiltinDocument ? 'skipped for startup Markdown' : selected,
@@ -3215,11 +3257,13 @@ async function openSelectedDocumentAfterConfirmation(
       })
       return
     }
+    if (messages.startup) markStartupStage('initial-document-render-start')
     await openDocumentResult(result, tracker, {
       preResolvedPolicy: openPolicy.useNativeLargeFile
         ? resolveDesktopMemoryViewportFallbackPolicy(metadata)
         : openPolicy,
     })
+    if (messages.startup) markStartupStage('initial-document-render-finished')
     if (nativeFallbackNotice) {
       notice = nativeFallbackNotice
       renderSession()
