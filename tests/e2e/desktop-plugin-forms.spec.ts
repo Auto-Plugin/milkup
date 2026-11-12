@@ -406,3 +406,87 @@ test('modal keeps the entire focused field and ring visible after asynchronous l
   expect(geometry.top - 4).toBeGreaterThanOrEqual(geometry.visibleTop)
   expect(geometry.bottom + 4).toBeLessThanOrEqual(geometry.visibleBottom)
 })
+
+for (const viewport of [
+  { width: 1028, height: 768 },
+  { width: 390, height: 640 },
+]) {
+  test(`PDF export form remains reachable by wheel in a ${viewport.width}px sidebar viewport`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport)
+    await page.route('**/__export-sidebar-test', (route) =>
+      route.fulfill({
+        contentType: 'text/html',
+        body: '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/src/style.css"></head><body><aside id="fixture" class="sidebar" style="position:relative;width:240px;height:calc(100vh - 74px)"><div data-plugin-slot="sidebar-panel"></div></aside></body></html>',
+      }),
+    )
+    await page.goto('/__export-sidebar-test')
+    await page.evaluate(
+      async (exportModule) => {
+        const controllerModule = '/src/desktop-plugin-ui.ts'
+        const { DesktopPluginUiController } = await import(/* @vite-ignore */ controllerModule)
+        const { render } = await import(/* @vite-ignore */ exportModule)
+        const calls: { command: string; trusted: boolean }[] = []
+        const controller = new DesktopPluginUiController(document.querySelector('#fixture'), {
+          contributions: () => ({
+            ui: [
+              {
+                pluginId: 'export-fixture',
+                id: 'export',
+                title: '导出与打印',
+                slot: 'sidebar-panel',
+              },
+            ],
+          }),
+          renderUi: async () =>
+            render({
+              phase: 'done',
+              format: 'pdf',
+              scope: 'document',
+              resources: 'embed',
+              pageSize: 'a4',
+              landscape: false,
+              snapshot: { title: 'unchanged-document', version: 40, lineCount: 14, warnings: [] },
+              result: { name: 'alpha.html', bytes: 2926 },
+            }),
+          resolveCommand: (_plugin: string, command: string) => command,
+          runCommand: (command: string, _input: unknown, event?: Event) => {
+            calls.push({ command, trusted: event?.isTrusted === true })
+          },
+        })
+        Object.assign(window, { exportSidebar: { controller, calls } })
+        await controller.sync('document-a')
+      },
+      `/@fs/${resolve('plugins/export-print/src/plugin.ts')}`,
+    )
+    const button = page.locator('[data-plugin-command="exportPrint.start"]')
+    const form = page.locator('.plugin-ui-panel-body > .plugin-form')
+    await expect(button).toBeAttached()
+    const box = (await form.boundingBox())!
+    await page.mouse.move(box.x + box.width / 2, Math.min(viewport.height - 100, box.y + 100))
+    await page.mouse.wheel(0, 1200)
+    await expect.poll(() => form.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
+    const point = await button.evaluate((node) => {
+      const r = node.getBoundingClientRect()
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+    })
+    expect(point.y).toBeLessThan(viewport.height - 74)
+    expect(
+      await page.evaluate(
+        ({ x, y }) =>
+          document
+            .elementFromPoint(x, y)
+            ?.closest('[data-plugin-command]')
+            ?.getAttribute('data-plugin-command'),
+        point,
+      ),
+    ).toBe('exportPrint.start')
+    await page.mouse.click(point.x, point.y)
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { exportSidebar: { calls: unknown[] } }).exportSidebar.calls,
+      ),
+    ).toEqual([{ command: 'exportPrint.start', trusted: true }])
+  })
+}

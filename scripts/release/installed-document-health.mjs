@@ -279,7 +279,14 @@ export async function checkInstalledDocuments(ui, options) {
       await checkFiles()
       await persist()
     }
-    await click('[data-sidebar-close]')
+    await click('[data-sidebar-toggle]')
+    await until(
+      () =>
+        execute(
+          `return document.querySelector('[data-sidebar-toggle]')?.getAttribute('aria-pressed')==='false'`,
+        ),
+      'export sidebar closed by visible toggle',
+    )
     await ui.capture(file === document ? 'document-alpha.png' : 'document-bravo.png')
   }
   try {
