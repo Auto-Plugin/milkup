@@ -10,7 +10,7 @@ Add-Type -Path $helper
 $parseErrors = $null; $tokens = $null
 $ast = [Management.Automation.Language.Parser]::ParseFile($wrapper, [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
-foreach ($name in @('Assert-AccountMode', 'Get-ExpectedAccountGroupSids', 'Assert-ExpectedAccountGroups', 'Confirm-DeletedAccountGroupAbsence')) {
+foreach ($name in @('Assert-HostedCandidate', 'Assert-AccountMode', 'Get-ExpectedAccountGroupSids', 'Assert-ExpectedAccountGroups', 'Confirm-DeletedAccountGroupAbsence')) {
     $nodes = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name }, $true))
     if ($nodes.Count -ne 1) { throw 'Missing or ambiguous local policy function' }
     . ([scriptblock]::Create($nodes[0].Extent.Text))
@@ -22,6 +22,26 @@ function Case([string]$Name, [scriptblock]$Body) {
     $results.Add(@{ name = $Name; passed = $true })
 }
 function Assert-True([bool]$Value, [string]$Message) { if (-not $Value) { throw $Message } }
+if ($IsWindows) {
+    Case 'integration branch preserves hosted repository and exact-ref restrictions' {
+        $expected = @{ GITHUB_ACTIONS='true'; RUNNER_ENVIRONMENT='github-hosted'; GITHUB_REPOSITORY='Auto-Plugin/milkup'; GITHUB_REF='refs/heads/dot/release-quality-integration-20261112' }
+        $prior = @{}
+        foreach ($name in $expected.Keys) { $prior[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
+        try {
+            foreach ($name in $expected.Keys) { [Environment]::SetEnvironmentVariable($name, $expected[$name], 'Process') }
+            Assert-HostedCandidate
+            foreach ($pair in @(@('GITHUB_ACTIONS','false'), @('RUNNER_ENVIRONMENT','self-hosted'), @('GITHUB_REPOSITORY','other/milkup'), @('GITHUB_REF','refs/heads/main'), @('GITHUB_REF','refs/heads/dot/release-quality-integration-20261112-other'))) {
+                [Environment]::SetEnvironmentVariable($pair[0], $pair[1], 'Process')
+                $rejected = $false
+                try { Assert-HostedCandidate } catch { $rejected = $true }
+                Assert-True $rejected ('Unsafe hosted candidate context accepted: ' + $pair[0])
+                [Environment]::SetEnvironmentVariable($pair[0], $expected[$pair[0]], 'Process')
+            }
+        } finally {
+            foreach ($name in $expected.Keys) { [Environment]::SetEnvironmentVariable($name, $prior[$name], 'Process') }
+        }
+    }
+}
 function New-Token([string]$Kind) {
     $filtered = $Kind -ceq 'filtered-admin'
     $value = [Collections.Generic.Dictionary[string,object]]::new()
