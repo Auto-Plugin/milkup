@@ -14,6 +14,7 @@ on:
         dot/mermaid-stability-20261104,
         dot/mermaid-plugin-modes-20261109,
         dot/release-quality-integration-20261112,
+        dot/startup-empty-anchor-20261112,
       ]
   workflow_dispatch:
 
@@ -29,7 +30,7 @@ jobs:
   source:
     if: >-
       github.repository == 'Auto-Plugin/milkup' &&
-      (github.ref == 'refs/heads/dot/mermaid-rebuild-20261103' || github.ref == 'refs/heads/dot/mermaid-stability-20261104' || github.ref == 'refs/heads/dot/mermaid-plugin-modes-20261109' || github.ref == 'refs/heads/dot/release-quality-integration-20261112') &&
+      (github.ref == 'refs/heads/dot/mermaid-rebuild-20261103' || github.ref == 'refs/heads/dot/mermaid-stability-20261104' || github.ref == 'refs/heads/dot/mermaid-plugin-modes-20261109' || github.ref == 'refs/heads/dot/release-quality-integration-20261112' || github.ref == 'refs/heads/dot/startup-empty-anchor-20261112') &&
       github.event.repository.private == false &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.deleted == false &&

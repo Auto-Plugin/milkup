@@ -1289,13 +1289,16 @@ export class DocumentPresentation {
   private captureScrollAnchor(
     selection = this.snapshot().selection,
   ): { line: HTMLElement; top: number } | undefined {
-    const viewport = this.root.getBoundingClientRect()
     // A search/navigation target can be below several asynchronously growing blocks.
     // Keep its visible endpoint in place; otherwise preserve the reader's viewport.
     const sourceLines = Array.from(this.content.children).filter(
       (child): child is HTMLElement =>
         child instanceof HTMLElement && child.classList.contains('milkup-line'),
     )
+    // Initial construction (or an empty replacement) has no reading position to
+    // preserve. Do not force a whole-page layout before the first rows exist.
+    if (!sourceLines.length) return undefined
+    const viewport = this.root.getBoundingClientRect()
     const selectedAnchor = [selection.head, selection.anchor]
       .map((position) =>
         sourceLines.find((line) => {

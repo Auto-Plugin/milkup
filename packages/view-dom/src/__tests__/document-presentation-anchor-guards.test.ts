@@ -81,6 +81,23 @@ function fixture(away = false) {
     },
   }
 }
+for (const spacerOnly of [false, true])
+  it(`does not measure an empty source window before its first rows (${spacerOnly})`, () => {
+    const f = fixture()
+    f.content.replaceChildren()
+    if (spacerOnly) {
+      const spacer = document.createElement('div')
+      spacer.className = 'milkup-virtual-spacer'
+      f.content.append(spacer)
+    }
+    const measure = vi.spyOn(f.root, 'getBoundingClientRect')
+    expect(f.manager.updateContent(() => f.content.replaceChildren(...f.lines()))).toBe(false)
+    expect(measure).not.toHaveBeenCalled()
+    expect(f.layout).not.toHaveBeenCalled()
+    expect(f.root.scrollTop).toBe(50)
+    expect(f.content.children).toHaveLength(20)
+  })
+
 it('keeps an initial fallback notice visible when the document is at the top', async () => {
   const f = fixture()
   f.root.scrollTop = 0
