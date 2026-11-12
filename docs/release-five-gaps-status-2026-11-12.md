@@ -63,3 +63,7 @@
 ## 后续日常回归线索
 
 [#94 界面语言切换与 #242 中文标点补充清单](daily-language-ime-regression-2026-11-12.md) 已核对当前候选：没有界面语言切换入口，因此该重载场景未执行；当前真实中文 IME/标点环境仍缺失。相邻的设置保留文档测试与历史 IME 报告不代替这两个场景，均不记为当前通过。
+
+## Historical HTML document sample supplement
+
+[Issue #5 original attachment check](issue-5-document-compatibility-2026-11-12.md): Chromium source access and Save As payload retain all 9,717 bytes; static export retains content with 30 nested-Markdown fallback warnings. The sample has not been run through the Windows installed native file/export path. This does not close full HTML/PDF fidelity.
