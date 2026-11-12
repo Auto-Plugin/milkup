@@ -176,3 +176,56 @@ Latest source acceptance `43145964546` and package build `43145985835` are bound
 to `5d79147ac0c27be58f4e3697b127b6c2d98561df` and remain pending at this update.
 The superseded `03ced613` source run was cancelled while pending with no job;
 no running verification was cancelled.
+
+## Verified original-package installation results (03:19 UTC)
+
+All results below install the original `bf8a2d50` artifacts from successful build
+`43141877202`; none substitutes a rebuilt package. They do not cover the later
+`5d79147a` application change.
+
+- Windows standard and offline passed in run `43146827839`, using installation
+  harness `7f3e488a`. Four real native identity/target negative checks passed first.
+  Both installers exited 0, the exact owned Tauri window was observed, normal
+  application close exited 0, and the actual NSIS uninstaller exited 0. The
+  application binary was removed and the fixture document SHA was unchanged.
+  `forcedCleanup` is false in both original reports.
+- The standard startup snapshots distinguish an empty-title `Tao Thread Event
+Target` at 161.6981 ms from the later `Tauri Window` titled `milkup`. This confirms
+  why selecting `Process.MainWindowHandle` at startup was insufficient. Measured
+  launch-to-owned-native-window time: standard 5021.4523 ms, offline 4693.7097 ms.
+  These are two separate samples, not first-paint or Mermaid-render latency.
+- Standard artifact `13912640712`: ZIP SHA
+  `2bb3f8173ad40843b896d626611ded2fdd0766dfb24f8198013da365ea7d4ea6`.
+  Offline artifact `13911977772`: ZIP SHA
+  `87de2e5d1943a3f49ab7b48495ab0909cda03020c5d215b8d515e6d09ab68a48`.
+- The first Linux attempts failed resolving dependencies because the hosted
+  runner's stale APT index referenced superseded packages (HTTP 404). `fb130427`
+  refreshes signed repository metadata before installing the exact local deb;
+  it does not skip dependency checks. Linux-only run `43147155565` passed native
+  installation, installed executable verification, dpkg removal and unchanged
+  fixture. Artifact `13911822643`: ZIP SHA
+  `472dcbf00c6369d0564c212d5e7bcaaecbe2d0e2f5cf11744bdb81c917635f41`.
+  This Linux run does not launch the GUI.
+
+## Source GUI audit boundary
+
+The original report from `43143354426` at `988a0f73` is retained in artifact
+`13911354015` (ZIP SHA
+`1ffa9b12738556e1334d655f4f7edc778cb47cd74629f6ac58be7a564595b667`).
+Both accounts completed all eight GUI steps, including 12-diagram visits and
+idle/busy normal close. Filtered-admin final contract passed. Pure-standard final
+contract failed because one child SHOW lacked unique lifetime proof; there was
+no overflow. Its compressed evidence was reassembled with every chunk length,
+chunk SHA and restored raw SHA verified.
+
+The unresolved pure-standard event is SHELLDLL_DefView `0x1028a`, SHOW sequence
+389, native tick 783750 and processing tick 783765. The initial processing read
+saw a live child, but both post-parent-destroy continuity reads found it gone.
+`doubleReadMatched` is false. Held PID/thread identity is not sufficient to fill
+this window-generation gap. The audit remains incomplete; a zero console count
+is not evidence that no console appeared in that run.
+
+Latest `5d79147a` source run `43145964546` is executing product acceptance; its
+build `43145985835` is still pending behind the already-running `988a0f73` build.
+The latest source/package conclusions remain open. No running verification was
+cancelled, and no formal release has been published.
