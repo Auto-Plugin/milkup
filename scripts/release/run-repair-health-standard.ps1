@@ -47,7 +47,7 @@ Plain $Directory
 if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Harness must be exact workflow checkout' }
 NewDir $EvidenceDirectory
 $id=[guid]::NewGuid().ToString('N');$name='mkrh'+$id.Substring(0,14)
-$description='Owned Milkup repair health '+$id
+$description='Milkup repair '+$id
 $stage=Join-Path $repo ('.tmp/repair-health-'+$id)
 $user=$null;$password=[Security.SecureString]::new();$jobEmpty=$true;$profile=$null
 $audit=[ordered]@{status='failed';harnessSha=$env:GITHUB_SHA;sourceSha=$SourceSha;id=$id;accountName=$name;accountSid=$null;accountDeleted=$false;profileDeleted=$false;stageRemoved=$false;securityPolicyChanged=$false;existingDesktopAclChanged=$false;outerCleanupProvesProductCleanup=$false;cleanupErrors=@()}
