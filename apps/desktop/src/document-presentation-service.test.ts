@@ -576,7 +576,7 @@ describe('viewport-prioritized bounded fence presentation', () => {
     expect(release).toHaveBeenCalledTimes(3)
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
-  it('finishes twelve distinct diagrams and reuses them across scrolls; evicted windows resume without churn', async () => {
+  it('keeps two twelve-diagram windows hot across repeated returns within the shared cache budget', async () => {
     const f = fixture(
       Array.from({ length: 32 }, (_, i) => '```diagram\n' + i + '\n```\n').join('\n'),
     )
@@ -643,16 +643,16 @@ describe('viewport-prioritized bounded fence presentation', () => {
       expect(render).toHaveBeenCalledTimes(12)
       await finish(windowFor(20))
       expect(render).toHaveBeenCalledTimes(24)
-      expect(documentPngResourceStats().images).toBe(20) // 12 active + 8 off-window.
+      expect(documentPngResourceStats().images).toBe(24) // Both small windows fit the shared budget.
       await finish(first)
-      expect(render).toHaveBeenCalledTimes(28) // Only four actually evicted units.
+      expect(render).toHaveBeenCalledTimes(24) // No count-only eviction of affordable authenticated PNGs.
       await finish(first)
-      expect(render).toHaveBeenCalledTimes(28)
-      expect(documentPngResourceStats().images).toBe(20)
+      expect(render).toHaveBeenCalledTimes(24)
+      expect(documentPngResourceStats().images).toBe(24)
     } finally {
       service.clear()
     }
-    expect(release).toHaveBeenCalledTimes(28)
+    expect(release).toHaveBeenCalledTimes(24)
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
   it('stops progressive work at the shared byte budget without evicting and rerendering active diagrams', async () => {
@@ -1086,17 +1086,72 @@ describe('bounded completed fence reuse', () => {
       expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
     },
   )
-  it('evicts bounded entries while independent response owners remain valid', async () => {
+  it('bounds authenticated history and keeps independent response owners valid', async () => {
     const f = setup(true)
     const responses = []
-    for (let width = 700; width < 710; width++) responses.push(await f.provide({ width }))
-    expect(f.render).toHaveBeenCalledTimes(10)
-    // Eviction cannot release the independent response's ownership.
+    const limit = 33 // One active entry plus 32 off-window authenticated entries.
+    for (let width = 700; width < 700 + limit + 2; width++) {
+      responses.push(await f.provide({ width }))
+      expect(f.service.diagnostics().cacheEntries).toBeLessThanOrEqual(limit)
+      expect(f.service.diagnostics().cacheBytes).toBeLessThanOrEqual(64 * 1024 * 1024)
+    }
+    expect(f.render).toHaveBeenCalledTimes(limit + 2)
+    responses.push(await f.provide({ width: 700 + limit + 1 }))
+    expect(f.render).toHaveBeenCalledTimes(limit + 2) // The recent entry remains hot.
+    responses.push(await f.provide({ width: 700 }))
+    expect(f.render).toHaveBeenCalledTimes(limit + 3) // The oldest entry was evicted.
+    // Eviction cannot release an independent response's ownership.
     expect(f.release).not.toHaveBeenCalled()
     f.service.clear()
     expect(f.release).not.toHaveBeenCalled()
     for (const response of responses) disposeDocumentPngImages(response.result)
+    expect(f.release).toHaveBeenCalledTimes(limit + 3)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('retains the eight-entry off-window bound for generic plugin results', async () => {
+    const f = setup(false)
+    try {
+      for (let width = 700; width < 710; width++) {
+        const response = await f.provide({ width })
+        disposeDocumentPngImages(response.result)
+      }
+      expect(f.service.diagnostics().cacheEntries).toBe(8)
+      expect(f.release).toHaveBeenCalledTimes(2)
+    } finally {
+      f.service.clear()
+    }
     expect(f.release).toHaveBeenCalledTimes(10)
+    expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
+  })
+  it('evicts affordable-history entries at the unchanged 64 MiB pixel-plus-byte ceiling', async () => {
+    const f = setup(true)
+    const bytes = squarePng(2048)
+    f.render.mockImplementation(async (_p, _r, input) => ({
+      complete: true,
+      fragments: [
+        {
+          from: input.from,
+          to: input.to,
+          layout: 'block',
+          accessibleText: 'large',
+          content: createDocumentPngImage({ bytes, width: 2048, height: 2048, release: f.release }),
+        },
+      ],
+    }))
+    try {
+      for (const width of [700, 701, 702, 703, 704, 704, 700]) {
+        const response = await f.provide({ width })
+        expect(response.result.fragments).toHaveLength(1)
+        disposeDocumentPngImages(response.result)
+        expect(f.service.diagnostics().cacheBytes).toBeLessThanOrEqual(64 * 1024 * 1024)
+        expect(f.service.diagnostics().cacheEntries).toBeLessThanOrEqual(3)
+      }
+      expect(f.render).toHaveBeenCalledTimes(6)
+      expect(f.release).toHaveBeenCalledTimes(3)
+    } finally {
+      f.service.clear()
+    }
+    expect(f.release).toHaveBeenCalledTimes(6)
     expect(documentPngResourceStats()).toEqual({ bytes: 0, images: 0, decodedOwners: 0 })
   })
   it('does not retain a valid PNG whose encoded bytes plus pixels exceed the cache budget', async () => {

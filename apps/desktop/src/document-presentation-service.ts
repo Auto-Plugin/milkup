@@ -342,8 +342,11 @@ export function createDesktopDocumentPresentationService(
             ])
           : undefined
       // Keep the current window's completed units alive across progressive paints.
-      // The eight-entry LRU is only for off-window reuse. Both kinds share the
-      // original 64 MiB charge and the existing aggregate fragment/image ceiling.
+      // Authenticated PNG history shares the original 64 MiB charge and aggregate
+      // fragment ceiling, with at most 32 off-window authenticated entries. Do not
+      // evict affordable visited diagrams just because another window has more than
+      // eight images. Ordinary
+      // selection-dependent plugin results keep their eight-entry off-window LRU.
       const activeFenceKeys = new Set<string>()
       for (const block of request.blocks) {
         if (block.kind !== 'fence' || !block.complete) continue
@@ -372,7 +375,18 @@ export function createDesktopDocumentPresentationService(
         }
       }
       const inactiveKeys = () => [...fenceCache.keys()].filter((key) => !activeFenceKeys.has(key))
-      for (const key of inactiveKeys().slice(0, -8)) evict(key)
+      const trimHistory = () => {
+        const inactive = inactiveKeys()
+        // Retain modest visited history, not an unbounded document image cache.
+        // Leave headroom under the shared 128-image authority limit for new work.
+        for (const key of inactive.filter((key) => fenceCache.get(key)!.pure).slice(0, -32))
+          evict(key)
+        for (const key of inactive
+          .filter((key) => fenceCache.get(key)?.pure === false)
+          .slice(0, -8))
+          evict(key)
+      }
+      trimHistory()
       const acceptedRenderers = new Map<DesktopDocumentRenderer, () => void>()
       const renderOne = async (
         declaration: DesktopDocumentRenderer,
@@ -474,7 +488,7 @@ export function createDesktopDocumentPresentationService(
                   nativeCacheProgress ||= pure
                   cacheCost += cost
                   if (background) counters.prefetchReady++
-                  for (const key of inactiveKeys().slice(0, -8)) evict(key)
+                  trimHistory()
                 } else resourceLimited = true
               } else resourceLimited = true
             }
@@ -602,8 +616,8 @@ export function createDesktopDocumentPresentationService(
       const fragments: DocumentPresentationFragment[] = []
       // Speculate on the nearest eight total units, including cache hits. Counting
       // only new renders lets every overlapping scroll window walk farther ahead,
-      // evict the nearest prefetched images from the eight-entry off-window LRU,
-      // and repeatedly render them again before the user reaches them.
+      // fill the shared cache with distant speculative work and evict useful history
+      // before the user reaches it. The eight-unit speculation limit is unchanged.
       const admittedUnits = background ? units.slice(0, 8) : units
       for (const unit of admittedUnits) {
         assertCurrent()
