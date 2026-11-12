@@ -122,4 +122,23 @@ for (const windowed of [false, true]) {
     )
     expect(v.contentDOM.textContent).toContain('flowchart TD')
   })
+  it(`retains preview nodes across focus handoff when the caret is outside (${windowed})`, async () => {
+    const v = await setup()
+    if (v instanceof SourceDocumentView) await v.revealSelection(6, Selection.cursor(text.length))
+    else
+      v.updateState(new EditorState({ doc: v.state.doc, selection: Selection.cursor(text.length) }))
+    v.setDocumentPresentation(config())
+    await settle()
+    const preview = v.contentDOM.querySelector<HTMLElement>('[data-document-presentation]')!
+    const svg = preview.querySelector('svg')!
+    expect(svg).not.toBeNull()
+    preview.focus()
+    await settle()
+    expect(document.activeElement).toBe(preview)
+    expect(v.contentDOM.querySelector('svg')).toBe(svg)
+    v.inputDOM.focus()
+    await settle()
+    expect(document.activeElement).toBe(v.inputDOM)
+    expect(v.contentDOM.querySelector('svg')).toBe(svg)
+  })
 }

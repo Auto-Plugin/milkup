@@ -1394,15 +1394,28 @@ export class DocumentPresentation {
     const currentSelection = context.selection
     const selectionKey = `${currentSelection.anchor}:${currentSelection.head}`
     const childLines = Array.from(this.content.children)
+    const before = this.painted?.context
+    const focusOnlyOutsideFragments =
+      before !== undefined &&
+      this.samePaintContext({ ...before, sourceFocused: context.sourceFocused }, context) &&
+      response.result.fragments.every(
+        (fragment) =>
+          Math.min(currentSelection.anchor, currentSelection.head) > fragment.to ||
+          Math.max(currentSelection.anchor, currentSelection.head) < fragment.from,
+      )
     if (
       this.painted?.response === response &&
-      this.samePaintContext(this.painted.context, context) &&
+      (this.samePaintContext(this.painted.context, context) || focusOnlyOutsideFragments) &&
       this.painted.selection === selectionKey &&
       this.painted.imageRevision === this.imageRevision &&
       childLines.length === this.painted.lines.length &&
       childLines.every((line, index) => line === this.painted!.lines[index])
-    )
+    ) {
+      // A focus handoff outside rendered ranges changes no source visibility.
+      // Retain the native click/Tab target instead of replacing it mid-event.
+      this.painted.context = context
       return
+    }
     // A successful decode can arrive after provider settlement, while the user
     // is pressing a reference in the previous complete fragment. Reuse the
     // native-click lease; failures and deadline expiry never take this gate.
