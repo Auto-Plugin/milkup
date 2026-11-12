@@ -52,7 +52,12 @@ export async function checkInstalledDocuments(ui, options) {
   async function focus() {
     await chord('1')
     await until(async () => (await state()).mode === 'source', 'source editing mode')
-    await click('.milkup-line[data-line="0"]')
+    const sourceLine = await execute(
+      `const root=document.querySelector('.milkup-editor');if(!root)return null;const b=root.getBoundingClientRect();const e=[...root.querySelectorAll('.milkup-line')].find(e=>{const r=e.getBoundingClientRect();return r.height>0&&r.top>=b.top&&r.bottom<=Math.min(b.bottom,innerHeight)});return e?'.milkup-line[data-line="'+e.dataset.line+'"]':null`,
+    )
+    assert(sourceLine, 'Actual visible source line required')
+    await click(sourceLine)
+    await until(async () => (await state()).editorFocused, 'editor real focus')
     await chord('\uE010')
   }
   async function append(file, suffix, save = true) {
