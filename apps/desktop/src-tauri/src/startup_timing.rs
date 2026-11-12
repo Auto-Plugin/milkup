@@ -43,6 +43,7 @@ fn main_document(uri: &str) -> bool {
 #[cfg(windows)]
 pub(crate) fn install(
     view: &webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2,
+    app: tauri::AppHandle,
 ) -> windows::core::Result<()> {
     use webview2_com::{Microsoft::Web::WebView2::Win32::*, *};
     use windows::core::{Interface, PWSTR};
@@ -50,6 +51,9 @@ pub(crate) fn install(
     if !enabled() {
         return Ok(());
     }
+    let loaded = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let navigation_loaded = loaded.clone();
+    let started = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     // No added resource filters, deferrals, responses, cancellation or script injection.
     // Observe the existing Wry document resource subscription only.
     unsafe fn take(value: PWSTR) -> String {
@@ -60,12 +64,15 @@ pub(crate) fn install(
     unsafe {
         let mut token = 0;
         view.add_NavigationStarting(
-            &NavigationStartingEventHandler::create(Box::new(|_, args| {
+            &NavigationStartingEventHandler::create(Box::new(move |_, args| {
                 if let Some(args) = args {
                     let mut uri = PWSTR::null();
                     args.Uri(&mut uri)?;
                     if main_document(&take(uri)) {
                         mark("main-navigation-started");
+                        if !started.swap(true, Ordering::Relaxed) {
+                            observe_main_loop(app.clone(), navigation_loaded.clone());
+                        }
                     }
                 }
                 Ok(())
@@ -102,12 +109,13 @@ pub(crate) fn install(
                 &mut token,
             )?;
         view.add_ContentLoading(
-            &ContentLoadingEventHandler::create(Box::new(|view, _| {
+            &ContentLoadingEventHandler::create(Box::new(move |view, _| {
                 if let Some(view) = view {
                     let mut uri = PWSTR::null();
                     view.Source(&mut uri)?;
                     if main_document(&take(uri)) {
                         mark("main-content-loading");
+                        loaded.store(true, Ordering::Release);
                     }
                 }
                 Ok(())
@@ -117,6 +125,71 @@ pub(crate) fn install(
     }
     mark("main-resource-observers-installed");
     Ok(())
+}
+
+// A diagnostic queue probe, not a watchdog or a security decision. At most one
+// callback is outstanding; no browser API, navigation or script is touched.
+#[cfg(windows)]
+fn observe_main_loop(app: tauri::AppHandle, loaded: std::sync::Arc<std::sync::atomic::AtomicBool>) {
+    use std::sync::{atomic::AtomicBool, Arc, Mutex};
+    use std::time::Duration;
+    let spawned = std::thread::Builder::new()
+        .name("startup-queue-probe".into())
+        .spawn(move || {
+            let start = Instant::now();
+            let unix_ms = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis();
+            let pending = Arc::new(AtomicBool::new(false));
+            let samples = Arc::new(Mutex::new(Vec::new()));
+            let mut attempts = 0usize;
+            let mut dispatch_failed = false;
+            while !loaded.load(Ordering::Acquire)
+                && start.elapsed() < Duration::from_secs(25)
+                && attempts < 100
+            {
+                if !pending.swap(true, Ordering::AcqRel) {
+                    attempts += 1;
+                    let queued_us = start.elapsed().as_micros();
+                    let pending_callback = pending.clone();
+                    let callback_samples = samples.clone();
+                    if app
+                        .run_on_main_thread(move || {
+                            let received_us = start.elapsed().as_micros();
+                            if let Ok(mut values) = callback_samples.lock() {
+                                if values.len() < 100 {
+                                    values.push((queued_us, received_us));
+                                }
+                            }
+                            pending_callback.store(false, Ordering::Release);
+                        })
+                        .is_err()
+                    {
+                        pending.store(false, Ordering::Release);
+                        dispatch_failed = true;
+                        break;
+                    }
+                }
+                std::thread::sleep(Duration::from_millis(250));
+            }
+            // A queued callback that did not complete stays explicitly unresolved.
+            let values = samples.lock().ok().map(|v| v.clone());
+            let record = json!({"schema":1,"pid":std::process::id(),"startedUnixMs":unix_ms,
+            "durationUs":start.elapsed().as_micros(),"attempts":attempts,
+            "contentLoadingObserved":loaded.load(Ordering::Acquire),
+            "pending":pending.load(Ordering::Acquire),"dispatchFailed":dispatch_failed,
+            "limitReached":attempts==100,"deadlineReached":start.elapsed()>=Duration::from_secs(25),
+            "collectionFailed":values.is_none(),"samples":values.unwrap_or_default()});
+            let _ = writeln!(
+                std::io::stderr().lock(),
+                "MILKUP_MAIN_LOOP_TIMING {}",
+                record
+            );
+        });
+    if spawned.is_err() {
+        mark("main-loop-probe-unavailable");
+    }
 }
 #[cfg(test)]
 mod tests {

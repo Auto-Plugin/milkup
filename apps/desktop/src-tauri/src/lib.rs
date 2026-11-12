@@ -1091,13 +1091,14 @@ pub fn run() {
                     .state::<frontend_mermaid_guard::Registry>()
                     .inner()
                     .clone();
+                let startup_app = app.handle().clone();
                 app.get_webview_window("main")
                     .ok_or("Main WebView missing")?
                     .with_webview(move |webview| {
                         startup_timing::mark("main-webview-callback-enter");
                         let result = unsafe { webview.controller().CoreWebView2() }
                             .and_then(|view| {
-                                if startup_timing::install(&view).is_err() {
+                                if startup_timing::install(&view, startup_app).is_err() {
                                     startup_timing::mark("main-resource-observers-unavailable");
                                 }
                                 frontend_mermaid_guard::install(&view, registry)
