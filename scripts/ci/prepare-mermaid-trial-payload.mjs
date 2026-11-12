@@ -30,6 +30,7 @@ import {
   validateHostProcessToken,
   validatePng,
   validatePreviewModes,
+  validatePluginUndo,
 } from '../../tests/windows/mermaid-product-e2e.mjs'
 
 const checkout = fileURLToPath(new URL('../..', import.meta.url))
@@ -1027,6 +1028,7 @@ export async function verifyInstalledEvidence(directory, expected) {
     'An installed product step failed',
   )
   validatePreviewModes(product.steps[1])
+  validatePluginUndo(product.steps[3].pluginUndo)
   const syntax = product.steps.find((step) => step.name === '07-syntax')
   assert.deepEqual(
     syntax?.syntaxCases?.map((item) => item.id),

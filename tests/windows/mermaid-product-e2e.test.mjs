@@ -14,6 +14,7 @@ import {
   MAX_EXPANDED_PRODUCT_REPORT_BYTES,
   MAX_PRODUCT_REPORT_BYTES,
   validatePreviewModes,
+  validatePluginUndo,
   validatePluginRenderModes,
   validateUntouchedInitialPreview,
   validateMigrationReceipt,
@@ -2914,4 +2915,45 @@ test('lossless bounded product transport retains all states and rejects corrupt 
     /4 MiB/,
   )
   assert.throws(() => decodeProductEvidence(' '.repeat(MAX_PRODUCT_REPORT_BYTES + 1)), /1 MiB/)
+})
+
+test('Mermaid rendered policy preserves real live-editor undo and exact source restoration', () => {
+  const good = {
+    editorMode: 'live',
+    strategy: 'preview',
+    editable: true,
+    versionBefore: 4,
+    versionAfter: 5,
+    modeAfter: 'live',
+    exactSourceRestored: true,
+  }
+  validatePluginUndo(good)
+  for (const change of [
+    (v) => {
+      v.editorMode = 'preview'
+    },
+    (v) => {
+      v.strategy = 'live'
+    },
+    (v) => {
+      v.editable = false
+    },
+    (v) => {
+      v.versionBefore = null
+    },
+    (v) => {
+      v.versionAfter = 4
+    },
+    (v) => {
+      v.modeAfter = 'source'
+    },
+    (v) => {
+      v.exactSourceRestored = false
+    },
+  ]) {
+    const bad = structuredClone(good)
+    change(bad)
+    assert.throws(() => validatePluginUndo(bad))
+  }
+  assert.throws(() => validatePluginUndo(undefined))
 })

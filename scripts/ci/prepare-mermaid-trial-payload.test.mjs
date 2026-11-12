@@ -589,6 +589,15 @@ async function installedFixture(
     editorCopyExactSource: true,
     sourcePreserved: true,
   })
+  product.steps[3].pluginUndo = {
+    editorMode: 'live',
+    strategy: 'preview',
+    editable: true,
+    versionBefore: 1,
+    versionAfter: 2,
+    modeAfter: 'live',
+    exactSourceRestored: true,
+  }
   product.steps.find((step) => step.name === '07-syntax').syntaxCases = syntaxCases.map((item) => ({
     id: item.id,
     sourceSha256: hash(item.source),

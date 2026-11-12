@@ -175,6 +175,16 @@ export function validatePreviewModes(row) {
   assert.equal(row.editorCopyExactSource, true)
 }
 
+export function validatePluginUndo(value) {
+  assert.equal(value?.editorMode, 'live')
+  assert.equal(value.strategy, 'preview')
+  assert.equal(value.editable, true)
+  assert(Number.isInteger(value.versionBefore) && value.versionBefore >= 0)
+  assert.equal(value.versionAfter, value.versionBefore + 1)
+  assert.equal(value.modeAfter, 'live')
+  assert.equal(value.exactSourceRestored, true)
+}
+
 export function validatePluginRenderModes(row) {
   assert.equal(row.defaultMode, 'live', 'Missing historical preference defaults to mixed')
   assert.deepEqual(
@@ -3385,23 +3395,6 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         await position(edited)
         await rendered(true)
         row.image = editedImage = await readImage('03-edited')
-        const editedVersion = (await state()).version
-        await control('1')
-        await pointer('[data-mode-toggle]')
-        await until(
-          async () => (await state()).mode === 'preview',
-          'Rendered mode with undo history',
-        )
-        await control('z')
-        assert.equal(
-          (await state()).version,
-          editedVersion,
-          'Undo command cannot mutate rendered mode',
-        )
-        assert.equal((await state()).dirty, false)
-        row.previewUndoBlocked = true
-        await position(edited)
-        await rendered(true)
         assert.notEqual(
           editedImage.pixelSha256,
           initialImage.pixelSha256,
@@ -3409,9 +3402,32 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         )
       })
       await step('04-undo-exact-original', async (row) => {
-        await position(edited, 0, 'source')
+        await setMermaidStrategy('preview')
+        await position(edited, 0, 'live')
+        await rendered(true)
+        const beforeUndo = await state()
+        row.pluginUndo = {
+          editorMode: beforeUndo.mode,
+          strategy: await execute(
+            'return localStorage.getItem("milkup.desktop.plugins.milkup.diagrams.render-mode.v1")',
+          ),
+          editable: await execute(
+            "return document.querySelector('.milkup-editor').dataset.editable === 'true' && !document.querySelector('.milkup-editor textarea').readOnly",
+          ),
+          versionBefore: beforeUndo.version,
+        }
         await control('z')
+        const afterUndo = await until(async () => {
+          const value = await state()
+          return value.dirty && value.version === beforeUndo.version + 1 ? value : false
+        }, 'Real undo while only the Mermaid plugin uses rendered policy')
+        row.pluginUndo.versionAfter = afterUndo.version
+        row.pluginUndo.modeAfter = afterUndo.mode
         row.saved = await saved()
+        row.pluginUndo.exactSourceRestored = (await readFile(files.ordinary.path)).equals(
+          files.ordinary.bytes,
+        )
+        validatePluginUndo(row.pluginUndo)
         await position(fixtures.ordinary)
         await rendered(true)
         row.image = await readImage('04-undone')
@@ -3420,6 +3436,9 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           initialImage.pixelSha256,
           'Undo restores decoded original pixels',
         )
+        await setMermaidStrategy('live')
+        await position(fixtures.ordinary)
+        await rendered(true)
       })
       await step('05-redo-exact-edit', async (row) => {
         await position(fixtures.ordinary, 0, 'source')

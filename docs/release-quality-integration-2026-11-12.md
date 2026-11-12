@@ -229,3 +229,28 @@ Latest `5d79147a` source run `43145964546` is executing product acceptance; its
 build `43145985835` is still pending behind the already-running `988a0f73` build.
 The latest source/package conclusions remain open. No running verification was
 cancelled, and no formal release has been published.
+
+## Second product harness correction (03:30 UTC checkpoint)
+
+Run [43145964546](https://github.com/Auto-Plugin/milkup/actions/runs/43145964546)
+at application candidate `5d79147ac0c27be58f4e3697b127b6c2d98561df` passed product
+steps 01 and 02 in both accounts, including the corrected independent Mermaid
+policy, hot enable, original source/live toggle, real copy and cursor checks.
+Both then failed step 03 with `Timed out: Rendered mode with undo history`:
+a second obsolete assertion still expected the original toggle to enter global
+`preview`. Product artifact `13912187105` was downloaded and verified (ZIP SHA-256
+`885217ffa73708956b7dce799f32e94f11a4eb9cb71ba3a879a0892752861aa6`).
+The independent GUI stage is still running; this is not a passing source run.
+
+The correction removes that obsolete global-readonly assertion and instead
+requires real Ctrl+Z in editable `live` mode while the Mermaid plugin policy is
+`preview`: version increments exactly once, original file bytes and decoded
+original pixels return, then redo must restore edited bytes/pixels. The installed
+product verifier also requires the new proof; missing fields, readonly/global-mode
+leakage, unchanged history and inexact source are rejected. All 259 relevant Node
+contract tests pass locally. Actual Windows execution remains required.
+
+No application bytes changed after `5d79147a` in this correction. Its exact
+three-package build [43145985835](https://github.com/Auto-Plugin/milkup/actions/runs/43145985835)
+is pending behind the earlier `988a0f73` build. Earlier `bf8a2d50` installation
+successes above cannot establish acceptance of this newer application.
