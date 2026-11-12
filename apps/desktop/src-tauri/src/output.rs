@@ -402,7 +402,11 @@ fn render(
     {
         linux::render(job, html, page_size, landscape)
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(windows)]
+    {
+        windows::render(job, html, page_size, landscape)
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
     {
         let _ = (job, html, page_size, landscape);
         Err("Native PDF and printing are not available on this platform".into())
@@ -650,6 +654,13 @@ impl Target {
 }
 
 pub fn run_helper_if_requested() -> bool {
+    #[cfg(windows)]
+    if std::env::args_os().nth(1).as_deref()
+        == Some(std::ffi::OsStr::new("--milkup-internal-pdf-helper"))
+    {
+        windows::run_pdf_helper();
+        return true;
+    }
     if std::env::args_os().nth(1).as_deref()
         != Some(std::ffi::OsStr::new("--milkup-internal-output-helper"))
     {
@@ -673,9 +684,9 @@ mod unsupported_platform_tests {
     #[test]
     fn target_selection_rejects_without_authorizing_output_and_finishes_lease() {
         for format in [Format::Html, Format::Pdf] {
-            if cfg!(windows) && format == Format::Html {
-                // HTML now has a bounded picker and publication backend. PDF
-                // stays unavailable until its renderer isolation is proven.
+            if cfg!(windows) {
+                // Windows has a bounded native picker for HTML and PDF.
+                // Its interactive selection requires platform GUI acceptance.
                 continue;
             }
             let prepared = output_prepare(None, format).unwrap();

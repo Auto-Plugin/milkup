@@ -56,14 +56,23 @@ fn configured_dialog(name: &str) -> Result<IFileSaveDialog> {
                     | FOS_NODEREFERENCELINKS,
             )
             .map_err(error)?;
+        let pdf = name.ends_with(".pdf");
         let name: Vec<u16> = name.encode_utf16().chain(Some(0)).collect();
         dialog.SetFileName(PCWSTR(name.as_ptr())).map_err(error)?;
-        dialog.SetTitle(w!("Export HTML")).map_err(error)?;
-        dialog.SetDefaultExtension(w!("html")).map_err(error)?;
+        dialog
+            .SetTitle(if pdf {
+                w!("Export PDF")
+            } else {
+                w!("Export HTML")
+            })
+            .map_err(error)?;
+        dialog
+            .SetDefaultExtension(if pdf { w!("pdf") } else { w!("html") })
+            .map_err(error)?;
         dialog
             .SetFileTypes(&[COMDLG_FILTERSPEC {
-                pszName: w!("HTML"),
-                pszSpec: w!("*.html"),
+                pszName: if pdf { w!("PDF") } else { w!("HTML") },
+                pszSpec: if pdf { w!("*.pdf") } else { w!("*.html") },
             }])
             .map_err(error)?;
         Ok(dialog)
@@ -271,8 +280,8 @@ mod tests {
     }
 }
 pub(in crate::output) fn choose_target(job: &Arc<Job>, title: String) -> Result<Option<Target>> {
-    if job.format != Format::Html {
-        return Err("Native Windows PDF output is not available on this platform".into());
+    if job.format == Format::Print {
+        return Err("Print uses the native print dialog".into());
     }
     let name: String = title
         .chars()
@@ -280,11 +289,16 @@ pub(in crate::output) fn choose_target(job: &Arc<Job>, title: String) -> Result<
         .take(100)
         .collect();
     let name = format!(
-        "{}.html",
+        "{}.{}",
         if name.trim_matches([' ', '.']).is_empty() {
             "document"
         } else {
             name.trim_end_matches([' ', '.'])
+        },
+        if job.format == Format::Pdf {
+            "pdf"
+        } else {
+            "html"
         }
     );
     let mut command = Command::new(std::env::current_exe().map_err(error)?);

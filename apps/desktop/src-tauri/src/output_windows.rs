@@ -1,5 +1,5 @@
-//! Local Windows HTML publication and a separately owned native picker.
-//! No WebView, plugin JavaScript, Runtime bootstrap or network bridge runs here.
+//! Local Windows output publication and separately owned native helpers.
+//! Static PDF rendering uses the installed WebView2; no plugin JavaScript or Runtime download.
 //! File flush is strict; no POSIX directory-fsync/power-loss guarantee is made.
 use super::*;
 use std::{
@@ -113,6 +113,9 @@ use windows_sys::Win32::{
 #[path = "output_windows_picker.rs"]
 mod picker;
 pub(super) use picker::{choose_target, run_helper};
+#[path = "output_windows_pdf.rs"]
+mod pdf;
+pub(super) use pdf::{render, run_pdf_helper};
 
 pub(super) fn validate_path(path: &Path) -> Result<()> {
     let mut parts = path.components();
