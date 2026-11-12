@@ -52,7 +52,7 @@ Copy this entire directory to any location outside the Milkup checkout. Keep
 `package.json`, `tsconfig.json`, `plugin.json`, `src/*.ts` and `scripts/build.mjs`.
 Tests are development-only and are not needed to build the package.
 
-Outline is version **1.3.3**. Its manifest accepts SDK `>=0.2.0 <0.4.0`;
+Outline is version **1.3.4**. Its manifest accepts SDK `>=0.2.0 <0.4.0`;
 the source package's `0.2.0` development dependency records its original SDK
 baseline. The example below builds against the public **0.3.7** archive without
 changing the plugin's version or importing host source. The SDK is distributed
@@ -80,7 +80,7 @@ The build checks that imports come only from local plugin source or the public S
 then rejects any residual imports in the ESM output. Outputs:
 
 - `dist/plugin.js`: one self-contained ESM module with its default plugin export.
-- `dist/milkup.outline-1.3.3.milkup-plugin`: JSON archive containing the manifest and
+- `dist/milkup.outline-1.3.4.milkup-plugin`: JSON archive containing the manifest and
   UTF-8 module, using the host's standard `milkup-plugin` version 1 archive format.
 - `dist/build-meta.json`: esbuild input/output inventory for auditing dependencies.
 
@@ -95,7 +95,7 @@ claim that the original source package supplies a frozen dependency lock.
 ## Install, enable, disable, uninstall
 
 1. In Milkup choose `菜单 > 插件 > 安装本地插件`.
-2. Select `dist/milkup.outline-1.3.3.milkup-plugin`.
+2. Select `dist/milkup.outline-1.3.4.milkup-plugin`.
 3. Review the manifest and enable `Milkup Outline`.
 4. Open a Markdown document and use the sidebar panel.
 5. Disable the plugin in the same manager to remove its UI and stop its Worker.

@@ -196,36 +196,47 @@ class Visibility {
     return this.current(await this.pages.get<Node>(key(level, index)))
   }
   private refresh(node: Node): void {
-    const parts: readonly Summary[] =
-      node.children ??
-      node.depths!.map((depth, i) => ({
-        count: 1,
-        depth,
-        depthCount: 1,
-        minimum: node.covers![i]!,
-        minimumCount: 1,
-        lastLine: node.lines![i]!,
-      }))
+    // Leaf refresh is on every append/fold. Avoid constructing up to 128
+    // temporary Summary objects and a mapped array just to read four numbers.
     node.count = 0
     node.depth = 6
     node.depthCount = 0
     node.minimum = Infinity
     node.minimumCount = 0
-    for (const part of parts) {
-      node.count += part.count
-      if (part.depth < node.depth) {
-        node.depth = part.depth
-        node.depthCount = 0
+    if (node.children) {
+      for (const part of node.children) {
+        node.count += part.count
+        if (part.depth < node.depth) {
+          node.depth = part.depth
+          node.depthCount = 0
+        }
+        if (part.depth === node.depth) node.depthCount += part.depthCount
+        if (part.minimum < node.minimum) {
+          node.minimum = part.minimum
+          node.minimumCount = 0
+        }
+        if (part.minimum === node.minimum) node.minimumCount += part.minimumCount
       }
-      if (part.depth === node.depth) node.depthCount += part.depthCount
-      if (part.minimum < node.minimum) {
-        node.minimum = part.minimum
-        node.minimumCount = 0
+      node.lastLine = node.children.at(-1)?.lastLine ?? 0
+    } else {
+      node.count = node.depths!.length
+      for (let i = 0; i < node.count; i++) {
+        const depth = node.depths![i]!,
+          minimum = node.covers![i]!
+        if (depth < node.depth) {
+          node.depth = depth
+          node.depthCount = 0
+        }
+        if (depth === node.depth) node.depthCount++
+        if (minimum < node.minimum) {
+          node.minimum = minimum
+          node.minimumCount = 0
+        }
+        if (minimum === node.minimum) node.minimumCount++
       }
-      if (part.minimum === node.minimum) node.minimumCount += part.minimumCount
+      node.lastLine = node.lines!.at(-1) ?? 0
     }
     if (!node.count) node.minimum = 6
-    node.lastLine = parts.at(-1)?.lastLine ?? 0
   }
   private apply(node: Node, delta: number): void {
     if (!delta) return

@@ -1,5 +1,8 @@
 # Release editor quality: gaps 4 and 5
 
+Subsequent implemented performance changes and paired results are recorded in
+[performance-follow-up.md](performance-follow-up.md); this page retains the initial checkpoint.
+
 Source baseline: `ef221deb1bde9b56b6bc5faf09105d5bcbd059d7`.
 Test-contract fix: `8f02ff66a17ab92a23b9a1d55de14571419f22d0`.
 Application remains `2.0.0-beta.10`; Outline remains `1.3.3`.
