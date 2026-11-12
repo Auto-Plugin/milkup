@@ -982,7 +982,22 @@ mod tests {
                 fs::write(PathBuf::from(root).join(name), bytes).unwrap();
             }
         }
-        assert!(matches!(listener.accept(), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock));
+        match listener.accept() {
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+            Err(e) => panic!("Document network listener returned unexpected error: {e:?}"),
+            Ok((mut connection, peer)) => {
+                connection.set_nonblocking(false).unwrap();
+                connection
+                    .set_read_timeout(Some(Duration::from_millis(500)))
+                    .unwrap();
+                let mut bytes = [0u8; 2048];
+                let observation = match connection.read(&mut bytes) {
+                    Ok(n) => format!("{n} bytes: {:?}", String::from_utf8_lossy(&bytes[..n])),
+                    Err(e) => format!("read error: {e:?}"),
+                };
+                panic!("Document network connection from {peer}; {observation}");
+            }
+        }
         // Header/bytes and network denial are NOT text, pixel, pagination or GUI acceptance.
     }
 }
