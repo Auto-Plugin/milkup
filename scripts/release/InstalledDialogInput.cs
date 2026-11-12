@@ -46,6 +46,17 @@ public static class InstalledDialogInput {
     static string Text(IntPtr h,bool cls=false) { var b=new StringBuilder(4096); if(cls)GetClassNameW(h,b,b.Capacity);else GetWindowTextW(h,b,b.Capacity);return b.ToString(); }
     static string EditText(IntPtr h) {var b=new StringBuilder(2048);UIntPtr result;Require(SendMessageTimeoutW(h,0x000D,new UIntPtr((uint)b.Capacity),b,2,1000,out result)!=IntPtr.Zero,"Bounded filename text read failed");return b.ToString();}
     static void Require(bool ok,string why) { if(!ok)throw new InvalidOperationException(why); }
+    public static bool MatchesModernFilenameShape(string[] classes,int[] ids) {
+        string[] expected={"Edit","ComboBox","FloatNotifySink","DirectUIHWND","DUIViewWndClassName"};
+        if(classes.Length!=expected.Length||ids.Length!=expected.Length)return false;
+        for(int i=0;i<expected.Length;i++)if(classes[i]!=expected[i]||ids[i]!=(i==0?1001:0))return false;
+        return true;
+    }
+    static bool ModernFilename(IntPtr h,IntPtr dialog) {
+        var classes=new List<string>();var ids=new List<int>();var a=h;
+        for(int i=0;i<5&&a!=IntPtr.Zero&&a!=dialog;i++,a=GetParent(a)){classes.Add(Text(a,true));ids.Add(GetDlgCtrlID(a));}
+        return a==dialog&&MatchesModernFilenameShape(classes.ToArray(),ids.ToArray());
+    }
     static void Send(params Input[] input) { Require(SendInput((uint)input.Length,input,Marshal.SizeOf<Input>())==input.Length,"Native input was not completely queued"); }
     static Input Key(ushort vk,bool up=false) { return new Input{type=1,data=new Union{key=new Keyboard{vk=vk,flags=up?2u:0u}}}; }
     static void Click(IntPtr h) { Rect r;Require(GetWindowRect(h,out r)&&r.right>r.left&&r.bottom>r.top,"Visible native control geometry required");Require(SetCursorPos((r.left+r.right)/2,(r.top+r.bottom)/2),"Native pointer move failed");Send(new Input{type=0,data=new Union{mouse=new Mouse{flags=2}}},new Input{type=0,data=new Union{mouse=new Mouse{flags=4}}}); }
@@ -77,7 +88,7 @@ public static class InstalledDialogInput {
                         for(int i=0;i<6&&a!=IntPtr.Zero&&a!=dialog;i++,a=GetParent(a)) {int id=GetDlgCtrlID(a);ancestors.Add(new {hwnd=a.ToInt64(),id});if(id==1148)filename=true;}
                         string cls=Text(h,true);bool visible=IsWindowVisible(h),enabled=IsWindowEnabled(h);
                         controls.Add(new {hwnd=h.ToInt64(),cls,id=GetDlgCtrlID(h),visible,enabled,ancestors});
-                        if(cls=="Edit"&&filename&&visible&&enabled)edits.Add(h);return true;
+                        if(cls=="Edit"&&(filename||ModernFilename(h,dialog))&&visible&&enabled)edits.Add(h);return true;
                     },IntPtr.Zero),"Filename enumeration failed");
                     button=GetDlgItem(dialog,1);controlPolls++;if(firstControls==null)firstControls=controls;
                     LastObservation=new Dictionary<string,object>{{"stage","waiting-exact-controls"},{"dialogHwnd",dialog.ToInt64()},{"pid",pid},{"tid",tid},{"controlPolls",controlPolls},{"firstControls",firstControls},{"lastControls",controls},{"filenameCandidates",edits.Count},{"acceptHwnd",button.ToInt64()},{"elapsedMs",clock.ElapsedMilliseconds}};

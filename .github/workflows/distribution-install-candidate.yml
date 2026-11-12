@@ -94,6 +94,11 @@ jobs:
         run: |
           ./tests/windows/install-window.test.ps1
           Add-Type -Path scripts/release/InstalledDialogInput.cs
+          $shape=[string[]]@('Edit','ComboBox','FloatNotifySink','DirectUIHWND','DUIViewWndClassName')
+          if (![InstalledDialogInput]::MatchesModernFilenameShape($shape,[int[]]@(1001,0,0,0,0))) { throw 'Observed modern filename shape must match' }
+          if ([InstalledDialogInput]::MatchesModernFilenameShape($shape,[int[]]@(41477,0,0,0,0))) { throw 'Address edit cannot match filename' }
+          if ([InstalledDialogInput]::MatchesModernFilenameShape([string[]]@('Edit','ComboBox','Search Box','DirectUIHWND','DUIViewWndClassName'),[int[]]@(1001,0,0,0,0))) { throw 'Search ancestry cannot match filename' }
+          if ([InstalledDialogInput]::MatchesModernFilenameShape([string[]]@('Edit','ComboBox'),[int[]]@(1001,0))) { throw 'Incomplete ancestry cannot match filename' }
           $self=[Diagnostics.Process]::GetCurrentProcess()
           try {
             $cases=@(@{birth=$self.StartTime.ToUniversalTime().Ticks+1;image=$self.MainModule.FileName},@{birth=$self.StartTime.ToUniversalTime().Ticks;image=$self.MainModule.FileName+'.wrong'})
