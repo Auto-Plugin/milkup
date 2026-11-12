@@ -111,8 +111,9 @@ try {
   const response = await request('POST', '/session', {
     capabilities: {
       alwaysMatch: {
-        browserName: 'MicrosoftEdge',
-        'ms:edgeOptions': { debuggerAddress: `127.0.0.1:${debugPort}`, detach: true },
+        browserName: 'webview2',
+        'ms:edgeChromium': true,
+        'ms:edgeOptions': { debuggerAddress: `127.0.0.1:${debugPort}` },
       },
     },
   })
