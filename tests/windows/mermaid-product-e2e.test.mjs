@@ -2157,16 +2157,19 @@ test('identity path comparison keeps Chinese characters and exposes mismatched c
   )
 })
 
-test('preview acceptance rejects missing modes, caret relocation and restart-dependent enable', () => {
+test('plugin preview acceptance rejects global-mode leakage, missing native copy and restart-dependent enable', () => {
   const good = {
     modeTransitions: [
-      { mode: 'source', cursor: 35, images: 0 },
-      { mode: 'preview', cursor: 35, images: 1 },
-      { mode: 'live', cursor: 35, images: 0 },
+      { mode: 'source', strategy: 'preview', cursor: 35, images: 0 },
+      { mode: 'live', strategy: 'preview', cursor: 35, images: 1 },
+      { mode: 'source', strategy: 'preview', cursor: 35, images: 0 },
+      { mode: 'live', strategy: 'preview', cursor: 35, images: 1 },
+      { mode: 'live', strategy: 'live', cursor: 35, images: 0 },
     ],
     hotEnableWithoutRestart: true,
-    previewReadonlyAfterHotEnable: true,
-    markdownPreviewMarkersHidden: true,
+    editorEditableAfterHotEnable: true,
+    editorCopy: { isTrusted: true, defaultPrevented: true },
+    editorCopyExactSource: true,
     sourcePreserved: true,
   }
   validatePreviewModes(good)
@@ -2174,6 +2177,10 @@ test('preview acceptance rejects missing modes, caret relocation and restart-dep
     (v) => v.modeTransitions.pop(),
     (v) => (v.modeTransitions[1].cursor = 0),
     (v) => (v.modeTransitions[1].images = 0),
+    (v) => (v.modeTransitions[1].mode = 'preview'),
+    (v) => (v.editorEditableAfterHotEnable = false),
+    (v) => (v.editorCopy.isTrusted = false),
+    (v) => (v.editorCopyExactSource = false),
     (v) => (v.hotEnableWithoutRestart = false),
     (v) => (v.sourcePreserved = false),
   ]) {

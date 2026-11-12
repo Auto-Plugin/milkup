@@ -147,21 +147,32 @@ export function validateUntouchedInitialPreview(observation, expectedEnabled) {
 
 export function validatePreviewModes(row) {
   assert.deepEqual(
-    row.modeTransitions?.map((value) => value.mode),
-    ['source', 'preview', 'live'],
-    'All three public document modes must be exercised',
+    row.modeTransitions?.map((value) => [value.mode, value.strategy]),
+    [
+      ['source', 'preview'],
+      ['live', 'preview'],
+      ['source', 'preview'],
+      ['live', 'preview'],
+      ['live', 'live'],
+    ],
+    'Original source/live toggle remains separate from the Mermaid plugin policy',
   )
-  const [source, preview, live] = row.modeTransitions
+  const [source, rendered, sourceAgain, renderedAgain, mixed] = row.modeTransitions
   assert(Number.isInteger(source.cursor) && source.cursor > 0, 'Caret must remain inside the fence')
-  assert.equal(preview.cursor, source.cursor)
-  assert.equal(live.cursor, source.cursor)
+  for (const value of row.modeTransitions) assert.equal(value.cursor, source.cursor)
   assert.equal(source.images, 0)
-  assert(preview.images > 0, 'Rendered mode must show a decoded image with caret inside fence')
-  assert.equal(live.images, 0, 'Mixed mode keeps the focused fence editable')
+  assert.equal(sourceAgain.images, 0)
+  assert(
+    rendered.images > 0 && renderedAgain.images > 0,
+    'Plugin rendered policy shows a decoded image inside the fence in live editor mode',
+  )
+  assert.equal(mixed.images, 0, 'Plugin mixed policy keeps the focused fence editable')
   assert.equal(row.hotEnableWithoutRestart, true)
   assert.equal(row.sourcePreserved, true)
-  assert.equal(row.previewReadonlyAfterHotEnable, true)
-  assert.equal(row.markdownPreviewMarkersHidden, true)
+  assert.equal(row.editorEditableAfterHotEnable, true)
+  assert.equal(row.editorCopy?.isTrusted, true)
+  assert.equal(row.editorCopy?.defaultPrevented, true)
+  assert.equal(row.editorCopyExactSource, true)
 }
 
 export function validatePluginRenderModes(row) {
@@ -3135,13 +3146,15 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         pluginModes.restoredMode = 'live'
         validatePluginRenderModes(pluginModes)
         await switchPlugin(false, 'milkup.math')
-        // Drive the public selector through native keyboard input. Keep the caret
-        // inside the fence: preview must not depend on moving it out of the source.
+        // The document retains its original source/live toggle. The rendered
+        // strategy is a Mermaid preference and must not make the editor readonly.
         const fenceOffset = fixtures.ordinary.indexOf('flowchart LR')
+        await setMermaidStrategy('preview')
         await position(fixtures.ordinary, fenceOffset, 'source')
         await rendered(false)
-        row.modeTransitions = [{ mode: 'source', cursor: (await state()).cursor, images: 0 }]
-        // Keep the editor's original mode toggle, not a duplicate global selector.
+        row.modeTransitions = [
+          { mode: 'source', strategy: 'preview', cursor: (await state()).cursor, images: 0 },
+        ]
         assert.equal(
           await execute(
             'return document.querySelectorAll("[data-set-view-mode], [data-view-mode-selector], [data-document-modes]").length',
@@ -3149,99 +3162,67 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
           0,
         )
         assert.equal(await execute('return !!document.querySelector("[data-mode-toggle]")'), true)
-        await control('1')
-        await pointer('[data-mode-toggle]')
-        await until(
-          async () => (await state()).mode === 'preview',
-          'Original editor preview shortcut',
-        )
-        await rendered(true)
-        let modeState = await state()
-        assert.equal(modeState.cursor, fenceOffset, 'Preview retains the caret inside the fence')
+        for (const mode of ['live', 'source', 'live']) {
+          await pointer('[data-mode-toggle]')
+          await until(
+            async () => (await state()).mode === mode,
+            'Original editor source/live toggle: ' + mode,
+          )
+          await rendered(mode === 'live')
+          const value = await state()
+          row.modeTransitions.push({
+            mode,
+            strategy: 'preview',
+            cursor: value.cursor,
+            images: value.images.length,
+          })
+        }
         await switchPlugin(false)
         await rendered(false)
         await switchPlugin(true)
         await rendered(true)
-        assert.equal((await state()).mode, 'preview', 'Hot enable retains rendered mode')
+        assert.equal((await state()).mode, 'live', 'Hot enable preserves the original editor mode')
         assert.equal(
           await execute("return document.querySelector('.milkup-editor').dataset.editable"),
-          'false',
+          'true',
         )
         assert.equal(
           await execute("return document.querySelector('.milkup-editor textarea').readOnly"),
-          true,
+          false,
         )
-        await keys('X')
-        assert.equal(
-          (await state()).version,
-          before.version,
-          'Rendered mode rejects typing after plugin view replacement',
-        )
-        // Observe the real native clipboard event after target handlers; never
-        // dispatch a synthetic copy or substitute the application's selection.
-        await execute(`window.__milkupReadonlyCopy=null;window.addEventListener('copy',event=>{
-          window.__milkupReadonlyCopy={isTrusted:event.isTrusted,defaultPrevented:event.defaultPrevented,
+        row.editorEditableAfterHotEnable = true
+        // Read the trusted native copy after normal keyboard selection; do not
+        // synthesize clipboard events or inject a model transaction.
+        await position(fixtures.ordinary, fenceOffset, 'live')
+        await execute(`window.__milkupEditorCopy=null;window.addEventListener('copy',event=>{
+          window.__milkupEditorCopy={isTrusted:event.isTrusted,defaultPrevented:event.defaultPrevented,
             text:event.clipboardData?.getData('text/plain')??null};
         },{once:true});return true`)
         await control('a')
         await control('c')
-        row.previewCopy = await until(
-          () => execute('return window.__milkupReadonlyCopy'),
-          'Native copy after preview Ctrl+A',
+        row.editorCopy = await until(
+          () => execute('return window.__milkupEditorCopy'),
+          'Native copy in editable live mode',
         )
-        assert.equal(row.previewCopy.isTrusted, true)
-        assert.equal(row.previewCopy.defaultPrevented, true)
         assert.equal(
-          row.previewCopy.text,
+          row.editorCopy.text,
           fixtures.ordinary,
-          'Preview select-all copies exact Markdown',
+          'Editor select-all copies exact Markdown',
         )
-        await control('x')
-        assert.equal((await state()).version, before.version, 'Cut cannot mutate preview selection')
-        assert.equal((await state()).dirty, before.dirty)
-        row.previewReadonlyAfterHotEnable = true
-        row.modeTransitions.push({
-          mode: modeState.mode,
-          cursor: modeState.cursor,
-          images: modeState.images.length,
-        })
-        await control('2')
-        assert.equal((await state()).mode, 'live')
+        row.editorCopyExactSource = true
+        await setMermaidStrategy('live')
         await position(fixtures.ordinary, fenceOffset, 'live')
         await rendered(false)
-        modeState = await state()
-        row.modeTransitions.push({ mode: modeState.mode, cursor: modeState.cursor, images: 0 })
+        row.modeTransitions.push({
+          mode: 'live',
+          strategy: 'live',
+          cursor: (await state()).cursor,
+          images: 0,
+        })
         await position(fixtures.ordinary)
         await rendered(true)
         assert.equal((await state()).version, before.version)
         assert.equal((await state()).dirty, before.dirty)
-        await position(fixtures.ordinary, 2, 'source')
-        await control('1')
-        await pointer('[data-mode-toggle]')
-        await until(async () => (await state()).mode === 'preview', 'Rendered Markdown mode')
-        assert.equal(
-          await execute(
-            "return document.querySelector('.milkup-heading-marker')?.classList.contains('milkup-marker-hidden')",
-          ),
-          true,
-        )
-        const boldOffset = fixtures.ordinary.indexOf('bold')
-        await position(fixtures.ordinary, boldOffset, 'source')
-        await control('1')
-        await pointer('[data-mode-toggle]')
-        await until(
-          async () => (await state()).mode === 'preview',
-          'Rendered Markdown retains bold caret',
-        )
-        assert.equal(
-          await execute(
-            "return document.querySelector('.milkup-inline-strong')?.dataset.syntaxVisible",
-          ),
-          'false',
-        )
-        row.markdownPreviewMarkersHidden = true
-        await position(fixtures.ordinary)
-        await rendered(true)
         const exerciseCursorReuse = async (label, offsets, mathEnabled = false) => {
           const cursorPng =
             await execute(`const e=document.querySelector('[data-document-presentation] img');

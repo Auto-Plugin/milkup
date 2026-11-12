@@ -577,13 +577,16 @@ async function installedFixture(
   }
   Object.assign(product.steps[1], {
     modeTransitions: [
-      { mode: 'source', cursor: 35, images: 0 },
-      { mode: 'preview', cursor: 35, images: 1 },
-      { mode: 'live', cursor: 35, images: 0 },
+      { mode: 'source', strategy: 'preview', cursor: 35, images: 0 },
+      { mode: 'live', strategy: 'preview', cursor: 35, images: 1 },
+      { mode: 'source', strategy: 'preview', cursor: 35, images: 0 },
+      { mode: 'live', strategy: 'preview', cursor: 35, images: 1 },
+      { mode: 'live', strategy: 'live', cursor: 35, images: 0 },
     ],
     hotEnableWithoutRestart: true,
-    previewReadonlyAfterHotEnable: true,
-    markdownPreviewMarkersHidden: true,
+    editorEditableAfterHotEnable: true,
+    editorCopy: { isTrusted: true, defaultPrevented: true },
+    editorCopyExactSource: true,
     sourcePreserved: true,
   })
   product.steps.find((step) => step.name === '07-syntax').syntaxCases = syntaxCases.map((item) => ({
