@@ -39,4 +39,4 @@ try {
  Identity
  $result.status='passed'
 } catch {$result.status='failed';$result['error']=$_ | Out-String;throw}
-finally {$result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Receipt -Encoding utf8;$product.Dispose();[GC]::KeepAlive($held)}
+finally {$result['controlObservation']=[InstalledDialogInput]::LastObservation;$result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $Receipt -Encoding utf8;$product.Dispose();[GC]::KeepAlive($held)}

@@ -8,6 +8,7 @@ using System.Threading;
 // Test-only native input. Exact held process, live dialog/control identity, and a
 // destruction hook are rechecked before every input. Never invokes application IPC.
 public static class InstalledDialogInput {
+    public static Dictionary<string,object> LastObservation = new Dictionary<string,object>();
     delegate bool EnumProc(IntPtr hwnd, IntPtr data);
     delegate void EventProc(IntPtr hook, uint kind, IntPtr hwnd, int obj, int child, uint thread, uint time);
     [StructLayout(LayoutKind.Sequential)] struct Rect { public int left, top, right, bottom; }
@@ -21,6 +22,7 @@ public static class InstalledDialogInput {
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc cb,IntPtr data);
     [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd,EnumProc cb,IntPtr data);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern bool IsWindowEnabled(IntPtr hwnd);
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd,out uint pid);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetClassNameW(IntPtr hwnd,StringBuilder s,int n);
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowTextW(IntPtr hwnd,StringBuilder s,int n);
@@ -48,6 +50,7 @@ public static class InstalledDialogInput {
     static Input Key(ushort vk,bool up=false) { return new Input{type=1,data=new Union{key=new Keyboard{vk=vk,flags=up?2u:0u}}}; }
     static void Click(IntPtr h) { Rect r;Require(GetWindowRect(h,out r)&&r.right>r.left&&r.bottom>r.top,"Visible native control geometry required");Require(SetCursorPos((r.left+r.right)/2,(r.top+r.bottom)/2),"Native pointer move failed");Send(new Input{type=0,data=new Union{mouse=new Mouse{flags=2}}},new Input{type=0,data=new Union{mouse=new Mouse{flags=4}}}); }
     public static Dictionary<string,object> Submit(int pid,long birthTicks,string image,string file,string title) {
+        LastObservation=new Dictionary<string,object>{{"stage","process-identity"}};
         using(var process=Process.GetProcessById(pid)) {
             // Opening the process handle keeps this exact process instance observable.
             var held=process.Handle;
@@ -64,8 +67,26 @@ public static class InstalledDialogInput {
                     Require(found.Count<=1,"Ambiguous owned dialog");if(found.Count==1){dialog=found[0];break;}Thread.Sleep(10);
                 }
                 Require(dialog!=IntPtr.Zero,"Owned native file dialog absent");uint owner;uint tid=GetWindowThreadProcessId(dialog,out owner);
-                var edits=new List<IntPtr>();Require(EnumChildWindows(dialog,(h,d)=> {if(Text(h,true)=="Edit"){var a=h;for(int i=0;i<6&&a!=IntPtr.Zero&&a!=dialog;i++,a=GetParent(a))if(GetDlgCtrlID(a)==1148){edits.Add(h);break;}}return true;},IntPtr.Zero),"Filename enumeration failed");
-                IntPtr button=GetDlgItem(dialog,1);Require(edits.Count==1&&button!=IntPtr.Zero&&Text(button,true)=="Button","Exact filename and acceptance controls required");var edit=edits[0];
+                IntPtr button=IntPtr.Zero,edit=IntPtr.Zero;object firstControls=null;int controlPolls=0;
+                while(clock.ElapsedMilliseconds<15000) {
+                    Pump();identity();uint currentPid;Require(!destroyed.Contains(dialog)&&GetWindowThreadProcessId(dialog,out currentPid)==tid&&currentPid==pid&&IsWindowVisible(dialog)&&Text(dialog,true)=="#32770","Original dialog changed before controls became ready");
+                    var edits=new List<IntPtr>();var controls=new List<object>();
+                    Require(EnumChildWindows(dialog,(h,d)=> {
+                        Require(controls.Count<256,"Bounded native control inventory required");
+                        var ancestors=new List<object>();bool filename=false;var a=h;
+                        for(int i=0;i<6&&a!=IntPtr.Zero&&a!=dialog;i++,a=GetParent(a)) {int id=GetDlgCtrlID(a);ancestors.Add(new {hwnd=a.ToInt64(),id});if(id==1148)filename=true;}
+                        string cls=Text(h,true);bool visible=IsWindowVisible(h),enabled=IsWindowEnabled(h);
+                        controls.Add(new {hwnd=h.ToInt64(),cls,id=GetDlgCtrlID(h),visible,enabled,ancestors});
+                        if(cls=="Edit"&&filename&&visible&&enabled)edits.Add(h);return true;
+                    },IntPtr.Zero),"Filename enumeration failed");
+                    button=GetDlgItem(dialog,1);controlPolls++;if(firstControls==null)firstControls=controls;
+                    LastObservation=new Dictionary<string,object>{{"stage","waiting-exact-controls"},{"dialogHwnd",dialog.ToInt64()},{"pid",pid},{"tid",tid},{"controlPolls",controlPolls},{"firstControls",firstControls},{"lastControls",controls},{"filenameCandidates",edits.Count},{"acceptHwnd",button.ToInt64()},{"elapsedMs",clock.ElapsedMilliseconds}};
+                    Require(edits.Count<=1,"Ambiguous native filename controls");
+                    if(edits.Count==1&&button!=IntPtr.Zero&&Text(button,true)=="Button"&&IsWindowVisible(button)&&IsWindowEnabled(button)){edit=edits[0];break;}
+                    Thread.Sleep(10);
+                }
+                Require(edit!=IntPtr.Zero,"Exact filename and acceptance controls required");
+                LastObservation["stage"]="exact-controls-ready";
                 Action guard=()=> {Pump();identity();uint p;Require(destroyed.Count<=1024&&!destroyed.Contains(dialog)&&!destroyed.Contains(edit)&&!destroyed.Contains(button)&&GetWindowThreadProcessId(dialog,out p)==tid&&p==pid&&IsWindowVisible(dialog)&&Text(dialog,true)=="#32770"&&GetAncestor(edit,2)==dialog&&GetAncestor(button,2)==dialog,"Original dialog/control lifetime changed");};
                 guard();SetForegroundWindow(dialog);Click(edit);Thread.Sleep(20);guard();Require(GetAncestor(GetForegroundWindow(),2)==dialog,"Owned dialog must be foreground");
                 Send(Key(0x11),Key(0x41),Key(0x41,true),Key(0x11,true));
