@@ -132,3 +132,21 @@ so failed termination cannot hang on unconditional waits; and the native chooser
 no longer accepts vendor Properties that WebView2 cannot forward. Added tests
 cover deadline choice, bounded pipe-thread cleanup and native control enforcement.
 Actual printer switching/keyboard interaction still require Windows execution.
+
+
+## First integration feedback and corrected native gate
+
+The integration executor reported a 612 × 792 pt Letter "landscape" artifact.
+The old test fixture incorrectly supplied `@page{size:A4}` for both requests,
+contradicting its second Letter-landscape API call. Production `static-html.ts`
+already derives both paper and orientation from the same user options. The gate
+now uses matching production-style CSS for all four A4/Letter orientations and
+asserts every direct PDF MediaBox (including failed artifacts saved for inspection).
+This is a fixture correction, **not proof the Windows orientation defect is fixed**;
+the corrected gate still must execute on Windows. PageWidth/Height are not blindly
+swapped in the backend, which could break the matching production path.
+
+The previous one-line network assertion conflated an accepted connection with any
+listener error other than WouldBlock. It now reports accepted peer/request bytes
+separately from observation failure, after each output, and accepts only WouldBlock.
+No networking failure is waived and no isolation control has been weakened.

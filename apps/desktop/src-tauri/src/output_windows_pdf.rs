@@ -721,41 +721,6 @@ mod tests {
         assert!(guarded.contains("script-src 'none';"));
     }
 
-    // Chromium emits a direct MediaBox for these fixtures. Fail closed if that
-    // representation changes; never infer paper orientation from a filename.
-    fn assert_pdf_paper(bytes: &[u8], size: PageSize, landscape: bool) {
-        let text = String::from_utf8_lossy(bytes);
-        let mut boxes = 0;
-        let (mut width, mut height) = match size {
-            PageSize::A4 => (210.0 / 25.4 * 72.0, 297.0 / 25.4 * 72.0),
-            PageSize::Letter => (612.0, 792.0),
-        };
-        if landscape {
-            std::mem::swap(&mut width, &mut height);
-        }
-        for rest in text.split("/MediaBox").skip(1) {
-            let rest = rest
-                .trim_start()
-                .strip_prefix('[')
-                .expect("Direct PDF MediaBox required");
-            let end = rest.find(']').expect("Complete PDF MediaBox required");
-            let values: Vec<f64> = rest[..end]
-                .split_whitespace()
-                .map(|v| v.parse().unwrap())
-                .collect();
-            assert_eq!(values.len(), 4);
-            assert!(
-                (values[2] - values[0] - width).abs() < 1.0,
-                "PDF paper width {values:?}, expected {width}"
-            );
-            assert!(
-                (values[3] - values[1] - height).abs() < 1.0,
-                "PDF paper height {values:?}, expected {height}"
-            );
-            boxes += 1;
-        }
-        assert!(boxes > 0, "PDF page dimensions were not proven");
-    }
     pub(super) fn process_birth(handle: windows_sys::Win32::Foundation::HANDLE) -> Result<u64> {
         use windows_sys::Win32::{Foundation::FILETIME, System::Threading::GetProcessTimes};
         let mut created = FILETIME::default();
@@ -1072,6 +1037,42 @@ mod tests {
         observed.unwrap();
         assert!(matches!(result.unwrap(), NativeResult::Cancelled));
     }
+    // Skia's PDF backend writes direct MediaBox arrays. Fail closed if that
+    // representation changes; this is a test oracle, not a general PDF parser.
+    fn assert_pdf_media_boxes(bytes: &[u8], width: f64, height: f64) {
+        let pdf = String::from_utf8_lossy(bytes);
+        let mut count = 0;
+        for tail in pdf.split("/MediaBox").skip(1) {
+            let array = tail
+                .trim_start()
+                .strip_prefix('[')
+                .expect("Indirect or invalid MediaBox; inspect the PDF with a full parser");
+            let end = array.find(']').expect("Unterminated MediaBox");
+            let values: Vec<f64> = array[..end]
+                .split_whitespace()
+                .map(|v| v.parse().expect("Non-numeric MediaBox"))
+                .collect();
+            assert_eq!(values.len(), 4);
+            let (actual_width, actual_height) = (values[2] - values[0], values[3] - values[1]);
+            assert!((actual_width - width).abs() < 1.0 && (actual_height - height).abs() < 1.0,
+                "Wrong PDF paper/orientation: {actual_width} x {actual_height} pt; expected {width} x {height} pt");
+            count += 1;
+        }
+        assert!(
+            count > 0,
+            "No direct MediaBox; use a full PDF parser before accepting output"
+        );
+    }
+    #[test]
+    fn media_box_gate_rejects_portrait_for_landscape() {
+        assert_pdf_media_boxes(b"/MediaBox [0 0 792 612]", 792.0, 612.0);
+        assert!(std::panic::catch_unwind(|| assert_pdf_media_boxes(
+            b"/MediaBox [0 0 612 792]",
+            792.0,
+            612.0
+        ))
+        .is_err());
+    }
     #[test]
     #[ignore = "requires installed Evergreen WebView2; run explicitly on Windows native acceptance"]
     fn installed_webview2_renders_static_pdf_without_document_network_access() {
@@ -1079,50 +1080,71 @@ mod tests {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
         let address = listener.local_addr().unwrap();
-        let html = format!(
-            r#"<!doctype html><meta charset=utf-8><style>@page{{size:A4;margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{address}/blocked'><script>fetch('http://{address}/script')</script><iframe src='http://{address}/frame'></iframe>"#
-        );
-        for (size, landscape, name) in [
-            (PageSize::A4, false, "a4.pdf"),
-            (PageSize::Letter, true, "letter-landscape.pdf"),
-            (PageSize::A4, true, "a4-landscape.pdf"),
-            (PageSize::Letter, false, "letter.pdf"),
+        for (size, landscape, css, name, width, height) in [
+            (PageSize::A4, false, "A4", "a4.pdf", 595.28, 841.89),
+            (
+                PageSize::A4,
+                true,
+                "A4 landscape",
+                "a4-landscape.pdf",
+                841.89,
+                595.28,
+            ),
+            (
+                PageSize::Letter,
+                false,
+                "letter",
+                "letter.pdf",
+                612.0,
+                792.0,
+            ),
+            (
+                PageSize::Letter,
+                true,
+                "letter landscape",
+                "letter-landscape.pdf",
+                792.0,
+                612.0,
+            ),
         ] {
-            let result = render_with_command(
-                &lease(),
-                html.clone(),
-                size,
-                landscape,
-                fixture_command("native"),
-            )
-            .unwrap();
+            // Match the production static-html serializer: CSS and API settings
+            // describe the SAME requested sheet. A fixed @page A4 portrait
+            // contradicts Letter landscape and is not a valid product fixture.
+            let html = format!(
+                r#"<!doctype html><meta charset=utf-8><style>@page{{size:{css};margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{address}/blocked'><script>fetch('http://{address}/script')</script><iframe src='http://{address}/frame'></iframe>"#
+            );
+            let result =
+                render_with_command(&lease(), html, size, landscape, fixture_command("native"))
+                    .unwrap();
             let NativeResult::Pdf(bytes, None) = result else {
                 panic!("Unexpected renderer result");
             };
             assert!(bytes.starts_with(b"%PDF-"));
             assert!(bytes.len() > 1000);
-            // Optional artifact destination is test-owned, never a plugin path.
+            // Preserve the failed artifact too, so the independent parser can
+            // explain a failure rather than seeing only a test assertion.
             if let Some(root) = std::env::var_os("MILKUP_PDF_EVIDENCE_DIR") {
                 fs::write(PathBuf::from(root).join(name), &bytes).unwrap();
             }
-            assert_pdf_paper(&bytes, size, landscape);
-        }
-        match listener.accept() {
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
-            Err(e) => panic!("Document network listener returned unexpected error: {e:?}"),
-            Ok((mut connection, peer)) => {
-                connection.set_nonblocking(false).unwrap();
-                connection
-                    .set_read_timeout(Some(Duration::from_millis(500)))
-                    .unwrap();
-                let mut bytes = [0u8; 2048];
-                let observation = match connection.read(&mut bytes) {
-                    Ok(n) => format!("{n} bytes: {:?}", String::from_utf8_lossy(&bytes[..n])),
-                    Err(e) => format!("read error: {e:?}"),
-                };
-                panic!("Document network connection from {peer}; {observation}");
+            assert_pdf_media_boxes(&bytes, width, height);
+            match listener.accept() {
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    eprintln!("{name}: document-network listener has no connection (WouldBlock)");
+                }
+                Err(e) => panic!("{name}: network observation failed, not proof of connection: kind={:?}, os={:?}, error={e}", e.kind(), e.raw_os_error()),
+                Ok((mut stream, peer)) => {
+                    stream.set_nonblocking(false).unwrap();
+                    let _ = stream.set_read_timeout(Some(Duration::from_millis(250)));
+                    let mut request = [0; 1024];
+                    let result = stream.read(&mut request);
+                    let detail = match result {
+                        Ok(count) => String::from_utf8_lossy(&request[..count]).into_owned(),
+                        Err(e) => format!("read error: {e}"),
+                    };
+                    panic!("{name}: unexpected connection from {peer}; request={detail:?}");
+                }
             }
         }
-        // Header/bytes and network denial are NOT text, pixel, pagination or GUI acceptance.
+        // Dimensions and network denial are NOT text, pixel, pagination or GUI acceptance.
     }
 }

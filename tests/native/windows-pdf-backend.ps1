@@ -29,7 +29,7 @@ try {
   if ($LASTEXITCODE -ne 0) { $summary.nativePrintDialogCancel = 'failed'; $failures.Add('Real native print dialog cancellation failed') }
   else { $summary.nativePrintDialogCancel = 'passed' }
 
-  $summary.artifacts = @('a4.pdf', 'letter-landscape.pdf', 'a4-landscape.pdf', 'letter.pdf') | ForEach-Object {
+  $summary.artifacts = @('a4.pdf', 'a4-landscape.pdf', 'letter.pdf', 'letter-landscape.pdf') | ForEach-Object {
     $file = Join-Path $evidence $_
     if (!(Test-Path -LiteralPath $file)) { $failures.Add("Missing native PDF: $_"); return }
     [ordered]@{name=$_; bytes=(Get-Item -LiteralPath $file).Length; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
