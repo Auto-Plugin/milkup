@@ -142,8 +142,26 @@ try {
     $driverExe=Join-Path $driverRoot 'msedgedriver.exe'
     $signature=Get-AuthenticodeSignature -LiteralPath $driverExe
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') { throw 'Valid Microsoft driver signature required' }
-    $version=(& $driverExe --version).Trim()
-    if ($LASTEXITCODE -ne 0 -or $version -notmatch [regex]::Escape($runtime.Name)) { throw 'Exact installed Evergreen driver required' }
+    # The verified standard-account coordinator has no inherited console handles.
+    # Capture this native tool explicitly instead of assuming PowerShell's call
+    # operator receives stdout in that context.
+    $versionOut=Join-Path $driverRoot 'version.stdout.log'
+    $versionErr=Join-Path $driverRoot 'version.stderr.log'
+    $versionProcess=Start-Process -FilePath $driverExe -ArgumentList '--version' -PassThru -WindowStyle Hidden -RedirectStandardOutput $versionOut -RedirectStandardError $versionErr
+    $versionBirth=$versionProcess.StartTime.ToUniversalTime().Ticks
+    try {
+      if (!$versionProcess.WaitForExit(15000)) { throw 'Driver version check exceeded 15 seconds' }
+      foreach ($file in @($versionOut,$versionErr)) { if ((Get-Item -LiteralPath $file).Length -gt 4096) { throw 'Driver version evidence exceeds budget' } }
+      $version=[IO.File]::ReadAllText($versionOut).Trim()
+      Phase 'health-driver-version' @{exitCode=$versionProcess.ExitCode;stdout=$version;stderr=[IO.File]::ReadAllText($versionErr)}
+      if ($versionProcess.ExitCode -ne 0 -or $version -notmatch ('^MSEdgeDriver '+[regex]::Escape($runtime.Name)+'(?:\s|$)')) { throw 'Exact installed Evergreen driver required' }
+    } finally {
+      if (!$versionProcess.HasExited) {
+        if ($versionProcess.StartTime.ToUniversalTime().Ticks -ne $versionBirth -or ![StringComparer]::OrdinalIgnoreCase.Equals($versionProcess.Path,$driverExe)) { throw 'Driver version cleanup identity mismatch' }
+        $versionProcess.Kill();if (!$versionProcess.WaitForExit(5000)) { throw 'Driver version process did not exit' }
+      }
+      $versionProcess.Dispose()
+    }
     $driverPort=FreeLocalPort
     do { $debugPort=FreeLocalPort } while ($debugPort -eq $driverPort)
     $healthDriver=Start-Process -FilePath $driverExe -ArgumentList @("--port=$driverPort",'--allowed-ips=127.0.0.1') -PassThru -WindowStyle Hidden -RedirectStandardOutput (Join-Path $EvidenceDirectory 'driver.stdout.log') -RedirectStandardError (Join-Path $EvidenceDirectory 'driver.stderr.log')
