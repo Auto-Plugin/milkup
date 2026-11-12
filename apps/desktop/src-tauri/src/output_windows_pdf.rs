@@ -46,6 +46,21 @@ struct Input {
 fn wide(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(Some(0)).collect()
 }
+fn guarded_document(html: &str, page_size: PageSize, landscape: bool) -> String {
+    let size = match page_size {
+        PageSize::A4 => "A4",
+        PageSize::Letter => "letter",
+    };
+    let orientation = if landscape { "landscape" } else { "portrait" };
+    // Install the policy before the parser sees any caller-controlled URL.
+    // Keep the response-header policy and request interception as independent
+    // guards; custom-scheme response headers alone did not prevent a TCP
+    // connection in the real Windows negative test.
+    // The host-selected paper orientation also governs author @page rules.
+    format!(
+        "<!doctype html><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"{CSP}\"><meta http-equiv=\"x-dns-prefetch-control\" content=\"off\">{html}<style>@page{{size:{size} {orientation}!important}}</style>"
+    )
+}
 fn frame_write(writer: &mut impl Write, bytes: &[u8]) -> Result<()> {
     writer
         .write_all(&(bytes.len() as u32).to_le_bytes())
@@ -399,7 +414,7 @@ fn pdf(input: Input) -> Result<Rendered> {
             settings.SetIsGeneralAutofillEnabled(false)?;
             settings.SetAreBrowserAcceleratorKeysEnabled(false)?;
             let env = environment.clone();
-            let html = input.html;
+            let html = guarded_document(&input.html, input.page_size, input.landscape);
             let callback = WebResourceRequestedEventHandler::create(Box::new(move |_, args| {
                 let args = args.unwrap_or_else(|| fatal());
                 let deny_stream = SHCreateMemStream(Some(b"Blocked")).unwrap_or_else(|| fatal());
@@ -663,6 +678,51 @@ pub(in crate::output) fn run_pdf_helper() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn document_policy_precedes_urls_and_selected_page_overrides_author_css() {
+        let html = "<style>@page{size:A4}</style><img src='https://example.invalid/x'>";
+        let guarded = guarded_document(html, PageSize::Letter, true);
+        assert!(guarded.find("Content-Security-Policy").unwrap() < guarded.find(html).unwrap());
+        assert!(guarded.ends_with("<style>@page{size:letter landscape!important}</style>"));
+        assert!(guarded.contains("img-src data:;"));
+        assert!(guarded.contains("script-src 'none';"));
+    }
+
+    // Chromium emits a direct MediaBox for these fixtures. Fail closed if that
+    // representation changes; never infer paper orientation from a filename.
+    fn assert_pdf_paper(bytes: &[u8], size: PageSize, landscape: bool) {
+        let text = String::from_utf8_lossy(bytes);
+        let mut boxes = 0;
+        let (mut width, mut height) = match size {
+            PageSize::A4 => (210.0 / 25.4 * 72.0, 297.0 / 25.4 * 72.0),
+            PageSize::Letter => (612.0, 792.0),
+        };
+        if landscape {
+            std::mem::swap(&mut width, &mut height);
+        }
+        for rest in text.split("/MediaBox").skip(1) {
+            let rest = rest
+                .trim_start()
+                .strip_prefix('[')
+                .expect("Direct PDF MediaBox required");
+            let end = rest.find(']').expect("Complete PDF MediaBox required");
+            let values: Vec<f64> = rest[..end]
+                .split_whitespace()
+                .map(|v| v.parse().unwrap())
+                .collect();
+            assert_eq!(values.len(), 4);
+            assert!(
+                (values[2] - values[0] - width).abs() < 1.0,
+                "PDF paper width {values:?}, expected {width}"
+            );
+            assert!(
+                (values[3] - values[1] - height).abs() < 1.0,
+                "PDF paper height {values:?}, expected {height}"
+            );
+            boxes += 1;
+        }
+        assert!(boxes > 0, "PDF page dimensions were not proven");
+    }
     pub(super) fn process_birth(handle: windows_sys::Win32::Foundation::HANDLE) -> Result<u64> {
         use windows_sys::Win32::{Foundation::FILETIME, System::Threading::GetProcessTimes};
         let mut created = FILETIME::default();
@@ -958,7 +1018,12 @@ mod tests {
         let html = format!(
             r#"<!doctype html><meta charset=utf-8><style>@page{{size:A4;margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{address}/blocked'><script>fetch('http://{address}/script')</script><iframe src='http://{address}/frame'></iframe>"#
         );
-        for (size, landscape) in [(PageSize::A4, false), (PageSize::Letter, true)] {
+        for (size, landscape, name) in [
+            (PageSize::A4, false, "a4.pdf"),
+            (PageSize::Letter, true, "letter-landscape.pdf"),
+            (PageSize::A4, true, "a4-landscape.pdf"),
+            (PageSize::Letter, false, "letter.pdf"),
+        ] {
             let result = render_with_command(
                 &lease(),
                 html.clone(),
@@ -974,13 +1039,9 @@ mod tests {
             assert!(bytes.len() > 1000);
             // Optional artifact destination is test-owned, never a plugin path.
             if let Some(root) = std::env::var_os("MILKUP_PDF_EVIDENCE_DIR") {
-                let name = if landscape {
-                    "letter-landscape.pdf"
-                } else {
-                    "a4.pdf"
-                };
-                fs::write(PathBuf::from(root).join(name), bytes).unwrap();
+                fs::write(PathBuf::from(root).join(name), &bytes).unwrap();
             }
+            assert_pdf_paper(&bytes, size, landscape);
         }
         match listener.accept() {
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}

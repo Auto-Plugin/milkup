@@ -17,23 +17,26 @@ $summary = [ordered]@{
   guiPicker = 'not-run'; nativePrintDialogCancel = 'not-run'; printedToQueue = 'not-run'; physicalPrint = 'not-run'
   textAndVisualFidelity = 'not-run'; linuxRegression = 'not-run'; releaseReady = $false
 }
+$failures = [Collections.Generic.List[string]]::new()
 try {
   & cargo test --locked --manifest-path $manifest --lib output::windows:: -- --test-threads=1 --nocapture 2>&1 | Tee-Object -FilePath (Join-Path $evidence 'contracts.log')
-  if ($LASTEXITCODE -ne 0) { $summary.nativeContracts = 'failed'; throw 'Windows output contracts failed' }
-  $summary.nativeContracts = 'passed'
+  if ($LASTEXITCODE -ne 0) { $summary.nativeContracts = 'failed'; $failures.Add('Windows output contracts failed') }
+  else { $summary.nativeContracts = 'passed' }
   & cargo test --locked --manifest-path $manifest --lib output::windows::pdf::tests::installed_webview2_renders_static_pdf_without_document_network_access -- --exact --ignored --test-threads=1 --nocapture 2>&1 | Tee-Object -FilePath (Join-Path $evidence 'webview2-pdf.log')
-  if ($LASTEXITCODE -ne 0) { $summary.installedWebView2Pdf = 'failed'; throw 'Installed WebView2 PDF failed' }
-  $summary.installedWebView2Pdf = 'passed'
+  if ($LASTEXITCODE -ne 0) { $summary.installedWebView2Pdf = 'failed'; $failures.Add('Installed WebView2 PDF failed') }
+  else { $summary.installedWebView2Pdf = 'passed' }
   & cargo test --locked --manifest-path $manifest --lib output::windows::pdf::tests::native_print_dialog_cancel_returns_cancelled_without_submission -- --exact --ignored --test-threads=1 --nocapture 2>&1 | Tee-Object -FilePath (Join-Path $evidence 'print-dialog-cancel.log')
-  if ($LASTEXITCODE -ne 0) { $summary.nativePrintDialogCancel = 'failed'; throw 'Real native print dialog cancellation failed' }
-  $summary.nativePrintDialogCancel = 'passed'
+  if ($LASTEXITCODE -ne 0) { $summary.nativePrintDialogCancel = 'failed'; $failures.Add('Real native print dialog cancellation failed') }
+  else { $summary.nativePrintDialogCancel = 'passed' }
 
-  $summary.artifacts = @('a4.pdf', 'letter-landscape.pdf') | ForEach-Object {
+  $summary.artifacts = @('a4.pdf', 'letter-landscape.pdf', 'a4-landscape.pdf', 'letter.pdf') | ForEach-Object {
     $file = Join-Path $evidence $_
-    if (!(Test-Path -LiteralPath $file)) { throw "Missing native PDF: $_" }
+    if (!(Test-Path -LiteralPath $file)) { $failures.Add("Missing native PDF: $_"); return }
     [ordered]@{name=$_; bytes=(Get-Item -LiteralPath $file).Length; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()}
   }
+  if ($failures.Count) { throw ($failures -join '; ') }
 } finally {
   Remove-Item Env:MILKUP_PDF_EVIDENCE_DIR -ErrorAction SilentlyContinue
+  $summary.errors = @($failures.ToArray())
   $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $evidence 'summary.json') -Encoding utf8
 }
