@@ -957,3 +957,91 @@ These remain unsigned candidates with an unconfigured update channel. Same-versi
 repair is not cross-version upgrade, signed recovery or automatic rollback.
 Missing-Runtime provisioning, Linux GUI, real IME, Word 2016 paste and full PDF
 fidelity are not established by these runs.
+
+### 328 full GUI and same-package attachment comparison (09:07 UTC)
+
+The diagnostic candidate `328be7c66fb7924b62acd91f1ad241932f74b877`
+completed [run 43178839764](https://github.com/Auto-Plugin/milkup/actions/runs/43178839764).
+Original product evidence passed 11/11 under both account kinds. Independently
+replayed GUI contracts passed 8/8 under both account kinds, including 12-diagram
+scroll/revisit and normal idle/busy close. Both close cases had exit 0, drained
+stdio, verified inner cleanup and no forced termination. Native window evidence
+resolved 105/105 SHOW records for pure-standard and 103/103 for filtered-admin;
+observers were complete, without overflow or visible console windows, with the
+positive controls passing. Full artifact `13927949457` is 2,360,574 bytes with
+SHA-256 `25445be1e9458786265eecbfcf5c5db20383f90c933dfced7aaa684242075843`.
+This is acceptance of that diagnostic source candidate, not a new installed build.
+
+The pure-standard C4 launch still demonstrated a 17.211-second first decode:
+10.429 seconds between navigation and the Wry callback, whose own measured work
+was 2.517 ms. Forty-two UI-queue callbacks completed; after the first 5.593 ms
+sample, latency was 0.113–0.184 ms. Three complete WebView process snapshots
+showed 281.25 ms total CPU increase over 10.444 seconds for the same sampled
+process birth identities. They neither prove a disk/network/proxy cause nor
+provide lifetime attribution for unsampled processes. The historical 20.6-second
+long tail remains unresolved.
+
+The installed comparison uses the **unchanged b877 standard installer** from
+build `43176766599`, SHA-256
+`605a428bd3f985e82854ead0f6f24026780449df0402257793ba474f8a45a425`.
+Harness `6b87238c27b4d28e4a7637647aa915adb1b31ccb` completed
+[run 43187912624](https://github.com/Auto-Plugin/milkup/actions/runs/43187912624).
+After real install, edit/save, plugin disable, exact same-version repair and hot
+re-enable, it ran six launches in one verified pure-standard account. Each used
+a fresh browser profile, the same document and installed executable, and an
+already approved catalogue. The counterbalanced order was none/late/early,
+early/late/none. The OS/runtime file cache was not reset.
+
+| Attachment mode                                                | Native first successful PNG, sample 1 | Sample 2 |
+| -------------------------------------------------------------- | ------------------------------------: | -------: |
+| None: no automation/debug-port overrides or driver connections |                              6,841 ms | 3,236 ms |
+| Late: attach only after the native PNG result                  |                              3,268 ms | 3,269 ms |
+| Early: attach as soon as the loopback endpoint is ready        |                              4,172 ms | 3,268 ms |
+
+The unattached metric is **not DOM first decode**. Attached DOM decode marks
+were 3,280.1/3,281.3 ms for late attachment and 4,182.6/3,278.5 ms for early
+attachment. All six trials used zero editor input, had one admitted/finished
+render of the expected source, normal exit 0, complete bounded byte streams and
+no forced cleanup. Each before/after catalogue pair preserved package bytes,
+approval, switches and all other state, allowing exactly the two durable
+startup-begin/startup-complete revision increments. Original snapshots, complete
+logs, hashes and record counts were retained and independently rechecked.
+The owned account/profile/staging were removed, the job was empty before outer
+cleanup, and actual uninstall preserved the document.
+
+In the slowest unattached sample, `application-built → setup-enter` was 4,091 ms;
+setup began 4,109 ms after process creation. Navigation → Wry was 1,344 ms and
+Wry itself 1.385 ms. Engine fetch took 95 ms and Mermaid execution 292 ms.
+Across all six launches, navigation → Wry ranged 1,231–1,344 ms, engine fetch
+91–98 ms and Mermaid execution 286–293 ms. The two catalogue transitions took
+53.626–86.186 ms each. No flush, approval, permission, proxy or sandbox policy
+was removed. These two samples per condition do not establish a latency
+distribution or rule out attachment effects in other cases; they do demonstrate
+that the measured 6.84-second startup did not require driver attachment.
+
+The comparison artifact is `13929147637`, 228,610 bytes, SHA-256
+`4a477d06ee82af8513b1b865c9960f907238ca0660d1e4f319874c4533b41329`.
+Local independent review:
+`/workspace/milkup-quality-installed-startup-comparison-review.json`.
+Local 328 full review: `/workspace/milkup-quality-328-final-review.json`.
+
+Failures are retained separately: `43186420810` installed/repaired successfully
+but the first early-attached trial reached assets-read without a native render
+admission and hit its 45-second limit; subsequent modes were not executed.
+Its diagnostic cleanup was forced. The capture adapter was subsequently replaced
+with independent bounded .NET byte streams, but this is **not proof** that the
+old adapter caused that timeout. `43187295413` passed installation/repair and
+capture controls, then failed before starting the comparison process because a
+PowerShell-wrapped environment value could not be cast to string. The fix and a
+wrapped-value regression control passed on Windows in the successful run.
+Nine local Node tests also passed, covering malformed/truncated/oversized logs,
+wrong process/source identity, absent attachment, and changed catalogue state.
+
+No application performance fix is claimed. The remaining useful measurement is
+inside the pre-setup native initialization interval, separating WebView
+environment/controller creation from other native work and system I/O. The
+historical catalogue persistence outlier still has no proven storage-level cause;
+its required durability transactions are preserved. Linux GUI/export fidelity,
+real IME and Word 2016 interaction, physical/positive queued printing, production
+signing/update channel and automatic rollback remain outside this completed
+comparison. No Release, tag or public package distribution was performed.
