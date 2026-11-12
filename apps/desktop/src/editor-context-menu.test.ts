@@ -251,6 +251,11 @@ describe('host editor context menu', () => {
     expect(f.menu.hidden).toBe(false)
     f.menu.dispatchEvent(new Event('scroll'))
     expect(f.menu.hidden).toBe(false)
+    // A queued event with geometry already observed by open is not new motion.
+    f.editor.dispatchEvent(new Event('scroll'))
+    window.dispatchEvent(new Event('resize'))
+    expect(f.menu.hidden).toBe(false)
+    f.editor.scrollTop = 10
     f.editor.dispatchEvent(new Event('scroll'))
     expect(f.menu.hidden).toBe(true)
     f.input.focus()
@@ -262,6 +267,24 @@ describe('host editor context menu', () => {
     })
     f.input.dispatchEvent(keyboard)
     expect(keyboard.defaultPrevented).toBe(true)
+    expect(f.menu.hidden).toBe(false)
+    const width = window.innerWidth
+    try {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width - 1 })
+      window.dispatchEvent(new Event('resize'))
+      expect(f.menu.hidden).toBe(true)
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width })
+    }
+    f.input.focus()
+    f.input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'F10',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
     expect(f.menu.hidden).toBe(false)
     const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
     f.item('copy').dispatchEvent(tab)

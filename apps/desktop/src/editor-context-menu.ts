@@ -60,6 +60,8 @@ export class EditorContextMenu<Snapshot extends HostContextMenuSnapshot = HostCo
   private readonly actions = new Map<HTMLButtonElement, HostContextMenuItem>()
   private readonly instanceId = ++nextMenuId
   private anchor = { x: 0, y: 0 }
+  private openingScroll = new Map<Element, { left: number; top: number }>()
+  private openingViewport: { width: number; height: number } | undefined
 
   constructor(
     private readonly editor: HTMLElement,
@@ -293,11 +295,36 @@ export class EditorContextMenu<Snapshot extends HostContextMenuSnapshot = HostCo
   private readonly onScroll = (event: Event): void => {
     if (this.menu.hidden) return
     if (event.target instanceof Node && this.menu.contains(event.target)) this.reconcileLayout()
-    else this.close(false)
+    else {
+      const target =
+        event.target === this.menu.ownerDocument
+          ? this.menu.ownerDocument.scrollingElement
+          : event.target
+      const opening = target instanceof Element ? this.openingScroll.get(target) : undefined
+      // A pre-opening caret scroll can be delivered after Shift+F10. It must
+      // not dismiss a menu already positioned against that same geometry.
+      if (
+        target instanceof Element &&
+        opening &&
+        target.scrollLeft === opening.left &&
+        target.scrollTop === opening.top
+      )
+        return
+      this.close(false)
+    }
   }
 
   private readonly onWindowBlur = (): void => this.close(false)
-  private readonly onWindowResize = (): void => this.close(false)
+  private readonly onWindowResize = (): void => {
+    const window = this.menu.ownerDocument.defaultView
+    if (
+      window &&
+      this.openingViewport?.width === window.innerWidth &&
+      this.openingViewport.height === window.innerHeight
+    )
+      return
+    this.close(false)
+  }
 
   private items(scope = this.menu): HTMLElement[] {
     return Array.from(
@@ -460,6 +487,17 @@ export class EditorContextMenu<Snapshot extends HostContextMenuSnapshot = HostCo
     this.menu.removeAttribute('aria-busy')
     const generation = ++this.generation
     const active = this.editor.ownerDocument.activeElement
+    this.openingScroll.clear()
+    const captureAncestors = (element: Element | null) => {
+      for (let node = element; node; node = node.parentElement)
+        this.openingScroll.set(node, { left: node.scrollLeft, top: node.scrollTop })
+    }
+    captureAncestors(this.editor)
+    if (active && this.editor.contains(active)) captureAncestors(active)
+    const window = this.menu.ownerDocument.defaultView
+    this.openingViewport = window
+      ? { width: window.innerWidth, height: window.innerHeight }
+      : undefined
     if (active instanceof HTMLElement && this.editor.contains(active)) this.returnFocus = active
     else if (!this.menu.contains(active)) this.returnFocus = undefined
     this.documentIdentity = this.options.identity?.()
@@ -541,6 +579,8 @@ export class EditorContextMenu<Snapshot extends HostContextMenuSnapshot = HostCo
     const wasVisible = !this.menu.hidden
     this.menu.hidden = true
     this.snapshot = undefined
+    this.openingScroll.clear()
+    this.openingViewport = undefined
     this.closeSiblingSubmenus(this.menu)
     if (wasVisible) this.options.visible?.(false)
     if (restoreFocus && wasVisible && this.returnFocus?.isConnected)
