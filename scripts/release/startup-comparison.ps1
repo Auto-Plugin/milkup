@@ -3,7 +3,7 @@
 param([string]$Binary,[string]$Document,[string]$EvidenceDirectory,[string]$NodeExecutable,[int]$DriverPort,[string]$RuntimeVersion,[string]$SourceSha)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-Add-Type -TypeDefinition 'public static class StartupComparisonDrain { public static bool Wait(System.Diagnostics.Process p) { return System.Threading.Tasks.Task.Run(() => p.WaitForExit()).Wait(5000); } }'
+Add-Type -Path (Join-Path $PSScriptRoot 'InstalledStartupProcess.cs')
 foreach($name in @('WEBVIEW2_USER_DATA_FOLDER','WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS','TAURI_WEBVIEW_AUTOMATION','MILKUP_MERMAID_NATIVE_AUDIT')) {
  if ($null -ne [Environment]::GetEnvironmentVariable($name,'Process')) { throw "Comparison requires a clean coordinator environment: $name" }
 }
@@ -36,14 +36,18 @@ try {
   $stderr=Join-Path $EvidenceDirectory "$prefix.product.stderr.log"
   $specFile=Join-Path $EvidenceDirectory "$prefix.spec.json"
   $reportFile=Join-Path $EvidenceDirectory "$prefix.observation.json"
+  $catalogBefore=Join-Path $EvidenceDirectory "$prefix.catalog-before.json"
+  $catalogAfter=Join-Path $EvidenceDirectory "$prefix.catalog-after.json"
+  Copy-Item -LiteralPath $catalog -Destination $catalogBefore
   $trial=[ordered]@{index=$i;mode=$mode;status='running';forcedCleanup=$false;environment=$launchEnv}
   $summary.trials+=,$trial
-  $process=$null;$birth=$null
+  $process=$null;$birth=$null;$capture=$null
   try {
-   $process=Start-Process -FilePath $Binary -ArgumentList @($Document) -Environment $launchEnv -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+   $capture=[InstalledStartupProcess]::Start($Binary,$Document,$launchEnv,$stdout,$stderr)
+   $process=$capture.Product
    $birth=$process.StartTime.ToUniversalTime().Ticks
    $trial['identity']=@{pid=$process.Id;creationTicks=$birth;creationUtc=$process.StartTime.ToUniversalTime().ToString('o');image=$Binary}
-   $spec=@{schema=1;mode=$mode;pid=$process.Id;creationTicks=$birth.ToString();creationUtc=$trial.identity.creationUtc;image=$Binary;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;document=$Document;documentSha256=$documentHash.ToLowerInvariant();stderr=$stderr;stdout=$stdout;report=$reportFile;driverPort=$DriverPort;debugPort=$port;runtimeVersion=$RuntimeVersion}
+   $spec=@{schema=1;mode=$mode;pid=$process.Id;creationTicks=$birth.ToString();creationUtc=$trial.identity.creationUtc;image=$Binary;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;document=$Document;documentSha256=$documentHash.ToLowerInvariant();stderr=$stderr;stdout=$stdout;report=$reportFile;driverPort=$DriverPort;debugPort=$port;runtimeVersion=$RuntimeVersion;catalogBefore=$catalogBefore;catalogAfter=$catalogAfter}
    $spec | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $specFile -Encoding utf8
    SaveComparison
    $trial['observer']=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,[string[]]@((Join-Path $PSScriptRoot 'startup-comparison-observe.mjs'),$specFile),$PSScriptRoot,(Join-Path $EvidenceDirectory "$prefix.node.stdout.log"),(Join-Path $EvidenceDirectory "$prefix.node.stderr.log"),50000)
@@ -57,15 +61,20 @@ try {
    $trial['windows']=$windows
    [MilkupInstallWindow]::Close($roots[0].hwnd,$process.Id,$birth,$Binary)
    if (!$process.WaitForExit(15000) -or $process.ExitCode -ne 0) {throw 'Comparison application did not close normally'}
-   # Parameterless wait additionally drains Start-Process redirected stream handlers.
-   if (![StartupComparisonDrain]::Wait($process)) {throw 'Redirected product streams did not drain in 5 seconds'}
+   # Complete byte-stream EOF is separate from process exit and must be proven.
+   if (!$capture.Drain(5000)) {throw 'Redirected product streams did not drain in 5 seconds'}
    $trial['normalExitCode']=$process.ExitCode
+   $trial['capture']=@{stdoutBytes=$capture.StdoutBytes;stderrBytes=$capture.StderrBytes;stdoutEof=$capture.StdoutEof;stderrEof=$capture.StderrEof;overflow=$capture.Overflow;adapter='native-dotnet-byte-stream'}
    if ($mode -cne 'none') {
     try {$null=Invoke-RestMethod -Uri "http://127.0.0.1:$DriverPort/session/$($observation.sessionId)" -Method Delete -TimeoutSec 5}
     catch {$trial['detachDiagnostic']=$_.Exception.Message}
    }
+   Copy-Item -LiteralPath $catalog -Destination $catalogAfter
    $trial['verification']=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,[string[]]@((Join-Path $PSScriptRoot 'startup-comparison-verify.mjs'),$specFile),$PSScriptRoot,(Join-Path $EvidenceDirectory "$prefix.verify.json"),(Join-Path $EvidenceDirectory "$prefix.verify.stderr.log"),10000)
    if ($trial.verification.status -cne 'passed') {throw 'Complete post-exit startup log verification failed'}
+   # The two durable startup transitions legitimately increment catalogue revisions.
+   # The Node verifier allows exactly those increments and no other state change.
+   $catalogHash=(Get-FileHash -LiteralPath $catalogAfter -Algorithm SHA256).Hash
    foreach($entry in @(@($Binary,$imageHash),@($Document,$documentHash),@($catalog,$catalogHash))) {
     if ((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash -cne $entry[1]) {throw 'Controlled input changed after launch'}
    }
@@ -79,7 +88,10 @@ try {
      if ($process.StartTime.ToUniversalTime().Ticks -ne $birth -or ![StringComparer]::OrdinalIgnoreCase.Equals($process.Path,$Binary)) {throw 'Comparison cleanup identity mismatch'}
      $process.Kill($true);$null=$process.WaitForExit(5000)
     }
-    $process.Dispose()
+    if ($null -ne $capture) {
+     try {$trial['finalDrain']=$capture.Drain(5000)} catch {$trial['drainError']=$_.Exception.Message}
+     $capture.Dispose()
+    } else {$process.Dispose()}
    }
    SaveComparison
   }

@@ -12,7 +12,56 @@ import {
   sha,
   logBudget,
   modes,
+  verifyCatalogRestart,
 } from './startup-comparison-contract.mjs'
+
+const catalog = (revision = 5) => ({
+  version: 1,
+  revision,
+  entries: [
+    {
+      id: 'milkup.diagrams',
+      revision,
+      enabled: true,
+      tombstone: false,
+      startAttempt: null,
+      active: {
+        verified: true,
+        approvedFingerprint: 'a',
+        capabilityFingerprint: 'a',
+        contentSha256: 'c'.repeat(64),
+      },
+      previous: null,
+      pending: null,
+      diagnostics: [],
+    },
+  ],
+  diagnostics: [],
+  migrationReceipt: null,
+})
+const envelope = (payload) =>
+  Buffer.from(JSON.stringify({ sha256: sha(Buffer.from(JSON.stringify(payload))), payload }))
+test('catalogue permits exactly two durable startup transitions, preserving all other state', () => {
+  const before = envelope(catalog()),
+    after = envelope(catalog(7))
+  assert.equal(verifyCatalogRestart(before, after).expectedDurableTransitions, 2)
+  for (const mutate of [
+    (p) => (p.entries[0].enabled = false),
+    (p) => (p.entries[0].active.contentSha256 = 'changed'),
+    (p) => (p.entries[0].active.approvedFingerprint = 'changed'),
+    (p) => (p.entries[0].startAttempt = 'pending'),
+    (p) => p.entries[0].diagnostics.push('failure'),
+    (p) => p.revision++,
+    (p) => p.entries[0].revision--,
+  ]) {
+    const changed = catalog(7)
+    mutate(changed)
+    assert.throws(() => verifyCatalogRestart(before, envelope(changed)))
+  }
+  const bad = JSON.parse(after.toString())
+  bad.sha256 = '0'.repeat(64)
+  assert.throws(() => verifyCatalogRestart(before, Buffer.from(JSON.stringify(bad))))
+})
 
 const document = Buffer.from('# Sample\n\n```mermaid\nflowchart LR\n A-->B\n```\n')
 const source = fixtureSource(document)
@@ -125,6 +174,8 @@ test('post-exit verifier binds exact spec and complete raw bytes; no-attachment 
       stderr: path.join(dir, 'stderr'),
       stdout: path.join(dir, 'stdout'),
       report: path.join(dir, 'report.json'),
+      catalogBefore: path.join(dir, 'before.json'),
+      catalogAfter: path.join(dir, 'after.json'),
     }
     const specFile = path.join(dir, 'spec.json')
     const observation = {
@@ -140,6 +191,8 @@ test('post-exit verifier binds exact spec and complete raw bytes; no-attachment 
       writeFile(spec.stderr, stderr),
       writeFile(spec.stdout, ''),
       writeFile(spec.report, JSON.stringify(observation)),
+      writeFile(spec.catalogBefore, envelope(catalog())),
+      writeFile(spec.catalogAfter, envelope(catalog(7))),
     ])
     const run = () =>
       spawnSync(

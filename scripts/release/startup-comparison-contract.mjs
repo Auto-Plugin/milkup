@@ -4,6 +4,57 @@ import { createHash } from 'node:crypto'
 export const modes = Object.freeze(['early', 'late', 'none', 'none', 'late', 'early'])
 export const logBudget = 1024 * 1024
 export const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
+export function verifyCatalogRestart(beforeBytes, afterBytes) {
+  const decode = (bytes) => {
+    assert(bytes.length <= logBudget, 'Bounded comparison catalogue required')
+    const envelope = JSON.parse(bytes.toString('utf8'))
+    assert.equal(
+      sha(Buffer.from(JSON.stringify(envelope.payload))),
+      envelope.sha256,
+      'Catalogue checksum',
+    )
+    assert.equal(envelope.payload.version, 1)
+    assert(Array.isArray(envelope.payload.entries) && envelope.payload.entries.length <= 512)
+    return envelope.payload
+  }
+  const before = decode(beforeBytes),
+    after = decode(afterBytes)
+  assert.equal(before.entries.length, after.entries.length)
+  let transitions = 0
+  for (let i = 0; i < before.entries.length; i++) {
+    const prior = before.entries[i],
+      next = after.entries[i]
+    assert.equal(prior.startAttempt, null, 'Prior startup must be complete')
+    assert.equal(next.startAttempt, null, 'Restart must commit its startup attempt')
+    const increment = prior.enabled ? 2 : 0
+    if (prior.enabled) {
+      assert(prior.active?.verified && !prior.tombstone)
+      assert.equal(prior.active.approvedFingerprint, prior.active.capabilityFingerprint)
+    }
+    assert(Number.isSafeInteger(prior.revision) && Number.isSafeInteger(next.revision))
+    assert.equal(
+      next.revision,
+      prior.revision + increment,
+      'Only startup-begin and startup-complete revisions allowed',
+    )
+    transitions += increment
+    next.revision = prior.revision
+  }
+  assert(Number.isSafeInteger(before.revision) && Number.isSafeInteger(after.revision))
+  assert.equal(after.revision, before.revision + transitions)
+  after.revision = before.revision
+  assert.deepEqual(
+    after,
+    before,
+    'Package identity, approval, switches and all other catalogue state must remain unchanged',
+  )
+  assert(before.entries.some((e) => e.id === 'milkup.diagrams' && e.enabled))
+  return {
+    beforeSha256: sha(beforeBytes),
+    afterSha256: sha(afterBytes),
+    expectedDurableTransitions: transitions,
+  }
+}
 export function fixtureSource(bytes) {
   const text = bytes.toString('utf8')
   const matches = [...text.matchAll(/^```mermaid\r?\n([\s\S]*?)^```\s*$/gm)]

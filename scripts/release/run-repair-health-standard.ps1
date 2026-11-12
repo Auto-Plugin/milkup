@@ -77,7 +77,7 @@ try {
  $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($user.SID,'ReadAndExecute','ContainerInherit,ObjectInherit','None','Allow'))
  Set-Acl -LiteralPath $stage -AclObject $acl
  $code=Join-Path $stage 'code';NewDir $code
- $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
+ $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/InstalledStartupProcess.cs','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
  $audit['stagedCode']=@()
  foreach($leaf in $files) {
   $source=Join-Path $repo $leaf;Plain $source
@@ -113,7 +113,7 @@ try {
    foreach($i in 0..5){$evidenceNames+=@("evidence/native-dialog-$i.json","evidence/native-dialog-$i.json.log")}
    $evidenceNames+=@('evidence/document-alpha.png','evidence/document-bravo.png','evidence/document-unsaved-close.png')
    $evidenceNames+='evidence/startup-comparison.json'
-   foreach($i in 0..5) {foreach($suffix in @('spec.json','observation.json','product.stdout.log','product.stderr.log','node.stdout.log','node.stderr.log','verify.json','verify.stderr.log')) {$evidenceNames+="evidence/startup-$i.$suffix"}}
+   foreach($i in 0..5) {foreach($suffix in @('spec.json','observation.json','product.stdout.log','product.stderr.log','node.stdout.log','node.stderr.log','verify.json','verify.stderr.log','catalog-before.json','catalog-after.json')) {$evidenceNames+="evidence/startup-$i.$suffix"}}
    foreach($leaf in $evidenceNames) {
     $file=Join-Path $scratch $leaf
     if (!(Test-Path -LiteralPath $file -PathType Leaf)) {continue};Plain $file

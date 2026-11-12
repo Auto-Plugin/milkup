@@ -154,6 +154,29 @@ try {
   record.status = 'failed'
   record.error = error.stack
   process.exitCode = 1
+  // A failed trial stays failed. One bounded read after the deadline is solely
+  // diagnostic, and the unattached group must remain unattached even on failure.
+  if (session && spec.mode !== 'none') {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${spec.driverPort}/session/${session}/execute/sync`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            script: `return {state:(()=>{${observe}})(),performance:(()=>{${startupPerformanceScript}})()}`,
+            args: [],
+          }),
+          signal: AbortSignal.timeout(3000),
+        },
+      )
+      const text = await response.text()
+      assert(text.length <= 256 * 1024)
+      record.failureObservation = JSON.parse(text)
+    } catch (failure) {
+      record.failureObservationError = String(failure).slice(0, 1000)
+    }
+  }
 } finally {
   record.nativeRecords = parser.records
   record.consumedBytes = position

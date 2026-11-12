@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { readFile, stat } from 'node:fs/promises'
-import { StartupLog, fixtureSource, sha, logBudget } from './startup-comparison-contract.mjs'
+import {
+  StartupLog,
+  fixtureSource,
+  sha,
+  logBudget,
+  verifyCatalogRestart,
+} from './startup-comparison-contract.mjs'
 const bounded = async (file, budget) => {
   assert((await stat(file)).size <= budget)
   return readFile(file)
@@ -32,10 +38,15 @@ if (spec.mode === 'none') {
   if (spec.mode === 'late')
     assert(Date.parse(observation.attachStartedUtc) >= parser.firstReady.timestampUnixMs)
 }
+const catalogue = verifyCatalogRestart(
+  await bounded(spec.catalogBefore, logBudget),
+  await bounded(spec.catalogAfter, logBudget),
+)
 const stdout = await bounded(spec.stdout, logBudget)
 console.log(
   JSON.stringify({
     status: 'passed',
+    catalogue,
     mode: spec.mode,
     pid: spec.pid,
     creationTicks: spec.creationTicks,
