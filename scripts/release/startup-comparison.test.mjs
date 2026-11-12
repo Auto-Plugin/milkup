@@ -91,7 +91,7 @@ const log = (text = trace) => {
 }
 
 test('counterbalanced modes distinguish early, late and genuinely absent attachment', async () => {
-  assert.deepEqual(modes, ['early', 'late', 'none', 'none', 'late', 'early'])
+  assert.deepEqual(modes, ['none', 'late', 'early', 'early', 'late', 'none'])
   for (const [mode, expected] of [
     ['early', ['attach', 'ready', 'observe']],
     ['late', ['ready', 'attach', 'observe']],

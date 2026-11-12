@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 
-export const modes = Object.freeze(['early', 'late', 'none', 'none', 'late', 'early'])
+export const modes = Object.freeze(['none', 'late', 'early', 'early', 'late', 'none'])
 export const logBudget = 1024 * 1024
 export const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 export function verifyCatalogRestart(beforeBytes, afterBytes) {

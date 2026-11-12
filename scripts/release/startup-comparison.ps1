@@ -12,7 +12,7 @@ if (!(Test-Path -LiteralPath $catalog -PathType Leaf) -or (Get-Item -LiteralPath
 $catalogHash=(Get-FileHash -LiteralPath $catalog -Algorithm SHA256).Hash
 $imageHash=(Get-FileHash -LiteralPath $Binary -Algorithm SHA256).Hash
 $documentHash=(Get-FileHash -LiteralPath $Document -Algorithm SHA256).Hash
-$summary=[ordered]@{status='running';sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;imageSha256=$imageHash;catalogSha256=$catalogHash;documentSha256=$documentHash;order=@('early','late','none','none','late','early');trials=@();boundary='Same installed bytes and approved catalogue, fresh browser profiles. OS file cache is not cold/reset. No attachment does not measure DOM decode. Small counterbalanced diagnostic, not causal proof.'}
+$summary=[ordered]@{status='running';sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;imageSha256=$imageHash;catalogSha256=$catalogHash;documentSha256=$documentHash;order=@('none','late','early','early','late','none');trials=@();boundary='Same installed bytes and approved catalogue, fresh browser profiles. OS file cache is not cold/reset. No attachment does not measure DOM decode. Small counterbalanced diagnostic, not causal proof.'}
 function SaveComparison {$summary | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $EvidenceDirectory 'startup-comparison.json') -Encoding utf8}
 SaveComparison
 try {
