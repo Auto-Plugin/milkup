@@ -24,6 +24,8 @@ const URL: &str = "milkup-output://job/document";
 const CSP: &str = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 #[path = "output_windows_printer.rs"]
 mod printer;
+#[path = "output_static_guard.rs"]
+mod static_guard;
 
 enum Rendered {
     Pdf(Vec<u8>),
@@ -147,6 +149,8 @@ fn render_with_command(
     mut command: Command,
 ) -> Result<NativeResult> {
     job.active()?;
+    validate_html(&html)?;
+    static_guard::validate(&html)?;
     let private = Private::new()?;
     let printing = job.format == Format::Print;
     let input = serde_json::to_vec(&Input {
@@ -702,6 +706,7 @@ pub(in crate::output) fn run_pdf_helper() {
         let bytes = frame_read(&mut std::io::stdin().lock(), MAX_HTML * 6 + 65536)?;
         let input: Input = serde_json::from_slice(&bytes).map_err(error)?;
         validate_html(&input.html)?;
+        static_guard::validate(&input.html)?;
         pdf(input)
     })();
     #[cfg(not(test))]
@@ -1116,6 +1121,24 @@ mod tests {
         let [image, script, frame, style, preconnect] = addresses.as_slice() else {
             unreachable!()
         };
+        // Rejected inputs must never reach the browser. An exact validation
+        // error distinguishes this from a launch or runtime failure.
+        for html in [
+            format!("<iframe src='http://{frame}/frame'></iframe>"),
+            format!("<link rel='preconnect' href='http://{preconnect}'>"),
+            format!("<meta http-equiv='refresh' content='0;url=http://{frame}/refresh'>"),
+        ] {
+            let result = render_with_command(
+                &lease(),
+                html,
+                PageSize::A4,
+                false,
+                fixture_command("native"),
+            );
+            assert!(
+                matches!(result, Err(ref message) if message.starts_with("Static output rejects"))
+            );
+        }
         for (size, landscape, css, name, width, height) in [
             (PageSize::A4, false, "A4", "a4.pdf", 595.28, 841.89),
             (
@@ -1147,7 +1170,7 @@ mod tests {
             // describe the SAME requested sheet. A fixed @page A4 portrait
             // contradicts Letter landscape and is not a valid product fixture.
             let html = format!(
-                r#"<!doctype html><meta charset=utf-8><style>@page{{size:{css};margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{image}/blocked'><script>fetch('http://{script}/script')</script><iframe src='http://{frame}/frame'></iframe><style>body{{background-image:url(http://{style}/background)}}</style><link rel='preconnect' href='http://{preconnect}'>"#
+                r#"<!doctype html><meta charset=utf-8><style>@page{{size:{css};margin:18mm}}body{{font-family:Arial,sans-serif}}p{{break-inside:auto}}</style><h1>Milkup PDF 中文 😀</h1><p>Copy/search: “quotes”, fi, é, 原始文字</p><svg width='100' height='40' xmlns='http://www.w3.org/2000/svg'><text x='1' y='24'>diagram</text></svg><img src='http://{image}/blocked'><script>fetch('http://{script}/script')</script><style>body{{background-image:url(http://{style}/background)}}</style>"#
             );
             let result =
                 render_with_command(&lease(), html, size, landscape, fixture_command("native"))
