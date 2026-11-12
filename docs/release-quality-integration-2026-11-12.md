@@ -424,3 +424,38 @@ no account or product was created. `bff604e1` shortens the unique ownership
 marker to 46 characters. These are retained harness failures, not successful
 installed health checks or product failures. A fresh actual Windows run tests
 the corrected coordinator; the original installer bytes are unchanged.
+
+## Completed latest distribution build (04:10 UTC)
+
+All three jobs of `43145985835 / 5d79147a` now passed. Exact original receipts:
+
+| Variant | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Windows standard | 7243882 | `9e94706c2b144d92dad5d0f65a7b6b3ffa014de7e61d698a59a1d1813cde687c` |
+| Windows offline | 225033696 | `bd7e9db7d7ff464b8b39faf2abe7d93aedf19c0d5ef7422602cff2affc05f5c1` |
+| Linux deb | 9830936 | `32ad2b5d0f52cac501212f14389e1b7e8bf5039d07b02d1bea6b7a8d1bdae41c` |
+
+Original package artifact IDs are `13913767237`, `13913364273`, `13915005041`.
+The standard ZIP was independently downloaded, its archive hash verified, and
+its installer was checked using the canonical verifier against the exact SHA.
+No later application/package source changes exist through `ca39599b`; that
+later harness commit is not falsely identified as the package build commit.
+An all-variant installation run was dispatched only after the entire build
+succeeded. Windows additionally exercises same-version missing-file repair;
+Linux only installs/removes the deb. Acceptance is pending.
+
+Standard-account health run `43152343045 / bff604e1` verified the pure-standard
+token (RID 8192), inherited existing interactive desktop, exited with an empty
+Job and removed its profile/account/staging root. It failed before installation
+because direct driver-version invocation produced no captured stdout.
+Artifact `13913598974` SHA-256 is
+`e85d9ee3ab784bf0bcea890aa7192dd48214a7e0e0d711325df00bd29a9dcbd1`.
+Explicit stream capture in `32b80f69 / 43152659497` produced exit 0 and
+`Microsoft Edge WebDriver 156.0.4314.58 (...)`; the strict banner matcher wrongly
+expected only `MSEdgeDriver`. Its artifact `13914323449` SHA-256 is
+`75c225d5c1c1944233a8743dce4d177eaf5a229fc7fc6a6dda7b3644bb680468`.
+`ca39599b` recognizes both explicit banners while retaining signed Microsoft
+binary and exact installed Runtime version checks. `8fdad5c2` also moves child
+Node receipt/health execution onto the established bounded stream/EOF capture
+helper. Run `43152924203` validates these corrections against the unchanged
+`bf8a2d50` package; installed editing/configuration health is still pending.
