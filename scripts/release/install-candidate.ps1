@@ -3,6 +3,7 @@
 param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
+Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
 New-Item -ItemType Directory $EvidenceDirectory | Out-Null
 $record=[ordered]@{schema=1;status='running';sourceSha=$SourceSha;variant=$Variant;accountSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;phases=@();guiAcceptance='window-smoke-only';dualAccount='not-run';missingRuntime='not-run';offlineRuntimeProvisioning='not-run';upgrade='not-run';rollback='not-implemented';wordTablePaste='not-run';nativeIme='not-run';installedDelayedCaret='not-run';forcedCleanup=$false}
@@ -51,19 +52,33 @@ try {
   $startup=[Diagnostics.Stopwatch]::StartNew()
   $product=Start-Process -FilePath $binary -ArgumentList @($document) -PassThru
   $creation=$product.StartTime.ToUniversalTime().ToString('o')
+  $creationTicks=$product.StartTime.ToUniversalTime().Ticks
   Phase 'application-start' @{pid=$product.Id;creationUtc=$creation;image=$binary}
   $deadline=[DateTime]::UtcNow.AddSeconds(45)
+  $record['startupWindows']=@()
+  $lastWindows=$null
+  $window=$null
   do {
     $product.Refresh()
     if ($product.HasExited) { throw 'Application exited before visible window' }
-    if ($product.MainWindowHandle -ne 0) { break }
+    $windows=@([MilkupInstallWindow]::Observe($product.Id,$creationTicks,$binary))
+    $snapshot=ConvertTo-Json -InputObject $windows -Depth 4 -Compress
+    if ($snapshot -cne $lastWindows) {
+      if ($record.startupWindows.Count -ge 128) { throw 'Window startup evidence exceeded its budget' }
+      $record.startupWindows+=@{elapsedMs=$startup.Elapsed.TotalMilliseconds;windows=$windows}
+      $lastWindows=$snapshot
+      Persist
+    }
+    $roots=@($windows | Where-Object { $_.productRoot })
+    if ($roots.Count -gt 1) { throw 'Ambiguous visible Tauri main window' }
+    if ($roots.Count -eq 1) { $window=$roots[0]; break }
     Start-Sleep -Milliseconds 100
   } while ([DateTime]::UtcNow -lt $deadline)
-  if ($product.MainWindowHandle -eq 0) { throw 'No visible native main window within 45 seconds' }
+  if ($null -eq $window) { throw 'No unique visible Tauri main window within 45 seconds' }
   if (![StringComparer]::OrdinalIgnoreCase.Equals($product.Path,$binary) -or $product.StartTime.ToUniversalTime().ToString('o') -cne $creation) { throw 'Owned application identity mismatch' }
   $startup.Stop()
-  Phase 'native-window-observed' @{hwnd=$product.MainWindowHandle.ToInt64();title=$product.MainWindowTitle;image=$product.Path;creationUtc=$creation;launchToNativeWindowMs=$startup.Elapsed.TotalMilliseconds;measurementBoundary='native window only; not document loaded, first paint, Mermaid ready or interactive'}
-  if (!$product.CloseMainWindow()) { throw 'Native main-window close rejected' }
+  Phase 'native-window-observed' @{hwnd=$window.hwnd;title=$window.title;className=$window.className;image=$product.Path;creationUtc=$creation;launchToNativeWindowMs=$startup.Elapsed.TotalMilliseconds;measurementBoundary='unique visible Tauri window only; not first paint, Mermaid ready or interactive'}
+  [MilkupInstallWindow]::Close($window.hwnd,$product.Id,$creationTicks,$binary)
   if (!$product.WaitForExit(15000)) { throw 'Application did not close normally within 15 seconds' }
   if ($product.ExitCode -ne 0) { throw 'Application close was not successful' }
   Phase 'normal-close' @{exitCode=$product.ExitCode}

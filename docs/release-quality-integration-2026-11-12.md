@@ -102,10 +102,21 @@ old-profile migration, absent-Runtime provisioning or recovery acceptance.
 
 ## Browser checkpoint
 
-The complete integrated Linux Chromium run finished with 293/294 passing, including
-production-CSP positive and negative controls. One formatting context-menu case
-remained disabled after close/reopen under changed selection. Its cause is still
-under investigation; successful targeted reruns are not treated as a fix.
+The first complete integrated Linux Chromium run finished with 293/294 passing.
+The remaining context-menu failure was reproduced with actual Worker RPC traffic:
+requests `editing-10`, `editing-11`, `editing-12`, `editing-18` were cancelled after
+the host posted snapshot responses; cancellation no longer found an active RPC.
+Those unaccepted snapshots remained allocated, and `editing-19` returned `busy`.
+
+`5d79147a` retains the originating RPC identity until the captured snapshot is
+consumed or released, so a cancellation during response transit releases it.
+The new controlled-delivery test failed before the fix and passes twelve
+consecutive cancellations after it, exceeding the unchanged eight-snapshot limit.
+Unknown cancellation cannot release the current accepted snapshot. The plugin
+package's 623 tests and TypeScript check passed; eight real Worker repetitions
+passed without instrumentation. A subsequent complete browser run passed
+**294/294 in 4.9 minutes**, including production-CSP controls. This is Linux
+Chromium, not native Windows/WebKit or system IME evidence.
 
 Windows product tests are being aligned with the user-requested plugin boundary:
 the original document button switches source/live, while Mermaid has three
@@ -136,3 +147,32 @@ trusted native copy checks, and requires the editor to remain editable.
   native DPI and full current installed Windows/Linux GUI remain separate gates.
 
 No package in this checkpoint is declared a completed formal release.
+
+## Later installation/build checkpoint
+
+`43141877202` at `bf8a2d50` completed successfully for all three variants. This
+predates the menu and editing-RPC fixes. Original installer SHA-256 values:
+
+| Variant          |     Bytes | SHA-256                                                            |
+| ---------------- | --------: | ------------------------------------------------------------------ |
+| Windows standard |   7247357 | `50d658b124376c9841bc9813bd6e066097c01afc72846d86ed641885db464b03` |
+| Windows offline  | 225029557 | `8784d59e804991bffd65b0dc12126f9e917cd28226ff13f1d7c02c5809057642` |
+| Linux deb        |   9830948 | `d51c3b28df336f43ce0881ee67fe4aa743833bb6f3f16d6a9323821104e7aee0` |
+
+Installation run `43146097590` used these original artifacts. Its standard
+Windows installer exited 0, but the test selected `Process.MainWindowHandle`
+133.4793 ms after launch with an empty title, then normal close timed out at 15 s.
+Forced cleanup is recorded; uninstall did not execute. Artifact `13910774883`
+retains the original failure. The later test enumerates and validates the unique
+visible, unowned `Tauri Window` titled `milkup` for the exact PID, process birth
+and image before posting close. Both the 45 s startup bound and 15 s normal-close
+bound remain unchanged. Real Windows outcome is still required.
+
+That standard runner reported no Word executable and only `en-US` / `0409:00000409`.
+This confirms missing environment for the requested Word 2016 and Chinese IME
+cases on that runner; it is not a failed product behavior test.
+
+Latest source acceptance `43145964546` and package build `43145985835` are bound
+to `5d79147ac0c27be58f4e3697b127b6c2d98561df` and remain pending at this update.
+The superseded `03ced613` source run was cancelled while pending with no job;
+no running verification was cancelled.

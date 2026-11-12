@@ -74,6 +74,10 @@ jobs:
           node -e "const r=JSON.parse(require('fs').readFileSync(process.argv[1]));if(r.head_sha!==process.env.SOURCE_SHA||r.head_branch!=='dot/release-quality-integration-20261112'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/distribution-candidate.yml')throw Error('Exact completed build proof required')" "$RUNNER_TEMP/build-run.json"
           gh run download "$BUILD_RUN" --repo Auto-Plugin/milkup --name "milkup-$VARIANT-$SOURCE_SHA" --dir "$RUNNER_TEMP/candidate-input"
           node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/candidate-input" "$SOURCE_SHA" "$VARIANT"
+      - name: Reject wrong process instances and incidental native windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tests/windows/install-window.test.ps1
       - name: Windows native install, visible window, normal close and uninstall
         if: runner.os == 'Windows'
         shell: pwsh
