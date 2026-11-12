@@ -47,10 +47,15 @@ pwsh -File tests/native/windows-pdf-backend.ps1 -EvidenceDirectory C:\new-output
 
 The gate preserves logs and exact candidate identity, runs actual Windows
 output contracts, and explicitly runs the ignored installed-WebView2 PDF test.
-That test exports A4 and Letter landscape documents and checks that document
+The PDF test exports A4 and Letter landscape documents and checks that document
 network requests do not reach a controlled localhost listener. It retains PDFs
 for independent text extraction, page geometry and all-page pixel inspection.
 A PDF header/byte check is intentionally **not** a Unicode or layout pass.
+The gate also explicitly runs a real native print-dialog cancellation test.
+It identifies only the exact owned helper PID and its visible native dialog,
+sends Cancel with a bounded Win32 call, and requires `cancelled` back. It does
+not submit a physical print, drive the full product plugin UI or replace the
+remaining positive queue/file-printer acceptance.
 
 Before delivery, also run actual GUI export with the installed application:
 HTML regression; A4 and Letter, portrait and landscape; Chinese, emoji, quotes,

@@ -691,7 +691,10 @@ mod tests {
         let Ok(mode) = std::env::var("MILKUP_PDF_FIXTURE") else {
             return;
         };
-        if mode == "native" {
+        if mode == "native" || mode == "native-print" {
+            if let Some(marker) = std::env::var_os("MILKUP_PRINT_GUI_PID_FILE") {
+                fs::write(marker, std::process::id().to_string()).unwrap();
+            }
             run_pdf_helper();
         }
         let _ = frame_read(&mut std::io::stdin().lock(), MAX_HTML * 6 + 65536).unwrap();
@@ -800,6 +803,97 @@ mod tests {
         canceller.join().unwrap();
         assert!(matches!(result, Err(e) if e.contains("cancelled")));
         assert!(started.elapsed() < Duration::from_secs(5));
+    }
+    #[test]
+    #[ignore = "real Windows native print dialog cancellation; requires interactive desktop and printer"]
+    fn native_print_dialog_cancel_returns_cancelled_without_submission() {
+        use ::windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
+        struct Found {
+            pid: u32,
+            window: HWND,
+        }
+        unsafe extern "system" fn find(window: HWND, value: LPARAM) -> ::windows::core::BOOL {
+            let found = &mut *(value.0 as *mut Found);
+            let mut pid = 0;
+            GetWindowThreadProcessId(window, Some(&mut pid));
+            if pid == found.pid && IsWindowVisible(window).as_bool() {
+                let mut name = [0u16; 64];
+                let n = GetClassNameW(window, &mut name);
+                if String::from_utf16_lossy(&name[..n.max(0) as usize]) == "#32770" {
+                    found.window = window;
+                    return false.into();
+                }
+            }
+            true.into()
+        }
+        let root = std::env::temp_dir().join(crate::workspace::id("print-dialog-test").unwrap());
+        fs::create_dir(&root).unwrap();
+        let marker = root.join("helper.pid");
+        let mut job = lease();
+        Arc::get_mut(&mut job).unwrap().format = Format::Print;
+        let cancel = job.clone();
+        let marker_read = marker.clone();
+        let observer = std::thread::spawn(move || -> Result<()> {
+            let deadline = Instant::now() + Duration::from_secs(60);
+            loop {
+                if cancel.cancelled.load(Ordering::Acquire) {
+                    return Err("Native print helper exited before a dialog was observed".into());
+                }
+                if Instant::now() >= deadline {
+                    cancel.cancelled.store(true, Ordering::Release);
+                    return Err("No real print dialog appeared within the native GUI gate".into());
+                }
+                if let Ok(pid) = fs::read_to_string(&marker_read)
+                    .unwrap_or_default()
+                    .parse::<u32>()
+                {
+                    let mut found = Found {
+                        pid,
+                        window: HWND::default(),
+                    };
+                    unsafe {
+                        let _ =
+                            EnumWindows(Some(find), LPARAM((&mut found as *mut Found) as isize));
+                    }
+                    if !found.window.is_invalid() {
+                        // Only this test's exact helper process and actual native
+                        // dialog. No global key injection or printer submission.
+                        unsafe {
+                            if SendMessageTimeoutW(
+                                found.window,
+                                WM_COMMAND,
+                                WPARAM(2),
+                                LPARAM(0),
+                                SMTO_ABORTIFHUNG,
+                                2000,
+                                None,
+                            )
+                            .0 == 0
+                            {
+                                cancel.cancelled.store(true, Ordering::Release);
+                                return Err("Native print dialog did not acknowledge Cancel".into());
+                            }
+                        }
+                        return Ok(());
+                    }
+                }
+                std::thread::sleep(Duration::from_millis(25));
+            }
+        });
+        let mut command = fixture_command("native-print");
+        command.env("MILKUP_PRINT_GUI_PID_FILE", &marker);
+        let result = render_with_command(
+            &job,
+            "<!doctype html><p>Cancel must not submit this document.</p>".into(),
+            PageSize::A4,
+            false,
+            command,
+        );
+        job.cancelled.store(true, Ordering::Release);
+        let observed = observer.join().unwrap();
+        fs::remove_dir_all(root).unwrap();
+        observed.unwrap();
+        assert!(matches!(result.unwrap(), NativeResult::Cancelled));
     }
     #[test]
     #[ignore = "requires installed Evergreen WebView2; run explicitly on Windows native acceptance"]

@@ -14,7 +14,7 @@ $env:MILKUP_PDF_EVIDENCE_DIR = $evidence
 $summary = [ordered]@{
   schema = 1; candidateSha = $sha; platform = [Environment]::OSVersion.VersionString
   nativeContracts = 'not-run'; installedWebView2Pdf = 'not-run'
-  guiPicker = 'not-run'; printedToQueue = 'not-run'; physicalPrint = 'not-run'
+  guiPicker = 'not-run'; nativePrintDialogCancel = 'not-run'; printedToQueue = 'not-run'; physicalPrint = 'not-run'
   textAndVisualFidelity = 'not-run'; linuxRegression = 'not-run'; releaseReady = $false
 }
 try {
@@ -24,6 +24,10 @@ try {
   & cargo test --locked --manifest-path $manifest --lib output::windows::pdf::tests::installed_webview2_renders_static_pdf_without_document_network_access -- --exact --ignored --test-threads=1 --nocapture 2>&1 | Tee-Object -FilePath (Join-Path $evidence 'webview2-pdf.log')
   if ($LASTEXITCODE -ne 0) { $summary.installedWebView2Pdf = 'failed'; throw 'Installed WebView2 PDF failed' }
   $summary.installedWebView2Pdf = 'passed'
+  & cargo test --locked --manifest-path $manifest --lib output::windows::pdf::tests::native_print_dialog_cancel_returns_cancelled_without_submission -- --exact --ignored --test-threads=1 --nocapture 2>&1 | Tee-Object -FilePath (Join-Path $evidence 'print-dialog-cancel.log')
+  if ($LASTEXITCODE -ne 0) { $summary.nativePrintDialogCancel = 'failed'; throw 'Real native print dialog cancellation failed' }
+  $summary.nativePrintDialogCancel = 'passed'
+
   $summary.artifacts = @('a4.pdf', 'letter-landscape.pdf') | ForEach-Object {
     $file = Join-Path $evidence $_
     if (!(Test-Path -LiteralPath $file)) { throw "Missing native PDF: $_" }
