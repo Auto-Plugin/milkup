@@ -528,3 +528,33 @@ or repair health is claimed. Artifact `13915720275` SHA is
 `d4cca75a / 43154235678` selects an actually visible source line, sends Enter as
 a real WebDriver key, and preserves failure DOM/screenshot evidence. It still
 uses the original `5d79147a` package; the new close fix is not in those bytes.
+
+## Real installed repair editing/configuration health passed
+
+`43154235678 / d4cca75a` passed against the **original standard package built
+from `5d79147a`**, SHA `9e94706c2b144d92dad5d0f65a7b6b3ffa014de7e61d698a59a1d1813cde687c`.
+Artifact `13915581051` is 60,887 bytes, independently verified ZIP SHA-256
+`b63535f2a3d4180bfab9ae42a99649fa1e34208cc26471e5d89f779ccf35c73d`.
+Both real-input reports and the final supervisor/installation reports passed:
+
+- Before repair: exact installed document opened, actual Diagrams switch true ->
+  false, real keyboard appended REPAIR-BEFORE and saved exactly 132 bytes,
+  SHA `e73aa5bc78a4b8660cc54f10d21c1aa20ad08bf4fec116ff843eccb4f998a83d`.
+- Same-package missing-file repair restored exact EXE SHA
+  `4ff93b8dd448243426a5faf3a095fa94cc84dc1cc1a206df0093ab4f9f174a9e`.
+- After restart: saved document SHA unchanged and Diagrams remained disabled.
+  Real switch false -> true, then real edit/save yielded 145 bytes,
+  SHA `5776941db374510f0d0ad9eeb2d006e909e02b7fd2581b035a63e5de597538ac`.
+  Without another restart, a nonuniform 448x95 decoded diagram appeared,
+  pixel SHA `c704f6bd68116bb15b17bbb2542cd7138353aeb6dbbf8034e656140a4bd3af2c`.
+  The actual screenshot visibly contains the diagram and both saved edit lines.
+- Both actual native closes exited 0, NSIS uninstall exited 0 and preserved the
+  edited document. forcedCleanup=false. The child coordinator exited 0 with
+  activeBeforeOuterCleanup=0, Job empty, and no cleanup errors; exact temporary
+  account, profile and staging were removed. Existing desktop ACLs/security
+  policy were unchanged, and the child token was verified pure-standard.
+
+This proves this one plugin choice and document's same-version repair health;
+it does not establish all configuration migration, signed update recovery,
+automatic rollback, filtered-admin repair health or acceptance of the later
+`8a537208` application. That later candidate still requires its own package tests.
