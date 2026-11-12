@@ -43,6 +43,24 @@ export function createDocumentTransitionController(options: {
   // Cancellation settles the caller immediately, but an action must unwind
   // before another navigation can start. Actions check their signal at commit.
   let executing: TransitionRequest | undefined
+  // Native close has already been prevented by the host. Remember one intent
+  // while opening/saving instead of silently requiring a second user click.
+  let deferredWindowClose: (() => void | Promise<void>) | undefined
+  let closeCheckScheduled = false
+
+  function notifyStateChanged(): void {
+    if (!deferredWindowClose || closeCheckScheduled) return
+    closeCheckScheduled = true
+    queueMicrotask(() => {
+      closeCheckScheduled = false
+      if (!deferredWindowClose || pending || executing || options.busy()) return
+      const action = deferredWindowClose
+      deferredWindowClose = undefined
+      // Admission happens against the current document, after the open/save has
+      // settled; its dirty state must still receive the ordinary confirmation.
+      void begin('window', action).catch(options.onError)
+    })
+  }
 
   function release(request: TransitionRequest): boolean {
     if (pending !== request) return false
@@ -103,6 +121,7 @@ export function createDocumentTransitionController(options: {
       fail(request, error)
     } finally {
       if (executing === request) executing = undefined
+      notifyStateChanged()
     }
   }
 
@@ -116,7 +135,7 @@ export function createDocumentTransitionController(options: {
       completion?.resolve({ status: 'cancelled', reason: 'abort' })
       return
     }
-    if (pending || executing || options.busy()) {
+    if (pending || executing || options.busy() || deferredWindowClose) {
       completion?.resolve({ status: 'cancelled', reason: 'busy' })
       return
     }
@@ -152,14 +171,26 @@ export function createDocumentTransitionController(options: {
       options.show({ kind, phase: 'confirming' })
     } catch (error) {
       if (pending === request) fail(request, error)
+    } finally {
+      notifyStateChanged()
     }
   }
 
   return {
     /** Preserves the legacy promise: a dirty document resolves after showing its prompt. */
     request(kind: DocumentTransitionKind, action: () => void | Promise<void>): Promise<void> {
+      if (kind === 'window') {
+        if (pending?.kind === 'window' || executing?.kind === 'window') return Promise.resolve()
+        if (pending || executing || options.busy() || deferredWindowClose) {
+          deferredWindowClose ??= action
+          notifyStateChanged()
+          return Promise.resolve()
+        }
+      }
       return begin(kind, action)
     },
+    /** The host calls this after loading/saving state changes; no polling timer. */
+    notifyStateChanged,
     /** Check signal before replacing the document, then call commit synchronously.
      * Post-commit UI work keeps the execution lock and reports errors via onError. */
     requestAndWait(
@@ -172,6 +203,7 @@ export function createDocumentTransitionController(options: {
       })
     },
     cancel(): void {
+      deferredWindowClose = undefined
       if (pending) cancelRequest(pending, 'cancel')
       else options.hide()
     },

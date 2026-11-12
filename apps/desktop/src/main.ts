@@ -5574,6 +5574,7 @@ function renderSession(): void {
     renderCloseConfirmState()
   }
   updateModeToggle(session.viewMode)
+  documentTransitions.notifyStateChanged()
 }
 
 function setDocumentLoadingState(nextState: DocumentLoadingState): void {

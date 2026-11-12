@@ -561,3 +561,91 @@ describe('awaited document transitions', () => {
     expect(install).toHaveBeenCalledOnce()
   })
 })
+
+describe('native close during document startup', () => {
+  it('retains one close while loading and closes only once after readiness', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'loading' }))
+    let busy = true
+    options.busy = () => busy
+    const close = vi.fn()
+    await controller.request('window', close)
+    await controller.request('window', vi.fn())
+    controller.notifyStateChanged()
+    await Promise.resolve()
+    expect(options.flushEdits).not.toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
+    busy = false
+    controller.notifyStateChanged()
+    controller.notifyStateChanged()
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce())
+    expect(options.show).not.toHaveBeenCalled()
+  })
+
+  it('checks the newly opened document for unsaved content before deferred close', async () => {
+    const { controller, options } = fixture()
+    let busy = true
+    options.busy = () => busy
+    const close = vi.fn()
+    await controller.request('window', close)
+    busy = false
+    controller.notifyStateChanged()
+    await vi.waitFor(() =>
+      expect(options.show).toHaveBeenCalledWith({ kind: 'window', phase: 'confirming' }),
+    )
+    expect(close).not.toHaveBeenCalled()
+    await controller.save()
+    expect(options.save).toHaveBeenCalledOnce()
+    expect(close).toHaveBeenCalledOnce()
+  })
+
+  it('cancellation clears a deferred close without later closing a different document', async () => {
+    const { controller, options, setSession } = fixture()
+    options.busy = () => true
+    const close = vi.fn()
+    await controller.request('window', close)
+    controller.cancel()
+    setSession(createDocumentSession({ documentId: 'other' }))
+    options.busy = () => false
+    controller.notifyStateChanged()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(close).not.toHaveBeenCalled()
+  })
+
+  it('waits for an executing open to unwind and then protects the committed document', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'old' }))
+    const opening = deferred<void>()
+    const opened = controller.requestAndWait('open', async (_signal, commit) => {
+      await opening.promise
+      setSession(createDocumentSession({ documentId: 'new' }))
+      commit()
+    })
+    await Promise.resolve()
+    const close = vi.fn()
+    await controller.request('window', close)
+    expect(close).not.toHaveBeenCalled()
+    opening.resolve()
+    await expect(opened).resolves.toEqual({ status: 'completed' })
+    await vi.waitFor(() => expect(close).toHaveBeenCalledOnce())
+    expect(options.onError).not.toHaveBeenCalled()
+  })
+
+  it('does not duplicate an already executing close or bypass its cleanup', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'clean' }))
+    const cleanup = deferred<void>()
+    const close = vi.fn(() => cleanup.promise)
+    const first = controller.request('window', close)
+    await Promise.resolve()
+    await controller.request('window', close)
+    expect(close).toHaveBeenCalledOnce()
+    cleanup.resolve()
+    await first
+    controller.notifyStateChanged()
+    await Promise.resolve()
+    expect(close).toHaveBeenCalledOnce()
+    expect(options.onError).not.toHaveBeenCalled()
+  })
+})

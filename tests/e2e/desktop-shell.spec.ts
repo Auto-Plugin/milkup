@@ -537,6 +537,28 @@ test('cancelling a pending save continuation never navigates after the write com
   await expect(page.locator('[data-save-label]')).toContainText('未保存')
 })
 
+test('window close requested during a save is retained and still protects a failed save', async ({
+  page,
+}) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, 'platform', { value: 'Win32' }))
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.insertText('KEEP-AFTER-FAILED-SAVE')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'true')
+  await page.locator('[data-window-control="close"]').click()
+  await expect(page.locator('[data-close-confirm]')).toBeHidden()
+  await page.evaluate("window.__milkupSaveProbe.release('error')")
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'false')
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: '保存并退出', exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: '取消', exact: true }).click()
+  await expect(page.locator('.milkup-editor-content')).toContainText('KEEP-AFTER-FAILED-SAVE')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+})
+
 for (const outcome of ['cancel', 'error']) {
   test(`opening ${outcome} after discard preserves original content and history`, async ({
     page,
