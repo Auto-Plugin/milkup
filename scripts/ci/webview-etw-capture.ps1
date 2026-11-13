@@ -82,6 +82,25 @@ function Stop-MilkupEtw($Context, [string]$Node, [string]$AccountKind) {
         $wpt = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Windows Performance Toolkit'
         $profiles = @(Get-ChildItem -LiteralPath $wpt -Filter '*.wpaProfile' -Recurse | Select-Object -First 64)
         $r.installedAnalysisProfiles = @($profiles | ForEach-Object { [IO.Path]::GetRelativePath($wpt,$_.FullName) })
+        $xperf = Join-Path $wpt 'xperf.exe'
+        $xperfSignature = Get-AuthenticodeSignature $xperf
+        if ($xperfSignature.Status -ne 'Valid' -or $xperfSignature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Trusted Xperf required' }
+        $r.xperfSha256 = (Get-FileHash $xperf).Hash.ToLowerInvariant()
+        $r.analysis = @()
+        foreach ($action in @('tracestats','process','cpudisk','diskio','profile','marks')) {
+            $text = Join-Path $Context.directory ($action + '.txt')
+            $info = [Diagnostics.ProcessStartInfo]::new($xperf)
+            $info.UseShellExecute = $false; $info.CreateNoWindow = $true
+            $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+            foreach ($a in @('-i',$etl,'-o',$text,'-quiet','-a',$action)) { $info.ArgumentList.Add($a) }
+            $proc = [Diagnostics.Process]::Start($info)
+            $stdout = $proc.StandardOutput.ReadToEndAsync(); $stderr = $proc.StandardError.ReadToEndAsync()
+            $finished = $proc.WaitForExit(60000)
+            if (-not $finished) { $proc.Kill($true); $proc.WaitForExit() }
+            # Only native exit, size and digest escape the encrypted bundle.
+            $r.analysis += @{ action = $action; timedOut = -not $finished; exitCode = $proc.ExitCode; bytes = $(if (Test-Path $text) { (Get-Item $text).Length } else { 0 }) }
+            $proc.Dispose()
+        }
         $eventsPath = Join-Path $Context.directory 'webview-events.xml'
         $writer = [IO.StreamWriter]::new($eventsPath,$false,[Text.UTF8Encoding]::new($false))
         $writer.WriteLine('<Events>')
