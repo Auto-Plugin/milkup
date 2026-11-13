@@ -15,15 +15,15 @@ function Query([string[]]$CommandArguments) {
     $r.queries += @{ arguments = $CommandArguments; exitCode = $code; text = $output }
     return $output
 }
-$profiles = Query @('-profiles')
+$profiles = Query -CommandArguments @('-profiles')
 $names = @()
 foreach ($line in ($profiles -split "`n")) {
     if ($line -match '^\s*([A-Za-z0-9_]+)\s+.*(File I/O|Mini[Ff]ilter|Disk I/O|Storage)') { $names += $Matches[1] }
 }
 foreach ($name in @($names | Select-Object -Unique)) {
-    $null = Query @('-profiledetails',$name,'-filemode')
+    $null = Query -CommandArguments @('-profiledetails',$name,'-filemode')
     $export = Join-Path $OutputDirectory ($name + '.wprp')
-    $null = Query @('-exportprofile',$name,$export,'-filemode')
+    $null = Query -CommandArguments @('-exportprofile',$name,$export,'-filemode')
     if (Test-Path $export) { $r.exports += @{ name = $name; bytes = (Get-Item $export).Length; sha256 = (Get-FileHash $export).Hash.ToLowerInvariant() } }
 }
 $providers = @(& $wpr -providers 2>&1)
