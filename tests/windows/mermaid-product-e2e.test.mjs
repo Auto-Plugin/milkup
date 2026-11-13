@@ -78,10 +78,20 @@ test('frontend workflow refs reach the same exact hosted-wrapper allowlist', asy
   assert(wrapperList, 'Case-sensitive exact-ref wrapper gate required')
   const wrapperRefs = [...wrapperList.matchAll(/'(refs\/heads\/[^']+)'/g)].map((m) => m[1]).sort()
   assert.deepEqual(jobRefs, pushRefs, 'Push and job gates disagree')
+  const etw = await readFile(
+    new URL('../../.github/workflows/webview-etw-startup.yml', import.meta.url),
+    'utf8',
+  )
+  const etwJobRefs = [...etw.matchAll(/github\.ref == '(refs\/heads\/[^']+)'/g)].map((m) => m[1])
+  const etwPush = etw.match(/push:\s+branches:\s+\[([^\]]+)\]/)?.[1]
+  assert.equal(etwPush, 'dot/webview-etw-preflight-20261113')
+  assert.deepEqual(etwJobRefs, ['refs/heads/' + etwPush])
+  assert.match(etw, /STARTUP_PROFILE_COMPARISON: '1'/)
+  assert.match(etw, /MILKUP_ETW_CAPTURE: '1'/)
   assert.deepEqual(
     wrapperRefs,
-    jobRefs,
-    'Accepted workflow branch is rejected before product launch',
+    [...new Set([...jobRefs, ...etwJobRefs])].sort(),
+    'Wrapper must accept exactly the independently gated frontend and ETW workflows',
   )
   assert(wrapperRefs.includes('refs/heads/dot/startup-empty-anchor-20261112'))
   assert(wrapperRefs.every((ref) => /^refs\/heads\/dot\/[a-z0-9-]+$/.test(ref)))
