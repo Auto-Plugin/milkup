@@ -21,6 +21,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/ci/probe-webview-etw.ps1
+            /tests/native/fixtures/WebView2_CPU.wprp
+            /.gitattributes
       - name: Verify signed recorder and bounded disposable recording
         shell: pwsh
         run: scripts/ci/probe-webview-etw.ps1 -OutputDirectory (Join-Path $env:RUNNER_TEMP 'milkup-etw-safe-evidence')

@@ -16,7 +16,12 @@ function Tool([string]$path) {
 }
 $wpr = Join-Path $env:SystemRoot 'System32/wpr.exe'
 $paths = @($wpr, (Join-Path $env:SystemRoot 'System32/tracerpt.exe'))
-foreach ($name in @('wpa.exe','wpaexporter.exe','xperf.exe')) { $paths += Join-Path ${env:ProgramFiles(x86)} "Windows Kits/10/Windows Performance Toolkit/$name" }
+foreach ($name in @('wpa.exe','wpaexporter.exe','xperf.exe')) {
+    foreach ($base in @(${env:ProgramFiles(x86)}, $env:ProgramFiles)) { $paths += Join-Path $base "Windows Kits/10/Windows Performance Toolkit/$name" }
+    $command = Get-Command $name -CommandType Application -ErrorAction SilentlyContinue
+    if ($command) { $paths += $command.Source }
+}
+$paths = @($paths | Select-Object -Unique)
 $started = $false
 $instance = 'MilkupPreflight' + [guid]::NewGuid().ToString('N')
 try {
