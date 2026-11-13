@@ -61,11 +61,10 @@ try {
     $summary.actions = @()
     # Reprocess the retained trace only: known phase intervals are trace-relative microseconds.
     $analyses = @(
-        @{ name = 'webview-complete'; args = @('dumper','-provider','{E16EC3D2-BB0F-4E8F-BDB8-DE0BEA82DC3D}') },
-        @{ name = 'slow-b-events'; args = @('dumper','-range','56500000','68000000') },
-        @{ name = 'slow-b-threads'; args = @('cswitch','-thread','-range','57591606','66750606') },
-        @{ name = 'fast-b-threads'; args = @('cswitch','-thread','-range','72000000','76000000') },
-        @{ name = 'first-a-threads'; args = @('cswitch','-thread','-range','33123606','43742606') }
+        @{ name = 'first-a-events'; args = @('dumper','-stacktimeshifting','-range','33000000','44000000'); symbols = $false },
+        @{ name = 'fast-b-events'; args = @('dumper','-stacktimeshifting','-range','72000000','76000000'); symbols = $false },
+        @{ name = 'slow-b-symbols'; args = @('dumper','-stacktimeshifting','-range','56500000','68000000'); symbols = $true },
+        @{ name = 'first-a-symbols'; args = @('dumper','-stacktimeshifting','-range','33000000','44000000'); symbols = $true }
     )
     foreach ($analysis in $analyses) {
         $action = $analysis.name
@@ -73,10 +72,17 @@ try {
         $info = [Diagnostics.ProcessStartInfo]::new($xperf)
         $info.UseShellExecute = $false; $info.CreateNoWindow = $true
         $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
-        foreach ($a in (@('-i',$etl,'-o',$path,'-quiet','-a') + $analysis.args)) { $info.ArgumentList.Add($a) }
+                $command = @('-i',$etl,'-o',$path,'-quiet')
+        if ($analysis.symbols) {
+            $info.Environment['_NT_SYMBOL_PATH'] = 'srv*' + (Join-Path $PrivateDirectory 'symbols') + '*https://msdl.microsoft.com/download/symbols'
+            $info.Environment['_NT_SYMCACHE_PATH'] = Join-Path $PrivateDirectory 'symcache'
+            $command += '-symbols'
+        }
+        $command += @('-a') + $analysis.args
+        foreach ($a in $command) { $info.ArgumentList.Add($a) }
         $proc = [Diagnostics.Process]::Start($info)
         $stdout = $proc.StandardOutput.ReadToEndAsync(); $stderr = $proc.StandardError.ReadToEndAsync()
-        $finished = $proc.WaitForExit(120000)
+        $finished = $proc.WaitForExit(180000)
         if (-not $finished) { $proc.Kill($true); $proc.WaitForExit() }
         $summary.actions += @{ action = $action; timedOut = -not $finished; exitCode = $proc.ExitCode; bytes = $(if (Test-Path $path) { (Get-Item $path).Length } else { 0 }) }
         $proc.Dispose()
