@@ -62,7 +62,7 @@ export async function seal(input, publicKey, output) {
     rawBytes: size,
   }
 }
-export async function unseal(input, privateKey, output) {
+export async function unseal(input, privateKey, output, relayEnvelope) {
   const f = await open(input, 'r')
   let header, prefix, size
   try {
@@ -92,7 +92,12 @@ export async function unseal(input, privateKey, output) {
       oaepHash: 'sha256',
       padding: constants.RSA_PKCS1_OAEP_PADDING,
     },
-    Buffer.from(header.wrappedKey, 'base64'),
+    Buffer.from(
+      relayEnvelope
+        ? JSON.parse(await readFile(relayEnvelope, 'utf8')).wrappedKey
+        : header.wrappedKey,
+      'base64',
+    ),
   )
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(header.nonce, 'base64'))
   decipher.setAAD(prefix)
@@ -105,11 +110,12 @@ export async function unseal(input, privateKey, output) {
   }
   decipher.setAuthTag(tag)
   const temp = output + '.partial'
+  await writeFile(temp, Buffer.alloc(0), { flag: 'wx', mode: 0o600 })
   try {
     await pipeline(
       createReadStream(input, { start: prefix.length, end: size - 17 }),
       decipher,
-      createWriteStream(temp, { flags: 'wx', mode: 0o600 }),
+      createWriteStream(temp, { flags: 'w', mode: 0o600 }),
     )
     await link(temp, output)
     await rm(temp)
@@ -121,9 +127,9 @@ export async function unseal(input, privateKey, output) {
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const [mode, input, key, output] = process.argv.slice(2)
+  const [mode, input, key, output, relayEnvelope] = process.argv.slice(2)
   if (mode !== 'seal' && mode !== 'unseal') throw Error('Explicit mode required')
-  const result = await (mode === 'seal' ? seal : unseal)(input, key, output)
+  const result = await (mode === 'seal' ? seal : unseal)(input, key, output, relayEnvelope)
   const hash = createHash('sha256')
   for await (const b of createReadStream(output)) hash.update(b)
   console.log(JSON.stringify({ ...result, sha256: hash.digest('hex') }))

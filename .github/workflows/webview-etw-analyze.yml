@@ -1,0 +1,67 @@
+name: Analyze exact sealed WebView trace without launching product
+on:
+  push:
+    branches: [dot/webview-etw-preflight-20261113]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: milkup-etw-analysis
+  cancel-in-progress: false
+jobs:
+  analyze:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' && github.ref == 'refs/heads/dot/webview-etw-preflight-20261113' &&
+      (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[webview-etw-analysis]'))
+    runs-on: windows-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/ci/seal-etw.mjs
+            /scripts/ci/analyze-sealed-etw.ps1
+            /tests/native/fixtures/etw-retention-public.pem
+      - name: Create one-run recipient key
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'Hosted only' }
+          $private = Join-Path $env:RUNNER_TEMP ('milkup-etw-analysis-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory $private | Out-Null
+          $env:MILKUP_ETW_ANALYSIS_DIRECTORY = $private
+          node --input-type=module -e "import {generateKeyPairSync} from 'node:crypto';import {writeFileSync} from 'node:fs';import path from 'node:path';const k=generateKeyPairSync('rsa',{modulusLength:3072,publicKeyEncoding:{type:'spki',format:'pem'},privateKeyEncoding:{type:'pkcs8',format:'pem'}});for(const [n,v] of [['recipient-private.pem',k.privateKey],['recipient-public.pem',k.publicKey]])writeFileSync(path.join(process.env.MILKUP_ETW_ANALYSIS_DIRECTORY,n),v,{flag:'wx',mode:0o600});"
+          if ($LASTEXITCODE -ne 0) { throw 'Ephemeral key creation failed' }
+          "MILKUP_ETW_ANALYSIS_DIRECTORY=$private" >> $env:GITHUB_ENV
+      - name: Publish only the recipient public key
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: etw-analysis-public-${{ github.run_id }}
+          path: ${{ env.MILKUP_ETW_ANALYSIS_DIRECTORY }}/recipient-public.pem
+          if-no-files-found: error
+          retention-days: 1
+      - name: Authenticate exact retained trace and export on Windows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci/analyze-sealed-etw.ps1 -PrivateDirectory $env:MILKUP_ETW_ANALYSIS_DIRECTORY -OutputDirectory (Join-Path $env:RUNNER_TEMP 'milkup-etw-analysis-safe')
+      - name: Retain encrypted reports and allowlisted summary
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: etw-analysis-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/milkup-etw-analysis-safe/analysis.sealed
+            ${{ runner.temp }}/milkup-etw-analysis-safe/analysis-summary.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Remove private material after unexpected interruption
+        if: always()
+        run: |
+          if ($env:MILKUP_ETW_ANALYSIS_DIRECTORY -and (Test-Path -LiteralPath $env:MILKUP_ETW_ANALYSIS_DIRECTORY)) {
+            Remove-Item -LiteralPath $env:MILKUP_ETW_ANALYSIS_DIRECTORY -Recurse -Force
+          }
