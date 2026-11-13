@@ -59,7 +59,7 @@ try {
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Signed Microsoft Xperf required' }
     $summary.xperfSha256 = (Get-FileHash $xperf).Hash.ToLowerInvariant()
     $summary.actions = @()
-    foreach ($action in @('tracestats','process','cpudisk','diskio','profile','marks')) {
+    foreach ($action in @('tracestats','process','cpudisk','diskio','profile','cswitch','hardfault','marks')) {
         $path = Join-Path $reports ($action + '.txt')
         $info = [Diagnostics.ProcessStartInfo]::new($xperf)
         $info.UseShellExecute = $false; $info.CreateNoWindow = $true
