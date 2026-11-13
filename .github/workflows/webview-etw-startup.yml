@@ -47,6 +47,8 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Verify exact profile-content identity and negative cases before build
+        run: tests/windows/etw-profile-identity.test.ps1
       - name: Verify exact new candidate and engine bytes
         run: |
           $ErrorActionPreference = 'Stop'

@@ -6,6 +6,28 @@ function Assert-EtwHost {
     if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') { throw 'Disposable hosted Windows required' }
     if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Recorder coordinator must already be elevated' }
 }
+function Get-EtwProfileIdentity([string]$Path) {
+    if ((Get-Item -LiteralPath $Path).Length -gt 65536) { throw 'Profile metadata budget' }
+    $settings = [Xml.XmlReaderSettings]::new()
+    $settings.DtdProcessing = [Xml.DtdProcessing]::Prohibit
+    $settings.XmlResolver = $null
+    $settings.MaxCharactersInDocument = 65536
+    $reader = [Xml.XmlReader]::Create($Path, $settings)
+    $doc = [Xml.XmlDocument]::new()
+    $doc.XmlResolver = $null
+    try { $doc.Load($reader) } finally { $reader.Dispose() }
+    # WPR exports provider definitions/references in variable sibling order.
+    # Only these two unordered collections are normalized. Every attribute,
+    # provider, keyword, stack, buffer and profile setting remains compared.
+    foreach ($rule in @(@('/WindowsPerformanceRecorder/Profiles','EventProvider'), @('//EventProviders','EventProviderId'))) {
+        foreach ($parent in @($doc.SelectNodes($rule[0]))) {
+            $nodes = @($parent.ChildNodes | Where-Object { $_.NodeType -eq [Xml.XmlNodeType]::Element -and $_.LocalName -ceq $rule[1] } | Sort-Object OuterXml -CaseSensitive)
+            foreach ($node in $nodes) { $null = $parent.RemoveChild($node) }
+            foreach ($node in $nodes) { $null = $parent.AppendChild($node) }
+        }
+    }
+    return $doc.OuterXml
+}
 function Invoke-EtwWatcher {
     Assert-EtwHost
     if ($Instance -cnotmatch '^MilkupEtw[a-f0-9]{32}$' -or -not (Test-Path -LiteralPath $PrivateDirectory -PathType Container)) { throw 'Invalid owned recorder context' }
@@ -40,9 +62,13 @@ function Invoke-EtwWatcher {
                 $r.lastExportExit = $LASTEXITCODE
                 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $export)) { throw 'Required installed recording profile unavailable' }
                 $hash = (Get-FileHash $export).Hash.ToLowerInvariant()
-                $r.companionProfiles += @{ name = $name; sha256 = $hash; expectedSha256 = $expected[$name] }
-                $r.gate = 'hash-' + $name
-                if ($hash -cne $expected[$name]) { throw 'Installed recording profile changed; stop without recording' }
+                $reference = Join-Path $PSScriptRoot ('../../tests/native/fixtures/etw-io/' + $name + '.wprp')
+                if ((Get-FileHash $reference).Hash.ToLowerInvariant() -cne $expected[$name]) { throw 'Pinned reference profile changed' }
+                $actualIdentity = Get-EtwProfileIdentity $export
+                $expectedIdentity = Get-EtwProfileIdentity $reference
+                $r.companionProfiles += @{ name = $name; sha256 = $hash; referenceSha256 = $expected[$name]; configurationMatched = ($actualIdentity -ceq $expectedIdentity) }
+                $r.gate = 'configuration-' + $name
+                if ($actualIdentity -cne $expectedIdentity) { throw 'Installed recording profile changed; stop without recording' }
                 $startArguments += @('-start', $name)
             }
         }
