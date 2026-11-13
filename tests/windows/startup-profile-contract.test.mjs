@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
   profileOrder,
+  startupProfileOrder,
   profileTrial,
   verifyProfileReuse,
   verifyCatalogRestart,
@@ -123,4 +124,11 @@ test('workflow keeps diagnostic opt-in, and wrapper gates copied input and purpo
   assert.match(wrapper, /Startup comparison cannot run installation or ordinary acceptance/)
   assert.match(wrapper, /Diagnostic cannot substitute for product acceptance/)
   assert.match(wrapper, /Startup contract staging mismatch/)
+})
+
+test('targeted I/O plan is exactly fresh then reused with no extra controls', () => {
+  assert.deepEqual(startupProfileOrder(true, true), ['a', 'a'])
+  assert.deepEqual(startupProfileOrder(false, true), profileOrder)
+  assert.throws(() => startupProfileOrder(true, false))
+  assert.throws(() => startupProfileOrder('1', true))
 })

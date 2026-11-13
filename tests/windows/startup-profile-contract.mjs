@@ -3,6 +3,12 @@ import { createHash } from 'node:crypto'
 const logBudget = 128 * 1024
 export const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 export const profileOrder = Object.freeze(['a', 'a', 'b', 'b', 'a', 'c', 'c', 'b'])
+export function startupProfileOrder(targeted, comparison) {
+  assert.equal(typeof targeted, 'boolean')
+  assert.equal(typeof comparison, 'boolean')
+  assert(!targeted || comparison, 'Targeted I/O requires explicit startup diagnostic')
+  return targeted ? Object.freeze(profileOrder.slice(0, 2)) : profileOrder
+}
 export function profileTrial(index) {
   assert(Number.isInteger(index) && index >= 0 && index < profileOrder.length)
   const name = profileOrder[index]

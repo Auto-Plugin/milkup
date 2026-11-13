@@ -15,9 +15,34 @@ function Invoke-EtwWatcher {
     if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Trusted WPR required' }
     if ((Get-FileHash $profile).Hash.ToLowerInvariant() -cne 'becbf3e4638e5f458e16a8fb7e7b14ae15dcdfe06bdb3d89a86c58412b2b062a') { throw 'Pinned recording profile required' }
     $r = [ordered]@{ status = 'running'; startedUtc = [datetime]::UtcNow.ToString('o'); profileSha256 = (Get-FileHash $profile).Hash.ToLowerInvariant(); wprSha256 = (Get-FileHash $wpr).Hash.ToLowerInvariant(); boundedStop = $null; errors = @() }
+    $targeted = $env:MILKUP_ETW_TARGETED_IO -ceq '1'
+    $r.targetedIo = $targeted
+    $r.maximumSeconds = $(if ($targeted) { 120 } else { 180 })
+    $r.recordingAttempts = 0
+    $r.companionProfiles = @()
+    $startArguments = @('-start', $profile)
     $started = $false
     try {
-        $output = @(& $wpr -start $profile -filemode -recordtempto $PrivateDirectory -instancename $Instance 2>&1)
+        if ($targeted) {
+            # Metadata-only exports, validated before recording/application startup.
+            # Existing signed Microsoft WPR profiles; no installation or system changes.
+            $expected = [ordered]@{
+                FileIO = '00a9fb33b9ae83d5425ddaf49ac2f146bb86a0336c3989b0a9e5773936ef4d4b'
+                Minifilter = 'ced41e04c200f6d1fe2b51cf3fd7295dee443e3cf85d5b9e71222d6448341256'
+                DiskIO = '22ad8fdde533887f41178ef488c2c9e524700547c4a68964eff8dc68ffaa8f04'
+            }
+            foreach ($name in $expected.Keys) {
+                $export = Join-Path $PrivateDirectory ($name + '.wprp')
+                $null = @(& $wpr -exportprofile $name $export -filemode 2>&1)
+                if ($LASTEXITCODE -ne 0 -or -not (Test-Path $export)) { throw 'Required installed recording profile unavailable' }
+                $hash = (Get-FileHash $export).Hash.ToLowerInvariant()
+                if ($hash -cne $expected[$name]) { throw 'Installed recording profile changed; stop without recording' }
+                $r.companionProfiles += @{ name = $name; sha256 = $hash }
+                $startArguments += @('-start', $name)
+            }
+        }
+        $r.recordingAttempts = 1
+        $output = @(& $wpr @startArguments -filemode -recordtempto $PrivateDirectory -instancename $Instance 2>&1)
         $r.startExit = $LASTEXITCODE
         if ($LASTEXITCODE -ne 0) { throw 'Recorder start rejected' }
         $started = $true
@@ -26,7 +51,7 @@ function Invoke-EtwWatcher {
         [IO.File]::WriteAllText((Join-Path $PrivateDirectory 'ready'), 'ready')
         $timer = [Diagnostics.Stopwatch]::StartNew()
         while (-not (Test-Path -LiteralPath (Join-Path $PrivateDirectory 'stop'))) {
-            if ($timer.Elapsed.TotalSeconds -ge 180) { $r.boundedStop = '180-second-window'; break }
+            if ($timer.Elapsed.TotalSeconds -ge $r.maximumSeconds) { $r.boundedStop = 'time-window'; break }
             $size = (Get-ChildItem -LiteralPath $PrivateDirectory -File | Measure-Object Length -Sum).Sum
             if ($size -ge 512MB) { $r.boundedStop = '512-MiB-recording-budget'; break }
             Start-Sleep -Milliseconds 500
@@ -59,7 +84,17 @@ function Start-MilkupEtw {
     $process = [Diagnostics.Process]::Start($info)
     $until = [datetime]::UtcNow.AddSeconds(30)
     while (-not (Test-Path (Join-Path $dir 'ready'))) {
-        if ($process.HasExited -or [datetime]::UtcNow -gt $until) { [IO.File]::WriteAllText((Join-Path $dir 'stop'),'stop'); throw 'Recorder readiness failed; no product launched' }
+        if ($process.HasExited -or [datetime]::UtcNow -gt $until) {
+            [IO.File]::WriteAllText((Join-Path $dir 'stop'),'stop')
+            $safe = Join-Path $env:RUNNER_TEMP 'milkup-etw-retained-pure-standard'
+            New-Item -ItemType Directory -Path $safe -Force | Out-Null
+            if ($process.WaitForExit(120000) -and (Test-Path (Join-Path $dir 'capture.json'))) {
+                Copy-Item (Join-Path $dir 'capture.json') (Join-Path $safe 'capture-summary.json')
+            } else {
+                @{ status = 'readiness-timeout'; productLaunched = $false; recordingOutcome = 'uncertain'; instance = $instanceName } | ConvertTo-Json | Set-Content (Join-Path $safe 'capture-summary.json')
+            }
+            throw 'Recorder readiness failed; no product launched; do not retry recording'
+        }
         Start-Sleep -Milliseconds 100
     }
     return @{ directory = $dir; process = $process; instance = $instanceName }

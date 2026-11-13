@@ -1782,12 +1782,21 @@ export async function main() {
     assert.equal(process.env.MILKUP_WINDOWS_MERMAID_APPLICATION_CANDIDATE_SHA, candidateSha)
   }
   const {
-    profileOrder,
+    startupProfileOrder,
     profileTrial,
     verifyProfileReuse,
     verifyCatalogRestart,
     verifyNoOwnedWebView,
   } = profileComparison ? await import('./startup-profile-contract.mjs') : {}
+  const targetedStartupIo = process.env.MILKUP_WINDOWS_STARTUP_TARGETED_IO === '1'
+  assert([undefined, '0', '1'].includes(process.env.MILKUP_WINDOWS_STARTUP_TARGETED_IO))
+  assert(
+    !targetedStartupIo || profileComparison,
+    'Targeted I/O requires explicit startup diagnostic',
+  )
+  const profileOrder = profileComparison
+    ? startupProfileOrder(targetedStartupIo, profileComparison)
+    : undefined
   const expectedPluginInventory = parseExpectedPluginInventory(
     process.env.MILKUP_WINDOWS_MERMAID_EXPECTED_PLUGIN_INVENTORY,
   )
@@ -2941,6 +2950,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
     if (profileComparison) {
       report.profileComparison = {
         order: profileOrder,
+        targetedIo: targetedStartupIo,
         trials: [],
         systemCacheReset: false,
         attachment: 'same early attachment for every trial',
@@ -3029,7 +3039,7 @@ const p=parent?.getBoundingClientRect(),hit=document.elementFromPoint(x,y);retur
         row.status = 'passed'
         await persist()
       }
-      assert.equal(report.profileComparison.trials.length, 8)
+      assert.equal(report.profileComparison.trials.length, targetedStartupIo ? 2 : 8)
       assert(report.launches.every((l) => l.closedByUi && l.stdioClosedAt && l.exitCode === 0))
     } else if (migrationPhase === 'prepare') {
       await step('00-prepare-old-plugin-choice', async (row) => {

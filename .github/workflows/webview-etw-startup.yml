@@ -1,11 +1,9 @@
 name: WebView ETW isolated startup diagnostic
 
-# Explicit frontend candidate: same complete two-account product and GUI suite.
-# Native rendering records are forbidden; per-frame native rejection/release is required.
-# Legacy native-engine unit checks below are regression-only, not frontend evidence.
-# Delivered beta.8 artifacts remain unchanged; no elevation fallback or token editing.
-# No installer, Runtime provisioning or existing ACL/UAC changes.
-# Upload only reviewed self-authored evidence; never binaries or profiles.
+# Single isolated pure-standard targeted I/O diagnostic; not product acceptance.
+# Two launches (fresh/reused temporary profile), one recording, no retry.
+# Existing signed WPR only; no security changes, installer or publication.
+# Trace payload retained only with authenticated encryption.
 on:
   push:
     branches: [dot/webview-etw-preflight-20261113]
@@ -37,6 +35,7 @@ jobs:
       CARGO_TERM_COLOR: never
       STARTUP_PROFILE_COMPARISON: '1'
       MILKUP_ETW_CAPTURE: '1'
+      MILKUP_ETW_TARGETED_IO: '1'
       STARTUP_ACCOUNT_ORDER: ${{ inputs.account_order || 'standard-first' }}
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
       GIT_CONFIG_COUNT: '1'

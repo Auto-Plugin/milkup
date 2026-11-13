@@ -822,6 +822,7 @@ function Invoke-StandardChild {
             MILKUP_WINDOWS_MERMAID_CANDIDATE_SHA = $spec.candidateSha
             MILKUP_WINDOWS_MERMAID_RENDERER_MODE = $spec.rendererMode
             MILKUP_WINDOWS_MERMAID_HARNESS_MODE = $spec.harnessMode
+            MILKUP_WINDOWS_STARTUP_TARGETED_IO = $(if ($spec.targetedStartupIo) { '1' } else { '0' })
             MILKUP_WINDOWS_STARTUP_PROFILE_COMPARISON = $(if ($spec.startupProfileComparison) { '1' } else { '0' })
             MILKUP_WINDOWS_MERMAID_FRONTEND_BOUNDARY_PROBE = $(if ($spec.frontendBoundaryProbe) { '1' } else { '0' })
             MILKUP_WINDOWS_MERMAID_HARNESS_CANDIDATE_SHA = $spec.candidateSha
@@ -872,7 +873,9 @@ function Invoke-StandardChild {
         $report = if ($spec.harnessMode -ceq 'gui-regression') { Read-SmallJson (Join-Path $evidence $reportName) } else { Read-ProductJson (Join-Path $evidence $reportName) }
         if ($report.status -cne 'passed') { throw 'Node exit succeeded without passing product evidence' }
         if ($spec.startupProfileComparison) {
-            if ($report.acceptancePurpose -cne 'startup-profile-diagnostic' -or $report.profileComparison.trials.Count -ne 8 -or
+            $expectedStartupTrials = $(if ($spec.targetedStartupIo) { 2 } else { 8 })
+            if ($spec.targetedStartupIo -and ($report.profileComparison.targetedIo -ne $true -or $spec.expectedAccountKind -cne 'pure-standard')) { throw 'Exact targeted I/O diagnostic required' }
+            if ($report.acceptancePurpose -cne 'startup-profile-diagnostic' -or $report.profileComparison.trials.Count -ne $expectedStartupTrials -or
                 @($report.profileComparison.trials | Where-Object { $_.status -cne 'passed' }).Count -ne 0 -or $report.steps.Count -ne 0) { throw 'Complete explicit startup diagnostic required, not product acceptance' }
         } elseif ($report.Contains('acceptancePurpose') -and $report.acceptancePurpose -cne 'product-acceptance') { throw 'Diagnostic cannot substitute for product acceptance' }
         if ($report.rendererMode -cne $spec.rendererMode) { throw 'Renderer acceptance mode mismatch' }
@@ -1210,11 +1213,13 @@ try {
     } | ForEach-Object { $_.SID.Value })
     $audit['localGroupSids'] = $groups
     Assert-ExpectedAccountGroups $AccountKind $groups
+    if ($env:MILKUP_ETW_TARGETED_IO -ceq '1' -and (-not $StartupProfileComparison -or $env:MILKUP_ETW_CAPTURE -cne '1' -or $AccountKind -cne 'pure-standard')) { throw 'Targeted I/O must use the exact isolated recorder workflow' }
     $spec = [ordered]@{
         schema = 1; runId = $runId; expectedSid = $user.SID.Value; expectedSessionId = $audit.runnerContext.sessionId
         expectedAccountKind = $AccountKind
         candidateSha = $ExpectedCommit; applicationCandidateSha = $ApplicationCandidateSha; rendererMode = $RendererMode; harnessMode = $HarnessMode
         pinnedDeliveredLifecycle = [bool]$PinnedDeliveredLifecycle
+        targetedStartupIo = [bool]($env:MILKUP_ETW_TARGETED_IO -ceq '1')
         startupProfileComparison = [bool]$StartupProfileComparison
         frontendBoundaryProbe = [bool]$FrontendBoundaryProbe; lifecycle = [bool]$LifecycleBaselineInstaller; migrationChoice = $MigrationChoice; lifecycleBaselineKind = $LifecycleBaselineKind
         additionalHarnessFiles = $additionalHarnessFiles; runtime = $runtime; mode = $audit.mode
