@@ -3,8 +3,14 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '../../scripts/ci/webview-etw-capture.ps1')
 $temp = Join-Path ([IO.Path]::GetTempPath()) ('milkup-profile-identity-' + [guid]::NewGuid().ToString('N') + '.wprp')
 try {
+    $hashes = @{
+        FileIO = '00a9fb33b9ae83d5425ddaf49ac2f146bb86a0336c3989b0a9e5773936ef4d4b'
+        Minifilter = 'ced41e04c200f6d1fe2b51cf3fd7295dee443e3cf85d5b9e71222d6448341256'
+        DiskIO = '22ad8fdde533887f41178ef488c2c9e524700547c4a68964eff8dc68ffaa8f04'
+    }
     foreach ($name in @('FileIO','Minifilter','DiskIO')) {
         $reference = Join-Path $PSScriptRoot ('../native/fixtures/etw-io/' + $name + '.wprp')
+        if ((Get-FileHash $reference).Hash.ToLowerInvariant() -cne $hashes[$name]) { throw 'Exact reference checkout hash required before build' }
         $expected = Get-EtwProfileIdentity $reference
         [xml]$doc = Get-Content $reference -Raw
         foreach ($parent in @($doc.SelectNodes('/WindowsPerformanceRecorder/Profiles | //EventProviders'))) {
