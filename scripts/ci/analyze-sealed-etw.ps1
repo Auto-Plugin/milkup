@@ -59,12 +59,21 @@ try {
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Signed Microsoft Xperf required' }
     $summary.xperfSha256 = (Get-FileHash $xperf).Hash.ToLowerInvariant()
     $summary.actions = @()
-    foreach ($action in @('tracestats','process','cpudisk','diskio','profile','cswitch','hardfault','marks')) {
+    # Reprocess the retained trace only: known phase intervals are trace-relative microseconds.
+    $analyses = @(
+        @{ name = 'webview-complete'; args = @('dumper','-provider','{E16EC3D2-BB0F-4E8F-BDB8-DE0BEA82DC3D}') },
+        @{ name = 'slow-b-events'; args = @('dumper','-range','56500000','68000000') },
+        @{ name = 'slow-b-threads'; args = @('cswitch','-thread','-range','57591606','66750606') },
+        @{ name = 'fast-b-threads'; args = @('cswitch','-thread','-range','72000000','76000000') },
+        @{ name = 'first-a-threads'; args = @('cswitch','-thread','-range','33123606','43742606') }
+    )
+    foreach ($analysis in $analyses) {
+        $action = $analysis.name
         $path = Join-Path $reports ($action + '.txt')
         $info = [Diagnostics.ProcessStartInfo]::new($xperf)
         $info.UseShellExecute = $false; $info.CreateNoWindow = $true
         $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
-        foreach ($a in @('-i',$etl,'-o',$path,'-quiet','-a',$action)) { $info.ArgumentList.Add($a) }
+        foreach ($a in (@('-i',$etl,'-o',$path,'-quiet','-a') + $analysis.args)) { $info.ArgumentList.Add($a) }
         $proc = [Diagnostics.Process]::Start($info)
         $stdout = $proc.StandardOutput.ReadToEndAsync(); $stderr = $proc.StandardError.ReadToEndAsync()
         $finished = $proc.WaitForExit(120000)
