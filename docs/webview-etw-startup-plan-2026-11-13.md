@@ -1,5 +1,7 @@
 # Isolated WebView2 startup ETW investigation
 
+Completed capture and analysis results: [webview-etw-startup-results-2026-11-13.md](webview-etw-startup-results-2026-11-13.md). The plan below preserves the original execution design; the capture is now complete.
+
 No application logic, Defender, network configuration or system security policy changes. No Release. The purpose is to explain, rather than merely repeat, the previous 14–15 second navigation-to-Wry-callback tail.
 
 ## Actual capability result
