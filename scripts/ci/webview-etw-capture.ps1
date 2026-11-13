@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([switch]$Watch,[string]$PrivateDirectory,[string]$Instance)
+param([switch]$Watch,[switch]$MetadataOnly,[string]$PrivateDirectory,[string]$Instance)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 function Assert-EtwHost {
@@ -20,6 +20,8 @@ function Invoke-EtwWatcher {
     $r.maximumSeconds = $(if ($targeted) { 120 } else { 180 })
     $r.recordingAttempts = 0
     $r.companionProfiles = @()
+    $r.metadataOnly = [bool]$MetadataOnly
+    $r.gate = 'companion-profile-export'
     $startArguments = @('-start', $profile)
     $started = $false
     try {
@@ -33,14 +35,19 @@ function Invoke-EtwWatcher {
             }
             foreach ($name in $expected.Keys) {
                 $export = Join-Path $PrivateDirectory ($name + '.wprp')
+                $r.gate = 'export-' + $name
                 $null = @(& $wpr -exportprofile $name $export -filemode 2>&1)
+                $r.lastExportExit = $LASTEXITCODE
                 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $export)) { throw 'Required installed recording profile unavailable' }
                 $hash = (Get-FileHash $export).Hash.ToLowerInvariant()
+                $r.companionProfiles += @{ name = $name; sha256 = $hash; expectedSha256 = $expected[$name] }
+                $r.gate = 'hash-' + $name
                 if ($hash -cne $expected[$name]) { throw 'Installed recording profile changed; stop without recording' }
-                $r.companionProfiles += @{ name = $name; sha256 = $hash }
                 $startArguments += @('-start', $name)
             }
         }
+        if ($MetadataOnly) { $r.status = 'metadata-verified'; return }
+        $r.gate = 'recording-start'
         $r.recordingAttempts = 1
         $output = @(& $wpr @startArguments -filemode -recordtempto $PrivateDirectory -instancename $Instance 2>&1)
         $r.startExit = $LASTEXITCODE
@@ -66,7 +73,13 @@ function Invoke-EtwWatcher {
         $r.rawBytes = (Get-Item (Join-Path $PrivateDirectory 'startup.etl')).Length
         $r.rawSha256 = (Get-FileHash (Join-Path $PrivateDirectory 'startup.etl')).Hash.ToLowerInvariant()
         $r.status = 'captured'
-    } catch { $r.errors += $_.Exception.GetType().FullName; $r.status = 'failed' }
+    } catch {
+        $r.errors += $_.Exception.GetType().FullName
+        # Own static gate messages only, never arbitrary native payload/paths.
+        if ($_.Exception.Message -in @('Required installed recording profile unavailable','Installed recording profile changed; stop without recording','Recorder start rejected','Recorder stop rejected')) { $r.gateFailure = $_.Exception.Message }
+        else { $r.gateFailure = 'unexpected-exception'; $r.errorId = $_.FullyQualifiedErrorId.Split(',')[0] }
+        $r.status = 'failed'
+    }
     finally {
         if ($started) { $null = @(& $wpr -cancel -instancename $Instance 2>&1); $r.cancelExit = $LASTEXITCODE }
         $r | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $PrivateDirectory 'capture.json') -Encoding utf8
