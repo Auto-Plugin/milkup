@@ -65,7 +65,7 @@ function Assert-HostedCandidate {
     if (-not $IsWindows -or $PSVersionTable.PSVersion.Major -lt 7 -or
         $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
         $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-        $env:GITHUB_REF -cnotin @('refs/heads/dot/mermaid-rebuild-20261103', 'refs/heads/dot/mermaid-stability-20261104', 'refs/heads/dot/mermaid-plugin-modes-20261109', 'refs/heads/dot/release-quality-integration-20261112', 'refs/heads/dot/startup-empty-anchor-20261112')) {
+        $env:GITHUB_REF -cnotin @('refs/heads/dot/mermaid-rebuild-20261103', 'refs/heads/dot/mermaid-stability-20261104', 'refs/heads/dot/mermaid-plugin-modes-20261109', 'refs/heads/dot/release-quality-integration-20261112', 'refs/heads/dot/startup-empty-anchor-20261112', 'refs/heads/dot/webview-etw-preflight-20261113')) {
         throw 'Only the independent candidate on a fresh GitHub-hosted Windows runner is permitted'
     }
 }
@@ -1247,8 +1247,18 @@ try {
     foreach ($path in @($spec.wrapper.path, $specPath)) { if ($path.Contains('"') -or $path.Contains([char]0)) { throw 'Quoted or NUL child path rejected' } }
     $arguments = '-NoLogo -NoProfile -File "' + $spec.wrapper.path + '" -Child -ChildSpecPath "' + $specPath + '"'
     $processesEmpty = $false
+    $etwContext = $null
+    if ($env:MILKUP_ETW_CAPTURE -ceq '1') {
+        if (-not $StartupProfileComparison -or $AccountKind -cne 'pure-standard') { throw 'ETW is temporary standard-account startup diagnostic only' }
+        . (Join-Path $PSScriptRoot 'webview-etw-capture.ps1')
+        $etwContext = Start-MilkupEtw
+    }
+    try {
     $audit.supervisor = [WindowsMermaidStandardUser]::Run($accountName, $password, $user.SID.Value,
         [uint32]$audit.runnerContext.sessionId, $AccountKind, $pwsh, $arguments, $code, $environment, 1200000)
+    } finally {
+        if ($etwContext) { Stop-MilkupEtw $etwContext $node $AccountKind }
+    }
     $processesEmpty = $audit.supervisor.jobEmpty -eq $true -and $audit.supervisor.cleanupErrors.Count -eq 0
     $audit.status = $audit.supervisor.status
     $profileKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\' + $user.SID.Value
