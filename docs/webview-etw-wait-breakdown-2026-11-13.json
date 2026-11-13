@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "originalCaptureRun": 43513112486,
+  "originalEtlSha256": "4ca45baaa69c468edddca6499f110608e4a788268b3dd5f52678d94a2faec13b",
+  "analysisRun": 43517089223,
+  "analysisCandidate": "fae2d48a8378ee638851d04e7b547cb5e4d4e788",
+  "analysisStatus": "partial-analysis",
+  "productStarted": false,
+  "securitySettingsChanged": false,
+  "artifactZipSha256": "e5183405a72326eef1941385e69ac65c36f208752ba7df6118806e13bf941dcc",
+  "B": {
+    "phaseTraceUs": [
+      57591606,
+      66750606
+    ],
+    "cookieThreadBornUs": 59642749,
+    "readySplit": {
+      "offCpuUs": 7090285,
+      "readyUs": 5480,
+      "notReadyUs": 7084746,
+      "unresolvedUs": 59
+    },
+    "resumeStackOffCpuClassification": {
+      "ntfsSyncFlushIoUs": 5140787,
+      "ntfsResourceAcquisitionUs": 1389800,
+      "ntWriteIoUs": 542297,
+      "otherUs": 17401
+    },
+    "symbolMethod": "Only unique same-module same-address kernel symbols from complete A export of the same ETL; user addresses remain unresolved",
+    "fileIoOpEndRecords": 62224,
+    "fileIoOpEndUsableStartTypeIdentity": false,
+    "ioOffCpuOverlapUs": {
+      "cookie": 4076779,
+      "metadata": 1059365,
+      "other": 542264,
+      "union": 5678408
+    }
+  },
+  "A": {
+    "preSetupTraceUs": [
+      33123606,
+      43742606
+    ],
+    "stages": [
+      {
+        "name": "before-first-creation-event",
+        "tid": 3316,
+        "intervalUs": [
+          33123606,
+          36761205
+        ],
+        "hardFaultStackOffCpuUs": 3565635,
+        "readyUs": 7822,
+        "hardFaultIoElapsedUs": {
+          "EmbeddedBrowserWebView.dll": 3513528
+        }
+      },
+      {
+        "name": "WebView-client-creation",
+        "tid": 8304,
+        "intervalUs": [
+          36761205,
+          41612344
+        ],
+        "hardFaultStackOffCpuUs": 2517332,
+        "readyUs": 27516,
+        "hardFaultIoElapsedUs": {
+          "en-US.pak": 1007652,
+          "icudtl.dat": 930170
+        }
+      },
+      {
+        "name": "renderer-before-setup",
+        "tid": 1100,
+        "intervalUs": [
+          41612344,
+          43742606
+        ],
+        "hardFaultStackOffCpuUs": 1916588,
+        "readyUs": 16259,
+        "hardFaultIoElapsedUs": {
+          "ffmpeg.dll": 1417481,
+          "v8_context_snapshot.bin": 274005,
+          "resources.pak": 226761
+        }
+      }
+    ],
+    "overlappingCookieFlushOffCpuUs": 1869140
+  },
+  "limits": [
+    "B symbol export timed out at180s before critical interval; no claims use its partial output",
+    "I/O elapsed minus DiskSvcTime is not a per-filter or physical-storage partition",
+    "resource owner and underlying service/filter/storage policy not established",
+    "A hard-fault read phases and B cookie flush/resource waits are not one identical narrow bottleneck",
+    "no new startup experiment or product optimization performed"
+  ]
+}

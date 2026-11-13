@@ -1,5 +1,7 @@
 # Windows cold-start ETW result — 2026-11-13
 
+Follow-up: [I/O, scheduling and first-A wait breakdown](webview-etw-wait-breakdown-2026-11-13.md) further resolves the same retained ETL. In particular, do not interpret the `DiskSvcTime` column below as an independently measured physical-device duration or assign its difference to a filter driver.
+
 The requested capture is feasible and has been executed. It narrows the reproduced pre-Wry delay to WebView's new-profile cookie-store/storage initialization path. It does **not** establish the underlying Windows service/driver responsible, or demonstrate a safe application optimization. No product logic or security settings changed and no Release was published.
 
 ## Exact evidence
