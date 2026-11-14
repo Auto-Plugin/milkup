@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """Bounded sandboxed engine-only print proof, no application install or system mutation."""
-import argparse, hashlib, json, os, pathlib, shlex, subprocess, time
+import argparse, hashlib, json, os, pathlib, shlex, subprocess, time, tempfile, socket
 p=argparse.ArgumentParser();p.add_argument('mode',choices=['baseline','verify']);p.add_argument('out',type=pathlib.Path);p.add_argument('--prefix',type=pathlib.Path);p.add_argument('--manifest',type=pathlib.Path);a=p.parse_args()
 assert os.getuid()!=0 and not os.environ.get('WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS')
 repo=pathlib.Path(__file__).resolve().parents[2];research=repo/'research/linux-pdf-links-20261114'
 a.out=a.out.resolve();a.out.mkdir(parents=True,exist_ok=False)
 env=os.environ.copy();env.pop('LD_LIBRARY_PATH',None);env.pop('PKG_CONFIG_PATH',None)
-for key in ['DATA','CONFIG','CACHE','STATE','RUNTIME']:
-    directory=a.out/('xdg-'+key.lower());directory.mkdir(mode=0o700);env['XDG_'+key+('_DIR' if key=='RUNTIME' else '_HOME')]=str(directory)
+for key in ['DATA','CONFIG','CACHE','STATE']:
+    directory=a.out/('xdg-'+key.lower());directory.mkdir(mode=0o700);env['XDG_'+key+'_HOME']=str(directory)
+# The sandbox DBus proxy uses an AF_UNIX pathname under XDG_RUNTIME_DIR.
+# Deep evidence paths exceed Linux sun_path; use only our own short 0700 root.
+runtime=tempfile.TemporaryDirectory(prefix='mkl-',dir='/tmp')
+env['XDG_RUNTIME_DIR']=runtime.name
+socket_directory=pathlib.Path(runtime.name)/'webkitgtk';socket_directory.mkdir(mode=0o700)
+socket_path=socket_directory/'bus-proxy-PREFLT'
+assert len(str(socket_path).encode())<=107
+with socket.socket(socket.AF_UNIX) as test_socket:test_socket.bind(str(socket_path))
+socket_path.unlink()
 expected={}
 if a.mode=='verify':
     assert a.prefix and a.manifest
@@ -23,7 +32,7 @@ flags=shlex.split(subprocess.check_output(['pkg-config','--cflags','--libs','web
 binary=a.out/'print-probe'
 subprocess.run(['cc','-Wall','-Wextra','-Werror','-Wno-deprecated-declarations',str(research/'print-probe.c'),'-o',str(binary),*flags],check=True,timeout=60)
 subprocess.run(['python3',str(research/'pdf_links.py'),'fixtures',str(a.out)],check=True)
-report={'status':'running','mode':a.mode,'uid':os.getuid(),'harnessSha':os.environ.get('GITHUB_SHA'),'expectedPrivateLibraries':expected,'runs':[],'scope':'GTK WebKit print engine, not installed Milkup or physical printer'}
+report={'status':'running','mode':a.mode,'uid':os.getuid(),'harnessSha':os.environ.get('GITHUB_SHA'),'runtimeDirectory':runtime.name,'runtimeSocketBindPreflight':True,'expectedPrivateLibraries':expected,'runs':[],'scope':'GTK WebKit print engine, not installed Milkup or physical printer'}
 def persist():(a.out/'native-result.json').write_text(json.dumps(report,indent=2))
 try:
     for name in ['links','no-links']:
@@ -74,4 +83,5 @@ try:
     for file,digest in expected.items():assert hashlib.sha256(pathlib.Path(file).read_bytes()).hexdigest()==digest
     report['status']='passed'
 except Exception as e:report['status']='failed';report['error']=str(e);raise
-finally:persist()
+finally:
+    persist();runtime.cleanup()
