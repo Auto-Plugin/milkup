@@ -31,13 +31,21 @@ done
 ibus list-engine > "$MILKUP_NATIVE_EVIDENCE_DIR/engines.txt"
 gsettings set org.freedesktop.ibus.general preload-engines "['libpinyin','xkb:us::eng']"
 gsettings set org.freedesktop.ibus.general use-global-engine true
+# Keep the test display's US physical keymap. IBus 1.5.34-rc2's CLI returns
+# failure for an engine with layout=default after successfully selecting it
+# when it tries to run setxkbmap with no arguments (tools/main.vala).
+gsettings set org.freedesktop.ibus.general use-system-keyboard-layout true
+gsettings list-recursively org.freedesktop.ibus.general > "$MILKUP_NATIVE_EVIDENCE_DIR/ibus-settings.txt"
 selected=0
 for attempt in $(seq 1 50); do
-  if ibus engine libpinyin; then selected=1; break; fi
+  if ibus engine libpinyin >> "$MILKUP_NATIVE_EVIDENCE_DIR/engine-selection.log" 2>&1; then selected=1; break; fi
+  printf 'attempt=%s failed; actual=' "$attempt" >> "$MILKUP_NATIVE_EVIDENCE_DIR/engine-selection.log"
+  ibus engine >> "$MILKUP_NATIVE_EVIDENCE_DIR/engine-selection.log" 2>&1 || true
   sleep 0.1
 done
 test "$selected" = 1
 ibus engine > "$MILKUP_NATIVE_EVIDENCE_DIR/initial-engine.txt"
+test "$(cat "$MILKUP_NATIVE_EVIDENCE_DIR/initial-engine.txt")" = libpinyin
 gsettings list-recursively org.freedesktop.ibus.general > "$MILKUP_NATIVE_EVIDENCE_DIR/ibus-settings.txt"
 xdpyinfo > "$MILKUP_NATIVE_EVIDENCE_DIR/x-display.txt"
 tauri-driver --native-driver /usr/bin/WebKitWebDriver > "$MILKUP_NATIVE_EVIDENCE_DIR/driver.log" 2>&1 &
