@@ -79,7 +79,8 @@ class LayoutContract(unittest.TestCase):
         with tempfile.TemporaryDirectory()as d:
             p=pathlib.Path(d)/'probe.patch';result=prepare(source,p)
             self.assertEqual(result['sha256'],'938541c51de207aa15b45133d341c40cba36f4a912e1be48c38bca9418eb0d3e')
-            patch=p.read_text();self.assertIn('ctx.clip(pageRect);\n+    milkupPrintLayoutProbe',patch)
+            patch=p.read_text();self.assertIn('+#include "RenderObjectInlines.h"',patch)
+            self.assertIn('ctx.clip(pageRect);\n+    milkupPrintLayoutProbe',patch)
             self.assertIn('frame.view()->paintContents(ctx, pageRect);',patch)
 
 if __name__=='__main__':unittest.main()

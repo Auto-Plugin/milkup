@@ -10,10 +10,13 @@ def prepare(source, output):
     anchor = '    ctx.clip(pageRect);\n    frame.view()->paintContents(ctx, pageRect);'
     assert original.count(anchor) == 1
     body = pathlib.Path(__file__).with_name('print-layout-probe.inc').read_text()
-    changed = original.replace('#include "RenderView.h"', '#include "RenderView.h"\n#include "RenderBox.h"\n#include "ElementInlines.h"\n#include <wtf/text/CString.h>\n#include "HTMLNames.h"\n#include <cstdio>\n#include <cstdlib>\n#include <string>')
+    changed = original.replace('#include "RenderView.h"', '#include "RenderView.h"\n#include "RenderBox.h"\n#include "RenderObjectInlines.h"\n#include "ElementInlines.h"\n#include <wtf/text/CString.h>\n#include "HTMLNames.h"\n#include <cstdio>\n#include <cstdlib>\n#include <string>')
     changed = changed.replace('void PrintContext::spoolPage(', body + '\nvoid PrintContext::spoolPage(')
     changed = changed.replace(anchor, '    ctx.clip(pageRect);\n    milkupPrintLayoutProbe(*frame.document(), ctx, pageRect, pageNumber, !frame.view()->needsLayout());\n    frame.view()->paintContents(ctx, pageRect);')
     patch = ''.join(difflib.unified_diff(original.splitlines(True), changed.splitlines(True), fromfile='a/'+relative, tofile='b/'+relative))
+    inline_source = (source/'Source/WebCore/rendering/RenderObjectInlines.h').read_text()
+    assert 'inline FloatQuad RenderObject::localToAbsoluteQuad(' in inline_source, 'Inline API definition missing'
+    assert '#include "RenderObjectInlines.h"' in changed, 'Probe requires the actual inline definition header'
     output.write_text(patch)
     return {'source': relative, 'sha256': hashlib.sha256(original.encode()).hexdigest(), 'patchSha256': hashlib.sha256(patch.encode()).hexdigest(), 'scope': 'generated patch only; not compiled or runtime accepted'}
 
