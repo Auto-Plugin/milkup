@@ -33,7 +33,7 @@ jobs:
           $vs=& "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           if (!$vs) { throw 'Existing official C++ toolchain unavailable' }
           $out="$env:RUNNER_TEMP/gap-capabilities"
-          $command='call "'+$vs+'\VC\Auxiliary\Build\vcvars64.bat" && cl /nologo /W4 /EHsc /std:c++17 scripts\ci\windows-pinyin-control.cpp /Fe:"'+$out+'\pinyin-control.exe" /Fo:"'+$out+'\pinyin-control.obj" /link ole32.lib uuid.lib user32.lib imm32.lib msctf.lib'
+          $command='call "'+$vs+'\VC\Auxiliary\Build\vcvars64.bat" && cl /nologo /W4 /EHsc /std:c++17 scripts\ci\windows-pinyin-control.cpp /Fe:"'+$out+'\pinyin-control.exe" /Fo:"'+$out+'\pinyin-control.obj" /link ole32.lib uuid.lib user32.lib imm32.lib'
           cmd /d /c $command 2>&1 | Tee-Object "$out/compile.txt"
           if ($LASTEXITCODE) { throw 'Native control compile failed' }
           & "$out/pinyin-control.exe" 2>&1 | Tee-Object "$out/pinyin-control.txt"
