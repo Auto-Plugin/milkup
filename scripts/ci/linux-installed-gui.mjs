@@ -1,9 +1,10 @@
 // Production installed GTK application. Native keys drive edits/dialogs; DOM is observed.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readFile, writeFile, mkdir, readlink } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, readlink, readdir } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { privateRuntimeGate } from './linux-private-runtime.mjs'
 import { startProduction } from '../../tests/helpers/native-production.mjs'
 import { nativeFixture, x } from '../../tests/helpers/native-updates-fixture.mjs'
 const out=path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR)
@@ -30,11 +31,31 @@ const expected=original+'\n'+marker
 await writeFile(path.join(out,'expectations.json'),JSON.stringify({fixtureSha256:sha(Buffer.from(original)),expectedSavedSha256:sha(Buffer.from(expected)),chinese,unicodeCases,markers:['MILKUP-LINUX-PDF-START',...paragraphs.map((_,i)=>`BODY-${String(i+1).padStart(3,'0')}`),'MILKUP-LINUX-PDF-END',marker],minimumPages:2,papers:[{name:'a4-portrait',pageSize:'a4',orientation:'portrait',width:595.276,height:841.89},{name:'letter-landscape',pageSize:'letter',orientation:'landscape',width:792,height:612}]},null,2))
 const record={status:'running',sourceSha:'b877746f5dfd236dfc13f718ed23d837b8e4f89d',harnessSha:process.env.GITHUB_SHA,uid:process.getuid(),steps:[],pdf:[],closes:[],errors:[],physicalPrintTested:false}
 const persist=()=>writeFile(path.join(out,'gui-result.json'),JSON.stringify(record,null,2))
-let app,owned
+let app,owned,runtimeGate
+const helperInstances=new Set()
+async function observeOutputHelpers(){
+ if(!runtimeGate||!owned)return
+ for(const name of await readdir('/proc')){
+  if(!/^\d+$/.test(name))continue
+  const pid=Number(name)
+  try{
+   const fields=(await readFile(`/proc/${pid}/stat`,'utf8')).split(') ').at(-1).split(' ')
+   if(Number(fields[1])!==owned.pid)continue
+   const command=(await readFile(`/proc/${pid}/cmdline`,'utf8')).split('\0')
+   if(!command.includes('--milkup-internal-output-helper'))continue
+   assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH)
+   const key=pid+':'+fields[19];if(helperInstances.has(key))continue
+   const maps=await readFile(`/proc/${pid}/maps`,'utf8')
+   if(!maps.includes('libwebkit2gtk-4.1.so.')||!maps.includes('libjavascriptcoregtk-4.1.so.'))continue
+   const identity=await runtimeGate.inspect(pid)
+   helperInstances.add(key);record.privateOutputHelpers??=[];record.privateOutputHelpers.push({...identity,owner:{...owned},at:new Date().toISOString()});await persist()
+  }catch(e){if(e.code!=='ENOENT'&&e.code!=='ESRCH')throw e}
+ }
+}
 const ui=nativeFixture(()=>app)
 async function step(name,fn){record.currentStep=name;await persist();const at=Date.now();try{await fn();record.steps.push({name,status:'passed',durationMs:Date.now()-at})}catch(e){record.steps.push({name,status:'failed',error:String(e),durationMs:Date.now()-at});throw e}finally{await persist()}}
 const birth=async pid=>(await readFile(`/proc/${pid}/stat`,'utf8')).split(') ').at(-1).split(' ')[19]
-async function start(){app=await startProduction(fixture,out,{diagnostics:false});app.click=pointerClick;const window=ui.windowId(),pid=Number(x('getwindowpid',window));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid)};record.launches??=[];record.launches.push({...owned,window,at:new Date().toISOString()});await persist()}
+async function start(){app=await startProduction(fixture,out,{diagnostics:false});app.click=pointerClick;const window=ui.windowId(),pid=Number(x('getwindowpid',window));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid)};record.launches??=[];record.launches.push({...owned,window,at:new Date().toISOString(),privateRuntime:runtimeGate?await runtimeGate.inspect(pid):null});await persist()}
 // A real pointer is required: Linux hides the Windows-only titlebar controls.
 async function pointerClick(selector){
  const sample=()=>app.execute('const e=document.querySelector(arguments[0]);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,width:r.width,height:r.height,w:innerWidth,h:innerHeight,hit:e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)),disabled:e.disabled===true}',selector)
@@ -58,8 +79,9 @@ const panel='[data-plugin-ui="milkup.export-print:export-print-panel"]'
 async function enableOutput(){await ui.list();const sel='.plugin-summary-card[data-plugin-id="milkup.export-print"] [role="switch"]';await ui.ready(sel);if(await app.execute('return document.querySelector(arguments[0]).getAttribute("aria-checked")!=="true"',sel))await ui.click(sel);await app.until(()=>app.execute('const e=document.querySelector(arguments[0]);return e?.getAttribute("aria-checked")==="true"&&!e.disabled',sel),'output enabled');await ui.closeMenu();if(!await app.execute('return document.querySelector("[data-sidebar-toggle]")?.getAttribute("aria-pressed")==="true"'))await ui.click('[data-sidebar-toggle]');const toggle=panel+' .plugin-ui-panel-toggle';await ui.ready(toggle);if(await app.execute('return document.querySelector(arguments[0]).getAttribute("aria-expanded")==="false"',toggle))await ui.click(toggle)}
 async function field(key,value){const sel=panel+` [data-plugin-field-control="${key}"]`;await ui.ready(sel);await app.focus(sel);const options=await app.execute('return [...document.querySelector(arguments[0]).options].map(x=>x.value)',sel);const index=options.indexOf(value);assert(index>=0);await app.key('Home');for(let i=0;i<index;i++)await app.key('Down');await app.key('Tab');await app.until(()=>app.execute('return document.querySelector(arguments[0]).value===arguments[1]',sel,value),'field '+key)}
 function dialog(){try{return x('search','--onlyvisible','--name','^Choose output destination$').split('\n').at(-1)}catch{return null}}
-async function savePicker(destination){const win=await app.until(dialog,'native output destination',45000),pid=Number(x('getwindowpid',win));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);assert((await readFile(`/proc/${pid}/cmdline`,'utf8')).includes('--milkup-internal-output-helper'));record.dialogs??=[];record.dialogs.push({win,pid,birth:await birth(pid),destination});await persist();x('windowfocus','--sync',win);await app.delay(500);x('key','--clearmodifiers','ctrl+l');await app.delay(150);x('key','--clearmodifiers','ctrl+a');x('type','--clearmodifiers','--delay','2','--',destination);x('key','--clearmodifiers','Tab');await app.delay(200);const g=x('getwindowgeometry','--shell',win),w=Number(/WIDTH=(\d+)/.exec(g)[1]),h=Number(/HEIGHT=(\d+)/.exec(g)[1]);x('mousemove','--window',win,String(w-50),String(h-24),'click','1');await app.until(()=>!dialog(),'native output picker closed',15000);x('windowfocus','--sync',ui.windowId())}
+async function savePicker(destination){const win=await app.until(dialog,'native output destination',45000),pid=Number(x('getwindowpid',win));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);assert((await readFile(`/proc/${pid}/cmdline`,'utf8')).includes('--milkup-internal-output-helper'));record.dialogs??=[];record.dialogs.push({win,pid,birth:await birth(pid),destination,privateRuntime:runtimeGate?await runtimeGate.inspect(pid):null});await persist();x('windowfocus','--sync',win);await app.delay(500);x('key','--clearmodifiers','ctrl+l');await app.delay(150);x('key','--clearmodifiers','ctrl+a');x('type','--clearmodifiers','--delay','2','--',destination);x('key','--clearmodifiers','Tab');await app.delay(200);const g=x('getwindowgeometry','--shell',win),w=Number(/WIDTH=(\d+)/.exec(g)[1]),h=Number(/HEIGHT=(\d+)/.exec(g)[1]);x('mousemove','--window',win,String(w-50),String(h-24),'click','1');await app.until(()=>!dialog(),'native output picker closed',15000);x('windowfocus','--sync',ui.windowId())}
 try{
+ if(process.env.MILKUP_RESEARCH_RUNTIME_PREFIX){runtimeGate=await privateRuntimeGate(process.env.MILKUP_RESEARCH_RUNTIME_PREFIX,process.env.MILKUP_RESEARCH_BUILD_MANIFEST);record.privateRuntimePrefix=process.env.MILKUP_RESEARCH_RUNTIME_PREFIX}
  await step('open-installed-production',start)
  record.binarySha256=sha(await readFile(process.env.TAURI_APP_PATH));assert.equal(record.binarySha256,process.env.MILKUP_NATIVE_EXPECTED_BINARY_SHA256)
  await step('edit-and-save-real-keys',async()=>{await app.focus('.milkup-input-proxy');await app.key('ctrl+End');await app.key('Return');await app.text(marker);await app.key('ctrl+s');await app.until(async()=>await readFile(fixture,'utf8')===expected,'exact edited bytes saved',15000);await app.until(async()=>!(await app.probe()).dirty,'clean save state');await app.shot('edited-saved')})
@@ -70,15 +92,18 @@ try{
  for(const paper of expectations.papers){
   await step('pdf-'+paper.name,async()=>{
    await field('format','pdf');await field('pageSize',paper.pageSize);await field('orientation',paper.orientation)
+   const helperStart=record.privateOutputHelpers?.length??0
    await ui.click(panel+' [data-plugin-command="exportPrint.start"]')
    const destination=path.join(out,paper.name+'.pdf');await savePicker(destination)
-   await app.until(async()=>{const state=await app.execute('const p=document.querySelector(arguments[0]);return {text:p?.textContent,error:p?.querySelector("[role=alert]")?.textContent}',panel);if(state.error)throw Error(state.error);return state.text?.includes('已保存')},'PDF committed',90000)
+   await app.until(async()=>{await observeOutputHelpers();const state=await app.execute('const p=document.querySelector(arguments[0]);return {text:p?.textContent,error:p?.querySelector("[role=alert]")?.textContent}',panel);if(state.error)throw Error(state.error);return state.text?.includes('已保存')},'PDF committed',90000)
+   if(runtimeGate){const picker=record.dialogs.at(-1);assert(record.privateOutputHelpers?.slice(helperStart).some(p=>p.pid!==picker.pid||p.birth!==picker.birth),'Separate PDF renderer process mapped verified private runtime')}
    const bytes=await readFile(destination);const info=execFileSync('pdfinfo',[destination],{encoding:'utf8'}),raw=execFileSync('pdftotext',['-raw',destination,'-'],{encoding:'utf8'}),layout=execFileSync('pdftotext',['-layout',destination,'-'],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-pdfinfo.txt'),info);await writeFile(path.join(out,paper.name+'-text.txt'),raw);await writeFile(path.join(out,paper.name+'-layout.txt'),layout)
-   const pages=Number(/^Pages:\s+(\d+)/m.exec(info)?.[1]);const size=/^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info);const markers=expectations.markers.map(marker=>({marker,count:raw.split(marker).length-1}));const compactText=raw.replace(/[ \t\r\n\f]/g,'');const unicodeResults=expectations.unicodeCases.map(c=>{const start=compactText.indexOf(c.id+'-START'),end=compactText.indexOf(c.id+'-END',start);const actual=start>=0&&end>start?compactText.slice(start+(c.id+'-START').length,end):null;const expected=c.text.replace(/[ \t\r\n\f]/g,'');return {id:c.id,expected,actual,exact:actual===expected}});const fonts=execFileSync('pdffonts',[destination],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-fonts.txt'),fonts);const row={name:paper.name,unicodeResults,sha256:sha(bytes),bytes:bytes.length,pages,width:Number(size?.[1]),height:Number(size?.[2]),markers,chineseExpected:chinese,chineseExact:raw.includes(chinese),copyCheck:'Poppler text extraction, not a manual PDF-viewer clipboard check'};record.pdf.push(row);await persist();execFileSync('pdftoppm',['-f','1','-singlefile','-scale-to','1400','-png',destination,path.join(out,paper.name+'-page1')]);await app.shot(paper.name+'-product-done');assert(pages>=2,'At least two real PDF pages');assert(markers.every(m=>m.count===1),'Every source marker exactly once in PDF text');assert(row.chineseExact&&unicodeResults.every(c=>c.exact),'Exact original Unicode including intentional radicals and fallback, without normalization');assert(Math.abs(row.width-paper.width)<2&&Math.abs(row.height-paper.height)<2,'Exact paper/orientation');assert.equal(await readFile(fixture,'utf8'),expected)
+   const pages=Number(/^Pages:\s+(\d+)/m.exec(info)?.[1]);const size=/^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info);const markers=expectations.markers.map(marker=>({marker,count:raw.split(marker).length-1}));const compactText=raw.replace(/[ \t\r\n\f]/g,'');const unicodeResults=expectations.unicodeCases.map(c=>{const start=compactText.indexOf(c.id+'-START'),end=compactText.indexOf(c.id+'-END',start);const actual=start>=0&&end>start?compactText.slice(start+(c.id+'-START').length,end):null;const expected=c.text.replace(/[ \t\r\n\f]/g,'');return {id:c.id,expected,actual,exact:actual===expected}});const fonts=execFileSync('pdffonts',[destination],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-fonts.txt'),fonts);const urls=execFileSync('pdfinfo',['-url',destination],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-urls.txt'),urls);const bbox=execFileSync('pdftotext',['-bbox',destination,'-'],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-bbox.html'),bbox);const wordText=[...bbox.matchAll(/<word[^>]*>(.*?)<\/word>/gs)].map(m=>m[1]).join('');const searchProbes=[...'文⽂风⻛又⼜月⽉'].map(text=>({text,present:wordText.includes(text)}));const row={name:paper.name,unicodeResults,searchProbes,linkAnnotationEvidence:urls,linkScope:'Baseline had zero URI annotations; tracked separately, not repaired by this text patch',sha256:sha(bytes),bytes:bytes.length,pages,width:Number(size?.[1]),height:Number(size?.[2]),markers,chineseExpected:chinese,chineseExact:raw.includes(chinese),copyCheck:'Poppler text extraction, not a manual PDF-viewer clipboard check'};record.pdf.push(row);await persist();execFileSync('pdftoppm',['-f','1','-singlefile','-scale-to','1400','-png',destination,path.join(out,paper.name+'-page1')]);await app.shot(paper.name+'-product-done');assert(pages>=2,'At least two real PDF pages');assert(markers.every(m=>m.count===1),'Every source marker exactly once in PDF text');assert(searchProbes.every(p=>p.present),'Original characters and intentional radicals present in PDF text-search bounding boxes');assert(row.chineseExact&&unicodeResults.every(c=>c.exact),'Exact original Unicode including intentional radicals and fallback, without normalization');assert(Math.abs(row.width-paper.width)<2&&Math.abs(row.height-paper.height)<2,'Exact paper/orientation');assert.equal(await readFile(fixture,'utf8'),expected)
   }).catch(e=>{record.errors.push(String(e))})
  }
 } catch(e){record.errors.push(String(e));if(app){record.failureDom=await app.execute('return document.body.innerText.slice(0,10000)').catch(()=>null);await app.shot('failure').catch(()=>{})}}
 finally{
  if(app){try{await step('final-normal-close',normalClose)}catch(e){record.errors.push('close: '+String(e));record.forcedFailureCleanup=true;await app.close().catch(()=>{});app=null}}
+ if(runtimeGate){try{await runtimeGate.finish();record.privateRuntimeUnchanged=true}catch(e){record.errors.push('runtime identity: '+String(e))}}
  record.finalSourceSha256=sha(await readFile(fixture));record.status=record.errors.length?'failed':'passed';await persist();console.log(JSON.stringify(record,null,2));if(record.errors.length)process.exitCode=1
 }

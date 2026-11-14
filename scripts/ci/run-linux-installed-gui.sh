@@ -21,7 +21,14 @@ export MILKUP_NATIVE_EVIDENCE_DIR="$RUNNER_TEMP/linux-native-evidence/gui"
 mkdir -p "$MILKUP_NATIVE_EVIDENCE_DIR"
 # This wrapper owns only this driver; the UI harness separately verifies normal application close.
 trap 'if test -n "${driver_pid:-}"; then kill "$driver_pid" 2>/dev/null || true; wait "$driver_pid" 2>/dev/null || true; fi' EXIT
-tauri-driver --native-driver /usr/bin/WebKitWebDriver > "$MILKUP_NATIVE_EVIDENCE_DIR/driver.log" 2>&1 &
+native_driver=/usr/bin/WebKitWebDriver
+if test -n "${MILKUP_RESEARCH_RUNTIME_PREFIX:-}"; then
+  test -f "$MILKUP_RESEARCH_BUILD_MANIFEST"
+  test -x "$MILKUP_RESEARCH_RUNTIME_PREFIX/bin/WebKitWebDriver"
+  native_driver="$MILKUP_RESEARCH_RUNTIME_PREFIX/bin/WebKitWebDriver"
+  export LD_LIBRARY_PATH="$MILKUP_RESEARCH_RUNTIME_PREFIX/lib/x86_64-linux-gnu"
+fi
+tauri-driver --native-driver "$native_driver" > "$MILKUP_NATIVE_EVIDENCE_DIR/driver.log" 2>&1 &
 driver_pid=$!
 for attempt in $(seq 1 50); do
   if curl --fail --silent "$TAURI_DRIVER_URL/status" > /dev/null; then break; fi
