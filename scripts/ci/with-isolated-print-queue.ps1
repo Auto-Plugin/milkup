@@ -9,6 +9,16 @@ $name='Milkup-Isolated-'+[guid]::NewGuid().ToString('N')
 $driver='Generic / Text Only';$port='NUL:';$description='Owned paused null-device test queue '+$name
 $r=[ordered]@{schema=1;sourceSha=$env:GITHUB_SHA;applicationBaseline=$proof.applicationBaseline;status='failed';queue=$name;port=$port;driver=$driver;queueCreated=$false;driverRegistered=$false;portCreated=$false;paused=$false;jobSubmitted=$false;applicationCancellation='not-run';systemJobCancellation='not-run';physicalPrinting='not-run';defaultBefore=@($proof.defaultPrinters);cleanupErrors=@()}
 $queueOwned=$false;$portOwned=$false;$driverOwned=$false
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class OwnedPrintCleanup {
+ [DllImport("winspool.drv",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool DeletePortW(string server,IntPtr window,string port);
+ [DllImport("winspool.drv",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool DeletePrinterDriverW(string server,string environment,string driver);
+ public static int Port(){return DeletePortW(null,IntPtr.Zero,"NUL:")?0:Marshal.GetLastWin32Error();}
+ public static int Driver(){return DeletePrinterDriverW(null,"Windows x64","Generic / Text Only")?0:Marshal.GetLastWin32Error();}
+}
+'@
 function Persist {$r|ConvertTo-Json -Depth 16|Set-Content -LiteralPath (Join-Path $EvidenceDirectory 'print-queue.json') -Encoding utf8}
 function OwnedQueue {
  $q=Get-Printer -Name $name -ErrorAction Stop
@@ -56,13 +66,22 @@ try {
  }catch{$r.cleanupErrors+=($_ | Out-String)}}
  if($portOwned){try {
   if(@(Get-Printer | Where-Object PortName -CEQ $port).Count){throw 'Owned port still referenced; preserving'}
-  Remove-PrinterPort -Name $port
+  $code=[OwnedPrintCleanup]::Port();$r.portRemovalWin32=$code
+  if($code -ne 0){throw "Exact local null port removal failed Win32=$code"}
   $r.portRemoved=@(Get-PrinterPort | Where-Object Name -CEQ $port).Count -eq 0
   if(!$r.portRemoved){throw 'Owned port removal unconfirmed'}
  }catch{$r.cleanupErrors+=($_ | Out-String)}}
  if($driverOwned){try {
   if(@(Get-Printer | Where-Object DriverName -CEQ $driver).Count){throw 'Newly registered driver still referenced; preserving'}
-  Remove-PrinterDriver -Name $driver -PrinterEnvironment 'Windows x64'
+  # DeletePrinterDriver removes the registration, not inbox driver-store files.
+  # A recently deleted queue can briefly retain its reference; never restart Spooler.
+  $r.driverRemovalAttempts=@()
+  for($attempt=0;$attempt -lt 20;$attempt++) {
+   if(@(Get-Printer | Where-Object DriverName -CEQ $driver).Count){throw 'Driver gained another queue reference'}
+   $code=[OwnedPrintCleanup]::Driver();$r.driverRemovalAttempts+=@{attempt=$attempt;win32=$code}
+   if($code -eq 0){break};if($code -ne 3001){throw "Exact driver registration removal failed Win32=$code"};Start-Sleep -Milliseconds 250
+  }
+  if($code -ne 0){throw 'Owned driver remained busy after bounded cleanup'}
   $r.driverUnregistered=@(Get-PrinterDriver | Where-Object {$_.Name -ceq $driver -and $_.PrinterEnvironment -ceq 'Windows x64'}).Count -eq 0
   if(!$r.driverUnregistered){throw 'Driver registration removal unconfirmed'}
  }catch{$r.cleanupErrors+=($_ | Out-String)}}
