@@ -55,7 +55,13 @@ try {
  if(!([int]$q.PrinterStatus -band 1)){throw 'Queue pause not observed'}
  $r.paused=$true;$r.pausedQueue=$q | Select-Object Name,DriverName,PortName,Shared,Published,PrinterStatus,Comment
  Persist
- if($TestAction){$r.testResult=& $TestAction $name $EvidenceDirectory; $r.status='test-completed-await-contract'}else{$r.status='queue-capability-passed-no-job-submitted'}
+ if($TestAction){
+  $null=& $TestAction $name $EvidenceDirectory
+  $supervisor=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'standard/standard-print-supervisor.json') -Raw|ConvertFrom-Json
+  $spool=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'standard/print-spool.json') -Raw|ConvertFrom-Json
+  if($supervisor.status -cne 'passed' -or $spool.status -cne 'passed-spooled-and-system-cancelled' -or $spool.queue -cne $name -or !$spool.jobSubmitted -or !$spool.systemCancel -or $spool.jobsAfter.Count){throw 'Complete standard-user single-job evidence required'}
+  $r.jobSubmitted=$true;$r.spoolJobId=$spool.jobId;$r.applicationCancellation='native-dialog-cancel-before-submit; no job';$r.systemJobCancellation='ordinary-user exact queue/job removal verified';$r.status='passed-spool-not-physical-print'
+ }else{$r.status='queue-capability-passed-no-job-submitted'}
 } catch {$r.error=$_ | Out-String} finally {
  if($queueOwned){try {
   $null=OwnedQueue

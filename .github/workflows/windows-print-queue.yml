@@ -1,4 +1,4 @@
-name: Isolated Windows print queue capability (no release)
+name: Isolated Windows application print queue (no release)
 on:
   push:
     branches: [dot/print-queue-acceptance-20261114]
@@ -12,18 +12,69 @@ jobs:
   probe:
     if: github.repository == 'Auto-Plugin/milkup' && github.ref == 'refs/heads/dot/print-queue-acceptance-20261114'
     runs-on: windows-2025
-    timeout-minutes: 10
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/.tmp/print-target
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-          sparse-checkout: scripts/ci
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
       - name: Query existing print capabilities without mutations
         shell: pwsh
         run: scripts/ci/probe-windows-print-queue.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'print-queue-evidence')
-      - name: Verify owned paused non-file queue and scoped cleanup
-        shell: pwsh
-        run: scripts/ci/with-isolated-print-queue.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'print-queue-evidence')
+      - name: Verify harness and unchanged application baseline
+        run: |
+          $ErrorActionPreference='Stop'
+          git diff --exit-code b877746f5dfd236dfc13f718ed23d837b8e4f89d HEAD -- apps packages plugins package.json pnpm-lock.yaml
+          if($LASTEXITCODE -ne 0){throw 'Application must match exact accepted baseline'}
+          foreach($file in @('scripts/ci/run-print-queue-standard.ps1','scripts/ci/run-print-queue-child.ps1','scripts/ci/print-dialog-input.ps1','scripts/ci/with-isolated-print-queue.ps1')) {
+            $tokens=$null;$errors=$null
+            $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $file),[ref]$tokens,[ref]$errors)
+            if($errors.Count){$errors|Format-List;throw 'Print harness PowerShell parse failed'}
+          }
+          Add-Type -Path scripts/ci/IsolatedPrintDialog.cs
+          node --check scripts/ci/print-queue-ui.mjs
+          if($LASTEXITCODE -ne 0){throw 'Print UI parse failed'}
+      - name: Build exact application with production frontend assets
+        run: |
+          $ErrorActionPreference='Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if($LASTEXITCODE -ne 0){throw 'pnpm setup failed'}
+          rustup toolchain install 1.99.0 --profile minimal
+          if($LASTEXITCODE -ne 0){throw 'Rust setup failed'}
+          $env:RUSTUP_TOOLCHAIN='1.99.0'
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          if($LASTEXITCODE -ne 0){throw 'Locked dependency restore failed'}
+          $math=Join-Path $env:RUNNER_TEMP 'print-math-input'
+          npm install --prefix $math --ignore-scripts --no-audit --no-fund katex@0.19.0
+          if($LASTEXITCODE -ne 0){throw 'Math dependency restore failed'}
+          New-Item -ItemType Directory -Force plugins/math/node_modules | Out-Null
+          New-Item -ItemType Junction -Path plugins/math/node_modules/katex -Target (Join-Path $math 'node_modules/katex') | Out-Null
+          node scripts/ci/prepare-bundled-plugins.mjs
+          if($LASTEXITCODE -ne 0){throw 'Reviewed plugin preparation failed'}
+          pnpm --filter @milkup/desktop build
+          if($LASTEXITCODE -ne 0){throw 'Production frontend build failed'}
+          cargo build --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --bin milkup-desktop --features tauri/custom-protocol
+          if($LASTEXITCODE -ne 0){throw 'Native application link failed'}
+          $binary=Get-Item (Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-desktop.exe')
+          @{harnessSha=$env:GITHUB_SHA;applicationBaseline='b877746f5dfd236dfc13f718ed23d837b8e4f89d';binarySha256=(Get-FileHash $binary).Hash.ToLowerInvariant();binaryBytes=$binary.Length;profile='dev with production custom-protocol assets';installer='not-built'} | ConvertTo-Json | Set-Content (Join-Path $env:RUNNER_TEMP 'print-queue-evidence/build.json') -Encoding utf8
+      - name: Real ordinary-user application print, single-job cancel and scoped cleanup
+        run: |
+          scripts/ci/with-isolated-print-queue.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'print-queue-evidence') -TestAction {
+            param($queue,$evidence)
+            scripts/ci/run-print-queue-standard.ps1 -Binary (Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-desktop.exe') -Queue $queue -EvidenceDirectory (Join-Path $evidence 'standard')
+          }
       - name: Preserve actual capability evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
