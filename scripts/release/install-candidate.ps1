@@ -1,7 +1,8 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$SignedRecovery,[switch]$StartupComparison,[string]$NodeExecutable)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$SignedRecovery,[switch]$StartupComparison,[string]$NodeExecutable,[string]$CrossVersionDirectory)
 $ErrorActionPreference='Stop'
+if ($CrossVersionDirectory -and (!$SignedRecovery -or !$RepairHealth -or $NativeIme -or $DocumentHealth -or $StartupComparison)) { throw 'Cross-version fixture requires signed ordinary-account recovery only' }
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
 if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
@@ -22,7 +23,7 @@ function OwnedMaintenance([string]$File,[string[]]$Arguments) {
   Phase 'maintenance-exit' @{image=$File;exitCode=$p.ExitCode}
   if ($p.ExitCode -ne 0) { throw 'Native maintenance failed' }
 }
-function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
+function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey,[string]$ExplicitPhase='') {
   $startup=[Diagnostics.Stopwatch]::StartNew()
   $launch=@{FilePath=$binary;ArgumentList=@($document);PassThru=$true}
   if ($RepairHealth) { $launch.Environment=@{WEBVIEW2_USER_DATA_FOLDER=$healthProfile;WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=$debugPort --remote-debugging-address=127.0.0.1";TAURI_WEBVIEW_AUTOMATION='true'} }
@@ -56,10 +57,11 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   Phase ($Prefix + 'native-window-observed') @{hwnd=$window.hwnd;title=$window.title;className=$window.className;image=$product.Path;creationUtc=$creation;launchToNativeWindowMs=$startup.Elapsed.TotalMilliseconds;measurementBoundary='unique visible Tauri window only; not first paint, Mermaid ready or interactive'}
   $healthSession=$null
   if ($RepairHealth) {
-    $healthPhase=if ($Prefix) {'after'} else {'before'}
+    $healthPhase=if ($ExplicitPhase) {$ExplicitPhase} elseif ($Prefix) {'after'} else {'before'}
+    $previousPhase=if ($CrossVersionDirectory -and $healthPhase -ceq 'after') {'upgrade'} else {'before'}
     $healthRun=[WindowsMermaidStandardUser]::RunNodeScript(
       $NodeExecutable,
-      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory,$DocumentHealth.ToString().ToLowerInvariant(),$product.Id,$creationTicks,$binary,$NativeIme.ToString().ToLowerInvariant()),
+      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory,$DocumentHealth.ToString().ToLowerInvariant(),$product.Id,$creationTicks,$binary,$NativeIme.ToString().ToLowerInvariant(),$previousPhase),
       $PSScriptRoot,(Join-Path $EvidenceDirectory "health-$healthPhase.stdout.log"),(Join-Path $EvidenceDirectory "health-$healthPhase.stderr.log"),190000)
     Phase ($Prefix + 'health-node-exit') $healthRun
     if ($healthRun.status -cne 'passed') {
@@ -211,6 +213,35 @@ try {
   }
   $documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
   VerifyOwnedStartupAndClose '' 'startupWindows'
+  $expectedBrokenHash=$record.installedBinary.sha256
+  $expectedRestoredHash=$record.installedBinary.sha256
+  $recoveryFromVersion=$receipt.version
+  if ($CrossVersionDirectory) {
+    if ($receipt.version -cne '2.0.0-beta.10' -or $receipt.installer.sha256 -cne 'c9c5b8bf8e8c75607d3288fc105553dce9cd22bf625fa84d86b45cbd32c7a648') { throw 'Exact already accepted beta.10 input required' }
+    $upgradeReceiptPath=Join-Path $EvidenceDirectory 'upgrade-receipt.json'
+    $upgradeRun=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,[string[]]@((Join-Path $PSScriptRoot 'verify-candidate.mjs'),$CrossVersionDirectory,'5fd33f2b63de2755268af6d669b0f4b3b1f21b96',$Variant),$PSScriptRoot,$upgradeReceiptPath,(Join-Path $EvidenceDirectory 'upgrade-receipt.stderr.log'),30000)
+    if ($upgradeRun.status -cne 'passed' -or (Get-Item -LiteralPath $upgradeReceiptPath).Length -gt 64KB) { throw 'Exact bounded new package receipt required' }
+    $upgradeReceipt=Get-Content -LiteralPath $upgradeReceiptPath -Raw | ConvertFrom-Json
+    if ($upgradeReceipt.version -cne '2.0.0-beta.11' -or $upgradeReceipt.installer.sha256 -cne 'e4deb93fc3500cb3b49c7da94c6e777e47ea09851e0f9e6dd3b94aba31cc9f75') { throw 'Only exact version fixture accepted' }
+    $record['upgradeReceipt']=$upgradeReceipt
+    & (Join-Path $PSScriptRoot 'cross-version-state.ps1') -InstallDirectory $install -Binary $binary -Version $receipt.version -Document $document -EvidenceDirectory $EvidenceDirectory -Label 'before-upgrade'
+    $upgradeAuthorization=Join-Path $EvidenceDirectory 'upgrade-authorization.json'
+    $authorizeRun=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,[string[]]@((Join-Path $PSScriptRoot 'test-support/authorize-native-upgrade.mjs'),$upgradeReceipt.installer.path,$upgradeAuthorization),$PSScriptRoot,(Join-Path $EvidenceDirectory 'upgrade-authorization.stdout.log'),(Join-Path $EvidenceDirectory 'upgrade-authorization.stderr.log'),60000)
+    if ($authorizeRun.status -cne 'passed') { throw 'Test-signed new package authorization failed' }
+    $authorization=Get-Content -LiteralPath $upgradeAuthorization -Raw | ConvertFrom-Json
+    if ($authorization.status -cne 'verified-test-fixture-awaiting-installation' -or $authorization.receipt.artifactSha256 -cne $upgradeReceipt.installer.sha256 -or [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() -ge $authorization.receipt.expiresAt -or (Get-FileHash -LiteralPath $upgradeReceipt.installer.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $upgradeReceipt.installer.sha256) { throw 'New signed package bytes/freshness changed before installation' }
+    Phase 'verified-test-upgrade-used' @{sha256=$authorization.receipt.artifactSha256;expiresAt=$authorization.receipt.expiresAt;automaticUpdaterExercised=$false}
+    OwnedMaintenance $upgradeReceipt.installer.path @('/S',"/D=$install")
+    if (!(Test-Path -LiteralPath $binary -PathType Leaf) -or (Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash -cne $documentHash) { throw 'Upgrade did not retain installed application/document' }
+    $record['upgradedBinary']=@{path=$binary;sha256=(Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant();productVersion=(Get-Item -LiteralPath $binary).VersionInfo.ProductVersion}
+    if ($record.upgradedBinary.sha256 -ceq $expectedRestoredHash) { throw 'Cross-version binary did not change' }
+    & (Join-Path $PSScriptRoot 'cross-version-state.ps1') -InstallDirectory $install -Binary $binary -Version $upgradeReceipt.version -Document $document -EvidenceDirectory $EvidenceDirectory -Label 'after-upgrade'
+    VerifyOwnedStartupAndClose 'upgrade-' 'upgradeStartupWindows' 'upgrade'
+    $record.upgrade='exact-version-only-beta.10-to-beta.11-install-edit-save-plugin-persistence-passed; not automatic updater or schema migration'
+    $expectedBrokenHash=$record.upgradedBinary.sha256
+    $recoveryFromVersion=$upgradeReceipt.version
+    & (Join-Path $PSScriptRoot 'cross-version-state.ps1') -InstallDirectory $install -Binary $binary -Version $upgradeReceipt.version -Document $document -EvidenceDirectory $EvidenceDirectory -Label 'before-recovery' -Backup
+  }
   if ($RepairSameVersion) {
     # This intentionally damages only our fresh ephemeral installation, after
     # normal process exit, retaining the original bytes as failure evidence.
@@ -219,22 +250,25 @@ try {
     $backup=Join-Path $env:RUNNER_TEMP "milkup-repair-original-$Variant.bin"
     if (Test-Path -LiteralPath $backup) { throw 'Repair backup must be new' }
     Copy-Item -LiteralPath $binary -Destination $backup
-    if ((Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash.ToLowerInvariant() -cne $record.installedBinary.sha256) { throw 'Repair backup identity mismatch' }
+    if ((Get-FileHash -LiteralPath $backup -Algorithm SHA256).Hash.ToLowerInvariant() -cne $expectedBrokenHash) { throw 'Repair backup identity mismatch' }
     # Revalidate original installer bytes immediately before repair; do not use
     # the quarantined executable or a different rebuilt installer as repair input.
     if ((Get-FileHash -LiteralPath $receipt.installer.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $receipt.installer.sha256) { throw 'Repair installer changed' }
     Remove-Item -LiteralPath $binary
     if (Test-Path -LiteralPath $binary) { throw 'Missing-file fault was not established' }
-    Phase 'repair-missing-application-established' @{missingPath=$binary;backupSha256=$record.installedBinary.sha256;installerSha256=$receipt.installer.sha256;documentSha256=$documentHash.ToLowerInvariant()}
+    Phase 'repair-missing-application-established' @{missingPath=$binary;backupSha256=$expectedBrokenHash;installerSha256=$receipt.installer.sha256;documentSha256=$documentHash.ToLowerInvariant()}
     $repairInstaller=$receipt.installer.path
     if ($SignedRecovery) {
       $kit=Join-Path $EvidenceDirectory 'native-recovery-kit'
       $preparation=Join-Path $EvidenceDirectory 'native-recovery-preparation.json'
-      $prepRun=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,[string[]]@((Join-Path $PSScriptRoot 'test-support/prepare-native-recovery.mjs'),$receipt.installer.path,$receipt.version,$kit,$preparation),$PSScriptRoot,(Join-Path $EvidenceDirectory 'recovery-preparation.stdout.log'),(Join-Path $EvidenceDirectory 'recovery-preparation.stderr.log'),60000)
+      $prepArgs=[string[]]@((Join-Path $PSScriptRoot 'test-support/prepare-native-recovery.mjs'),$receipt.installer.path,$recoveryFromVersion,$kit,$preparation)
+      if ($CrossVersionDirectory) { $prepArgs+='version-only-fixture-5fd33f2b' }
+      $expectedPurpose=if ($CrossVersionDirectory) {'manual-older-version-recovery'} else {'same-version-repair'}
+      $prepRun=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,$prepArgs,$PSScriptRoot,(Join-Path $EvidenceDirectory 'recovery-preparation.stdout.log'),(Join-Path $EvidenceDirectory 'recovery-preparation.stderr.log'),60000)
       Phase 'signed-recovery-preparation-process' $prepRun
       if ($prepRun.status -cne 'passed') { throw 'Actual PE/signature recovery preparation failed' }
       $proof=Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
-      if ($proof.status -cne 'prepared-awaiting-real-install-and-health' -or $proof.negativeCases.Count -ne 3 -or $proof.prepared.executed -ne $false -or $proof.prepared.purpose -cne 'same-version-repair' -or $proof.prepared.version -cne $receipt.version -or $proof.prepared.artifactSha256 -cne $receipt.installer.sha256) { throw 'Exact recovery preparation and negative proof required' }
+      if ($proof.status -cne 'prepared-awaiting-real-install-and-health' -or $proof.negativeCases.Count -ne 3 -or $proof.prepared.executed -ne $false -or $proof.prepared.purpose -cne $expectedPurpose -or $proof.prepared.version -cne $receipt.version -or $proof.prepared.artifactSha256 -cne $receipt.installer.sha256) { throw 'Exact recovery preparation and negative proof required' }
       if ($proof.prepared.installer -cne ('milkup-'+$receipt.version+'-recovery-setup.exe')) { throw 'Exact prepared recovery filename required' }
       $repairInstaller=Join-Path $kit $proof.prepared.installer
       if ((Get-Item -LiteralPath $repairInstaller).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Recovery reparse rejected' }
@@ -244,12 +278,16 @@ try {
     OwnedMaintenance $repairInstaller @('/S',"/D=$install")
     if (!(Test-Path -LiteralPath $binary -PathType Leaf)) { throw 'Same-version repair did not restore application' }
     $repairedHash=(Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($repairedHash -cne $record.installedBinary.sha256) { throw 'Repair did not restore exact original executable' }
+    if ($repairedHash -cne $expectedRestoredHash) { throw 'Repair did not restore exact original executable' }
     if ((Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash -cne $documentHash) { throw 'Repair changed fixture document' }
     Phase 'repair-exact-application-restored' @{sha256=$repairedHash;documentUnchanged=$true}
     VerifyOwnedStartupAndClose 'repair-' 'repairStartupWindows'
+    if ($CrossVersionDirectory) {
+      & (Join-Path $PSScriptRoot 'cross-version-state.ps1') -InstallDirectory $install -Binary $binary -Version $receipt.version -Document $document -EvidenceDirectory $EvidenceDirectory -Label 'after-recovery'
+      $record.rollback='manual-test-signed-older-version-reinstall-and-health-passed; automatic rollback not implemented'
+    }
     if ($SignedRecovery) { $record.signedRecovery='ephemeral-test-authority-same-version-repair-and-health-passed; not production update or rollback' }
-    $record.sameVersionRepair='exact-binary-and-window-close-passed'
+    if ($CrossVersionDirectory) { $record.signedRecovery='ephemeral-test-authority-manual-older-version-recovery-and-health-passed; not automatic rollback'; $record.sameVersionRepair='not-run-cross-version-manual-recovery-instead' } else { $record.sameVersionRepair='exact-binary-and-window-close-passed' }
     $record.recoveryHealth=if ($RepairHealth) {'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health'} else {'native-window-only; document-open-edit-save and plugin/config restoration not verified'}
     # Retain hash/receipt evidence, not an extra runnable application artifact.
     Remove-Item -LiteralPath $backup
@@ -266,6 +304,7 @@ try {
   if (Test-Path -LiteralPath $binary) { throw 'Application still installed after uninstall' }
   if ((Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash -cne $documentHash) { throw 'Fixture document changed' }
   Remove-Item -LiteralPath $copy
+  if ($CrossVersionDirectory) { & (Join-Path $PSScriptRoot 'cross-version-state.ps1') -InstallDirectory $install -Binary $binary -Version $receipt.version -Document $document -EvidenceDirectory $EvidenceDirectory -Label 'after-uninstall' -Uninstalled }
   Phase 'uninstall-and-document-preservation' @{applicationRemoved=$true;documentSha256=$documentHash.ToLowerInvariant()}
   if ($NativeIme) { $record.nativeIme='physical-Pinyin-punctuation-source-live-save-reopen-undo-redo; not DPI or every IME' }
   $record.status='passed'

@@ -13,6 +13,7 @@ on:
             build-cross-version-target,
             native-input-accept,
             signed-recovery-accept,
+            cross-version-accept,
           ]
 permissions:
   contents: read
@@ -131,7 +132,7 @@ jobs:
           if-no-files-found: error
 
   native-input:
-    if: inputs.task == 'native-input-accept' || inputs.task == 'signed-recovery-accept'
+    if: inputs.task == 'native-input-accept' || inputs.task == 'signed-recovery-accept' || inputs.task == 'cross-version-accept'
     runs-on: windows-2025
     timeout-minutes: 25
     env:
@@ -158,6 +159,25 @@ jobs:
           gh run download 43574228722 --repo Auto-Plugin/milkup --name milkup-b877-native-input-candidate-43574228722 --dir "$RUNNER_TEMP/native-input-package"
           node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/native-input-package" "$SOURCE_SHA" windows-standard
           node --test scripts/ci/native-ime-contract.test.mjs scripts/release/verify-candidate.test.mjs scripts/release/recovery.test.mjs
+      - name: Reuse the exact successful new version fixture without rebuilding
+        if: inputs.task == 'cross-version-accept'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/Auto-Plugin/milkup/actions/runs/43590520662 > "$RUNNER_TEMP/cross-version-build.json"
+          node --input-type=module -e "import fs from 'node:fs';const r=JSON.parse(fs.readFileSync(process.argv[1]));if(r.head_sha!=='7be305ecbdabe001710c3b3bf0509d297e7b91af'||r.event!=='workflow_dispatch'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/release-gap-native-capabilities.yml')throw Error('Exact fixture build proof required')" "$RUNNER_TEMP/cross-version-build.json"
+          gh run download 43590520662 --repo Auto-Plugin/milkup --name milkup-cross-version-test-fixture-43590520662 --dir "$RUNNER_TEMP/cross-version-package"
+          node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/cross-version-package" 5fd33f2b63de2755268af6d669b0f4b3b1f21b96 windows-standard
+          node --test scripts/release/cross-version-contract.test.mjs
+      - name: Parse all native acceptance scripts before any installation
+        shell: pwsh
+        run: |
+          $tokens=$null;$errors=$null
+          foreach($file in @('scripts/release/install-candidate.ps1','scripts/release/run-repair-health-standard.ps1','scripts/release/cross-version-state.ps1')) {
+            $null=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$tokens,[ref]$errors)
+            if($errors.Count) { throw ($errors|Out-String) }
+          }
       - name: Compile owned-process native keys with official existing SDK
         if: inputs.task == 'native-input-accept'
         shell: pwsh
@@ -183,10 +203,16 @@ jobs:
         run: |
           $before=(Get-FileHash release/update-channel.json -Algorithm SHA256).Hash
           $nativeIme=$env:ACCEPTANCE_TASK -ceq 'native-input-accept'
-          $signedRecovery=$env:ACCEPTANCE_TASK -ceq 'signed-recovery-accept'
+          $crossVersion=$env:ACCEPTANCE_TASK -ceq 'cross-version-accept'
+          $signedRecovery=$env:ACCEPTANCE_TASK -ceq 'signed-recovery-accept' -or $crossVersion
+          $crossDirectory=if ($crossVersion) {"$env:RUNNER_TEMP/cross-version-package"} else {''}
           if (!$nativeIme -and !$signedRecovery) { throw 'Explicit acceptance scope required' }
-          ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/native-input-package" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/native-input-evidence" -NativeIme:$nativeIme -SignedRecovery:$signedRecovery
+          ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/native-input-package" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/native-input-evidence" -NativeIme:$nativeIme -SignedRecovery:$signedRecovery -CrossVersionDirectory $crossDirectory
           if ((Get-FileHash release/update-channel.json -Algorithm SHA256).Hash -cne $before) { throw 'Production update configuration changed' }
+          if ($crossVersion) {
+            node scripts/release/cross-version-contract.mjs "$env:RUNNER_TEMP/native-input-evidence"
+            if ($LASTEXITCODE) { throw 'Full cross-version evidence contract failed' }
+          }
           $before | Set-Content "$env:RUNNER_TEMP/native-input-evidence/unchanged-production-channel.sha256"
       - name: Retain failures and exact candidate observations
         if: always()
@@ -198,6 +224,8 @@ jobs:
             ${{ runner.temp }}/native-input-compile/*.txt
             ${{ runner.temp }}/native-input-compile/*.json
             ${{ runner.temp }}/native-input-build.json
+            ${{ runner.temp }}/cross-version-build.json
+            ${{ runner.temp }}/cross-version-package/manifest.json
             ${{ runner.temp }}/native-input-package/manifest.json
             ${{ runner.temp }}/native-input-package/native-input-provenance.json
           retention-days: 7

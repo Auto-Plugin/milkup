@@ -15,9 +15,11 @@ assert.equal(process.platform, 'win32')
 assert.equal(process.env.GITHUB_ACTIONS, 'true')
 assert.equal(process.env.GITHUB_REPOSITORY, 'Auto-Plugin/milkup')
 assert.equal(process.env.GITHUB_REF, 'refs/heads/dot/gap-native-capabilities-20261114')
-const [installerPath, installedVersion, output, reportPath, ...rest] = process.argv.slice(2)
+const [installerPath, installedVersion, output, reportPath, scope, ...rest] = process.argv.slice(2)
 assert(output && reportPath && rest.length === 0)
-assert.equal(installedVersion, '2.0.0-beta.10')
+const olderFixture = scope === 'version-only-fixture-5fd33f2b'
+assert(scope === undefined || olderFixture)
+assert.equal(installedVersion, olderFixture ? '2.0.0-beta.11' : '2.0.0-beta.10')
 const stat = await lstat(installerPath)
 assert(stat.isFile() && !stat.isSymbolicLink() && stat.size > 0 && stat.size <= 256 * 1024 * 1024)
 const installer = await readFile(installerPath)
@@ -28,11 +30,24 @@ const now = Math.floor(Date.now() / 1000)
 f.statement.release.notes = 'Isolated native recovery acceptance; ephemeral test authority only'
 f.statement.release.milkup.issuedAt = now
 f.statement.release.milkup.expiresAt = now + 600
+if (olderFixture) {
+  assert.equal(hash(installer), 'c9c5b8bf8e8c75607d3288fc105553dce9cd22bf625fa84d86b45cbd32c7a648')
+  // This declaration applies only to the exact isolated version-only fixture.
+  // It cannot establish compatibility of any future application schema change.
+  f.statement.release.recovery = {
+    schema: 1,
+    mode: 'manual-reinstall',
+    fromVersion: installedVersion,
+    toVersion: '2.0.0-beta.10',
+    dataBackwardCompatible: true,
+  }
+}
 const envelope = f.envelope()
 const report = {
   status: 'failed',
-  scope:
-    'Temporary CI key, real unchanged installer; not production trust, cross-version update or automatic rollback',
+  scope: olderFixture
+    ? 'Temporary CI key; exact version-only beta.11 fixture to beta.10 manual recovery; not production trust, arbitrary migration or automatic rollback'
+    : 'Temporary CI key, real unchanged installer; not production trust, cross-version update or automatic rollback',
   privateKeyPersisted: false,
   testPublicConfiguration: f.config,
   networkRequests: 0,
@@ -69,7 +84,10 @@ try {
     inspect: inspectWindowsInstaller,
   })
   assert.equal(receipt.artifactSha256, hash(installer))
-  assert.equal(receipt.purpose, 'same-version-repair')
+  assert.equal(
+    receipt.purpose,
+    olderFixture ? 'manual-older-version-recovery' : 'same-version-repair',
+  )
   assert.equal(receipt.executed, false)
   report.prepared = receipt
   report.status = 'prepared-awaiting-real-install-and-health'

@@ -23,8 +23,10 @@ const [
   productBirth,
   productImage,
   nativeIme,
+  previousPhase = 'before',
 ] = process.argv.slice(2)
-assert(['before', 'after'].includes(phase))
+assert(['before', 'upgrade', 'after'].includes(phase))
+assert(['before', 'upgrade'].includes(previousPhase))
 for (const port of [driverPort, debugPort]) assert(/^\d{4,5}$/.test(port) && +port < 65536)
 const record = {
   status: 'running',
@@ -201,9 +203,9 @@ try {
     await persist()
   }
   const bytes = await readFile(document)
-  if (phase === 'after') {
+  if (phase !== 'before') {
     const before = JSON.parse(
-      await readFile(path.join(output, 'repair-health-before.json'), 'utf8'),
+      await readFile(path.join(output, `repair-health-${previousPhase}.json`), 'utf8'),
     )
     assert.equal(before.status, 'passed')
     assert.equal(sha(bytes), before.saved.sha256, 'Repair retained real edited document')
@@ -315,7 +317,7 @@ try {
     record.saved = { sha256: sha(nativeExpected), bytes: nativeExpected.length }
     await persist()
   }
-  if (phase === 'after') {
+  if (phase !== 'before') {
     await chord('\uE011')
     await chord('2')
     await until(
@@ -330,7 +332,21 @@ try {
     const { base64, ...image } = decoded.value
     assert(image.fullyDecoded && image.nonuniform)
     record.decodedImage = image
-    await writeFile(path.join(output, 'repair-health-image.png'), Buffer.from(base64, 'base64'))
+    await writeFile(
+      path.join(output, `repair-health-${phase}-image.png`),
+      Buffer.from(base64, 'base64'),
+    )
+  }
+  if (phase === 'upgrade') {
+    // Exercise the new version, then retain an intentional disabled setting for
+    // the independent older-version recovery check. Mutations remain real UI.
+    await menu()
+    await click('.plugin-summary-card[data-plugin-id="milkup.diagrams"] [role="switch"]')
+    record.pluginRetainedForRecovery = await until(async () => {
+      const c = (await state()).cards.find((v) => v.id === 'milkup.diagrams')
+      return c?.checked === 'false' && c.busy !== 'true' ? c : false
+    }, 'upgraded version persists explicit disabled setting')
+    await click('[data-menu-close]')
   }
   if (phase === 'after' && documentHealth === 'true') {
     const { checkInstalledDocuments } = await import('./installed-document-health.mjs')

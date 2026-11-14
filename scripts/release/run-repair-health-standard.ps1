@@ -9,6 +9,7 @@ param(
  [Parameter(ParameterSetName='Parent')][switch]$DocumentHealth,
  [Parameter(ParameterSetName='Parent')][switch]$NativeIme,
  [Parameter(ParameterSetName='Parent')][switch]$SignedRecovery,
+ [Parameter(ParameterSetName='Parent')][string]$CrossVersionDirectory,
  [Parameter(ParameterSetName='Parent')][switch]$StartupComparison,
  [Parameter(Mandatory,ParameterSetName='Child')][string]$ChildSpec
 )
@@ -63,7 +64,8 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
    Json (Join-Path $scratch 'native-ime-languages.json') $languageAudit
   }
 
-  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NativeIme:([bool]$spec.nativeIme) -SignedRecovery:([bool]$spec.signedRecovery) -NodeExecutable $spec.node.path
+  $crossInput=if ($spec.crossVersion) {$spec.crossInput} else {''}
+  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NativeIme:([bool]$spec.nativeIme) -SignedRecovery:([bool]$spec.signedRecovery) -NodeExecutable $spec.node.path -CrossVersionDirectory $crossInput
   exit 0
  } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 } finally {
   if ($null -ne $originalLanguages) {
@@ -77,6 +79,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  }
 }
 if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !($NativeIme -or $SignedRecovery)) { throw 'Native input branch requires its explicit scoped mode' }
+if ($CrossVersionDirectory -and (!$SignedRecovery -or $NativeIme)) { throw 'Cross-version requires explicit signed-recovery mode' }
 Plain $Directory
 if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Harness must be exact workflow checkout' }
 NewDir $EvidenceDirectory
@@ -109,7 +112,7 @@ try {
  $code=Join-Path $stage 'code';NewDir $code
  $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/InstalledStartupProcess.cs','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
  if ($NativeIme) { $files+=@('scripts/ci/windows-owned-ime-input.exe','scripts/ci/native-ime-contract.mjs') }
- if ($SignedRecovery) { $files+=@('scripts/release/test-support/prepare-native-recovery.mjs','scripts/release/test-support/signing-fixture.mjs','scripts/release/prepare-recovery-kit.mjs','scripts/release/inspect-recovery-installer.ps1','scripts/release/update-readiness.mjs') }
+ if ($SignedRecovery) { $files+=@('scripts/release/test-support/prepare-native-recovery.mjs','scripts/release/test-support/authorize-native-upgrade.mjs','scripts/release/test-support/signing-fixture.mjs','scripts/release/prepare-recovery-kit.mjs','scripts/release/inspect-recovery-installer.ps1','scripts/release/update-readiness.mjs','scripts/release/cross-version-state.ps1') }
  $audit['stagedCode']=@()
  foreach($leaf in $files) {
   $source=Join-Path $repo $leaf;Plain $source
@@ -123,13 +126,23 @@ try {
  if ($LASTEXITCODE -ne 0) { throw 'Original installer verification failed' };$receipt=$raw | ConvertFrom-Json
  $inputRoot=Join-Path $stage 'input';NewDir $inputRoot
  foreach($source in @((Join-Path $Directory 'manifest.json'),$receipt.installer.path)) {Plain $source;Copy-Item -LiteralPath $source -Destination $inputRoot}
+ $crossInput=''
+ if ($CrossVersionDirectory) {
+  Plain $CrossVersionDirectory
+  $crossRaw=& node (Join-Path $repo 'scripts/release/verify-candidate.mjs') $CrossVersionDirectory '5fd33f2b63de2755268af6d669b0f4b3b1f21b96' $Variant
+  if ($LASTEXITCODE -ne 0) { throw 'Cross-version installer verification failed' }
+  $crossReceipt=$crossRaw | ConvertFrom-Json
+  if ($crossReceipt.installer.sha256 -cne 'e4deb93fc3500cb3b49c7da94c6e777e47ea09851e0f9e6dd3b94aba31cc9f75') { throw 'Exact cross-version bytes required' }
+  $crossInput=Join-Path $stage 'cross-input';NewDir $crossInput
+  foreach($source in @((Join-Path $CrossVersionDirectory 'manifest.json'),$crossReceipt.installer.path)) {Plain $source;Copy-Item -LiteralPath $source -Destination $crossInput}
+ }
  $specFile=Join-Path $code 'repair-spec.json'
  $node=(Get-Command node -CommandType Application | Select-Object -First 1).Source
  $pwsh=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
  Plain $node
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
- Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;nativeIme=[bool]$NativeIme;signedRecovery=[bool]$SignedRecovery;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
+ Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;nativeIme=[bool]$NativeIme;signedRecovery=[bool]$SignedRecovery;crossVersion=[bool]$CrossVersionDirectory;crossInput=$crossInput;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
  $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'
@@ -143,6 +156,8 @@ try {
   if ($jobEmpty -and (Test-Path -LiteralPath $scratch)) {
    $evidenceNames=@('child-identity.json','child-error.json','native-ime-languages.json','evidence/installation.json','evidence/unchanged-document.md','evidence/repair-health-before.json','evidence/repair-health-after.json','evidence/repair-health-before.png','evidence/repair-health-after.png','evidence/repair-health-image.png','evidence/repair-health-initial-image.png','evidence/driver.stdout.log','evidence/driver.stderr.log','evidence/verified-receipt.json','evidence/receipt.stderr.log','evidence/health-before.stdout.log','evidence/health-before.stderr.log','evidence/health-after.stdout.log','evidence/health-after.stderr.log','evidence/installed-document-health.json','evidence/identity-bravo.md','evidence/alpha.html','evidence/alpha.pdf','evidence/bravo.html','evidence/bravo.pdf')
    foreach($i in 0..5){$evidenceNames+=@("evidence/native-dialog-$i.json","evidence/native-dialog-$i.json.log")}
+   foreach($label in @('before-upgrade','after-upgrade','before-recovery','after-recovery','after-uninstall')) {$evidenceNames+="evidence/cross-version-$label.json"}
+   $evidenceNames+=@('evidence/upgrade-authorization.json','evidence/upgrade-authorization.stdout.log','evidence/upgrade-authorization.stderr.log','evidence/upgrade-receipt.json','evidence/upgrade-receipt.stderr.log','evidence/repair-health-upgrade.json','evidence/repair-health-upgrade.png','evidence/repair-health-upgrade-image.png','evidence/repair-health-after-image.png','evidence/health-upgrade.stdout.log','evidence/health-upgrade.stderr.log')
    $evidenceNames+=@('evidence/document-alpha.png','evidence/document-bravo.png','evidence/document-unsaved-close.png')
    $evidenceNames+=@('evidence/startup-comparison.json','evidence/native-recovery-preparation.json','evidence/recovery-preparation.stdout.log','evidence/recovery-preparation.stderr.log','evidence/native-recovery-kit/recovery-receipt.json','evidence/native-recovery-kit/signed-envelope.json','evidence/native-recovery-kit/SHA256SUMS.txt','evidence/native-recovery-kit/RECOVERY.txt')
    foreach($i in 0..5) {foreach($suffix in @('spec.json','observation.json','product.stdout.log','product.stderr.log','node.stdout.log','node.stderr.log','verify.json','verify.stderr.log','catalog-before.json','catalog-after.json')) {$evidenceNames+="evidence/startup-$i.$suffix"}}
@@ -161,7 +176,8 @@ try {
   $languages=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'native-ime-languages.json') -Raw | ConvertFrom-Json
   if ($languages.status -cne 'restored' -or $languages.before -cne $languages.restored) { throw 'Exact temporary language settings restoration required' }
  }
- if ($SignedRecovery -and $result.signedRecovery -cne 'ephemeral-test-authority-same-version-repair-and-health-passed; not production update or rollback') { throw 'Real signed recovery use and health proof required' }
+ $expectedSigned=if ($CrossVersionDirectory) {'ephemeral-test-authority-manual-older-version-recovery-and-health-passed; not automatic rollback'} else {'ephemeral-test-authority-same-version-repair-and-health-passed; not production update or rollback'}
+ if ($SignedRecovery -and $result.signedRecovery -cne $expectedSigned) { throw 'Real signed recovery use and health proof required' }
  if ($StartupComparison) {
   $comparison=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'startup-comparison.json') -Raw | ConvertFrom-Json
   if ($comparison.status -cne 'passed' -or $comparison.trials.Count -ne 6 -or @($comparison.trials | Where-Object {$_.status -cne 'passed' -or $_.forcedCleanup}).Count -ne 0) {throw 'Complete six-launch comparison required'}
