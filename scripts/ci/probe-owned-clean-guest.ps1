@@ -18,7 +18,9 @@ try {
  if(Test-Path $root){throw 'Owned path exists'}
  New-Item -ItemType Directory $root|Out-Null
  $vm=New-VM -Name $name -Generation 2 -MemoryStartupBytes 256MB -NoVHD -Path $root
- $r['vmId']=$vm.Id.ToString();Persist
+ $r['vmId']=$vm.Id.ToString();$r['createdVmPath']=$vm.Path
+ if(![IO.Path]::GetFullPath($vm.Path).StartsWith([IO.Path]::GetFullPath($root).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase) -and ![StringComparer]::OrdinalIgnoreCase.Equals($vm.Path.TrimEnd('\'),$root.TrimEnd('\'))){throw 'Created VM path escaped owned root'}
+ Persist
  Get-VMNetworkAdapter -VM $vm|Remove-VMNetworkAdapter
  if(@(Get-VMNetworkAdapter -VM $vm).Count -ne 0){throw 'Owned VM has adapter'}
  Start-VM -VM $vm|Out-Null
@@ -28,7 +30,7 @@ try {
 } catch {$r.errors+=($_|Out-String);$r.status='capability-blocked'} finally {
  if($null -ne $vm){try{
   $actual=Get-VM -Id $vm.Id
-  if($actual.Name -cne $name -or $actual.Path.TrimEnd('\') -cne $root.TrimEnd('\')){throw 'Owned VM identity/path changed'}
+  if($actual.Name -cne $name -or ![StringComparer]::OrdinalIgnoreCase.Equals($actual.Path,$r.createdVmPath)){throw 'Owned VM identity/path changed'}
   if($actual.State.ToString() -cne 'Off'){Stop-VM -VM $actual -TurnOff -Force -Confirm:$false}
   Remove-VM -VM $actual -Force
   if(Get-VM -Id $vm.Id -ErrorAction SilentlyContinue){throw 'Owned VM still exists'}
