@@ -34,6 +34,16 @@ subprocess.run(['cc','-Wall','-Wextra','-Werror','-Wno-deprecated-declarations',
 subprocess.run(['python3',str(research/'pdf_links.py'),'fixtures',str(a.out)],check=True)
 report={'status':'running','mode':a.mode,'uid':os.getuid(),'harnessSha':os.environ.get('GITHUB_SHA'),'runtimeDirectory':runtime.name,'runtimeSocketBindPreflight':True,'expectedPrivateLibraries':expected,'runs':[],'scope':'GTK WebKit print engine, not installed Milkup or physical printer'}
 def persist():(a.out/'native-result.json').write_text(json.dumps(report,indent=2))
+def final_runtime_check(expected):
+    rows=[]
+    for file,digest in expected.items():
+        row={'path':file,'expectedSha256':digest}
+        try:
+            row['actualSha256']=hashlib.sha256(pathlib.Path(file).read_bytes()).hexdigest()
+            row['status']='passed' if row['actualSha256']==digest else 'failed'
+        except OSError as error:row.update(status='failed',error=str(error))
+        rows.append(row)
+    return {'status':('passed' if all(r['status']=='passed' for r in rows) else 'failed') if rows else 'not-applicable-system-baseline','files':rows}
 try:
     for name in ['links','no-links']:
         maps=a.out/(name+'-main.maps');cmd=['timeout','--signal=TERM','--kill-after=5s','55s','xvfb-run','-a','dbus-run-session','--',str(binary),str(a.out/(name+'.html')),str(a.out/(name+'.pdf')),str(maps)]
@@ -80,8 +90,10 @@ try:
             for line in actual.splitlines():
                 if 'libwebkit2gtk-4.1.so.' in line or 'libjavascriptcoregtk-4.1.so.' in line:assert any(line.endswith(file) for file in expected), 'Mixed runtime mapping'
     subprocess.run(['python3',str(research/'pdf_links.py'),a.mode,str(a.out)],check=True,timeout=60)
-    for file,digest in expected.items():assert hashlib.sha256(pathlib.Path(file).read_bytes()).hexdigest()==digest
     report['status']='passed'
-except Exception as e:report['status']='failed';report['error']=str(e);raise
+except Exception as e:report['status']='failed';report['error']=str(e)
 finally:
+    report['privateRuntimeFinalCheck']=final_runtime_check(expected)
+    if report['privateRuntimeFinalCheck']['status']=='failed':report['status']='failed'
     persist();runtime.cleanup()
+if report['status']!='passed':raise SystemExit(1)
