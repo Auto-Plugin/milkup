@@ -1,0 +1,31 @@
+name: Isolated Windows print queue capability (no release)
+on:
+  push:
+    branches: [dot/print-queue-acceptance-20261114]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: milkup-print-queue-20261114
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: github.repository == 'Auto-Plugin/milkup' && github.ref == 'refs/heads/dot/print-queue-acceptance-20261114'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/ci
+      - name: Query existing print capabilities without mutations
+        shell: pwsh
+        run: scripts/ci/probe-windows-print-queue.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'print-queue-evidence')
+      - name: Preserve actual capability evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-print-queue-${{ github.run_id }}
+          path: ${{ runner.temp }}/print-queue-evidence/
+          if-no-files-found: error
+          retention-days: 7
