@@ -44,13 +44,13 @@ export function verifyInApp({
   )
   for (const c of ui.cases) {
     assert.equal(c.oldImageSha256, i.inAppFixture.sha256)
-    assert(c.state.error)
+    assert(c.state.updateError)
     assert(!c.state.actions.includes('install'))
     assert.match(c.state.version, /2\.0\.0-beta\.10/)
     assert.match(c.savedSha256, /^[a-f0-9]{64}$/)
   }
   assert(ui.ready.actions.includes('install'))
-  assert(!ui.ready.error)
+  assert(!ui.ready.updateError)
   assert.equal(ui.confirmation.discardHidden, true)
   assert.match(ui.confirmation.text, /2\.0\.0-beta\.11/)
   assert.equal(endpoint.status, 'closed')
@@ -88,7 +88,18 @@ export function verifyInApp({
   assert.equal(old.pid, exit.pid)
   assert.equal(old.creationTicks, exit.creationTicks)
   assert.equal(exit.exitCode, 0)
-  assert(restarted.creationTicks > old.creationTicks)
+  for (const process of [old, restarted]) {
+    assert.equal(typeof process.creationTicks, 'string')
+    assert.match(process.creationTicks, /^[0-9]+$/)
+    assert.match(process.identity.creationFileTime, /^[0-9]+$/)
+    assert.equal(
+      BigInt(process.creationTicks),
+      BigInt(process.identity.creationFileTime) + 504911232000000000n,
+    )
+    assert.equal(process.identity.pid, process.pid)
+    assert.equal(process.identity.token.sid, i.accountSid)
+  }
+  assert(BigInt(restarted.creationTicks) > BigInt(old.creationTicks))
   assert.equal(restarted.harnessStartedNewProcess, false)
   assert.equal(restarted.sha256, imageHash)
   assert.equal(restarted.identity.token.sid, i.accountSid)
@@ -154,6 +165,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   assert.equal(statement.product, 'milkup-desktop')
   assert.equal(statement.channel, 'beta')
   assert.equal(statement.release.version, '2.0.0-beta.11')
+  assert.deepEqual(fixture.channel.endpoints, [evidence.endpoint.endpoint + '/manifest.json'])
+  assert.equal(
+    statement.release.platforms['windows-x86_64'].url,
+    evidence.endpoint.endpoint + '/candidate.exe',
+  )
+  assert.equal(fixture.expiresAt, statement.release.milkup.expiresAt)
+  assert.equal(
+    createHash('sha256').update(fixture.certificatePem).digest('hex'),
+    evidence.endpoint.certificateSha256,
+  )
+  for (const request of evidence.endpoint.requests) {
+    const at = Date.parse(request.at) / 1000
+    assert(at >= statement.release.milkup.issuedAt && at < statement.release.milkup.expiresAt)
+  }
+
   const artifact = await readFile(artifactPath)
   assert.equal(createHash('sha256').update(artifact).digest('hex'), targetHash)
   verifyMinisign(

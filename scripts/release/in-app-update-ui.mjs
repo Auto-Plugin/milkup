@@ -99,7 +99,7 @@ const about = async () => {
 }
 const updateState = () =>
   execute(
-    `const e=document.querySelector('[data-application-updates]');return {text:e?.innerText,error:e?.querySelector('[role="alert"]')?.textContent??null,actions:[...e?.querySelectorAll('[data-application-update-action]')??[]].map(b=>b.dataset.applicationUpdateAction),version:document.querySelector('[data-app-version]')?.textContent,confirmVisible:!!document.querySelector('[data-close-confirm]:not([hidden])')}`,
+    `const e=document.querySelector('[data-application-updates]');return {text:e?.innerText,updateError:e?.querySelector('[role="alert"]')?.textContent??null,actions:[...e?.querySelectorAll('[data-application-update-action]')??[]].map(b=>b.dataset.applicationUpdateAction),version:document.querySelector('[data-app-version]')?.textContent,confirmVisible:!!document.querySelector('[data-close-confirm]:not([hidden])')}`,
   )
 const endpointMode = (value) => writeFile(path.join(output, 'endpoint-mode.txt'), value)
 async function edit(marker, save = true) {
@@ -131,9 +131,9 @@ async function edit(marker, save = true) {
 async function rejected(name, pattern) {
   const value = await until(async () => {
     const s = await updateState()
-    return s.error ? s : false
+    return s.updateError ? s : false
   }, name)
-  assert.match(value.error, pattern)
+  assert.match(value.updateError, pattern)
   assert.match(value.version, /2\.0\.0-beta\.10/)
   assert(!value.actions.includes('install'), 'Rejected bytes must never offer installation')
   const expected = await edit(`UPDATE-REJECTED-${name}\n`)
@@ -210,7 +210,7 @@ try {
     'real downloaded verified package ready',
     60000,
   )
-  assert(!record.ready.error)
+  assert(!record.ready.updateError)
   // Force the actual protected save-before-install path, with a unique unsaved marker.
   const expected = await edit('UPDATE-SAVED-BY-PROTECTED-INSTALL\n', false)
   await about()

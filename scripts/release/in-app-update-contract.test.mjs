@@ -8,7 +8,7 @@ function complete() {
     name,
     oldImageSha256: h,
     savedSha256: h,
-    state: { error: 'signature/download rejected', actions: [], version: '2.0.0-beta.10' },
+    state: { updateError: 'signature/download rejected', actions: [], version: '2.0.0-beta.10' },
   }))
   return {
     installation: {
@@ -28,16 +28,30 @@ function complete() {
       rollback: 'not-implemented',
       accountSid: 'owned',
       phases: [
-        { name: 'in-app-old-process', detail: { pid: 7, creationTicks: 1 } },
-        { name: 'in-app-old-normal-exit', detail: { pid: 7, creationTicks: 1, exitCode: 0 } },
+        {
+          name: 'in-app-old-process',
+          detail: {
+            pid: 7,
+            creationTicks: '504911232000000001',
+            identity: { pid: 7, creationFileTime: '1', token: { sid: 'owned' } },
+          },
+        },
+        {
+          name: 'in-app-old-normal-exit',
+          detail: { pid: 7, creationTicks: '504911232000000001', exitCode: 0 },
+        },
         {
           name: 'in-app-automatic-restart',
           detail: {
             pid: 7,
-            creationTicks: 2,
+            creationTicks: '504911232000000002',
             harnessStartedNewProcess: false,
             sha256: image,
-            identity: { token: { sid: 'owned', elevated: false, integrityRid: 8192 } },
+            identity: {
+              pid: 7,
+              creationFileTime: '2',
+              token: { sid: 'owned', elevated: false, integrityRid: 8192 },
+            },
           },
         },
         { name: 'in-app-restarted-normal-close', detail: { exitCode: 0 } },
@@ -106,6 +120,12 @@ for (const [name, change] of Object.entries({
   'test manually relaunched new app': (e) =>
     (e.installation.phases[2].detail.harnessStartedNewProcess = true),
   'stale process identity': (e) => (e.installation.phases[2].detail.creationTicks = 1),
+  'rounded numeric birth': (e) =>
+    (e.installation.phases[2].detail.creationTicks = Number(
+      e.installation.phases[2].detail.creationTicks,
+    )),
+  'mismatched held birth': (e) => (e.installation.phases[2].detail.identity.creationFileTime = '3'),
+  'missing held birth': (e) => delete e.installation.phases[2].detail.identity.creationFileTime,
   'new process elevated': (e) => (e.installation.phases[2].detail.identity.token.elevated = true),
   'wrong target package': (e) => (e.installation.inAppTarget.installer.sha256 = h),
   'unmatched endpoint download': (e) => e.endpoint.requests.pop(),
