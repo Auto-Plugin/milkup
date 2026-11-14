@@ -178,6 +178,10 @@ jobs:
             $null=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$tokens,[ref]$errors)
             if($errors.Count) { throw ($errors|Out-String) }
           }
+      - name: Verify strict native NSIS registry path handling
+        if: inputs.task == 'cross-version-accept'
+        shell: pwsh
+        run: ./scripts/release/cross-version-path.test.ps1
       - name: Compile owned-process native keys with official existing SDK
         if: inputs.task == 'native-input-accept'
         shell: pwsh

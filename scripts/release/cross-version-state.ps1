@@ -10,6 +10,7 @@ param(
  [switch]$Backup,[switch]$Uninstalled
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'cross-version-path.ps1')
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:GITHUB_REF -cne 'refs/heads/dot/gap-native-capabilities-20261114') { throw 'Exact isolated native acceptance required' }
 $report=[ordered]@{status='failed';label=$Label;version=$Version;uninstalled=[bool]$Uninstalled;uninstallEntries=@();backup=$null}
 function Hash([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -25,9 +26,9 @@ try {
   foreach($key in Get-ChildItem -LiteralPath $root) {
    $value=Get-ItemProperty -LiteralPath $key.PSPath
    if (!$value.PSObject.Properties['InstallLocation'] -or !$value.InstallLocation) { continue }
-   $location=[IO.Path]::GetFullPath($value.InstallLocation).TrimEnd('\')
+   $location=ConvertFrom-NsisInstallLocation $value.InstallLocation
    if (![StringComparer]::OrdinalIgnoreCase.Equals($location,$InstallDirectory.TrimEnd('\'))) { continue }
-   $report.uninstallEntries+=@{key=$key.Name;displayName=$value.DisplayName;displayVersion=$value.DisplayVersion;installLocation=$value.InstallLocation;uninstallString=$value.UninstallString}
+   $report.uninstallEntries+=@{key=$key.Name;displayName=$value.DisplayName;displayVersion=$value.DisplayVersion;installLocation=$value.InstallLocation;normalizedInstallLocation=$location;uninstallString=$value.UninstallString}
   }
  }
  if ($Uninstalled) {
