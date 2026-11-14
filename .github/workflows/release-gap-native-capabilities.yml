@@ -20,10 +20,26 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          sparse-checkout: /scripts/ci/probe-windows-release-gaps.ps1
+          sparse-checkout: |
+            /scripts/ci/probe-windows-release-gaps.ps1
+            /scripts/ci/windows-pinyin-control.cpp
       - name: Observe native prerequisites without changing machine policy
         shell: pwsh
         run: ./scripts/ci/probe-windows-release-gaps.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/gap-capabilities"
+      - name: Compile and run owned native Pinyin control
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $vs=& "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (!$vs) { throw 'Existing official C++ toolchain unavailable' }
+          $out="$env:RUNNER_TEMP/gap-capabilities"
+          $command='call "'+$vs+'\VC\Auxiliary\Build\vcvars64.bat" && cl /nologo /W4 /EHsc /std:c++17 scripts\ci\windows-pinyin-control.cpp /Fe:"'+$out+'\pinyin-control.exe" /Fo:"'+$out+'\pinyin-control.obj" /link ole32.lib uuid.lib user32.lib imm32.lib msctf.lib'
+          cmd /d /c $command 2>&1 | Tee-Object "$out/compile.txt"
+          if ($LASTEXITCODE) { throw 'Native control compile failed' }
+          & "$out/pinyin-control.exe" 2>&1 | Tee-Object "$out/pinyin-control.txt"
+          $code=$LASTEXITCODE
+          Remove-Item "$out/pinyin-control.exe","$out/pinyin-control.obj" -ErrorAction SilentlyContinue
+          if ($code) { throw "Native control not established: $code (not a Milkup result)" }
       - name: Retain exact observations including unavailable capabilities
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

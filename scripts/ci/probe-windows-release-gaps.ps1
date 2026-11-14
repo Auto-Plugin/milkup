@@ -9,7 +9,7 @@ function Probe([string]$Name,[scriptblock]$Operation) {
   Persist
 }
 Probe 'languages' { @(Get-WinUserLanguageList | ForEach-Object { @{tag=$_.LanguageTag;tips=@($_.InputMethodTips)} }) }
-Probe 'chineseLanguageCapability' { @(Get-WindowsCapability -Online -Name 'Language.Basic~~~zh-CN~*' | Select-Object Name,State) }
+Probe 'chineseLanguageCapability' { @(Get-WindowsCapability -Online -Name 'Language.Basic~~~zh-CN~*' | ForEach-Object { @{name=$_.Name;state=$_.State.ToString()} }) }
 Probe 'chineseTextServices' {
   $rows=@()
   foreach($base in @('HKLM:\SOFTWARE\Microsoft\CTF\TIP','HKLM:\SOFTWARE\WOW6432Node\Microsoft\CTF\TIP')) {
@@ -53,7 +53,7 @@ Probe 'webviewRuntimes' {
   $rows
 }
 Probe 'cleanGuestFacilities' {
-  @(Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -match 'Containers-DisposableClientVM|Microsoft-Hyper-V|VirtualMachinePlatform'} | Select-Object FeatureName,State)
+  @(Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -match 'Containers-DisposableClientVM|Microsoft-Hyper-V|VirtualMachinePlatform'} | ForEach-Object { @{name=$_.FeatureName;state=$_.State.ToString()} })
 }
 Probe 'networkAdapterStates' { @(Get-NetAdapter | Select-Object Status,InterfaceDescription) }
 Probe 'nativeDisplay' {
