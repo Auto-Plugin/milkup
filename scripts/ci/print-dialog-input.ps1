@@ -10,7 +10,20 @@ function QueueIdentity {
  if($q.Name -cne $Queue -or $q.Comment -cne ('Owned paused null-device test queue '+$Queue) -or $q.PortName -cne 'NUL:' -or $q.DriverName -cne 'Generic / Text Only' -or $q.Shared -or $q.Published -or !([int]$q.PrinterStatus -band 1)){throw 'Exact paused owned null queue required'}
 }
 $r=[ordered]@{status='failed';mode=if($Cancel){'native-dialog-cancel'}else{'submit-then-system-single-job-cancel'};productPid=$ProductId;productCreationTicks=$CreationTicks.ToString();queue=$Queue;marker=$Marker;jobSubmitted=$false;systemCancel=$false;applicationRetractedSubmittedJob=$false;physicalPrinted=$false}
-$helper=$null
+$helper=$null;$job=$null
+function CancelObservedJob([string]$Purpose) {
+  # Recheck the exact captured job generation before any single-job deletion.
+  QueueIdentity
+  $latest=Get-PrintJob -PrinterName $Queue -ID $job.ID
+  if($latest.DocumentName -cne $job.DocumentName -or $latest.UserName -cne $job.UserName -or $latest.SubmittedTime -ne $job.SubmittedTime){throw 'Spool job identity changed before cancel'}
+  $r.cancelPurpose=$Purpose
+  Remove-PrintJob -PrinterName $Queue -ID $job.ID
+  $r.systemCancel=$true;$r.cancelMechanism='ordinary-user PrintManagement Remove-PrintJob exact queue and ID; not application cancellation'
+  $end=[datetime]::UtcNow.AddSeconds(15)
+  do{QueueIdentity;$left=@(Get-PrintJob -PrinterName $Queue);if(!$left.Count){break};Start-Sleep -Milliseconds 100}while([datetime]::UtcNow -lt $end)
+  $r.jobsAfter=@($left | Select-Object ID,DocumentName,UserName,SubmittedTime,JobStatus,Size)
+  if($left.Count){throw 'Single job removal not proven'}
+}
 try {
  Identity;QueueIdentity
  if(@(Get-PrintJob -PrinterName $Queue).Count){throw 'Dedicated queue not empty before action'}
@@ -53,20 +66,23 @@ try {
   # the queue remains paused. Do not race system cancellation against Print().
   if(!$helper.WaitForExit(30000)){throw 'Print helper did not finish submission while queue was paused'}
   $r.helperExitedBeforeSystemCancel=$true;$r.helperExitCode=$helper.ExitCode
-  if($helper.ExitCode -ne 0){throw 'Print helper failed before single-job cancellation'}
-  # Only this observed generation of this single test job; no queue purge.
-  QueueIdentity
-  $latest=Get-PrintJob -PrinterName $Queue -ID $job.ID
-  if($latest.DocumentName -cne $job.DocumentName -or $latest.UserName -cne $job.UserName -or $latest.SubmittedTime -ne $job.SubmittedTime){throw 'Spool job identity changed before cancel'}
-  Remove-PrintJob -PrinterName $Queue -ID $job.ID
-  $r.systemCancel=$true;$r.cancelMechanism='ordinary-user PrintManagement Remove-PrintJob exact queue and ID; not application cancellation'
-  $end=[datetime]::UtcNow.AddSeconds(15)
-  do{QueueIdentity;$left=@(Get-PrintJob -PrinterName $Queue);if(!$left.Count){break};Start-Sleep -Milliseconds 100}while([datetime]::UtcNow -lt $end)
-  $r.jobsAfter=@($left | Select-Object ID,DocumentName,UserName,SubmittedTime,JobStatus,Size)
-  if($left.Count){throw 'Single job removal not proven'}
+  # This backend deliberately stays alive after its framed result; its owner
+  # terminates the Job. Exit code is diagnostic, never the success predicate.
+  [IO.File]::WriteAllText($Receipt+'.job-observed',$Marker)
+  $accepted=$Receipt+'.application-accepted';$end=[datetime]::UtcNow.AddSeconds(25)
+  while(!(Test-Path -LiteralPath $accepted) -and [datetime]::UtcNow -lt $end){Identity;QueueIdentity;Start-Sleep -Milliseconds 100}
+  if(!(Test-Path -LiteralPath $accepted) -or (Get-Item -LiteralPath $accepted).Length -gt 64 -or [IO.File]::ReadAllText($accepted) -cne $Marker){throw 'Application UI did not confirm successful submission before cancellation'}
+  $r.applicationReportedSubmittedBeforeCancel=$true
+  $r.completedSpoolJob=Get-PrintJob -PrinterName $Queue -ID $job.ID | Select-Object ID,PrinterName,DocumentName,UserName,SubmittedTime,JobStatus,Size,TotalPages
+  if($r.completedSpoolJob.Size -le 0 -or ([int]$r.completedSpoolJob.JobStatus -band 8)){throw 'Complete non-empty spooled data required before successful cancellation acceptance'}
+  CancelObservedJob 'acceptance-after-application-reported-submitted'
   $r.status='passed-spooled-and-system-cancelled'
  }
 }catch{$r.error=$_|Out-String}finally{
+ if($r.jobSubmitted -and !$r.systemCancel -and $null -ne $job){
+  try{CancelObservedJob 'failure-cleanup-only';$r.failureCleanupVerified=$true}catch{$r.failureCleanupError=$_|Out-String}
+ }
+
  $r.controlObservation=[IsolatedPrintDialog]::LastObservation
  $r | ConvertTo-Json -Depth 14 | Set-Content -LiteralPath $Receipt -Encoding utf8
  if($helper){$helper.Dispose();[GC]::KeepAlive($helperHeld)};$product.Dispose();[GC]::KeepAlive($held)

@@ -222,12 +222,19 @@ try {
     try {
       await until(async()=>{try{return (await readFile(receipt+'.ready','utf8'))==='ready'}catch{return false}},'native print helper ready',15000)
       await click(`${panel} [data-plugin-command="exportPrint.start"]`)
+      if(!cancel){
+        await until(async()=>{try{return (await readFile(receipt+'.job-observed','utf8'))===marker}catch{return false}},'exact spool job observed and helper retired',45000)
+        record.preCancelApplicationStatus=await until(()=>execute(`const p=document.querySelector(arguments[0]);const t=[...p.querySelectorAll('[role="status"]')].map(e=>e.textContent).join(String.fromCharCode(10));return t.includes('已提交打印')?t:false`,panel),'application completed submission before system cancel',20000)
+        await persist()
+        await writeFile(receipt+'.application-accepted',marker,{flag:'wx'})
+      }
       const code=await ended
       const proof=JSON.parse((await readFile(receipt,'utf8')).replace(/^\uFEFF/,''))
       record.printPhases.push(proof);await persist()
       assert.equal(code,0,log);assert(!overflow)
       assert.equal(proof.status,cancel?'passed-native-dialog-cancel-no-job':'passed-spooled-and-system-cancelled')
       record.panelStatus=await until(()=>execute(`const p=document.querySelector(arguments[0]);const t=[...p.querySelectorAll('[role="status"]')].map(e=>e.textContent).join(String.fromCharCode(10));return t.includes(arguments[1])?t:false`,panel,cancel?'已停止等待':'已提交打印'),'application reports exact print result')
+      await actions('wheel',[{type:'scroll',origin:'viewport',duration:200,deltaX:0,deltaY:650,x:110,y:500}])
       await writeFile(path.join(output,cancel?'print-cancel.png':'print-submitted.png'),Buffer.from(await request('GET',`/session/${session}/screenshot`),'base64'))
     }finally{if(helper.exitCode===null&&helper.signalCode===null)helper.kill();await ended.catch(()=>{});clearTimeout(timer);await writeFile(receipt+'.log',log)}
   }
