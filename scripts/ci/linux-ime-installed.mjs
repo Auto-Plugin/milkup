@@ -26,7 +26,7 @@ let expected=base
 await writeFile(fixture,base,{flag:'wx'})
 const birth=async pid=>(await readFile(`/proc/${pid}/stat`,'utf8')).split(') ').at(-1).split(' ')[19]
 const ui=nativeFixture(()=>app)
-async function start(){app=await startProduction(fixture,out,{diagnostics:false});const win=ui.windowId(),pid=Number(x('getwindowpid',win));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid),win};report.launches??=[];report.launches.push({...owned});await app.execute(`window.__imeAudit={events:[],overflow:false};for(const type of ['compositionstart','compositionupdate','compositionend','beforeinput','input'])document.addEventListener(type,e=>{const a=window.__imeAudit;if(a.events.length>=240){a.overflow=true;return}a.events.push({type:e.type,data:e.data??null,trusted:e.isTrusted,composing:e.isComposing??null,inputType:e.inputType??null,time:performance.now()})},true)`);await persist()}
+async function start(){app=await startProduction(fixture,out,{diagnostics:false});const win=ui.windowId(),pid=Number(x('getwindowpid',win));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid),win};report.launches??=[];report.launches.push({...owned});await app.execute(`window.__imeAudit={events:[],overflow:false};for(const type of ['compositionstart','compositionupdate','compositionend','beforeinput','input','keydown','keyup'])document.addEventListener(type,e=>{const a=window.__imeAudit;if(a.events.length>=600){a.overflow=true;return}a.events.push({type:e.type,key:e.key??null,target:e.target?.className??null,data:e.data??null,trusted:e.isTrusted,composing:e.isComposing??null,inputType:e.inputType??null,time:performance.now()})},true)`);await persist()}
 async function saveExact(){await key('ctrl+s');await app.until(async()=>await readFile(fixture,'utf8')===expected,'exact saved Unicode bytes',15000);await app.until(async()=>!(await app.probe()).dirty,'clean saved document');await sleep(2600);assert.equal(await readFile(fixture,'utf8'),expected)}
 async function close(){assert.equal(await birth(owned.pid),owned.birth);assert.equal((await app.probe()).dirty,false);const row={...owned,forced:false,exited:false};report.closes.push(row);await persist();row.request=JSON.parse(execFileSync(process.env.MILKUP_NATIVE_CLOSE_HELPER,[owned.win,String(owned.pid)],{encoding:'utf8'}));await app.until(async()=>{try{return await birth(owned.pid)!==owned.birth}catch(e){if(e.code==='ENOENT')return true;throw e}},'normal process exit',20000);row.exited=true;await app.close();app=null;owned=null;await persist()}
 try{
@@ -44,18 +44,20 @@ try{
   engine('xkb:us::eng');await key(mode==='source'?'ctrl+1':'ctrl+2');await app.until(async()=>(await app.probe()).mode===mode,'editor mode');await app.focus('.milkup-input-proxy');await key('ctrl+End')
   if(mode==='live'){await key('Return');expected+='\n'}
   engine('libpinyin');const before=await app.execute('return window.__imeAudit.events.length')
-  await type('zhongwen');await app.until(()=>app.execute('return window.__imeAudit.events.slice(arguments[0]).some(e=>e.type==="compositionupdate"&&e.trusted)',before),'trusted native composition');shot(mode+'-preedit-candidates')
-  await key('space');expected+='中文';await saveExact()
+  await type('zhongwen');await sleep(1200);shot(mode+'-preedit-candidates')
+  report[mode+'Preedit']=await app.execute('return {audit:window.__imeAudit,activeTag:document.activeElement?.tagName,activeClass:document.activeElement?.className,proxy:document.querySelector(".milkup-input-proxy")?.value,focused:document.hasFocus()}');await persist()
+  await key('space');expected+='中文';report[mode+'Commit']=await app.execute('return {audit:window.__imeAudit,proxy:document.querySelector(".milkup-input-proxy")?.value,dom:document.querySelector(".milkup-editor")?.textContent}');await persist();await saveExact()
   if(mode==='source'){await key('ctrl+z');expected=expected.slice(0,-2);await saveExact();await key('ctrl+shift+z');expected+='中文';await saveExact()}
   for(const p of ['comma','period','question','exclam','colon','semicolon'])await key(p)
   expected+='，。？！：；';await saveExact();shot(mode+'-punctuation-committed')
   await type('ceshi');shot(mode+'-cancel-candidates');await key('Escape');await saveExact()
   engine('xkb:us::eng');await type('_'+mode.toUpperCase());expected+='_'+mode.toUpperCase();await saveExact()
   const audit=await app.execute('return window.__imeAudit');report[mode]={audit,expected,savedSha256:hash(await readFile(fixture)),state:await app.probe()};await persist()
-  assert(!audit.overflow);const events=audit.events.slice(before);assert(events.some(e=>e.type==='compositionstart'&&e.trusted));assert(events.some(e=>e.type==='compositionend'&&e.trusted&&e.data==='中文'),'IME commits intended text through a trusted composition event')
+  assert(!audit.overflow);report[mode].eventsSinceStart=audit.events.slice(before);await persist()
  })
+ await step('strict-native-composition-event-contract',async()=>{for(const mode of ['source','live']){const events=report[mode].eventsSinceStart;assert(events.some(e=>e.type==='compositionstart'&&e.trusted),mode+' native compositionstart');assert(events.some(e=>e.type==='compositionupdate'&&e.trusted),mode+' native compositionupdate');assert(events.some(e=>e.type==='compositionend'&&e.trusted&&e.data==='中文'),mode+' native 中文 compositionend')}})
  await step('normal-close-and-reopen-saved-unicode',async()=>{await close();await start();assert.equal(await readFile(fixture,'utf8'),expected);await app.focus('.milkup-input-proxy');await key('ctrl+End');await app.until(()=>app.execute('return document.querySelector(".milkup-editor")?.textContent.includes("_LIVE")'),'saved tail visible');shot('reopened');await close()})
-}catch(e){report.errors.push(String(e));if(app){report.failureDom=await app.execute('return document.body.innerText.slice(0,8000)').catch(()=>null);shot('failure')}}
+}catch(e){report.errors.push(String(e));if(app){report.failureAudit=await app.execute('return window.__imeAudit').catch(()=>null);report.failureDom=await app.execute('return document.body.innerText.slice(0,8000)').catch(()=>null);shot('failure')}}
 finally{
  if(control&&control.exitCode===null){control.kill('SIGTERM');report.forcedControlCleanup=true}
  if(app){try{if(!(await app.probe()).dirty)await close();else throw Error('Unexpected dirty document')}catch(e){report.errors.push('cleanup: '+String(e));report.forcedProductCleanup=true;await app.close().catch(()=>{})}}
