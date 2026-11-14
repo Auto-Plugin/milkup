@@ -68,6 +68,26 @@ const until = async (fn, label, limit = 30000) => {
   }
   throw Error('Timed out: ' + label)
 }
+// Observe readiness and begin the full strict decode in the same DOM task.
+// No failed PNG, duplicate owner, revoked Blob or WebDriver error is retried.
+const readyDecodeScript =
+  `
+const pendingImages=[...document.querySelectorAll('[data-document-presentation] img')];
+if(pendingImages.length===0 || (pendingImages.length===1 && (!pendingImages[0].complete || pendingImages[0].naturalWidth===0))){arguments[arguments.length-1]({ok:true,pending:true});return;}
+` + decodeScript
+const decodeAccepted = (label) =>
+  until(async () => {
+    const result = await request('POST', `/session/${session}/execute/async`, {
+      script: readyDecodeScript,
+      args: [null],
+    })
+    if (result.pending === true) {
+      record.pendingImageObservations = (record.pendingImageObservations ?? 0) + 1
+      return false
+    }
+    assert.equal(result.ok, true)
+    return result
+  }, label)
 const actions = async (type, list) => {
   record.inputs.push({ type, actions: list, at: new Date().toISOString() })
   assert(record.inputs.length <= 100)
@@ -181,15 +201,8 @@ try {
   if (phase === 'before') {
     // Fresh installed profile, before any keyboard or pointer input. The after
     // phase intentionally retains a disabled plugin and is not a cold sample.
-    await until(
-      async () => (await state()).images.some((i) => i.complete && i.naturalWidth > 0),
-      'initial installed default diagram without input',
-    )
+    const decoded = await decodeAccepted('initial installed default diagram without input')
     assert.equal(record.inputs.length, 0)
-    const decoded = await request('POST', `/session/${session}/execute/async`, {
-      script: decodeScript,
-      args: [null],
-    })
     assert.equal(decoded.ok, true)
     const { base64, ...image } = decoded.value
     assert(image.fullyDecoded && image.nonuniform)
@@ -331,14 +344,7 @@ try {
   if (phase !== 'before') {
     await chord('\uE011')
     await chord('2')
-    await until(
-      async () => (await state()).images.some((i) => i.complete && i.naturalWidth > 0),
-      'restored plugin renders actual image',
-    )
-    const decoded = await request('POST', `/session/${session}/execute/async`, {
-      script: decodeScript,
-      args: [null],
-    })
+    const decoded = await decodeAccepted('restored plugin renders actual image')
     assert.equal(decoded.ok, true)
     const { base64, ...image } = decoded.value
     assert(image.fullyDecoded && image.nonuniform)
