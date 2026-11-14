@@ -14,6 +14,9 @@ export XDG_RUNTIME_DIR="$MILKUP_NATIVE_PROFILE_ROOT/runtime"
 mkdir -m 700 "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME" "$XDG_RUNTIME_DIR"
 export GTK_IM_MODULE=ibus
 export XMODIFIERS=@im=ibus
+# D-Bus was started by the outer isolated session before these owned XDG paths
+# existed. Its activated dconf service must use the same temporary profile.
+dbus-update-activation-environment XDG_DATA_HOME XDG_CONFIG_HOME XDG_CACHE_HOME XDG_STATE_HOME XDG_RUNTIME_DIR GTK_IM_MODULE XMODIFIERS DISPLAY
 export TAURI_APP_PATH=/usr/bin/milkup-desktop
 export TAURI_DRIVER_URL=http://127.0.0.1:4444
 export MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1
@@ -35,6 +38,7 @@ gsettings set org.freedesktop.ibus.general use-global-engine true
 # failure for an engine with layout=default after successfully selecting it
 # when it tries to run setxkbmap with no arguments (tools/main.vala).
 gsettings set org.freedesktop.ibus.general use-system-keyboard-layout true
+test "$(gsettings get org.freedesktop.ibus.general use-system-keyboard-layout)" = true
 gsettings list-recursively org.freedesktop.ibus.general > "$MILKUP_NATIVE_EVIDENCE_DIR/ibus-settings.txt"
 selected=0
 for attempt in $(seq 1 50); do
