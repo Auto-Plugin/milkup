@@ -36,7 +36,13 @@ try:
  report['compileCommands']=len(json.loads((build/'compile_commands.json').read_text()))
  report['engineBuildAttempted']=True;report['stage']='compile-engine';persist()
  started=time.monotonic();reason=None;low_mem=0
- args=['/usr/bin/time','-v','-o',str(evidence/'build-time.txt'),'cmake','--build',str(build),'--parallel','2']
+ # Run 43561713531 reached 8395/9449 steps at the unchanged 150-minute
+ # boundary with two jobs; minimum available RAM was 9.52 GiB. Use one more
+ # compiler on this measured four-core host, keeping all stop reserves.
+ assert (os.cpu_count() or 0)>=4, 'Measured four-core build capability required'
+ report['compileParallelism']=3
+ report['capacityBaselineRun']=43561713531
+ args=['/usr/bin/time','-v','-o',str(evidence/'build-time.txt'),'cmake','--build',str(build),'--parallel','3']
  with (evidence/'compile-engine.log').open('w')as f:
   proc=subprocess.Popen(args,stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
   while proc.poll()is None:
