@@ -1,0 +1,91 @@
+{
+  "sourceSha": "6fd03468b7f29ef5d6c18bf2fc165ad723ed457e",
+  "uid": 1001,
+  "gid": 1001,
+  "tools": {
+    "Xvfb": "/usr/bin/Xvfb",
+    "xvfb-run": "/usr/bin/xvfb-run",
+    "dbus-run-session": "/usr/bin/dbus-run-session",
+    "xdotool": "/usr/bin/xdotool",
+    "xwininfo": "/usr/bin/xwininfo",
+    "WebKitWebDriver": "/usr/bin/WebKitWebDriver",
+    "tauri-driver": null,
+    "cupsd": null,
+    "lpstat": null,
+    "lpadmin": null,
+    "ippeveprinter": null,
+    "ipptool": null,
+    "pdfinfo": "/usr/bin/pdfinfo",
+    "pdftotext": "/usr/bin/pdftotext",
+    "python3": "/usr/bin/python3",
+    "pkg-config": "/usr/bin/pkg-config"
+  },
+  "os": "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.04\"\nVERSION=\"26.04.1 LTS (Resolute Raccoon)\"\nVERSION_CODENAME=resolute\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=resolute\nLOGO=ubuntu-logo\n",
+  "display": null,
+  "wayland": null,
+  "runnerImage": "20261111.196.1",
+  "queries": [
+    {
+      "args": [
+        "id"
+      ],
+      "exit": 0,
+      "stdout": "uid=1001(runner) gid=1001(runner) groups=1001(runner),4(adm),100(users),113(docker),999(systemd-journal)\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "pkg-config",
+        "--modversion",
+        "webkit2gtk-4.1",
+        "gtk+-3.0"
+      ],
+      "exit": 0,
+      "stdout": "2.52.6\n3.24.52\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "dpkg-query",
+        "-W",
+        "libwebkit2gtk-4.1-0",
+        "libgtk-3-0t64",
+        "cups",
+        "cups-ipp-utils",
+        "xvfb",
+        "webkit2gtk-driver",
+        "webkitgtk-webdriver"
+      ],
+      "exit": 1,
+      "stdout": "libgtk-3-0t64:amd64\t3.24.52-0ubuntu1\nlibwebkit2gtk-4.1-0:amd64\t2.52.6-0ubuntu0.26.04.1\nwebkit2gtk-driver\t\nwebkitgtk-webdriver\t2.52.6-0ubuntu0.26.04.1\nxvfb\t2:21.1.22-1ubuntu1.3\n",
+      "stderr": "dpkg-query: no packages found matching cups\ndpkg-query: no packages found matching cups-ipp-utils\n"
+    },
+    {
+      "args": [
+        "lpstat",
+        "-t"
+      ],
+      "error": "[Errno 2] No such file or directory: 'lpstat'"
+    },
+    {
+      "args": [
+        "sysctl",
+        "kernel.unprivileged_userns_clone",
+        "kernel.apparmor_restrict_unprivileged_userns"
+      ],
+      "exit": 0,
+      "stdout": "kernel.unprivileged_userns_clone = 1\nkernel.apparmor_restrict_unprivileged_userns = 1\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "unshare",
+        "-Ur",
+        "true"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "unshare: write failed /proc/self/uid_map: Operation not permitted\n"
+    }
+  ]
+}
