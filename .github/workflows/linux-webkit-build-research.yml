@@ -8,6 +8,10 @@ on:
         options: [preflight, resume]
         default: preflight
         required: true
+      links_research:
+        description: URI annotation research only; no application reinstall or full GUI rerun
+        type: boolean
+        default: false
       preflight_run:
         description: Exact successful same-SHA preflight run required for resume
         type: string
@@ -25,6 +29,7 @@ jobs:
     timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || 355 }}
     env:
       CCACHE_COMPILERCHECK: content
+      MILKUP_WEBKIT_LINKS: ${{ inputs.links_research }}
       MILKUP_WEBKIT_OPERATION: ${{ inputs.operation }}
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
     defaults:
@@ -60,28 +65,33 @@ jobs:
           p=pathlib.Path(os.environ['RUNNER_TEMP'])/'prior-preflight'
           r=json.loads((p/'build-result.json').read_text())
           assert r['harnessSha']==os.environ['GITHUB_SHA'] and r['status']=='preflight-passed-not-engine-built'
+          assert r.get('linksResearch',False)==(os.environ['MILKUP_WEBKIT_LINKS']=='true')
           assert r['fullEngineBuildAttempted'] is False and r['objectCacheProbeAttempted'] is True
           assert json.loads((p/'header-preflight/result.json').read_text())['status']=='passed'
           assert json.loads((p/'cache-preflight/result.json').read_text())['status']=='passed'
+          if os.environ['MILKUP_WEBKIT_LINKS']=='true':
+            assert json.loads((p/'links-preflight/result.json').read_text())['status']=='passed'
+            assert json.loads((p/'links-baseline/result.json').read_text())['status']=='passed'
           PY
       - name: Restore matching bounded compiler-object cache only
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ runner.temp }}/milkup-webkit-ccache
-          key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-${{ github.run_id }}
+          key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
           restore-keys: |
-            webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-
+            webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-
+            webkit-u2604-2526-f49aafb7686f22659a2e83f28dfab7be0058bcf1e750789dab9a24de2ecf8e13-43614932570
             webkit-u2604-2526-a7910481056bef2fbcf3ec8b2ab12691665d22560f7b11debcfb04d4fc749b33-43590136844
       - name: Obtain authenticated official source and measure build prerequisites
         run: python3 scripts/ci/probe-webkit-distro-build.py
       - name: Build matched GTK3 runtime in private normal-user prefix
         run: python3 scripts/ci/build-webkit-private.py
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        if: inputs.operation == 'resume'
+        if: inputs.operation == 'resume' && !inputs.links_research
         with:
           node-version: 24.19.0
       - name: Reuse exact new candidate built in run 43558261633
-        if: inputs.operation == 'resume'
+        if: inputs.operation == 'resume' && !inputs.links_research
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -110,7 +120,7 @@ jobs:
           (evidence/'original-comparison.json').write_text(json.dumps({'sourceSha':m['sourceSha'],'harnessSha':os.environ['GITHUB_SHA'],'buildRun':43558261633,'artifactId':14099980957,'originalDebSha256':'36c4873d840a06e85bf08398e119f9ddb494c813727eff6479aa4e434141f86e','newDebSha256':actual,'identicalBytes':False,'scope':'Same new candidate bytes from official b877 rebuild; not the preserved original deb'},indent=2)+'\n')
           PY
       - name: Install new package and verify exact installed binary
-        if: inputs.operation == 'resume'
+        if: inputs.operation == 'resume' && !inputs.links_research
         run: |
           if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing to replace an existing installation' >&2; exit 1; fi
           package=("$RUNNER_TEMP"/milkup-candidate/deliverable/*.deb)
@@ -124,7 +134,7 @@ jobs:
           rustup toolchain install 1.99.0 --profile minimal
           cargo +1.99.0 install tauri-driver --version 2.1.0 --locked
       - name: Verify private sandbox and installed-app PDF through matched runtime
-        if: inputs.operation == 'resume'
+        if: inputs.operation == 'resume' && !inputs.links_research
         timeout-minutes: 12
         run: |
           test "$(id -u)" != 0
@@ -137,6 +147,11 @@ jobs:
           cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
           node --test scripts/ci/linux-private-runtime.test.mjs
           timeout --signal=TERM --kill-after=10s 650s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-installed-gui.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/private-gui-harness.txt"
+      - name: Verify URI annotations in the actual private print engine
+        if: inputs.operation == 'resume' && inputs.links_research
+        timeout-minutes: 5
+        run: |
+          python3 scripts/ci/run-webkit-link-probe.py verify "$RUNNER_TEMP/milkup-webkit-research/evidence/links-patched" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/build-result.json"
       - name: Remove only this run's package
         if: always()
         run: |
@@ -166,4 +181,4 @@ jobs:
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ runner.temp }}/milkup-webkit-ccache
-          key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-${{ github.run_id }}
+          key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}

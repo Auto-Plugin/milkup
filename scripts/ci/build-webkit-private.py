@@ -4,10 +4,11 @@ import hashlib,json,os,pathlib,re,signal,subprocess,time,shutil
 from webkit_build_limits import compile_budget, stop_reason
 operation_started=float(os.environ["MILKUP_RESEARCH_START_EPOCH"])
 operation=os.environ['MILKUP_WEBKIT_OPERATION'];assert operation in ['preflight','resume']
+links=os.environ.get('MILKUP_WEBKIT_LINKS')=='true'
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';source=root/'source';build=root/'build';prefix=root/'prefix';conf=root/'apt.conf'
 probe=json.loads((evidence/'result.json').read_text());assert probe['status']=='probe-complete'
 assert os.getuid()!=0 and not probe['simulatedRemovals'] and not probe['wouldChangeWebKitPackages'] and probe['buildDependencySimulationSucceeded']
-version=probe['sourceVersionRequested'];report={'status':'running','uid':os.getuid(),'sourceVersion':version,'prefix':str(prefix),'harnessSha':os.environ['GITHUB_SHA'],'steps':[],'samples':[],'engineBuildAttempted':False,'fullEngineBuildAttempted':False}
+version=probe['sourceVersionRequested'];report={'status':'running','uid':os.getuid(),'sourceVersion':version,'prefix':str(prefix),'harnessSha':os.environ['GITHUB_SHA'],'steps':[],'samples':[],'engineBuildAttempted':False,'fullEngineBuildAttempted':False,'linksResearch':links}
 def persist(): (evidence/'build-result.json').write_text(json.dumps(report,indent=2)+'\n')
 def run(name,args,timeout=900,env=None):
  report['stage']=name;persist();print('STAGE',name,flush=True);at=time.monotonic()
@@ -19,7 +20,7 @@ def system_libraries():
  return {str(p):hashlib.sha256(p.read_bytes()).hexdigest()for pattern in ['libwebkit2gtk-4.1.so.*','libjavascriptcoregtk-4.1.so.*']for p in pathlib.Path('/usr/lib/x86_64-linux-gnu').glob(pattern)if p.is_file()and not p.is_symlink()}
 try:
  run('install-official-build-deps',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','build-dep',f'webkit2gtk={version}'],timeout=1200)
- run('install-official-gui-baseline',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install',f'libwebkit2gtk-4.1-dev={version}',f'webkitgtk-webdriver={version}','ccache','xdotool','x11-utils','poppler-utils','fonts-noto-cjk','fonts-noto-color-emoji','fonts-dejavu-core','xvfb','xauth'],timeout=900)
+ run('install-official-gui-baseline',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install',f'libwebkit2gtk-4.1-dev={version}',f'webkitgtk-webdriver={version}','ccache','xdotool','x11-utils','poppler-utils','fonts-noto-cjk','fonts-noto-color-emoji','fonts-dejavu-core','xvfb','xauth','python3-pypdf'],timeout=900)
  run('configure-bounded-compiler-cache',['ccache','--max-size','2G'])
  report['compilerCacheDirectory']=os.environ['CCACHE_DIR'];report['cacheScope']='Compiler objects only, not private runtime or application data'
  report['systemLibrariesBefore']=system_libraries();assert len(report['systemLibrariesBefore'])==2;persist()
@@ -29,6 +30,13 @@ try:
  registration=patch.with_name('0003-register-scalar-private-header.patch')
  report['headerRegistrationPatchSha256']=hashlib.sha256(registration.read_bytes()).hexdigest()
  run('apply-header-registration',['git','-C',str(source),'apply',str(registration)])
+ if links:
+  run('links-cheap-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-links-preflight.py'),'--source',str(source),'--output',str(evidence/'links-preflight')],timeout=120)
+  link_patch=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-links-20261114/0001-research-skia-uri-annotations.patch'
+  report['linkPatchSha256']=hashlib.sha256(link_patch.read_bytes()).hexdigest()
+  run('apply-links-research',['git','-C',str(source),'apply',str(link_patch)])
+  if operation=='preflight':
+   run('links-system-baseline',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/run-webkit-link-probe.py'),'baseline',str(evidence/'links-baseline')],timeout=180)
  run('header-forwarding-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-header-preflight.py'),'--source',str(source),'--output',str(evidence/'header-preflight')],timeout=300)
  report['patchedSourceHashes']={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest()for p in source.glob('Source/WebCore/platform/graphics/**/*')if p.is_file()and p.name in ['ScalarGlyphText.h','FontCascade.cpp','FontSkia.cpp','GraphicsContextSkia.cpp','DisplayListRecorderImpl.cpp']};persist()
  # Match distro hardening and GTK3 choices; debug symbols are limited to -g1 as
