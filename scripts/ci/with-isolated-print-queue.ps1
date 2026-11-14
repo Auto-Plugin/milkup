@@ -38,6 +38,8 @@ try {
  }
  $installed=@(Get-PrinterDriver | Where-Object {$_.Name -ceq $driver -and $_.PrinterEnvironment -ceq 'Windows x64'})
  if($installed.Count -ne 1 -or $installed[0].InfPath -notmatch 'prnge001\.inf'){throw 'Exact registered inbox driver required'}
+ $origin=@($proof.inboxGenericTextDefinitions | Where-Object {[StringComparer]::OrdinalIgnoreCase.Equals($_.path,$installed[0].InfPath) -and $_.provider -ceq 'Microsoft' -and $_.inbox})
+ if($origin.Count -ne 1 -or (Get-FileHash -LiteralPath $installed[0].InfPath).Hash.ToLowerInvariant() -cne $origin[0].sha256){throw 'Registered driver must match the unchanged existing Microsoft inbox package'}
  $r.registeredDriver=$installed[0] | Select-Object Name,Manufacturer,InfPath,PrinterEnvironment,MajorVersion
  $existingPort=@(Get-PrinterPort | Where-Object Name -CEQ $port)
  if(!$existingPort.Count){Add-PrinterPort -Name $port;$portOwned=$true;$r.portCreated=$true}

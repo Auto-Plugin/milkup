@@ -81,6 +81,14 @@ const typeText = (text) =>
       ]),
   )
 const click = async (selector) => {
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const scroll = await execute(
+      `const e=document.querySelector(arguments[0]);if(!e)return null;const r=e.getBoundingClientRect();let a=e.parentElement;while(a&&!(a.scrollHeight>a.clientHeight&&/auto|scroll/.test(getComputedStyle(a).overflowY)))a=a.parentElement;if(!a)return null;const v=a.getBoundingClientRect(),top=Math.max(v.top,0),bottom=Math.min(v.bottom,innerHeight);if(r.top>=top&&r.bottom<=bottom)return null;return {x:Math.round(Math.max(1,Math.min(innerWidth-2,(v.left+v.right)/2))),y:Math.round((top+bottom)/2),deltaY:Math.round(r.top-(top+bottom)/2)}`,
+      selector,
+    )
+    if (!scroll) break
+    await actions('wheel', [{ type: 'scroll', origin: 'viewport', duration: 200, deltaX: 0, ...scroll }])
+  }
   const point = await until(
     () =>
       execute(
@@ -225,5 +233,12 @@ try {
   }
   assert((await readFile(document,'utf8')).includes(marker))
   record.status='passed-ui-queue-contract-await-normal-close'
-}catch(error){record.status='failed';record.error=error?.stack??String(error);process.exitCode=1}
+}catch(error){
+  record.status='failed';record.error=error?.stack??String(error);process.exitCode=1
+  if(session)try{
+    record.failureState=await state()
+    record.failureControls=await execute(`return [...document.querySelectorAll('[data-plugin-command],[data-plugin-field-control]')].map(e=>{const r=e.getBoundingClientRect();return {command:e.dataset.pluginCommand,field:e.dataset.pluginFieldControl,text:e.textContent,value:e.value,disabled:e.disabled,rect:{x:r.x,y:r.y,width:r.width,height:r.height}}})`)
+    await writeFile(path.join(output,'print-failure.png'),Buffer.from(await request('GET',`/session/${session}/screenshot`),'base64'))
+  }catch(diagnostic){record.diagnosticError=String(diagnostic)}
+}
 finally{await persist()}

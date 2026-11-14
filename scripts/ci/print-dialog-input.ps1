@@ -46,6 +46,11 @@ try {
   $owner=[Security.Principal.NTAccount]::new($job.UserName).Translate([Security.Principal.SecurityIdentifier]).Value
   if($owner -cne $current.User.Value -or $job.DocumentName -notlike ('*'+$Marker+'*') -or $job.ID -le 0 -or $job.PrinterName -cne $Queue){throw 'Exact spool job document/owner/queue identity required'}
   $r.jobSubmitted=$true;$r.jobOwnerSid=$owner;$r.jobId=$job.ID
+  # Wait for the application output helper to finish submitting the job, while
+  # the queue remains paused. Do not race system cancellation against Print().
+  if(!$helper.WaitForExit(30000)){throw 'Print helper did not finish submission while queue was paused'}
+  $r.helperExitedBeforeSystemCancel=$true;$r.helperExitCode=$helper.ExitCode
+  if($helper.ExitCode -ne 0){throw 'Print helper failed before single-job cancellation'}
   # Only this observed generation of this single test job; no queue purge.
   QueueIdentity
   $latest=Get-PrintJob -PrinterName $Queue -ID $job.ID
