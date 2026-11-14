@@ -16,7 +16,10 @@ function InvokeInAppUpdate {
  $target=Get-Content -LiteralPath $targetReceiptFile -Raw | ConvertFrom-Json
  if ($target.version -cne '2.0.0-beta.11' -or $target.installer.sha256 -cne 'e4deb93fc3500cb3b49c7da94c6e777e47ea09851e0f9e6dd3b94aba31cc9f75') { throw 'Exact existing target required' }
  $record['inAppTarget']=$target
- $pwsh=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+ $currentShell=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
+ $pwsh=$currentShell.image
+ if (![IO.Path]::IsPathFullyQualified($pwsh) -or ![StringComparer]::OrdinalIgnoreCase.Equals($pwsh,(Join-Path $PSHOME 'pwsh.exe')) -or !$currentShell.stillActive) {throw 'Exact current PowerShell image required'}
+ Phase 'in-app-certificate-tool' @{path=$pwsh;sha256=(Get-FileHash -LiteralPath $pwsh -Algorithm SHA256).Hash.ToLowerInvariant();processIdentity=$currentShell}
  $endpoint=$null;$oldFixtureEnvironment=$env:MILKUP_CI_UPDATE_FIXTURE
  try {
   # Paths are owned, quote-free Windows paths; no user command text is interpolated.
