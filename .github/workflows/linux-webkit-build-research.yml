@@ -15,6 +15,9 @@ jobs:
     timeout-minutes: 210
     env:
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
