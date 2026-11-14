@@ -1,0 +1,28 @@
+name: Isolated Linux native acceptance (no release)
+on:
+  push:
+    branches: [dot/linux-native-acceptance-20261114]
+permissions:
+  contents: read
+concurrency:
+  group: linux-native-acceptance-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native:
+    if: github.repository == 'Auto-Plugin/milkup'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Read-only actual runner capabilities
+        run: python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence"
+      - name: Retain actual capabilities including missing prerequisites
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-native-${{ github.run_id }}
+          path: ${{ runner.temp }}/linux-native-evidence/
+          retention-days: 7
+          if-no-files-found: error
