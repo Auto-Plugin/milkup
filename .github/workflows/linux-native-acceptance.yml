@@ -1,4 +1,4 @@
-name: Isolated Linux alternative prerequisite check (no release)
+name: Linux b877 source-equivalent installed GUI and PDF (no release)
 on:
   push:
     branches: [dot/linux-native-acceptance-20261114]
@@ -10,54 +10,103 @@ concurrency:
 jobs:
   native:
     if: github.repository == 'Auto-Plugin/milkup'
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        os: [ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    runs-on: ubuntu-26.04
+    timeout-minutes: 100
     env:
-      PROBE_RUNNER: ${{ matrix.os }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Read-only actual runner capabilities
-        run: python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence"
-      - name: Refresh signed package metadata without changing installed packages
-        run: sudo apt-get update
-      - name: Exact original b877 ABI and required package availability gate
-        id: compat
-        run: python3 scripts/ci/linux-alternative-compatibility.py "$RUNNER_TEMP/linux-native-evidence"
-      - name: Official GUI dependencies only on compatible system
-        if: steps.compat.outputs.eligible == 'true'
-        run: sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev pkg-config xvfb xauth
-      - name: Read-only native GTK printer enumeration
-        if: steps.compat.outputs.eligible == 'true'
+      - name: Exact application source in independent checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+          path: application
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Existing capabilities and official GUI dependencies
         run: |
-          test "$(id -u)" != 0
-          cc scripts/ci/linux-gtk-printers.c -o "$RUNNER_TEMP/milkup-gtk-printers" $(pkg-config --cflags --libs gtk+-unix-print-3.0)
-          timeout --signal=TERM --kill-after=5s 30s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-gtk-printers" > "$RUNNER_TEMP/linux-native-evidence/gtk-printers.jsonl" 2> "$RUNNER_TEMP/linux-native-evidence/gtk-printers.stderr.txt"
-          cat "$RUNNER_TEMP/linux-native-evidence/gtk-printers.jsonl"
-      - name: One actual ordinary-user sandbox-enabled WebKit attempt
-        if: always() && steps.compat.outputs.eligible == 'true'
+          python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libssl-dev pkg-config patchelf webkit2gtk-driver xdotool x11-utils poppler-utils fonts-noto-cjk xvfb xauth
+          python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence/after-gui-dependencies"
+      - name: Default-policy sandbox gate on this same runner
         run: |
           test "$(id -u)" != 0
           test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
-          python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence/after-gui-dependencies"
           cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
-          set +e
-          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" > "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.log" 2>&1
-          result=$?
-          printf '%s\n' "$result" > "$RUNNER_TEMP/linux-native-evidence/webkit-preflight-exit.txt"
-          cat "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.log"
-          exit "$result"
-      - name: Preserve evidence including stop conditions
+          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
+          node --check scripts/ci/linux-installed-gui.mjs
+          bash -n scripts/ci/run-linux-installed-gui.sh
+      - name: Pinned tools and locked application dependencies
+        working-directory: application
+        run: |
+          test "$(git rev-parse HEAD)" = "$BASELINE_SHA"
+          test -z "$(git status --porcelain)"
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          rustup toolchain install 1.99.0 --profile minimal
+          echo 'RUSTUP_TOOLCHAIN=1.99.0' >> "$GITHUB_ENV"
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          npm install --prefix "$RUNNER_TEMP/milkup-math-input" --ignore-scripts --no-audit --no-fund katex@0.19.0
+          node --input-type=module -e "import fs from 'node:fs'; import path from 'node:path'; fs.mkdirSync('plugins/math/node_modules',{recursive:true}); fs.symlinkSync(path.join(process.env.RUNNER_TEMP,'milkup-math-input/node_modules/katex'), 'plugins/math/node_modules/katex');"
+      - name: Official candidate build from exact b877 source
+        working-directory: application
+        run: |
+          node scripts/release/build-candidate.mjs linux-deb "$RUNNER_TEMP/milkup-candidate" "$BASELINE_SHA"
+          cp "$RUNNER_TEMP/milkup-candidate/deliverable/manifest.json" "$RUNNER_TEMP/linux-native-evidence/new-build-manifest.json"
+          python3 - <<'PY'
+          import os,json,pathlib
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'linux-native-evidence'
+          m=json.loads((root/'new-build-manifest.json').read_text())
+          old='36c4873d840a06e85bf08398e119f9ddb494c813727eff6479aa4e434141f86e'
+          (root/'original-comparison.json').write_text(json.dumps({'sourceSha':os.environ['BASELINE_SHA'],'harnessSha':os.environ['GITHUB_SHA'],'originalDebSha256':old,'newDebSha256':m['installer']['sha256'],'identicalBytes':old==m['installer']['sha256'],'scope':'New source-equivalent candidate; never substitutes acceptance of original preserved deb'},indent=2)+'\n')
+          PY
+      - name: Install new package and verify exact installed binary
+        run: |
+          if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing to replace an existing installation' >&2; exit 1; fi
+          package=("$RUNNER_TEMP"/milkup-candidate/deliverable/*.deb)
+          test "${#package[@]}" = 1
+          dpkg-deb --extract "${package[0]}" "$RUNNER_TEMP/milkup-package-extracted"
+          sudo dpkg --install "${package[0]}" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/install.txt"
+          touch "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"
+          cmp "$RUNNER_TEMP/milkup-package-extracted/usr/bin/milkup-desktop" /usr/bin/milkup-desktop
+          sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
+          ldd /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-ldd.txt"
+          cargo install tauri-driver --version 2.1.0 --locked
+      - name: Ordinary-user installed GUI, save reopen, normal exit and PDF
+        timeout-minutes: 12
+        run: |
+          timeout --signal=TERM --kill-after=10s 650s xvfb-run -a -s '-screen 0 1400x1000x24' dbus-run-session -- bash scripts/ci/run-linux-installed-gui.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/gui-harness.txt"
+      - name: Remove only this run's package
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"; then
+            sudo dpkg --remove milkup 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/uninstall.txt"
+            test ! -e /usr/bin/milkup-desktop
+          fi
+      - name: Retain evidence including exact failure fixtures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-linux-alternative-${{ matrix.os }}-${{ github.run_id }}
+          name: milkup-linux-installed-evidence-${{ github.run_id }}
           path: ${{ runner.temp }}/linux-native-evidence/
           retention-days: 7
           if-no-files-found: error
+      - name: Retain new unsigned candidate separately from original
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-new-b877-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-candidate/deliverable/
+          retention-days: 7
+          if-no-files-found: warn
