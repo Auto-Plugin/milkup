@@ -11,16 +11,28 @@ jobs:
   capability:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
-    timeout-minutes: 210
+    timeout-minutes: 355
     env:
+      CCACHE_DIR: ${{ runner.temp }}/milkup-webkit-ccache
+      CCACHE_COMPILERCHECK: content
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
     defaults:
       run:
         shell: bash
     steps:
+      - name: Start bounded operation clock
+        run: echo "MILKUP_RESEARCH_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Verify resource and acceptance-reserve policy
+        run: python3 scripts/ci/webkit_build_limits_test.py
+      - name: Restore matching bounded compiler-object cache only
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/milkup-webkit-ccache
+          key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-${{ github.run_id }}
+          restore-keys: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-
       - name: Obtain authenticated official source and measure build prerequisites
         run: python3 scripts/ci/probe-webkit-distro-build.py
       - name: Build matched GTK3 runtime in private normal-user prefix
@@ -105,3 +117,10 @@ jobs:
           path: ${{ runner.temp }}/milkup-webkit-research/evidence/
           retention-days: 7
           if-no-files-found: error
+
+      - name: Retain bounded compiler objects for a future explicitly authorized resume
+        if: always() && hashFiles('scripts/ci/build-webkit-private.py') != ''
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/milkup-webkit-ccache
+          key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-${{ github.run_id }}

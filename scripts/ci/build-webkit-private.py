@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Build a research WebKit in a normal-user private prefix; never system install."""
 import hashlib,json,os,pathlib,re,signal,subprocess,time,shutil
+from webkit_build_limits import compile_budget, stop_reason
+operation_started=float(os.environ["MILKUP_RESEARCH_START_EPOCH"])
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';source=root/'source';build=root/'build';prefix=root/'prefix';conf=root/'apt.conf'
 probe=json.loads((evidence/'result.json').read_text());assert probe['status']=='probe-complete'
 assert os.getuid()!=0 and not probe['simulatedRemovals'] and not probe['wouldChangeWebKitPackages'] and probe['buildDependencySimulationSucceeded']
@@ -16,7 +18,9 @@ def system_libraries():
  return {str(p):hashlib.sha256(p.read_bytes()).hexdigest()for pattern in ['libwebkit2gtk-4.1.so.*','libjavascriptcoregtk-4.1.so.*']for p in pathlib.Path('/usr/lib/x86_64-linux-gnu').glob(pattern)if p.is_file()and not p.is_symlink()}
 try:
  run('install-official-build-deps',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','build-dep',f'webkit2gtk={version}'],timeout=1200)
- run('install-official-gui-baseline',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install',f'libwebkit2gtk-4.1-dev={version}',f'webkitgtk-webdriver={version}','xdotool','x11-utils','poppler-utils','fonts-noto-cjk','fonts-noto-color-emoji','fonts-dejavu-core','xvfb','xauth'],timeout=900)
+ run('install-official-gui-baseline',['sudo','apt-get','-c',str(conf),'-y','--no-install-recommends','--no-remove','install',f'libwebkit2gtk-4.1-dev={version}',f'webkitgtk-webdriver={version}','ccache','xdotool','x11-utils','poppler-utils','fonts-noto-cjk','fonts-noto-color-emoji','fonts-dejavu-core','xvfb','xauth'],timeout=900)
+ run('configure-bounded-compiler-cache',['ccache','--max-size','2G'])
+ report['compilerCacheDirectory']=os.environ['CCACHE_DIR'];report['cacheScope']='Compiler objects only, not private runtime or application data'
  report['systemLibrariesBefore']=system_libraries();assert len(report['systemLibrariesBefore'])==2;persist()
  patch=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-unicode-20261114/0002-research-only-scalar-source-to-skia.patch'
  report['patchSha256']=hashlib.sha256(patch.read_bytes()).hexdigest()
@@ -29,31 +33,34 @@ try:
   s=subprocess.check_output(['dpkg-buildflags','--get',kind],env=flag_env,text=True).strip()
   return re.sub(r'(?<!\S)-g(?!\S)','-g1',s)
  cpp=flags('CPPFLAGS')+' -DNDEBUG -DG_DISABLE_CAST_CHECKS';ld=flags('LDFLAGS')+' -Wl,--reduce-memory-overheads'
- args=['cmake','-S',str(source),'-B',str(build),'-GNinja','-DPORT=GTK','-DUSE_GTK4=OFF','-DCMAKE_BUILD_TYPE=Release','-DCMAKE_C_COMPILER=clang','-DCMAKE_CXX_COMPILER=clang++','-DCMAKE_C_FLAGS_RELEASE=','-DCMAKE_CXX_FLAGS_RELEASE=',f'-DCMAKE_C_FLAGS={flags("CFLAGS")} {cpp}',f'-DCMAKE_CXX_FLAGS={flags("CXXFLAGS")} {cpp}',f'-DCMAKE_EXE_LINKER_FLAGS={ld}',f'-DCMAKE_SHARED_LINKER_FLAGS={ld}',f'-DCMAKE_INSTALL_PREFIX={prefix}','-DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu','-DCMAKE_INSTALL_LIBEXECDIR=lib/x86_64-linux-gnu',f'-DCMAKE_INSTALL_RPATH={prefix}/lib/x86_64-linux-gnu','-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON','-DUSE_LIBBACKTRACE=OFF','-DUSE_SYSPROF_CAPTURE=ON','-DENABLE_DOCUMENTATION=OFF','-DENABLE_BUBBLEWRAP_SANDBOX=ON','-DUSER_AGENT_BRANDING=Ubuntu','-DUSE_AVIF=OFF','-DENABLE_SPEECH_SYNTHESIS=OFF','-DENABLE_GAMEPAD=OFF','-DUSE_LD_LLD=OFF','-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
+ args=['cmake','-S',str(source),'-B',str(build),'-GNinja','-DPORT=GTK','-DUSE_GTK4=OFF','-DCMAKE_BUILD_TYPE=Release','-DCMAKE_C_COMPILER=clang','-DCMAKE_CXX_COMPILER=clang++','-DCMAKE_C_COMPILER_LAUNCHER=ccache','-DCMAKE_CXX_COMPILER_LAUNCHER=ccache','-DCMAKE_C_FLAGS_RELEASE=','-DCMAKE_CXX_FLAGS_RELEASE=',f'-DCMAKE_C_FLAGS={flags("CFLAGS")} {cpp}',f'-DCMAKE_CXX_FLAGS={flags("CXXFLAGS")} {cpp}',f'-DCMAKE_EXE_LINKER_FLAGS={ld}',f'-DCMAKE_SHARED_LINKER_FLAGS={ld}',f'-DCMAKE_INSTALL_PREFIX={prefix}','-DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu','-DCMAKE_INSTALL_LIBEXECDIR=lib/x86_64-linux-gnu',f'-DCMAKE_INSTALL_RPATH={prefix}/lib/x86_64-linux-gnu','-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON','-DUSE_LIBBACKTRACE=OFF','-DUSE_SYSPROF_CAPTURE=ON','-DENABLE_DOCUMENTATION=OFF','-DENABLE_BUBBLEWRAP_SANDBOX=ON','-DUSER_AGENT_BRANDING=Ubuntu','-DUSE_AVIF=OFF','-DENABLE_SPEECH_SYNTHESIS=OFF','-DENABLE_GAMEPAD=OFF','-DUSE_LD_LLD=OFF','-DCMAKE_EXPORT_COMPILE_COMMANDS=ON']
  report['configureArgs']=args;run('configure-private-gtk3',args,timeout=900)
  shutil.copyfile(build/'CMakeCache.txt',evidence/'CMakeCache.txt')
  cache=(build/'CMakeCache.txt').read_text();assert re.search(r'^ENABLE_BUBBLEWRAP_SANDBOX:BOOL=ON$',cache,re.M)and re.search(r'^USE_GTK4:BOOL=OFF$',cache,re.M)
  report['compileCommands']=len(json.loads((build/'compile_commands.json').read_text()))
  report['engineBuildAttempted']=True;report['stage']='compile-engine';persist()
- started=time.monotonic();reason=None;low_mem=0
- # Run 43561713531 reached 8395/9449 steps at the unchanged 150-minute
- # boundary with two jobs; minimum available RAM was 9.52 GiB. Use one more
- # compiler on this measured four-core host, keeping all stop reserves.
+ # Three jobs completed 2582/3263 objects in 150 minutes, with 6.84 GiB
+ # minimum MemAvailable. Last-half-hour throughput predicts ~122 more minutes
+ # at that rate, before final linking. Four jobs use the measured four-core host;
+ # a separately bounded total retains 35 minutes for installation/native proof.
  assert (os.cpu_count() or 0)>=4, 'Measured four-core build capability required'
- report['compileParallelism']=3
- report['capacityBaselineRun']=43561713531
- args=['/usr/bin/time','-v','-o',str(evidence/'build-time.txt'),'cmake','--build',str(build),'--parallel','3']
+ meminfo=dict((k,v.strip())for k,v in (line.split(':',1)for line in pathlib.Path('/proc/meminfo').read_text().splitlines()))
+ assert int(meminfo['MemTotal'].split()[0])*1024 >= 14*1024**3, 'At least 14 GiB RAM required'
+ assert shutil.disk_usage(root).free >= 20*1024**3, 'At least 20 GiB initial disk reserve required'
+ budget=compile_budget(time.time()-operation_started)
+ started=time.monotonic();reason=None;last_progress=started;previous_completed=-1
+ report['compileParallelism']=4;report['compileLinkBudgetSeconds']=budget
+ report['acceptanceReserveSeconds']=35*60;report['capacityBaselineRun']=43574464936
+ args=['/usr/bin/time','-v','-o',str(evidence/'build-time.txt'),'cmake','--build',str(build),'--parallel','4']
  with (evidence/'compile-engine.log').open('w')as f:
   proc=subprocess.Popen(args,stdout=f,stderr=subprocess.STDOUT,start_new_session=True)
   while proc.poll()is None:
    mem=dict((k,v.strip())for k,v in (line.split(':',1)for line in pathlib.Path('/proc/meminfo').read_text().splitlines()))
    available=int(mem['MemAvailable'].split()[0])*1024;free=shutil.disk_usage(root).free;elapsed=time.monotonic()-started
-   low_mem=low_mem+1 if available<512*1024**2 else 0
    log=build/'.ninja_log';completed=max(0,len(log.read_text().splitlines())-1)if log.exists()else 0
    sample={'elapsedSeconds':round(elapsed),'diskFreeBytes':free,'memoryAvailableBytes':available,'ninjaRecords':completed};report['samples'].append(sample);persist();print('BUILD_PROGRESS',json.dumps(sample),flush=True)
-   if free<4*1024**3:reason='disk reserve below 4 GiB'
-   elif low_mem>=3:reason='MemAvailable below 512 MiB for 60 seconds'
-   elif elapsed>=150*60:reason='bounded 150-minute compile budget reached'
+   if completed!=previous_completed:last_progress=time.monotonic();previous_completed=completed
+   reason=stop_reason(elapsed,budget,available,free,time.monotonic()-last_progress)
    if reason:
     os.killpg(proc.pid,signal.SIGTERM)
     try:proc.wait(timeout=15)
@@ -75,6 +82,8 @@ try:
 except Exception as e:
  report['status']='blocked';report['error']=str(e);persist();print('BLOCKED',str(e),flush=True)
 finally:
+ if shutil.which('ccache'):
+  with (evidence/'compiler-cache-stats.txt').open('w') as f:subprocess.run(['ccache','--show-stats'],stdout=f,stderr=subprocess.STDOUT,timeout=30)
  if build.exists():
   report['buildDirectoryBytes']=int(subprocess.check_output(['du','-sb',str(build)],text=True).split()[0])
   for name in ['CMakeCache.txt','.ninja_log']:
