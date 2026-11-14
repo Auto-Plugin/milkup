@@ -6,12 +6,14 @@ param(
  [Parameter(Mandatory,ParameterSetName='Parent')][ValidatePattern('^[a-f0-9]{40}$')][string]$SourceSha,
  [Parameter(Mandatory,ParameterSetName='Parent')][ValidateSet('windows-standard','windows-offline')][string]$Variant,
  [Parameter(Mandatory,ParameterSetName='Parent')][string]$EvidenceDirectory,
+ [Parameter(ParameterSetName='Parent')][switch]$InstallOnly,
  [Parameter(ParameterSetName='Parent')][switch]$DocumentHealth,
  [Parameter(ParameterSetName='Parent')][switch]$StartupComparison,
  [Parameter(Mandatory,ParameterSetName='Child')][string]$ChildSpec
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+if ($InstallOnly -and ($DocumentHealth -or $StartupComparison)) { throw 'Install-only cannot request repair/document/startup health' }
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cne 'refs/heads/dot/release-quality-integration-20261112') { throw 'Exact ephemeral candidate runner required' }
 function Plain([string]$Path) {
  $item=Get-Item -LiteralPath $Path -Force
@@ -43,7 +45,11 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Json (Join-Path $scratch 'child-identity.json') @{identity=$identity;desktop=$desktop;knownFolders=@{profile=$profile;roaming=$roaming;local=$local};sourceSha=$spec.sourceSha;harnessSha=$spec.harnessSha}
  Set-Location $repo
  try {
+  if ([bool]$spec.installOnly) {
+   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence')
+  } else {
   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NodeExecutable $spec.node.path
+  }
   exit 0
  } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 }
 }
@@ -97,7 +103,7 @@ try {
  Plain $node
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
- Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
+ Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;installOnly=[bool]$InstallOnly;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
  $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'
@@ -124,7 +130,13 @@ try {
  }
  if (!$jobEmpty -or !$audit.supervisor.success -or $audit.supervisor.activeBeforeOuterCleanup -ne 0) {throw 'Owned non-elevated health coordinator failed; outer cleanup is not product proof'}
  $result=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'installation.json') -Raw | ConvertFrom-Json
- if ($result.status -cne 'passed' -or $result.accountSid -cne $user.SID.Value -or $result.sourceSha -cne $SourceSha -or $result.forcedCleanup -ne $false -or $result.recoveryHealth -cne 'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health') {throw 'Complete same-user installed health proof required'}
+ if ($result.status -cne 'passed' -or $result.accountSid -cne $user.SID.Value -or $result.sourceSha -cne $SourceSha -or $result.forcedCleanup -ne $false) {throw 'Complete same-user installed health proof required'}
+ if ($InstallOnly) {
+  if ($result.sameVersionRepair -cne 'not-run' -or $result.recoveryHealth -cne 'not-run') { throw 'Install-only unexpectedly performed repair' }
+  $closes=@($result.phases | Where-Object {$_.name -ceq 'normal-close'})
+  $uninstalls=@($result.phases | Where-Object {$_.name -ceq 'uninstall-and-document-preservation'})
+  if ($closes.Count -ne 1 -or $null -eq $closes[0].detail.exitCode -or $closes[0].detail.exitCode -ne 0 -or $uninstalls.Count -ne 1 -or $uninstalls[0].detail.applicationRemoved -ne $true) { throw 'Complete normal-close/uninstall proof required' }
+ } elseif ($result.recoveryHealth -cne 'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health') { throw 'Complete repair health proof required' }
  if ($StartupComparison) {
   $comparison=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'startup-comparison.json') -Raw | ConvertFrom-Json
   if ($comparison.status -cne 'passed' -or $comparison.trials.Count -ne 6 -or @($comparison.trials | Where-Object {$_.status -cne 'passed' -or $_.forcedCleanup}).Count -ne 0) {throw 'Complete six-launch comparison required'}

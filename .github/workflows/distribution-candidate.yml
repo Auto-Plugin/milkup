@@ -14,6 +14,10 @@ on:
         required: true
         default: false
         type: boolean
+      integration_smoke:
+        description: Only standard Windows and Linux packages, with PE and one-scale installed IME smoke
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -33,13 +37,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        include:
-          - os: windows-2025
-            variant: windows-standard
-          - os: windows-2025
-            variant: windows-offline
-          - os: ubuntu-24.04
-            variant: linux-deb
+        include: ${{ fromJSON(inputs.integration_smoke && '[{"os":"windows-2025","variant":"windows-standard"},{"os":"ubuntu-26.04","variant":"linux-deb"}]' || '[{"os":"windows-2025","variant":"windows-standard"},{"os":"windows-2025","variant":"windows-offline"},{"os":"ubuntu-24.04","variant":"linux-deb"}]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     env:
@@ -102,7 +100,7 @@ jobs:
           VARIANT: ${{ matrix.variant }}
         run: node scripts/release/build-candidate.mjs "$VARIANT" "$RUNNER_TEMP/milkup-candidate" "$GITHUB_SHA"
       - name: Actual Windows PDF contracts and installed WebView2 output
-        if: matrix.variant == 'windows-standard'
+        if: matrix.variant == 'windows-standard' && !inputs.integration_smoke
         shell: pwsh
         run: ./tests/native/windows-pdf-backend.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'windows-pdf-evidence')
       - name: Preserve Windows PDF evidence including failures
@@ -122,6 +120,82 @@ jobs:
           dpkg-deb --contents "${package[0]}"
           dpkg-deb --extract "${package[0]}" "$RUNNER_TEMP/milkup-deb-extracted"
           test -x "$RUNNER_TEMP/milkup-deb-extracted/usr/bin/milkup-desktop"
+      - name: Native Windows parser against this exact installer and ordinary-user install smoke
+        if: runner.os == 'Windows' && inputs.integration_smoke
+        timeout-minutes: 20
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./tests/windows/install-only-contract.test.ps1
+          $evidence=Join-Path $env:RUNNER_TEMP 'integration-smoke'
+          $null=New-Item -ItemType Directory $evidence
+          $inputDir=Join-Path $env:RUNNER_TEMP 'milkup-candidate/deliverable'
+          $receipt=& node scripts/release/verify-candidate.mjs $inputDir $env:GITHUB_SHA windows-standard
+          if ($LASTEXITCODE -ne 0) { throw 'Exact package identity required' }
+          $receipt | Set-Content (Join-Path $evidence 'verified-receipt.json')
+          $r=$receipt | ConvertFrom-Json
+          $env:MILKUP_PE_INSTALLER=$r.installer.path
+          $env:MILKUP_PE_VERSION='2.0.0-beta.10'
+          cargo test --locked --manifest-path tests/native/update-pe-core/Cargo.toml --lib -- --include-ignored --test-threads=1 2>&1 | Tee-Object (Join-Path $evidence 'pe-tests.txt')
+          if ($LASTEXITCODE -ne 0) { throw 'Native product PE parser failed' }
+          $runtimeFound=$false
+          foreach($base in @(${env:ProgramFiles(x86)},$env:ProgramFiles)) {
+            if (!$base) {continue}
+            $runtimeRoot=Join-Path $base 'Microsoft/EdgeWebView/Application'
+            if (Test-Path -LiteralPath $runtimeRoot) {
+              foreach($v in Get-ChildItem -LiteralPath $runtimeRoot -Directory) {
+                if ($v.Name -cmatch '^\d+\.\d+\.\d+\.\d+$' -and (Test-Path -LiteralPath (Join-Path $v.FullName 'msedgewebview2.exe'))) {$runtimeFound=$true}
+              }
+            }
+          }
+          if (!$runtimeFound) {throw 'Existing Runtime required; missing-Runtime provisioning not part of this smoke'}
+          ./scripts/release/run-repair-health-standard.ps1 -Directory $inputDir -SourceSha $env:GITHUB_SHA -Variant windows-standard -EvidenceDirectory (Join-Path $evidence 'standard') -InstallOnly
+      - name: Existing official Linux GUI and IME tools
+        if: runner.os == 'Linux' && inputs.integration_smoke
+        run: |
+          mkdir "$RUNNER_TEMP/linux-native-evidence"
+          sudo apt-get install -y --no-install-recommends libx11-dev webkitgtk-webdriver xdotool x11-utils fonts-noto-cjk xvfb xauth ibus ibus-gtk3 ibus-libpinyin python3-gi gir1.2-ibus-1.0 dbus-x11
+          test "$(id -u)" != 0
+          test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+          cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
+          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
+          cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
+          node --test scripts/ci/native-ime-contract.test.mjs
+          cargo install tauri-driver --version 2.1.0 --locked
+      - name: Install exact Linux package and verify one native IME scale
+        if: runner.os == 'Linux' && inputs.integration_smoke
+        timeout-minutes: 10
+        run: |
+          if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing existing installation'; exit 1; fi
+          node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/milkup-candidate/deliverable" "$GITHUB_SHA" linux-deb > "$RUNNER_TEMP/linux-native-evidence/verified-receipt.json"
+          package=("$RUNNER_TEMP"/milkup-candidate/deliverable/*.deb)
+          test "${#package[@]}" = 1
+          sudo dpkg --install "${package[0]}" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/install.txt"
+          touch "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"
+          cmp "$RUNNER_TEMP/milkup-deb-extracted/usr/bin/milkup-desktop" /usr/bin/milkup-desktop
+          cp "$RUNNER_TEMP/milkup-candidate/deliverable/manifest.json" "$RUNNER_TEMP/linux-native-evidence/new-build-manifest.json"
+          sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
+          export MILKUP_IME_EXPECTED_BINARY_SHA256="$(sha256sum /usr/bin/milkup-desktop | cut -d' ' -f1)"
+          export BASELINE_SHA="$GITHUB_SHA"
+          dpkg-query -W libwebkit2gtk-4.1-0 ibus ibus-libpinyin ibus-gtk3 fonts-noto-cjk > "$RUNNER_TEMP/linux-native-evidence/runtime-input-versions.txt"
+          GDK_SCALE=1 timeout --signal=TERM --kill-after=10s 400s xvfb-run -a -s '-screen 0 1400x1000x24 -dpi 96' dbus-run-session -- bash scripts/ci/run-linux-ime-installed.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/ime-scale-1-harness.txt"
+      - name: Remove only the Linux package installed by this run
+        if: always() && runner.os == 'Linux' && inputs.integration_smoke
+        run: |
+          if test -f "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"; then
+            sudo dpkg --remove milkup 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/uninstall.txt"
+            test ! -e /usr/bin/milkup-desktop
+          fi
+      - name: Preserve exact integration smoke evidence including failures
+        if: always() && inputs.integration_smoke
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-integration-smoke-${{ matrix.variant }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/integration-smoke/
+            ${{ runner.temp }}/linux-native-evidence/
+          retention-days: 7
+          if-no-files-found: warn
       - name: Log candidate receipt and validation boundary
         env:
           VARIANT: ${{ matrix.variant }}
@@ -129,12 +203,12 @@ jobs:
           cat "$RUNNER_TEMP/milkup-candidate/deliverable/manifest.json"
           echo "$VARIANT: compilation/packaging only. Native install, upgrade, uninstall, missing-Runtime/offline and rollback acceptance NOT RUN. Not a formal release." >> "$GITHUB_STEP_SUMMARY"
       - name: Retain explicitly requested unsigned candidate
-        if: github.event_name == 'push' || inputs.upload_candidates
+        if: always() && (github.event_name == 'push' || inputs.upload_candidates)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: milkup-${{ matrix.variant }}-${{ github.sha }}
           path: ${{ runner.temp }}/milkup-candidate/deliverable/*
-          retention-days: 1
+          retention-days: 7
           compression-level: 0
           if-no-files-found: error
           overwrite: false
