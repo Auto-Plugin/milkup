@@ -19,7 +19,7 @@ int wmain(int argc,wchar_t** argv){
  Owner owner{pid,OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION|SYNCHRONIZE,FALSE,pid)};
  if(!owner.process)return 3;
  ITfThreadMgr* tm=nullptr;ITfInputProcessorProfiles* profiles=nullptr;ITfInputProcessorProfileMgr* mgr=nullptr;
- GUID clsid={},profile={};BOOL originalEnabled=FALSE;bool enableObserved=false,co=false,active=false;LANGID originalLanguage=0;HKL targetOld=nullptr;DWORD targetThread=0;bool switched=false;int result=1;
+ GUID clsid={},profile={};BOOL originalEnabled=FALSE;bool enableObserved=false,co=false,active=false;LANGID originalLanguage=0;HKL targetOld=nullptr;DWORD targetThread=0;bool switched=false;HWND setupWindow=nullptr;int result=1;
  try {
   FILETIME creation,exit,kernel,user;need(GetProcessTimes(owner.process,&creation,&exit,&kernel,&user),"Process birth unavailable");ULARGE_INTEGER birth{};birth.LowPart=creation.dwLowDateTime;birth.HighPart=creation.dwHighDateTime;need(birth.QuadPart+504911232000000000ULL==expectedTicks,"Process birth mismatch");
   wchar_t image[32768];DWORD count=32768;need(QueryFullProcessImageNameW(owner.process,0,image,&count),"Process image unavailable");need(CompareStringOrdinal(image,-1,argv[3],-1,TRUE)==CSTR_EQUAL,"Exact process image mismatch");
@@ -32,8 +32,15 @@ int wmain(int argc,wchar_t** argv){
   CLSIDFromString(L"{81D4E9C9-1D3B-41BC-9E6C-4B40BF79E35E}",&clsid);CLSIDFromString(L"{FA550B04-5AD7-411F-A5AC-CA038EC515D7}",&profile);
   need(SUCCEEDED(profiles->GetCurrentLanguage(&originalLanguage)),"Original language unavailable");need(SUCCEEDED(profiles->IsEnabledLanguageProfile(clsid,0x804,profile,&originalEnabled)),"Original profile enablement unavailable");enableObserved=true;
   need(originalEnabled||SUCCEEDED(profiles->EnableLanguageProfile(clsid,0x804,profile,TRUE)),"Temporary owned-user profile enablement failed");
-  need(SUCCEEDED(profiles->ChangeCurrentLanguage(0x804)),"Helper language activation failed");need(mgr->ActivateProfile(TF_PROFILETYPE_INPUTPROCESSOR,0x804,clsid,profile,nullptr,TF_IPPMF_FORPROCESS)==S_OK,"Helper Pinyin activation failed");pump(300);
-  HKL layouts[64]={};int countLayouts=GetKeyboardLayoutList(64,layouts);need(countLayouts>0&&countLayouts<64,"Bounded loaded layout list required");HKL chinese=nullptr;for(int i=0;i<countLayouts;++i){printf("loadedLayout=%p\n",layouts[i]);if(LOWORD((ULONG_PTR)layouts[i])==0x804){need(chinese==nullptr,"Ambiguous Chinese layouts");chinese=layouts[i];}}need(chinese!=nullptr,"Owned user Chinese layout was not loaded");DWORD_PTR response=0;owned(owner);switched=true;
+  // TSF activation belongs to this helper process, not the external editor.
+  // Establish the same real focused EDIT context as the proven native control,
+  // obtain its actual loaded HKL, then request it only on the held product HWND.
+  WNDCLASSW wc={};wc.lpfnWndProc=DefWindowProcW;wc.hInstance=GetModuleHandleW(nullptr);wc.lpszClassName=L"MilkupOwnedImeSetup";need(RegisterClassW(&wc)!=0,"Owned setup class failed");
+  setupWindow=CreateWindowW(wc.lpszClassName,L"Milkup isolated input setup",WS_OVERLAPPEDWINDOW|WS_VISIBLE,100,100,400,180,nullptr,nullptr,wc.hInstance,nullptr);need(setupWindow!=nullptr,"Owned setup window failed");
+  HWND edit=CreateWindowW(L"EDIT",L"",WS_CHILD|WS_VISIBLE|WS_BORDER,20,20,300,70,setupWindow,nullptr,wc.hInstance,nullptr);need(edit!=nullptr,"Owned setup EDIT failed");SetForegroundWindow(setupWindow);SetFocus(edit);pump(400);need(GetForegroundWindow()==setupWindow,"Own setup foreground required");
+  HRESULT language=profiles->ChangeCurrentLanguage(0x804);printf("helperChangeLanguage=%08lx\n",(unsigned long)language);need(SUCCEEDED(language),"Helper language activation failed");
+  HRESULT activation=mgr->ActivateProfile(TF_PROFILETYPE_INPUTPROCESSOR,0x804,clsid,profile,nullptr,TF_IPPMF_FORPROCESS);printf("helperActivateProfile=%08lx ownHkl=%p\n",(unsigned long)activation,GetKeyboardLayout(0));need(activation==S_OK,"Helper Pinyin activation failed");pump(500);
+  HKL layouts[64]={};int countLayouts=GetKeyboardLayoutList(64,layouts);need(countLayouts>0&&countLayouts<64,"Bounded loaded layout list required");HKL chinese=nullptr;for(int i=0;i<countLayouts;++i){printf("loadedLayout=%p\n",layouts[i]);if(LOWORD((ULONG_PTR)layouts[i])==0x804){need(chinese==nullptr,"Ambiguous Chinese layouts");chinese=layouts[i];}}need(chinese!=nullptr,"Owned user Chinese layout was not loaded");DWORD_PTR response=0;need(DestroyWindow(setupWindow)!=FALSE,"Owned setup removal failed");setupWindow=nullptr;owned(owner);SetForegroundWindow(owner.window);pump(300);need(GetForegroundWindow()==owner.window,"Product foreground restoration required");switched=true;
   need(SendMessageTimeoutW(owner.window,WM_INPUTLANGCHANGEREQUEST,0,(LPARAM)chinese,SMTO_ABORTIFHUNG,3000,&response)!=0,"Target language request failed");pump(500);
   printf("targetPid=%lu targetThread=%lu originalHkl=%p requestedHkl=%p observedHkl=%p\n",pid,targetThread,targetOld,chinese,GetKeyboardLayout(targetThread));
   need(LOWORD((ULONG_PTR)GetKeyboardLayout(targetThread))==0x804,"Owned target did not activate Chinese");
@@ -41,6 +48,7 @@ int wmain(int argc,wchar_t** argv){
   press(owner,VK_OEM_COMMA);press(owner,VK_OEM_PERIOD);press(owner,VK_OEM_2,true);press(owner,'1',true);press(owner,VK_OEM_1,true);press(owner,VK_OEM_1);pump(500);
   printf("physicalPinyinAndPunctuationSent=true expectedUtf16=4e2d,6587,ff0c,3002,ff1f,ff01,ff1a,ff1b\n");result=0;
  } catch(const std::exception& e){printf("failure=%s win32=%lu\n",e.what(),GetLastError());}
+ if(setupWindow){if(!DestroyWindow(setupWindow)){printf("cleanupFailure=owned setup removal\n");result=1;}setupWindow=nullptr;}
  if(switched){DWORD_PTR response=0;try{owned(owner);need(SendMessageTimeoutW(owner.window,WM_INPUTLANGCHANGEREQUEST,0,(LPARAM)targetOld,SMTO_ABORTIFHUNG,3000,&response)!=0,"Target language restoration failed");pump(300);need(GetKeyboardLayout(targetThread)==targetOld,"Target layout restoration unconfirmed");printf("targetLayoutRestored=true\n");}catch(const std::exception& e){printf("cleanupFailure=%s\n",e.what());result=1;}}
  if(profiles&&enableObserved){HRESULT language=profiles->ChangeCurrentLanguage(originalLanguage);HRESULT enable=originalEnabled?S_OK:profiles->EnableLanguageProfile(clsid,0x804,profile,FALSE);BOOL now=TRUE;HRESULT checked=profiles->IsEnabledLanguageProfile(clsid,0x804,profile,&now);bool restored=SUCCEEDED(language)&&SUCCEEDED(enable)&&SUCCEEDED(checked)&&now==originalEnabled;printf("ownedUserProfileRestored=%s\n",restored?"true":"false");if(!restored)result=1;}
  if(mgr)mgr->Release();if(profiles)profiles->Release();if(tm){if(active)tm->Deactivate();tm->Release();}if(co)CoUninitialize();CloseHandle(owner.process);printf("nativeInputExit=%d productTextAcceptance=required-separately\n",result);return result;
