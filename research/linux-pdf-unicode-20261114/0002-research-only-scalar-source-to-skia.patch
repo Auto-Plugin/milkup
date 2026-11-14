@@ -1,0 +1,475 @@
+diff --git a/Source/WebCore/platform/graphics/Font.h b/Source/WebCore/platform/graphics/Font.h
+index a6370ae..df55b4e 100644
+--- a/Source/WebCore/platform/graphics/Font.h
++++ b/Source/WebCore/platform/graphics/Font.h
+@@ -20,6 +20,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/FloatRect.h>
+ #include <WebCore/FontMetrics.h>
+@@ -251,7 +252,7 @@ public:
+ #endif
+ 
+ #if USE(SKIA)
+-    sk_sp<SkTextBlob> buildTextBlob(std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, FontSmoothingMode) const;
++    sk_sp<SkTextBlob> buildTextBlob(std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, FontSmoothingMode, const ScalarGlyphText* = nullptr) const;
+     bool enableAntialiasing(FontSmoothingMode) const;
+ #endif
+ 
+diff --git a/Source/WebCore/platform/graphics/FontCascade.cpp b/Source/WebCore/platform/graphics/FontCascade.cpp
+index 2959565..4706c0a 100644
+--- a/Source/WebCore/platform/graphics/FontCascade.cpp
++++ b/Source/WebCore/platform/graphics/FontCascade.cpp
+@@ -32,6 +32,10 @@
+ #include "FontCascadeInlines.h"
+ #include "GlyphBuffer.h"
+ #include "GraphicsContext.h"
++#if USE(SKIA)
++#include "ScalarGlyphText.h"
++#include <skia/core/SkFont.h>
++#endif
+ #include "LayoutRect.h"
+ #include "TextRun.h"
+ #include "WidthIterator.h"
+@@ -183,7 +187,7 @@ FloatSize FontCascade::drawText(GraphicsContext& context, const TextRun& run, co
+         return FloatSize();
+ 
+     FloatPoint startPoint = point + WebCore::size(glyphBuffer.initialAdvance());
+-    drawGlyphBuffer(context, glyphBuffer, startPoint, customFontNotReadyAction);
++    drawGlyphBuffer(context, glyphBuffer, startPoint, customFontNotReadyAction, &run, from, destination);
+     return startPoint - point;
+ }
+ 
+@@ -230,7 +234,7 @@ RefPtr<const DisplayList::DisplayList> FontCascade::displayListForTextRun(Graphi
+         context.getCTM(GraphicsContext::DefinitelyIncludeDeviceScale), context.colorSpace(), drawGlyphsMode);
+ 
+     FloatPoint startPoint = toFloatPoint(WebCore::size(glyphBuffer.initialAdvance()));
+-    drawGlyphBuffer(recordingContext, glyphBuffer, startPoint, customFontNotReadyAction);
++    drawGlyphBuffer(recordingContext, glyphBuffer, startPoint, customFontNotReadyAction, &run, from, destination);
+ 
+     return recordingContext.takeDisplayList();
+ }
+@@ -1538,9 +1542,54 @@ inline bool shouldDrawIfLoading(const Font& font, FontCascade::CustomFontNotRead
+ }
+ 
+ // This function assumes the GlyphBuffer's initial advance has already been incorporated into the start point.
+-void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, FloatPoint& point, CustomFontNotReadyAction customFontNotReadyAction) const
++void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& glyphBuffer, FloatPoint& point, CustomFontNotReadyAction customFontNotReadyAction, const TextRun* sourceRun, unsigned sourceFrom, unsigned sourceTo) const
+ {
+     ASSERT(glyphBuffer.isFlattened());
++    std::optional<ScalarGlyphText> sourceText;
++#if USE(SKIA)
++    // Research subset: prove complete scalar coverage before font splitting.
++    // No cmap reversal, text normalization, changed glyphs or changed advances.
++    if (sourceRun && sourceRun->ltr() && sourceFrom < sourceTo && sourceTo <= sourceRun->length()
++        && sourceTo - sourceFrom <= ScalarGlyphText::maxBytes / 4 && glyphBuffer.size() <= ScalarGlyphText::maxBytes / 4) {
++        std::u16string source;
++        for (unsigned i = sourceFrom; i < sourceTo; ++i)
++            source.push_back((*sourceRun)[i]);
++        std::vector<uint32_t> offsets, glyphs, nominal;
++        bool complete = true;
++        for (size_t i = 0; i < glyphBuffer.size(); ++i) {
++            auto offset = glyphBuffer.checkedStringOffsetAt(i, sourceRun->length());
++            const auto& font = glyphBuffer.fontAt(i);
++            if (!offset || *offset < sourceFrom || *offset >= sourceTo || font.platformData().orientation() != FontOrientation::Horizontal) {
++                complete = false;
++                break;
++            }
++            uint32_t scalar = (*sourceRun)[*offset];
++            if (scalar >= 0xD800 && scalar <= 0xDBFF) {
++                if (*offset + 1 >= sourceTo || (*sourceRun)[*offset + 1] < 0xDC00 || (*sourceRun)[*offset + 1] > 0xDFFF) {
++                    complete = false;
++                    break;
++                }
++                scalar = 0x10000 + ((scalar - 0xD800) << 10) + (*sourceRun)[*offset + 1] - 0xDC00;
++            }
++            offsets.push_back(*offset - sourceFrom);
++            glyphs.push_back(glyphBuffer.glyphAt(i));
++            nominal.push_back(font.platformData().skFont().unicharToGlyph(scalar));
++        }
++        if (complete)
++            sourceText = makeScalarGlyphText(source, offsets, glyphs, nominal);
++    }
++#else
++    UNUSED_PARAM(sourceRun);
++    UNUSED_PARAM(sourceFrom);
++    UNUSED_PARAM(sourceTo);
++#endif
++    const auto drawSpan = [&](const Font& font, size_t first, size_t count, const FloatPoint& origin) {
++        auto part = sourceText ? sourceText->slice(first, count) : std::nullopt;
++        if (part)
++            context.drawGlyphsWithSourceText(font, glyphBuffer.glyphs(first, count), glyphBuffer.advances(first, count), origin, m_fontDescription.usedFontSmoothing(), *part);
++        else
++            context.drawGlyphs(font, glyphBuffer.glyphs(first, count), glyphBuffer.advances(first, count), origin, m_fontDescription.usedFontSmoothing());
++    };
+     RefPtr fontData = glyphBuffer.fontAt(0);
+     FloatPoint startPoint = point;
+     float nextX = startPoint.x() + WebCore::width(glyphBuffer.advanceAt(0));
+@@ -1553,7 +1602,7 @@ void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& g
+         if (nextFontData != fontData) {
+             if (shouldDrawIfLoading(*fontData, customFontNotReadyAction)) {
+                 size_t glyphCount = nextGlyph - lastFrom;
+-                context.drawGlyphs(*fontData, glyphBuffer.glyphs(lastFrom, glyphCount), glyphBuffer.advances(lastFrom, glyphCount), startPoint, m_fontDescription.usedFontSmoothing());
++                drawSpan(*fontData, lastFrom, glyphCount, startPoint);
+             }
+             lastFrom = nextGlyph;
+             fontData = WTF::move(nextFontData);
+@@ -1567,7 +1616,7 @@ void FontCascade::drawGlyphBuffer(GraphicsContext& context, const GlyphBuffer& g
+ 
+     if (shouldDrawIfLoading(*fontData, customFontNotReadyAction)) {
+         size_t glyphCount = nextGlyph - lastFrom;
+-        context.drawGlyphs(*fontData, glyphBuffer.glyphs(lastFrom, glyphCount), glyphBuffer.advances(lastFrom, glyphCount), startPoint, m_fontDescription.usedFontSmoothing());
++        drawSpan(*fontData, lastFrom, glyphCount, startPoint);
+     }
+     point.setX(nextX);
+ }
+diff --git a/Source/WebCore/platform/graphics/FontCascade.h b/Source/WebCore/platform/graphics/FontCascade.h
+index 716ba5b..d3054b7 100644
+--- a/Source/WebCore/platform/graphics/FontCascade.h
++++ b/Source/WebCore/platform/graphics/FontCascade.h
+@@ -248,7 +248,7 @@ private:
+ 
+     GlyphBuffer layoutText(CodePath, const TextRun&, unsigned from, unsigned to, ForTextEmphasisOrNot = ForTextEmphasisOrNot::NotForTextEmphasis) const;
+     GlyphBuffer layoutSimpleText(const TextRun&, unsigned from, unsigned to, ForTextEmphasisOrNot = ForTextEmphasisOrNot::NotForTextEmphasis) const;
+-    void drawGlyphBuffer(GraphicsContext&, const GlyphBuffer&, FloatPoint&, CustomFontNotReadyAction) const;
++    void drawGlyphBuffer(GraphicsContext&, const GlyphBuffer&, FloatPoint&, CustomFontNotReadyAction, const TextRun* = nullptr, unsigned sourceFrom = 0, unsigned sourceTo = 0) const;
+     void drawEmphasisMarks(GraphicsContext&, const GlyphBuffer&, const AtomString&, const FloatPoint&) const;
+     int offsetForPositionForSimpleText(const TextRun&, float position, bool includePartialGlyphs) const;
+     void adjustSelectionRectForSimpleText(const TextRun&, LayoutRect& selectionRect, unsigned from, unsigned to) const;
+diff --git a/Source/WebCore/platform/graphics/GraphicsContext.cpp b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+index a858670..795e234 100644
+--- a/Source/WebCore/platform/graphics/GraphicsContext.cpp
++++ b/Source/WebCore/platform/graphics/GraphicsContext.cpp
+@@ -178,6 +178,12 @@ void GraphicsContext::drawGlyphs(const Font& font, std::span<const GlyphBufferGl
+     FontCascade::drawGlyphs(*this, font, glyphs, advances, point, fontSmoothingMode);
+ }
+ 
++void GraphicsContext::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode mode, const ScalarGlyphText&)
++{
++    // Unsupported contexts retain old behavior. This is NOT complete IPC coverage.
++    drawGlyphs(font, glyphs, advances, point, mode);
++}
++
+ void GraphicsContext::drawGlyphsImmediate(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode fontSmoothingMode)
+ {
+     // Called by implementations that transform drawGlyphs into drawGlyphsImmediate, drawImageBuffer, etc calls.
+diff --git a/Source/WebCore/platform/graphics/GraphicsContext.h b/Source/WebCore/platform/graphics/GraphicsContext.h
+index 3cad597..5fa386e 100644
+--- a/Source/WebCore/platform/graphics/GraphicsContext.h
++++ b/Source/WebCore/platform/graphics/GraphicsContext.h
+@@ -25,6 +25,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/ControlPart.h>
+ #include <WebCore/DashArray.h>
+@@ -312,6 +313,7 @@ public:
+     WEBCORE_EXPORT virtual void drawBidiText(const FontCascade&, const TextRun&, const FloatPoint&, FontCascade::CustomFontNotReadyAction = FontCascade::CustomFontNotReadyAction::DoNotPaintIfFontNotReady);
+ 
+     WEBCORE_EXPORT virtual void drawGlyphs(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode);
++    WEBCORE_EXPORT virtual void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&);
+     WEBCORE_EXPORT void drawDisplayList(const DisplayList::DisplayList&);
+     WEBCORE_EXPORT virtual void drawDisplayList(const DisplayList::DisplayList&, ControlFactory&);
+     WEBCORE_EXPORT FloatRect computeUnderlineBoundsForText(const FloatRect&, bool printing);
+diff --git a/Source/WebCore/platform/graphics/ScalarGlyphText.h b/Source/WebCore/platform/graphics/ScalarGlyphText.h
+new file mode 100644
+index 0000000..f7ccb2c
+--- /dev/null
++++ b/Source/WebCore/platform/graphics/ScalarGlyphText.h
+@@ -0,0 +1,105 @@
++// Research-only source metadata bridge; not an installed WebKit patch.
++// Copyright (C) 2026 LarryZhu-dev. SPDX-License-Identifier: BSD-2-Clause
++#pragma once
++#include <cstdint>
++#include <limits>
++#include <optional>
++#include <span>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace WebCore {
++// Deliberately narrow: one LTR source scalar per unchanged nominal glyph.
++// Ligatures, reordered/repeated offsets, synthetic/missing glyphs and partial
++// surrogate pairs are rejected, never reverse-mapped or normalized.
++struct ScalarGlyphText {
++    static constexpr size_t maxBytes = 1024 * 1024;
++    std::string utf8;
++    std::vector<uint32_t> clusters;
++
++    bool validFor(size_t glyphCount) const
++    {
++        if (utf8.empty() || utf8.size() > maxBytes || clusters.size() != glyphCount || !glyphCount)
++            return false;
++        size_t byte = 0, glyph = 0;
++        while (byte < utf8.size()) {
++            if (glyph == glyphCount || clusters[glyph++] != byte)
++                return false;
++            uint8_t first = static_cast<uint8_t>(utf8[byte++]);
++            uint32_t scalar = first;
++            unsigned continuation = 0;
++            uint32_t minimum = 0;
++            if (first >= 0xC2 && first <= 0xDF) { scalar = first & 0x1F; continuation = 1; minimum = 0x80; }
++            else if (first >= 0xE0 && first <= 0xEF) { scalar = first & 0x0F; continuation = 2; minimum = 0x800; }
++            else if (first >= 0xF0 && first <= 0xF4) { scalar = first & 7; continuation = 3; minimum = 0x10000; }
++            else if (first >= 0x80) return false;
++            for (unsigned i = 0; i < continuation; ++i) {
++                if (byte >= utf8.size()) return false;
++                uint8_t next = static_cast<uint8_t>(utf8[byte++]);
++                if ((next & 0xC0) != 0x80) return false;
++                scalar = (scalar << 6) | (next & 0x3F);
++            }
++            if (scalar < minimum || scalar > 0x10FFFF || (scalar >= 0xD800 && scalar <= 0xDFFF))
++                return false;
++        }
++        return glyph == glyphCount;
++    }
++
++    std::optional<ScalarGlyphText> slice(size_t first, size_t count) const
++    {
++        if (!validFor(clusters.size()) || !count || first >= clusters.size() || count > clusters.size() - first)
++            return std::nullopt;
++        const size_t start = clusters[first];
++        const size_t end = first + count == clusters.size() ? utf8.size() : clusters[first + count];
++        ScalarGlyphText result;
++        result.utf8 = utf8.substr(start, end - start);
++        for (size_t i = first; i < first + count; ++i)
++            result.clusters.push_back(clusters[i] - start);
++        return result;
++    }
++};
++
++inline std::optional<ScalarGlyphText> makeScalarGlyphText(
++    std::u16string_view source, std::span<const uint32_t> offsets,
++    std::span<const uint32_t> drawnGlyphs, std::span<const uint32_t> nominalGlyphs)
++{
++    if (source.empty() || source.size() > ScalarGlyphText::maxBytes / 4
++        || offsets.size() != drawnGlyphs.size() || offsets.size() != nominalGlyphs.size())
++        return std::nullopt;
++    ScalarGlyphText result;
++    size_t index = 0;
++    for (size_t offset = 0; offset < source.size(); ++index) {
++        if (index >= offsets.size() || offsets[index] != offset
++            || !drawnGlyphs[index] || drawnGlyphs[index] == 0xFFFF
++            || drawnGlyphs[index] != nominalGlyphs[index])
++            return std::nullopt;
++        uint32_t scalar = source[offset++];
++        if (scalar >= 0xD800 && scalar <= 0xDBFF) {
++            if (offset == source.size()) return std::nullopt;
++            uint32_t low = source[offset++];
++            if (low < 0xDC00 || low > 0xDFFF) return std::nullopt;
++            scalar = 0x10000 + ((scalar - 0xD800) << 10) + low - 0xDC00;
++        } else if (scalar >= 0xDC00 && scalar <= 0xDFFF)
++            return std::nullopt;
++        result.clusters.push_back(static_cast<uint32_t>(result.utf8.size()));
++        if (scalar < 0x80) result.utf8.push_back(static_cast<char>(scalar));
++        else if (scalar < 0x800) {
++            result.utf8.push_back(static_cast<char>(0xC0 | (scalar >> 6)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        } else if (scalar < 0x10000) {
++            result.utf8.push_back(static_cast<char>(0xE0 | (scalar >> 12)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 6) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        } else {
++            result.utf8.push_back(static_cast<char>(0xF0 | (scalar >> 18)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 12) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | ((scalar >> 6) & 0x3F)));
++            result.utf8.push_back(static_cast<char>(0x80 | (scalar & 0x3F)));
++        }
++    }
++    if (index != offsets.size() || !result.validFor(drawnGlyphs.size()))
++        return std::nullopt;
++    return result;
++}
++}
+diff --git a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
+index 245450f..cb56f6e 100644
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.cpp
+@@ -280,7 +280,10 @@ void DrawFilteredImageBuffer::dump(TextStream& ts, OptionSet<AsTextFlag> flags)
+ 
+ void DrawGlyphs::apply(GraphicsContext& context) const
+ {
+-    context.drawGlyphs(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode);
++    if (m_sourceText)
++        context.drawGlyphsWithSourceText(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode, *m_sourceText);
++    else
++        context.drawGlyphs(m_font, m_glyphs.span(), m_advances.span(), m_localAnchor, m_fontSmoothingMode);
+ }
+ 
+ void DrawGlyphs::dump(TextStream& ts, OptionSet<AsTextFlag>) const
+diff --git a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
+index 4897109..06c81ea 100644
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListItems.h
+@@ -24,6 +24,7 @@
+  */
+ 
+ #pragma once
++#include "ScalarGlyphText.h"
+ 
+ #include <WebCore/AlphaPremultiplication.h>
+ #include <WebCore/ControlPart.h>
+@@ -495,12 +496,13 @@ class DrawGlyphs {
+ public:
+     static constexpr char name[] = "draw-glyphs";
+ 
+-    DrawGlyphs(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
++    DrawGlyphs(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText = nullptr)
+         : m_font(WTF::move(font))
+         , m_glyphs(WTF::move(glyphs))
+         , m_advances(WTF::move(advances))
+         , m_localAnchor(localAnchor)
+         , m_fontSmoothingMode(smoothingMode)
++        , m_sourceText(sourceText ? std::optional<ScalarGlyphText>(*sourceText) : std::nullopt)
+     {
+     }
+ 
+@@ -521,6 +523,7 @@ private:
+     Vector<GlyphBufferAdvance> m_advances;
+     FloatPoint m_localAnchor;
+     FontSmoothingMode m_fontSmoothingMode;
++    std::optional<ScalarGlyphText> m_sourceText;
+ };
+ 
+ #if USE(SKIA)
+@@ -528,8 +531,8 @@ class DrawTextBlob {
+ public:
+     static constexpr char name[] = "draw-text-blob";
+ 
+-    DrawTextBlob(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
+-        : m_textBlob(font->buildTextBlob(glyphs, advances, smoothingMode))
++    DrawTextBlob(Ref<const Font>&& font, Vector<GlyphBufferGlyph>&& glyphs, Vector<GlyphBufferAdvance>&& advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText = nullptr)
++        : m_textBlob(font->buildTextBlob(glyphs, advances, smoothingMode, sourceText))
+         , m_enableAntialiasing(font->enableAntialiasing(smoothingMode))
+         , m_isVertical(font->platformData().orientation() == FontOrientation::Vertical)
+         , m_localAnchor(localAnchor)
+diff --git a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
+index 110a209..95e3d37 100644
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.cpp
+@@ -210,6 +210,24 @@ void RecorderImpl::drawGlyphs(const Font& font, std::span<const GlyphBufferGlyph
+     drawGlyphsImmediate(font, glyphs, advances, localAnchor, smoothingMode);
+ }
+ 
++void RecorderImpl::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode, const ScalarGlyphText& sourceText)
++{
++    if (!sourceText.validFor(glyphs.size())) {
++        drawGlyphs(font, glyphs, advances, localAnchor, smoothingMode);
++        return;
++    }
++    if (decomposeDrawGlyphsIfNeeded(font, glyphs, advances, localAnchor, smoothingMode))
++        return; // Decomposed effects are not covered by this research subset.
++    appendStateChangeItemIfNecessary();
++#if USE(SKIA)
++    if (drawGlyphsMode() == Recorder::DrawGlyphsMode::TextBlob) {
++        m_items.append(DrawTextBlob(Ref { font }, Vector(glyphs), Vector(advances), localAnchor, smoothingMode, &sourceText));
++        return;
++    }
++#endif
++    m_items.append(DrawGlyphs(Ref { font }, Vector(glyphs), Vector(advances), localAnchor, smoothingMode, &sourceText));
++}
++
+ void RecorderImpl::drawGlyphsImmediate(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
+ {
+     appendStateChangeItemIfNecessary();
+diff --git a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
+index 71a5268..63ea71b 100644
+--- a/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
++++ b/Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h
+@@ -94,6 +94,7 @@ public:
+     void fillRoundedRect(const FloatRoundedRect&, const Color&, BlendMode) final;
+     void fillRectWithRoundedHole(const FloatRect&, const FloatRoundedRect&, const Color&) final;
+     void drawGlyphs(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint& localAnchor, FontSmoothingMode) final;
++    void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&) final;
+     void drawGlyphsImmediate(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint& localAnchor, FontSmoothingMode) final;
+     void drawDisplayList(const DisplayList&, ControlFactory&) final;
+ #if ENABLE(VIDEO)
+diff --git a/Source/WebCore/platform/graphics/skia/FontSkia.cpp b/Source/WebCore/platform/graphics/skia/FontSkia.cpp
+index d24902b..e7c4b7f 100644
+--- a/Source/WebCore/platform/graphics/skia/FontSkia.cpp
++++ b/Source/WebCore/platform/graphics/skia/FontSkia.cpp
+@@ -25,6 +25,7 @@
+ 
+ #include "config.h"
+ #include "Font.h"
++#include <algorithm>
+ 
+ #include "GlyphBuffer.h"
+ #include "NotImplemented.h"
+@@ -221,7 +222,7 @@ static inline SkFont::Edging edgingForFontSmoothingMode(const SkFont& font, Font
+     RELEASE_ASSERT_NOT_REACHED();
+ }
+ 
+-sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, FontSmoothingMode smoothingMode) const
++sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, FontSmoothingMode smoothingMode, const ScalarGlyphText* sourceText) const
+ {
+     if (!m_platformData.size() || !glyphs.size())
+         return nullptr;
+@@ -230,16 +231,29 @@ sk_sp<SkTextBlob> Font::buildTextBlob(std::span<const GlyphBufferGlyph> glyphs,
+     auto edging = allowsAntialiasing() ? edgingForFontSmoothingMode(font, smoothingMode) : SkFont::Edging::kAlias;
+     bool isVertical = m_platformData.orientation() == FontOrientation::Vertical;
+ 
++    if (sourceText && !sourceText->validFor(glyphs.size()))
++        sourceText = nullptr;
+     SkTextBlobBuilder builder;
++    const auto allocate = [&](const SkFont& runFont) -> const SkTextBlobBuilder::RunBuffer& {
++        if (sourceText) {
++            return isVertical ? builder.allocRunTextPos(runFont, glyphs.size(), sourceText->utf8.size())
++                : builder.allocRunTextPosH(runFont, glyphs.size(), 0, sourceText->utf8.size());
++        }
++        return isVertical ? builder.allocRunPos(runFont, glyphs.size()) : builder.allocRunPosH(runFont, glyphs.size(), 0);
++    };
+     const auto& buffer = [&]() {
+         if (font.getEdging() == edging)
+-            return isVertical ? builder.allocRunPos(font, glyphs.size()) : builder.allocRunPosH(font, glyphs.size(), 0);
++            return allocate(font);
+ 
+         SkFont copiedFont = font;
+         copiedFont.setEdging(edging);
+-        return isVertical ? builder.allocRunPos(copiedFont, glyphs.size()) : builder.allocRunPosH(copiedFont, glyphs.size(), 0);
++        return allocate(copiedFont);
+     }();
+ 
++    if (sourceText) {
++        std::copy(sourceText->utf8.begin(), sourceText->utf8.end(), buffer.utf8text);
++        std::copy(sourceText->clusters.begin(), sourceText->clusters.end(), buffer.clusters);
++    }
+     auto bufferGlyphs = unsafeMakeSpan<SkGlyphID>(buffer.glyphs, glyphs.size());
+     auto bufferPositions = unsafeMakeSpan<SkScalar>(buffer.pos, glyphs.size() * (isVertical ? 2 : 1));
+ 
+diff --git a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
+index 1432b8a..e91739e 100644
+--- a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
++++ b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp
+@@ -1336,6 +1336,13 @@ void GraphicsContextSkia::trackAcceleratedRenderingFenceIfNeeded(Pattern& patter
+     trackAcceleratedRenderingFenceIfNeeded(nativeImage->platformImage(), nativeImage->grContext());
+ }
+ 
++void GraphicsContextSkia::drawGlyphsWithSourceText(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode mode, const ScalarGlyphText& sourceText)
++{
++    auto blob = font.buildTextBlob(glyphs, advances, mode, &sourceText);
++    if (blob)
++        drawSkiaText(blob, point.x(), point.y(), font.enableAntialiasing(mode), font.platformData().orientation() == FontOrientation::Vertical);
++}
++
+ void GraphicsContextSkia::drawSkiaText(const sk_sp<SkTextBlob>& blob, SkScalar x, SkScalar y, bool enableAntialias, bool isVertical)
+ {
+     if (isVertical) {
+diff --git a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
+index 22c0098..4dd854a 100644
+--- a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
++++ b/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h
+@@ -121,6 +121,7 @@ public:
+     SkPaint createFillPaint() const;
+     SkPaint createStrokePaint() const;
+ 
++    void drawGlyphsWithSourceText(const Font&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode, const ScalarGlyphText&) final;
+     void drawSkiaText(const sk_sp<SkTextBlob>&, SkScalar, SkScalar, bool, bool);
+ 
+     static std::unique_ptr<GLFence> createAcceleratedRenderingFence(SkSurface*);
