@@ -45,6 +45,13 @@ function fixture() {
       uninstallEntries: label === 'after-uninstall' ? [] : [{ displayVersion: version }],
       uninstalled: label === 'after-uninstall',
     }
+  states['after-recovery'].configurationFiles = [
+    { root: 'local', relative: 'catalog.db', sha256: 'd'.repeat(64), bytes: 10 },
+  ]
+  states['after-uninstall'].configurationFiles = structuredClone(
+    states['after-recovery'].configurationFiles,
+  )
+  states['after-uninstall'].configurationPreservedAfterUninstall = true
   states['before-recovery'].backup = {
     status: 'copied-and-hash-verified',
     restored: false,

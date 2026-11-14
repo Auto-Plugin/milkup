@@ -77,6 +77,12 @@ export function verifyCrossVersion({
   }
   assert.equal(states['before-upgrade'].binary.sha256, states['after-recovery'].binary.sha256)
   assert.notEqual(states['before-upgrade'].binary.sha256, states['after-upgrade'].binary.sha256)
+  assert.equal(states['after-uninstall'].configurationPreservedAfterUninstall, true)
+  assert(states['after-recovery'].configurationFiles.length > 0)
+  assert.deepEqual(
+    states['after-uninstall'].configurationFiles,
+    states['after-recovery'].configurationFiles,
+  )
   const backup = states['before-recovery'].backup
   assert.equal(backup.status, 'copied-and-hash-verified')
   assert.equal(backup.restored, false)
