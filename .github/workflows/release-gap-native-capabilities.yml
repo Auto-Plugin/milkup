@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/ci/probe-windows-release-gaps.ps1
       - name: Observe native prerequisites without changing machine policy
         shell: pwsh
         run: ./scripts/ci/probe-windows-release-gaps.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/gap-capabilities"
