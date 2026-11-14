@@ -7,6 +7,20 @@ function Parse([string]$Name) {
  return $ast
 }
 $install=Parse 'install-candidate.ps1'
+# Run the actual startup evidence statements with strict mode and no health
+# variables. Install-only must neither read nor claim a debugging profile.
+$startup=$install.Find({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'VerifyOwnedStartupAndClose'},$true)
+$statements=@($startup.Body.EndBlock.Statements)
+$first=@($statements | Where-Object {$_.Extent.Text.StartsWith('$startEvidence=')})
+$conditional=@($statements | Where-Object {$_.Extent.Text.StartsWith('if ($RepairHealth) { $startEvidence.')})
+if ($first.Count -ne 1 -or $conditional.Count -ne 1) {throw 'Expected startup evidence construction and conditional health fields'}
+$evidenceBuilder=[scriptblock]::Create($first[0].Extent.Text + "`n" + $conditional[0].Extent.Text + "`n" + 'return $startEvidence')
+$product=[pscustomobject]@{Id=123};$creation='test-creation';$binary='test-image';$RepairHealth=$false
+$plain=& $evidenceBuilder
+if ($plain.Count -ne 3 -or $plain.pid -ne 123 -or $plain.ContainsKey('debugPort') -or $plain.ContainsKey('healthProfile')) {throw 'Non-repair startup evidence must not access or claim health state'}
+$RepairHealth=$true;$debugPort=12345;$healthProfile='test-profile'
+$health=& $evidenceBuilder
+if ($health.debugPort -ne 12345 -or $health.healthProfile -cne 'test-profile') {throw 'Repair startup must retain exact health diagnostics'}
 $branches=@($install.FindAll({param($n) $n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith('if ($NodeExecutable)')},$true))
 if ($branches.Count -ne 1 -or !$branches[0].Clauses[0].Item2.Extent.Text.Contains('[WindowsMermaidStandardUser]::RunNodeScript(')) {throw 'Absolute Node must select bounded receipt path independently of RepairHealth'}
 $RepairHealth=$false;$NodeExecutable='absolute-tested-node'

@@ -27,7 +27,9 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
   $script:product=Start-Process @launch
   $creation=$product.StartTime.ToUniversalTime().ToString('o')
   $creationTicks=$product.StartTime.ToUniversalTime().Ticks
-  Phase ($Prefix + 'application-start') @{pid=$product.Id;creationUtc=$creation;image=$binary;debugPort=$debugPort;healthProfile=$healthProfile}
+  $startEvidence=@{pid=$product.Id;creationUtc=$creation;image=$binary}
+  if ($RepairHealth) { $startEvidence.debugPort=$debugPort; $startEvidence.healthProfile=$healthProfile }
+  Phase ($Prefix + 'application-start') $startEvidence
   $deadline=[DateTime]::UtcNow.AddSeconds(45)
   $record[$WindowKey]=@()
   $lastWindows=$null
