@@ -55,6 +55,17 @@ function complete() {
           },
         },
         { name: 'in-app-restarted-normal-close', detail: { exitCode: 0 } },
+        {
+          name: 'in-app-restarted-close-exit-observation',
+          detail: {
+            pid: 7,
+            creationTicks: '504911232000000002',
+            heldProcessHandle: true,
+            exited: true,
+            waitResult: 0,
+            exitCode: 0,
+          },
+        },
       ],
     },
     supervisor: {
@@ -127,6 +138,11 @@ for (const [name, change] of Object.entries({
   'mismatched held birth': (e) => (e.installation.phases[2].detail.identity.creationFileTime = '3'),
   'missing held birth': (e) => delete e.installation.phases[2].detail.identity.creationFileTime,
   'new process elevated': (e) => (e.installation.phases[2].detail.identity.token.elevated = true),
+  'missing native exit proof': (e) => e.installation.phases.pop(),
+  'wrong closed generation': (e) =>
+    (e.installation.phases[4].detail.creationTicks = '504911232000000001'),
+  'nonzero actual exit': (e) => (e.installation.phases[4].detail.exitCode = 17),
+  'exit not observed': (e) => (e.installation.phases[4].detail.exited = false),
   'wrong target package': (e) => (e.installation.inAppTarget.installer.sha256 = h),
   'unmatched endpoint download': (e) => e.endpoint.requests.pop(),
   'forced cleanup': (e) => (e.installation.forcedCleanup = true),

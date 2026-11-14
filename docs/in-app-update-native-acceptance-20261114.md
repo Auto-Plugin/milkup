@@ -12,7 +12,7 @@ from `dea1f2a437e43303f185d47ad2014156038d8514` in run
 https://github.com/Auto-Plugin/milkup/actions/runs/43607417256. It is not the
 previously accepted old executable or a distributable candidate.
 
-Compared with b877746f, application changes are limited to Cargo's optional
+For that initial candidate, compared with b877746f, application changes are limited to Cargo's optional
 reqwest dependency, the feature declaration and updater fixture configuration.
 Frontend, packages and production channel bytes are unchanged. The test branch
 uses the actual About controller, IPC handlers, manifest/artifact signature,
@@ -98,8 +98,42 @@ The actual 488-byte non-executable resource leaf is retained as a hex fixture
 `3730cfe0d79ff3f603a332dfb480052e3f597591ed64e681f0ea80328a3bff8d`).
 Both full original installers passed the corrected local Rust reader; incorrect
 versions still failed. Two resource tests reject unknown revisions, all truncated
-prefixes, forged numeric versions and extra bytes. Native rebuilt acceptance is
-pending; no complete in-app update pass is claimed yet. Production channels/signing and arbitrary data migration are not covered. Automatic
+prefixes, forged numeric versions and extra bytes.
+
+The product fix is `6eb10ba8aa21c42ed6291f8ebfc2cfdc68bbe784`. Its rebuilt feature
+binary passed run https://github.com/Auto-Plugin/milkup/actions/runs/43610366335,
+including both new resource tests and the existing PE truncation/offset/cycle/
+ambiguity and PE32+/overlapping-section tests (four Windows tests total).
+Artifact 14120113561 is 25,485,167 bytes, ZIP SHA-256
+`1e7faf8c22fc0d0e8f5a4e4bc2eef10bd7d17af43945b819709a0dae3a3e4579`;
+the internal executable is 25,484,288 bytes, SHA-256
+`5ec6d4b300207e1e3b9295effa8f9b3baa2b28e67331a7cc4648cc97cad36739`.
+ZIP length/SHA/CRC/path safety, source binding and executable hash were verified.
+The CI artifact expires 2026-11-21 15:43:38 UTC. Relative to the initial candidate,
+this changes the product PE parser and tests; frontend, plugin packages and the
+empty production update channel remain unchanged.
+
+The unchanged beta.11 target still contains the older parser: it is a version-only
+test target, not delivery of this fix. Run 43611824218 with harness
+`59c0f15f86af58e45dcc69272b6391c56860ade5` completed the three rejection cases,
+downloaded/verified the original target, saved the unique unsaved marker through
+the real confirmation, normally exited the old app and observed NSIS's automatic
+restart (no test relaunch) into the exact beta.11 image under the same pure-standard
+account. Retained document/plugin setting and actual decode/edit/save passed.
+The final close assertion failed; its raw exit value was not retained, so this
+does not establish whether the app exited nonzero or the discovered-process
+observer lost exit status. Uninstall was not reached. Artifact 14120716504 is
+99,880 bytes, SHA-256
+`64f9e8b409e02ab76492cfa2d9cf65d46371680753a1aa8502407821227ec2eb`.
+
+The harness now holds the exact process handle before health/close and persists
+the native wait result and exit code before asserting. A successful wait alone
+does not pass; code 0, matching PID/birth and complete cleanup are required.
+Native test children exercise exit 0 and 17 plus wrong-birth/image rejection.
+Thirty-two local evidence-contract tests passed; Windows execution of the new
+exit witness and complete in-app acceptance remains pending.
+
+Production channels/signing and arbitrary data migration are not covered. Automatic
 rollback is not implemented, so it is not labeled as a pending acceptance test.
 Completion of all five release gaps is not claimed.
 No main merge or Release was performed.

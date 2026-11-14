@@ -241,6 +241,7 @@ jobs:
           $env:TEST_OPENSSL=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
           node --test scripts/release/in-app-update-server.test.mjs scripts/release/in-app-update-contract.test.mjs
           if ($LASTEXITCODE) {throw 'Strict endpoint/evidence tests failed'}
+          ./scripts/release/owned-exit-witness.test.ps1
       - name: Parse all native acceptance scripts before any installation
         shell: pwsh
         run: |

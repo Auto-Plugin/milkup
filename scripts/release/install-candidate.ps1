@@ -55,6 +55,8 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey,[string]$
   if (![StringComparer]::OrdinalIgnoreCase.Equals($product.Path,$binary) -or $product.StartTime.ToUniversalTime().ToString('o') -cne $creation) { throw 'Owned application identity mismatch' }
   $startup.Stop()
   Phase ($Prefix + 'native-window-observed') @{hwnd=$window.hwnd;title=$window.title;className=$window.className;image=$product.Path;creationUtc=$creation;launchToNativeWindowMs=$startup.Elapsed.TotalMilliseconds;measurementBoundary='unique visible Tauri window only; not first paint, Mermaid ready or interactive'}
+  $exitWitness=[MilkupInstallWindow+ExitWitness]::new($product.Id,$creationTicks,$binary)
+  try {
   $healthSession=$null
   if ($RepairHealth) {
     $healthPhase=if ($ExplicitPhase) {$ExplicitPhase} elseif ($Prefix) {'after'} else {'before'}
@@ -83,13 +85,16 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey,[string]$
     if ($health.documentHealth.status -cne 'passed-ui-await-native-exit-and-pdf-audit' -or !$health.documentHealth.close.saveRequested) { throw 'Document close-save UI proof required' }
     Phase 'document-health-await-normal-close' @{report='installed-document-health.json';closeRequestedByRealUi=$true;pdfTextAudit='pending'}
   } else { [MilkupInstallWindow]::Close($window.hwnd,$product.Id,$creationTicks,$binary) }
-  if (!$product.WaitForExit(15000)) { throw 'Application did not close normally within 15 seconds' }
-  if ($product.ExitCode -ne 0) { throw 'Application close was not successful' }
-  Phase ($Prefix + 'normal-close') @{exitCode=$product.ExitCode}
+  $exitProof=$exitWitness.Wait(15000)
+  Phase ($Prefix + 'close-exit-observation') $exitProof
+  if (!$exitProof.exited) { throw 'Application did not close normally within 15 seconds' }
+  if ($exitProof.exitCode -ne 0) { throw "Application close was not successful: native exit $($exitProof.exitCode)" }
+  Phase ($Prefix + 'normal-close') @{exitCode=$exitProof.exitCode;heldProcessHandle=$true}
   if ($healthSession) {
     try { $null=Invoke-RestMethod -Uri "http://127.0.0.1:$driverPort/session/$healthSession" -Method Delete -TimeoutSec 10 }
     catch { Phase ($Prefix + 'driver-detach-diagnostic') @{error=$_.Exception.Message;afterNormalProductExit=$true} }
   }
+  } finally { $exitWitness.Dispose() }
 }
 $product=$null
 $healthDriver=$null

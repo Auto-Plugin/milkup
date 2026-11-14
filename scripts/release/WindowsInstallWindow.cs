@@ -15,6 +15,42 @@ public static class MilkupInstallWindow {
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassNameW(IntPtr window, StringBuilder text, int capacity);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowTextW(IntPtr window, StringBuilder text, int capacity);
     [DllImport("user32.dll", SetLastError = true)] static extern bool PostMessageW(IntPtr window, uint message, IntPtr wparam, IntPtr lparam);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetExitCodeProcess(IntPtr process, out uint code);
+
+    // Unlike a later Get-Process lookup, this owns the exact process handle from
+    // before the close request through exit-code collection. No PID reopening.
+    public sealed class ExitWitness : IDisposable {
+        readonly Process process;
+        readonly IntPtr handle;
+        readonly int pid;
+        readonly string creationTicks;
+        public ExitWitness(int pid, long creationTicks, string image) {
+            process = Process.GetProcessById(pid);
+            try {
+                handle = process.Handle;
+                if (WaitForSingleObject(handle, 0) != 0x102 ||
+                    process.StartTime.ToUniversalTime().Ticks != creationTicks ||
+                    !String.Equals(process.MainModule.FileName, image, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException("Exit witness requires exact live process generation/image");
+                this.pid = pid;
+                this.creationTicks = creationTicks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            } catch { process.Dispose(); throw; }
+        }
+        public Dictionary<string, object> Wait(int milliseconds) {
+            if (milliseconds < 0 || milliseconds > 15000) throw new ArgumentOutOfRangeException("milliseconds");
+            uint result = WaitForSingleObject(handle, (uint)milliseconds);
+            if (result != 0 && result != 0x102) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            uint code;
+            if (!GetExitCodeProcess(handle, out code)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            return new Dictionary<string, object> {
+                {"exited", result == 0}, {"exitCode", result == 0 ? (object)code : null},
+                {"waitResult", result}, {"heldProcessHandle", true},
+                {"pid", pid}, {"creationTicks", creationTicks}
+            };
+        }
+        public void Dispose() { process.Dispose(); }
+    }
 
     static string ReadText(IntPtr window, bool className) {
         var text = new StringBuilder(256);

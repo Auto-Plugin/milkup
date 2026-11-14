@@ -106,6 +106,13 @@ export function verifyInApp({
   assert.equal(restarted.identity.token.elevated, false)
   assert.equal(restarted.identity.token.integrityRid, 8192)
   assert.equal(phase('in-app-restarted-normal-close').exitCode, 0)
+  const close = phase('in-app-restarted-close-exit-observation')
+  assert.equal(close.pid, restarted.pid)
+  assert.equal(close.creationTicks, restarted.creationTicks)
+  assert.equal(close.heldProcessHandle, true)
+  assert.equal(close.exited, true)
+  assert.equal(close.waitResult, 0)
+  assert.equal(close.exitCode, 0)
   for (const health of [before, after]) {
     assert.equal(health.status, 'passed')
     assert.match(health.saved.sha256, /^[a-f0-9]{64}$/)
