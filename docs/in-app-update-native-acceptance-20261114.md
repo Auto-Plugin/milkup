@@ -130,8 +130,46 @@ The harness now holds the exact process handle before health/close and persists
 the native wait result and exit code before asserting. A successful wait alone
 does not pass; code 0, matching PID/birth and complete cleanup are required.
 Native test children exercise exit 0 and 17 plus wrong-birth/image rejection.
-Thirty-two local evidence-contract tests passed; Windows execution of the new
-exit witness and complete in-app acceptance remains pending.
+Thirty-two local evidence-contract tests passed.
+
+## Verified native result
+
+Run https://github.com/Auto-Plugin/milkup/actions/runs/43612332507 passed on
+`c1bbaf64ca33cde740818be0684d74ece2d9c02d`, reusing the exact fixed feature binary
+and unchanged target above. The real Windows exit-witness tests observed codes
+0 and 17 and rejected wrong birth/image; 22 endpoint/evidence tests also passed.
+The raw artifact was independently downloaded, verified and replayed through the
+complete evidence contract with the exact original installer and its signatures.
+
+- Three real About UI failures (wrong manifest signature, HTTP 503, corrupt
+  artifact signature) each preserved the old executable and allowed actual
+  edit/save. Rejected bytes never exposed installation.
+- The good target passed download/signature/version gates. The protected prompt
+  required saving (discard hidden). Its pending document was saved as 266 bytes,
+  SHA-256 `e6cc6f5eeb509ef299810b5359e082b4584767ad2a3b792eafb4b2bd039c1f68`.
+- The old PID 6364 normally exited with code 0. NSIS automatically restarted
+  PID 6256 at 15:52:08 UTC, with the exact expected beta.11 image and the same
+  pure-standard account, medium integrity and no administrator-group membership.
+  The harness did not launch the new application.
+- The restarted app retained that document hash and the explicitly disabled
+  Diagrams setting. Real UI re-enabled it, decoded a nonuniform 448×95 PNG and
+  edited/saved 281 bytes, SHA-256
+  `c3ab29beb5dbc6622b967326d2ebed336e80d73b8563e2e4167b7b44d5079966`.
+- Its held native process witness observed signaled exit, code 0, PID 6256 and
+  exact creation ticks `639302683282271237`. No forced termination was used.
+- The unique HKCU uninstall entry reported beta.11. Actual NSIS uninstall removed
+  the application and entry, preserving the final document and the complete
+  recorded 44-file configuration hash list. The endpoint stopped normally; the
+  owned job had zero active processes before outer cleanup. Temporary account,
+  profile and staging directory removal completed without cleanup errors.
+
+Artifact [14121240043](https://github.com/Auto-Plugin/milkup/actions/runs/43612332507/artifacts/14121240043)
+is 106,723 bytes, ZIP SHA-256
+`4ef7dbd7744fd06400f18f03a5685f4178b52fa6a548e3d009d4d3162c1ea844`,
+expires 2026-11-21 15:52:18 UTC. Raw ZIP and extracted reports are also in
+`/workspace/milkup-gap-artifacts/14121240043/` (temporary workspace, not a durable
+retention guarantee). The prior close failure is retained and not retroactively
+declared successful; its missing raw exit value cannot be reconstructed.
 
 Production channels/signing and arbitrary data migration are not covered. Automatic
 rollback is not implemented, so it is not labeled as a pending acceptance test.
