@@ -1,6 +1,15 @@
 name: Installed Linux native Pinyin and GTK scale research (no release)
 on:
   workflow_dispatch:
+    inputs:
+      build_candidate:
+        description: Build an exact changed source candidate before native acceptance
+        type: boolean
+        default: false
+      source_sha:
+        description: Exact application SHA (empty only for the retained b877 baseline)
+        type: string
+        required: false
 permissions:
   contents: read
   actions: read
@@ -11,13 +20,13 @@ jobs:
   native:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
-    timeout-minutes: 40
+    timeout-minutes: 90
     env:
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_RELEASE_DEBUG: '0'
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-      BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+      BASELINE_SHA: ${{ inputs.source_sha || 'b877746f5dfd236dfc13f718ed23d837b8e4f89d' }}
     defaults:
       run:
         shell: bash
@@ -28,7 +37,7 @@ jobs:
       - name: Exact application source in independent checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+          ref: ${{ inputs.source_sha || 'b877746f5dfd236dfc13f718ed23d837b8e4f89d' }}
           path: application
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -47,9 +56,29 @@ jobs:
           cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
           timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
           cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
+          node --test scripts/ci/native-ime-contract.test.mjs
           node --check scripts/ci/linux-ime-installed.mjs
           bash -n scripts/ci/run-linux-ime-installed.sh
+      - name: Build exact changed candidate with official locked packaging
+        if: inputs.build_candidate
+        working-directory: application
+        run: |
+          [[ "$BASELINE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$BASELINE_SHA"
+          test -z "$(git status --porcelain)"
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          rustup toolchain install 1.99.0 --profile minimal
+          export RUSTUP_TOOLCHAIN=1.99.0
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          npm install --prefix "$RUNNER_TEMP/milkup-math-input" --ignore-scripts --no-audit --no-fund katex@0.19.0
+          node --input-type=module -e "import fs from 'node:fs';import path from 'node:path';fs.mkdirSync('plugins/math/node_modules',{recursive:true});fs.symlinkSync(path.join(process.env.RUNNER_TEMP,'milkup-math-input/node_modules/katex'),'plugins/math/node_modules/katex','dir');"
+          pnpm --filter @milkup/view-dom test
+          pnpm --filter @milkup/view-dom typecheck
+          node scripts/release/build-candidate.mjs linux-deb "$RUNNER_TEMP/milkup-candidate" "$BASELINE_SHA"
+          node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/milkup-candidate/deliverable" "$BASELINE_SHA" linux-deb
+          cp "$RUNNER_TEMP/milkup-candidate/deliverable/manifest.json" "$RUNNER_TEMP/linux-native-evidence/new-build-manifest.json"
       - name: Reuse exact new candidate built in run 43558261633
+        if: ${{ !inputs.build_candidate }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -86,6 +115,7 @@ jobs:
           sudo dpkg --install "${package[0]}" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/install.txt"
           touch "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"
           cmp "$RUNNER_TEMP/milkup-package-extracted/usr/bin/milkup-desktop" /usr/bin/milkup-desktop
+          echo "MILKUP_IME_EXPECTED_BINARY_SHA256=$(sha256sum "$RUNNER_TEMP/milkup-package-extracted/usr/bin/milkup-desktop" | cut -d' ' -f1)" >> "$GITHUB_ENV"
           sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
           ldd /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-ldd.txt"
           rustup toolchain install 1.99.0 --profile minimal
@@ -114,4 +144,13 @@ jobs:
           name: milkup-linux-native-ime-${{ github.run_id }}
           path: ${{ runner.temp }}/linux-native-evidence/
           retention-days: 7
+          if-no-files-found: error
+      - name: Retain changed native candidate for subsequent scoped tests
+        if: inputs.build_candidate && success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-ime-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/milkup-candidate/deliverable/*
+          retention-days: 7
+          compression-level: 0
           if-no-files-found: error

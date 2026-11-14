@@ -4,6 +4,7 @@ import { execFileSync, spawn } from 'node:child_process'
 import { mkdir, readFile, writeFile, readlink } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { verifyNativeImeCommit } from './native-ime-contract.mjs'
 import { startProduction } from '../../tests/helpers/native-production.mjs'
 import { nativeFixture, x } from '../../tests/helpers/native-updates-fixture.mjs'
 const out=process.env.MILKUP_NATIVE_EVIDENCE_DIR,scale=Number(process.env.GDK_SCALE)
@@ -11,7 +12,7 @@ assert(out&&process.getuid()!==0&&[1,2].includes(scale))
 assert.equal(process.env.GTK_IM_MODULE,'ibus');assert(!process.env.WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS)
 await mkdir(out,{recursive:true})
 const hash=b=>createHash('sha256').update(b).digest('hex')
-const report={status:'running',sourceSha:'b877746f5dfd236dfc13f718ed23d837b8e4f89d',harnessSha:process.env.GITHUB_SHA,scale,steps:[],keys:[],errors:[],closes:[],scope:'Installed Linux b877 rebuild; real IBus libpinyin and GTK scale override, not Microsoft Pinyin or Windows system DPI'}
+const report={status:'running',sourceSha:process.env.BASELINE_SHA,harnessSha:process.env.GITHUB_SHA,scale,steps:[],keys:[],errors:[],closes:[],scope:'Installed exact candidate; real IBus libpinyin and GTK scale override, not Microsoft Pinyin or Windows system DPI'}
 const persist=()=>writeFile(path.join(out,'ime-result.json'),JSON.stringify(report,null,2))
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const until=async(fn,label,ms=15000)=>{const t=Date.now();while(Date.now()-t<ms){const v=await fn();if(v)return v;await sleep(100)}throw Error('Timeout: '+label)}
@@ -39,7 +40,7 @@ try{
   report.controlText=await readFile(path.join(out,'control.txt'),'utf8');shot('control-committed');await persist();assert.equal(report.controlText,'中文，。？！：；','Native control establishes engine and punctuation key semantics')
   await key('ctrl+q');await until(()=>control.exitCode!==null,'control normal exit');assert.equal(control.exitCode,0);control=null
  })
- await step('installed-start-and-native-scale',async()=>{await start();report.binarySha256=hash(await readFile(process.env.TAURI_APP_PATH));assert.equal(report.binarySha256,'1f2eb69ca6fda7f2cad047fe72aed483d571209b4659a33d3adbe7494723fcfa');report.display=await app.execute('return {ratio:devicePixelRatio,width:innerWidth,height:innerHeight,appZoom:document.querySelector("#app")?.dataset.appearanceZoom}');assert.equal(report.display.ratio,scale);assert(!report.display.appZoom||Number(report.display.appZoom)===1);shot('installed-initial')})
+ await step('installed-start-and-native-scale',async()=>{await start();report.binarySha256=hash(await readFile(process.env.TAURI_APP_PATH));assert.match(process.env.MILKUP_IME_EXPECTED_BINARY_SHA256??'',/^[a-f0-9]{64}$/);assert.equal(report.binarySha256,process.env.MILKUP_IME_EXPECTED_BINARY_SHA256);report.display=await app.execute('return {ratio:devicePixelRatio,width:innerWidth,height:innerHeight,appZoom:document.querySelector("#app")?.dataset.appearanceZoom}');assert.equal(report.display.ratio,scale);assert(!report.display.appZoom||Number(report.display.appZoom)===1);shot('installed-initial')})
  for(const mode of ['source','live'])await step('real-pinyin-'+mode,async()=>{
   engine('xkb:us::eng');await key(mode==='source'?'ctrl+1':'ctrl+2');await app.until(async()=>(await app.probe()).mode===mode,'editor mode');await app.focus('.milkup-input-proxy');await key('ctrl+End')
   if(mode==='live'){await key('Return');expected+='\n'}
@@ -48,6 +49,7 @@ try{
   report[mode+'Preedit']=await app.execute('return {audit:window.__imeAudit,activeTag:document.activeElement?.tagName,activeClass:document.activeElement?.className,proxy:document.querySelector(".milkup-input-proxy")?.value,focused:document.hasFocus()}');await persist()
   await key('space');expected+='中文';report[mode+'Commit']=await app.execute('return {audit:window.__imeAudit,proxy:document.querySelector(".milkup-input-proxy")?.value,dom:document.querySelector(".milkup-editor")?.textContent}');await persist();await saveExact()
   if(mode==='source'){await key('ctrl+z');expected=expected.slice(0,-2);await saveExact();await key('ctrl+shift+z');expected+='中文';await saveExact()}
+  await type('zhongwen');shot(mode+'-second-identical-preedit');await key('space');expected+='中文';await saveExact()
   for(const p of ['comma','period','question','exclam','colon','semicolon'])await key(p)
   expected+='，。？！：；';await saveExact();shot(mode+'-punctuation-committed')
   await type('ceshi');shot(mode+'-cancel-candidates');await key('Escape');await saveExact()
@@ -55,7 +57,7 @@ try{
   const audit=await app.execute('return window.__imeAudit');report[mode]={audit,expected,savedSha256:hash(await readFile(fixture)),state:await app.probe()};await persist()
   assert(!audit.overflow);report[mode].eventsSinceStart=audit.events.slice(before);await persist()
  })
- await step('strict-native-composition-event-contract',async()=>{for(const mode of ['source','live']){const events=report[mode].eventsSinceStart;assert(events.some(e=>e.type==='compositionstart'&&e.trusted),mode+' native compositionstart');assert(events.some(e=>e.type==='compositionupdate'&&e.trusted),mode+' native compositionupdate');assert(events.some(e=>e.type==='compositionend'&&e.trusted&&e.data==='中文'),mode+' native 中文 compositionend')}})
+ await step('strict-native-composition-event-contract',async()=>{for(const mode of ['source','live'])report[mode].nativeCommit=verifyNativeImeCommit(report[mode].eventsSinceStart);await persist()})
  await step('normal-close-and-reopen-saved-unicode',async()=>{await close();await start();assert.equal(await readFile(fixture,'utf8'),expected);await app.focus('.milkup-input-proxy');await key('ctrl+End');await app.until(()=>app.execute('return document.querySelector(".milkup-editor")?.textContent.includes("_LIVE")'),'saved tail visible');shot('reopened');await close()})
 }catch(e){report.errors.push(String(e));if(app){report.failureAudit=await app.execute('return window.__imeAudit').catch(()=>null);report.failureDom=await app.execute('return document.body.innerText.slice(0,8000)').catch(()=>null);shot('failure')}}
 finally{
