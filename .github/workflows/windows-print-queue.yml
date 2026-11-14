@@ -21,6 +21,9 @@ jobs:
       - name: Query existing print capabilities without mutations
         shell: pwsh
         run: scripts/ci/probe-windows-print-queue.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'print-queue-evidence')
+      - name: Verify owned paused non-file queue and scoped cleanup
+        shell: pwsh
+        run: scripts/ci/with-isolated-print-queue.ps1 -EvidenceDirectory (Join-Path $env:RUNNER_TEMP 'print-queue-evidence')
       - name: Preserve actual capability evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
