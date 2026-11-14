@@ -6,15 +6,16 @@ on:
         description: Explicit capability probe or exact-source native input test package
         type: choice
         default: capabilities
-        options: [capabilities, build-native-input]
+        options: [capabilities, build-native-input, native-input-accept]
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: release-gap-capabilities-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   windows-capabilities:
-    if: inputs.task != 'build-native-input'
+    if: inputs.task == 'capabilities'
     strategy:
       fail-fast: false
       matrix:
@@ -119,4 +120,68 @@ jobs:
           path: ${{ runner.temp }}/milkup-candidate/deliverable/*
           retention-days: 7
           compression-level: 0
+          if-no-files-found: error
+
+  native-input:
+    if: inputs.task == 'native-input-accept'
+    runs-on: windows-2025
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Verify exact successful package build and bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          gh api repos/Auto-Plugin/milkup/actions/runs/43574228722 > "$RUNNER_TEMP/native-input-build.json"
+          node --input-type=module -e "import fs from 'node:fs';const r=JSON.parse(fs.readFileSync(process.argv[1]));if(r.head_sha!=='76635c74508bf0798b1f93f94023540dd2436f30'||r.head_branch!=='dot/gap-native-capabilities-20261114'||r.event!=='workflow_dispatch'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/release-gap-native-capabilities.yml')throw Error('Exact manual build proof required')" "$RUNNER_TEMP/native-input-build.json"
+          gh run download 43574228722 --repo Auto-Plugin/milkup --name milkup-b877-native-input-candidate-43574228722 --dir "$RUNNER_TEMP/native-input-package"
+          node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/native-input-package" "$SOURCE_SHA" windows-standard
+          node --test scripts/ci/native-ime-contract.test.mjs scripts/release/verify-candidate.test.mjs
+      - name: Compile owned-process native keys with official existing SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'native-input-compile'
+          $null=New-Item -ItemType Directory $out
+          $vs=& "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (!$vs) { throw 'Existing official C++ toolchain unavailable' }
+          $command='call "'+$vs+'\VC\Auxiliary\Build\vcvars64.bat" && cl /nologo /W4 /WX /EHsc /std:c++17 scripts\ci\windows-owned-ime-input.cpp /Fe:scripts\ci\windows-owned-ime-input.exe /Fo:"'+$out+'\input.obj" /link ole32.lib uuid.lib user32.lib'
+          cmd /d /c $command 2>&1 | Tee-Object "$out/compile.txt"
+          if ($LASTEXITCODE) { throw 'Native owned-input compile failed' }
+          Get-FileHash scripts/ci/windows-owned-ime-input.exe -Algorithm SHA256 | ConvertTo-Json | Set-Content "$out/input-hash.json"
+          $tokens=$null;$errors=$null
+          foreach($file in @('scripts/release/install-candidate.ps1','scripts/release/run-repair-health-standard.ps1')) {
+            $null=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$tokens,[ref]$errors)
+            if($errors.Count) { throw ($errors|Out-String) }
+          }
+      - name: Installed native Pinyin under an owned ordinary user and normal close
+        shell: pwsh
+        run: |
+          ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/native-input-package" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/native-input-evidence" -NativeIme
+      - name: Retain failures and exact candidate observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: windows-installed-native-input-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/native-input-evidence/
+            ${{ runner.temp }}/native-input-compile/*.txt
+            ${{ runner.temp }}/native-input-compile/*.json
+            ${{ runner.temp }}/native-input-build.json
+            ${{ runner.temp }}/native-input-package/manifest.json
+            ${{ runner.temp }}/native-input-package/native-input-provenance.json
+          retention-days: 7
           if-no-files-found: error

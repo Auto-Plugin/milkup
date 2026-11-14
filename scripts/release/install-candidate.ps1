@@ -1,10 +1,11 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$StartupComparison,[string]$NodeExecutable)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$StartupComparison,[string]$NodeExecutable)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
 if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
+if ($NativeIme -and (!$RepairHealth -or $DocumentHealth -or $StartupComparison)) { throw 'Native IME requires isolated repair health only' }
 if ($DocumentHealth -and !$RepairHealth) { throw 'Document health requires isolated repair health' }
 if ($RepairHealth -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
@@ -57,7 +58,7 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
     $healthPhase=if ($Prefix) {'after'} else {'before'}
     $healthRun=[WindowsMermaidStandardUser]::RunNodeScript(
       $NodeExecutable,
-      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory,$DocumentHealth.ToString().ToLowerInvariant(),$product.Id,$creationTicks,$binary),
+      [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory,$DocumentHealth.ToString().ToLowerInvariant(),$product.Id,$creationTicks,$binary,$NativeIme.ToString().ToLowerInvariant()),
       $PSScriptRoot,(Join-Path $EvidenceDirectory "health-$healthPhase.stdout.log"),(Join-Path $EvidenceDirectory "health-$healthPhase.stderr.log"),190000)
     Phase ($Prefix + 'health-node-exit') $healthRun
     if ($healthRun.status -cne 'passed') {
@@ -69,6 +70,7 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey) {
     }
     $health=Get-Content -LiteralPath (Join-Path $EvidenceDirectory "repair-health-$healthPhase.json") -Raw | ConvertFrom-Json
     if ($health.status -cne 'passed' -or !$health.sessionId -or !$health.saved.sha256) { throw 'Complete repair health evidence required' }
+    if ($NativeIme -and ($health.nativeIme.status -cne 'passed' -or !$health.nativeIme.savedSha256 -or !$health.nativeIme.provenance.finalData)) { throw 'Native installed IME proof required' }
     $healthSession=$health.sessionId
     $script:documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
     if ($script:documentHash.ToLowerInvariant() -cne $health.saved.sha256) { throw 'Health saved document mismatch' }
@@ -248,6 +250,7 @@ try {
   if ((Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash -cne $documentHash) { throw 'Fixture document changed' }
   Remove-Item -LiteralPath $copy
   Phase 'uninstall-and-document-preservation' @{applicationRemoved=$true;documentSha256=$documentHash.ToLowerInvariant()}
+  if ($NativeIme) { $record.nativeIme='physical-Pinyin-punctuation-source-live-save-reopen-undo-redo; not DPI or every IME' }
   $record.status='passed'
 } catch {
   $record.status='failed'; $record['error']=$_ | Out-String; throw

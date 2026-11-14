@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 import { setTimeout as delay } from 'node:timers/promises'
 import {
   observe,
@@ -20,6 +22,7 @@ const [
   productPid,
   productBirth,
   productImage,
+  nativeIme,
 ] = process.argv.slice(2)
 assert(['before', 'after'].includes(phase))
 for (const port of [driverPort, debugPort]) assert(/^\d{4,5}$/.test(port) && +port < 65536)
@@ -243,6 +246,75 @@ try {
     return !s.dirty && !s.saving && (await readFile(document)).equals(expected)
   }, 'exact saved edited bytes')
   record.saved = { sha256: sha(expected), bytes: expected.length }
+  if (nativeIme === 'true') {
+    const { verifyNativeImeCommit } = await import('../ci/native-ime-contract.mjs')
+    const mode = phase === 'before' ? 'source' : 'live'
+    record.nativeIme = {
+      status: 'running',
+      mode,
+      events: [],
+      boundary:
+        'Native Pinyin and punctuation in the owned standard-account installation, no DPI claim',
+    }
+    await chord(mode === 'source' ? '1' : '2')
+    await until(async () => (await state()).mode === mode, 'native IME editor mode')
+    await chord('\uE010')
+    await until(
+      async () =>
+        (await state()).cursor === expected.toString('utf8').length &&
+        (await state()).editorFocused,
+      'native IME final caret',
+    )
+    await execute(
+      `window.__milkupNativeImeEvents=[];window.__milkupNativeImeOverflow=false;for(const type of ['compositionstart','compositionupdate','compositionend','beforeinput','input'])document.addEventListener(type,e=>{if(window.__milkupNativeImeEvents.length>=600){window.__milkupNativeImeOverflow=true;return}window.__milkupNativeImeEvents.push({type:e.type,data:e.data??null,inputType:e.inputType??null,composing:e.isComposing===true,trusted:e.isTrusted,time:e.timeStamp,target:e.target?.tagName})},true)`,
+    )
+    const helper = fileURLToPath(new URL('../ci/windows-owned-ime-input.exe', import.meta.url))
+    record.nativeIme.helperSha256 = sha(await readFile(helper))
+    await persist()
+    try {
+      record.nativeIme.helperOutput = execFileSync(
+        helper,
+        [productPid, productBirth, productImage],
+        { encoding: 'utf8', timeout: 30000, maxBuffer: 32768, windowsHide: true },
+      )
+    } catch (error) {
+      record.nativeIme.helperOutput = String(error.stdout ?? '')
+      throw error
+    } finally {
+      record.nativeIme.events = await execute('return window.__milkupNativeImeEvents')
+      record.nativeIme.eventOverflow = await execute('return window.__milkupNativeImeOverflow')
+      await persist()
+    }
+    assert.equal(record.nativeIme.eventOverflow, false)
+    assert.match(record.nativeIme.helperOutput, /targetLayoutRestored=true/)
+    assert.match(record.nativeIme.helperOutput, /ownedUserProfileRestored=true/)
+    record.nativeIme.provenance = verifyNativeImeCommit(record.nativeIme.events)
+    const nativeExpected = Buffer.concat([expected, Buffer.from('中文，。？！：；')])
+    await chord('s')
+    await until(
+      async () => !(await state()).dirty && (await readFile(document)).equals(nativeExpected),
+      'one exact native Chinese commit and punctuation',
+    )
+    await delay(2600)
+    assert((await readFile(document)).equals(nativeExpected), 'No delayed duplicate native commit')
+    await chord('z')
+    await chord('s')
+    await until(
+      async () => !(await state()).dirty && !(await readFile(document)).equals(nativeExpected),
+      'native input undo changes saved document',
+    )
+    record.nativeIme.undoSha256 = sha(await readFile(document))
+    await chord('y')
+    await chord('s')
+    await until(
+      async () => !(await state()).dirty && (await readFile(document)).equals(nativeExpected),
+      'native input redo restores exact bytes',
+    )
+    record.nativeIme.savedSha256 = sha(nativeExpected)
+    record.nativeIme.status = 'passed'
+    record.saved = { sha256: sha(nativeExpected), bytes: nativeExpected.length }
+    await persist()
+  }
   if (phase === 'after') {
     await chord('\uE011')
     await chord('2')

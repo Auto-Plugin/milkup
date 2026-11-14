@@ -7,12 +7,13 @@ param(
  [Parameter(Mandatory,ParameterSetName='Parent')][ValidateSet('windows-standard','windows-offline')][string]$Variant,
  [Parameter(Mandatory,ParameterSetName='Parent')][string]$EvidenceDirectory,
  [Parameter(ParameterSetName='Parent')][switch]$DocumentHealth,
+ [Parameter(ParameterSetName='Parent')][switch]$NativeIme,
  [Parameter(ParameterSetName='Parent')][switch]$StartupComparison,
  [Parameter(Mandatory,ParameterSetName='Child')][string]$ChildSpec
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cne 'refs/heads/dot/release-quality-integration-20261112') { throw 'Exact ephemeral candidate runner required' }
+if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cnotin @('refs/heads/dot/release-quality-integration-20261112','refs/heads/dot/gap-native-capabilities-20261114')) { throw 'Exact ephemeral candidate runner required' }
 function Plain([string]$Path) {
  $item=Get-Item -LiteralPath $Path -Force
  do { if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Reparse input/ancestor rejected' }; $item=if ($item -is [IO.DirectoryInfo]) {$item.Parent} else {$item.Directory} } while ($null -ne $item)
@@ -26,6 +27,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  if ((Get-Item -LiteralPath $ChildSpec).Length -gt 16384) { throw 'Bounded immutable spec required' }
  $spec=Get-Content -LiteralPath $ChildSpec -Raw | ConvertFrom-Json
  if ($spec.harnessSha -cne $env:GITHUB_SHA -or $spec.id -cnotmatch '^[a-f0-9]{32}$') { throw 'Child spec candidate mismatch' }
+ if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !$spec.nativeIme) { throw 'Native input branch requires its explicit scoped mode' }
  Plain $spec.node.path
  if (![IO.Path]::IsPathFullyQualified($spec.node.path) -or (Get-FileHash -LiteralPath $spec.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $spec.node.sha256) { throw 'Exact parent-verified Node image required' }
  $identity=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
@@ -43,10 +45,11 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Json (Join-Path $scratch 'child-identity.json') @{identity=$identity;desktop=$desktop;knownFolders=@{profile=$profile;roaming=$roaming;local=$local};sourceSha=$spec.sourceSha;harnessSha=$spec.harnessSha}
  Set-Location $repo
  try {
-  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NodeExecutable $spec.node.path
+  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NativeIme:([bool]$spec.nativeIme) -NodeExecutable $spec.node.path
   exit 0
  } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 }
 }
+if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !$NativeIme) { throw 'Native input branch requires its explicit scoped mode' }
 Plain $Directory
 if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Harness must be exact workflow checkout' }
 NewDir $EvidenceDirectory
@@ -78,6 +81,7 @@ try {
  Set-Acl -LiteralPath $stage -AclObject $acl
  $code=Join-Path $stage 'code';NewDir $code
  $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/InstalledStartupProcess.cs','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
+ if ($NativeIme) { $files+=@('scripts/ci/windows-owned-ime-input.exe','scripts/ci/native-ime-contract.mjs') }
  $audit['stagedCode']=@()
  foreach($leaf in $files) {
   $source=Join-Path $repo $leaf;Plain $source
@@ -97,7 +101,7 @@ try {
  Plain $node
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
- Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
+ Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;nativeIme=[bool]$NativeIme;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
  $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'
