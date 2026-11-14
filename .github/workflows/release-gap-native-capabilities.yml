@@ -15,6 +15,7 @@ on:
             signed-recovery-accept,
             cross-version-accept,
             build-in-app-update-fixture,
+            in-app-update-accept,
           ]
 permissions:
   contents: read
@@ -183,7 +184,7 @@ jobs:
           if-no-files-found: error
 
   native-input:
-    if: inputs.task == 'native-input-accept' || inputs.task == 'signed-recovery-accept' || inputs.task == 'cross-version-accept'
+    if: inputs.task == 'native-input-accept' || inputs.task == 'signed-recovery-accept' || inputs.task == 'cross-version-accept' || inputs.task == 'in-app-update-accept'
     runs-on: windows-2025
     timeout-minutes: 25
     env:
@@ -211,7 +212,7 @@ jobs:
           node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/native-input-package" "$SOURCE_SHA" windows-standard
           node --test scripts/ci/native-ime-contract.test.mjs scripts/release/verify-candidate.test.mjs scripts/release/recovery.test.mjs
       - name: Reuse the exact successful new version fixture without rebuilding
-        if: inputs.task == 'cross-version-accept'
+        if: inputs.task == 'cross-version-accept' || inputs.task == 'in-app-update-accept'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -221,11 +222,27 @@ jobs:
           gh run download 43590520662 --repo Auto-Plugin/milkup --name milkup-cross-version-test-fixture-43590520662 --dir "$RUNNER_TEMP/cross-version-package"
           node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/cross-version-package" 5fd33f2b63de2755268af6d669b0f4b3b1f21b96 windows-standard
           node --test scripts/release/cross-version-contract.test.mjs
+      - name: Reuse exact feature binary for real application path only
+        if: inputs.task == 'in-app-update-accept'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/Auto-Plugin/milkup/actions/runs/43607417256 > "$RUNNER_TEMP/in-app-fixture-build.json"
+          node --input-type=module -e "import fs from 'node:fs';const r=JSON.parse(fs.readFileSync(process.argv[1]));if(r.head_sha!=='dea1f2a437e43303f185d47ad2014156038d8514'||r.event!=='workflow_dispatch'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/release-gap-native-capabilities.yml')throw Error('Exact test binary build proof required')" "$RUNNER_TEMP/in-app-fixture-build.json"
+          gh run download 43607417256 --repo Auto-Plugin/milkup --name milkup-in-app-update-fixture-43607417256 --dir "$RUNNER_TEMP/in-app-fixture"
+      - name: Exercise TLS fixture before launching the application
+        if: inputs.task == 'in-app-update-accept'
+        shell: pwsh
+        run: |
+          $env:TEST_OPENSSL=(Get-Command pwsh -CommandType Application | Select-Object -First 1).Source
+          node --test scripts/release/in-app-update-server.test.mjs scripts/release/in-app-update-contract.test.mjs
+          if ($LASTEXITCODE) {throw 'Strict endpoint/evidence tests failed'}
       - name: Parse all native acceptance scripts before any installation
         shell: pwsh
         run: |
           $tokens=$null;$errors=$null
-          foreach($file in @('scripts/release/install-candidate.ps1','scripts/release/run-repair-health-standard.ps1','scripts/release/cross-version-state.ps1')) {
+          foreach($file in @('scripts/release/install-candidate.ps1','scripts/release/run-repair-health-standard.ps1','scripts/release/cross-version-state.ps1','scripts/release/in-app-update-native.ps1')) {
             $null=[Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file),[ref]$tokens,[ref]$errors)
             if($errors.Count) { throw ($errors|Out-String) }
           }
@@ -261,12 +278,19 @@ jobs:
           $crossVersion=$env:ACCEPTANCE_TASK -ceq 'cross-version-accept'
           $signedRecovery=$env:ACCEPTANCE_TASK -ceq 'signed-recovery-accept' -or $crossVersion
           $crossDirectory=if ($crossVersion) {"$env:RUNNER_TEMP/cross-version-package"} else {''}
-          if (!$nativeIme -and !$signedRecovery) { throw 'Explicit acceptance scope required' }
-          ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/native-input-package" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/native-input-evidence" -NativeIme:$nativeIme -SignedRecovery:$signedRecovery -CrossVersionDirectory $crossDirectory
+          $inApp=$env:ACCEPTANCE_TASK -ceq 'in-app-update-accept'
+          $updateDirectory=if ($inApp) {"$env:RUNNER_TEMP/cross-version-package"} else {''}
+          $fixtureDirectory=if ($inApp) {"$env:RUNNER_TEMP/in-app-fixture"} else {''}
+          if (!$nativeIme -and !$signedRecovery -and !$inApp) { throw 'Explicit acceptance scope required' }
+          ./scripts/release/run-repair-health-standard.ps1 -Directory "$env:RUNNER_TEMP/native-input-package" -SourceSha $env:SOURCE_SHA -Variant windows-standard -EvidenceDirectory "$env:RUNNER_TEMP/native-input-evidence" -NativeIme:$nativeIme -SignedRecovery:$signedRecovery -CrossVersionDirectory $crossDirectory -InAppUpdateDirectory $updateDirectory -InAppUpdateFixtureDirectory $fixtureDirectory
           if ((Get-FileHash release/update-channel.json -Algorithm SHA256).Hash -cne $before) { throw 'Production update configuration changed' }
           if ($crossVersion) {
             node scripts/release/cross-version-contract.mjs "$env:RUNNER_TEMP/native-input-evidence"
             if ($LASTEXITCODE) { throw 'Full cross-version evidence contract failed' }
+          }
+          if ($inApp) {
+            node scripts/release/in-app-update-contract.mjs "$env:RUNNER_TEMP/native-input-evidence" "$env:RUNNER_TEMP/cross-version-package/milkup-2.0.0-beta.11-windows-standard-5fd33f2b63de.exe"
+            if ($LASTEXITCODE) {throw 'Full native in-app update evidence failed'}
           }
           $before | Set-Content "$env:RUNNER_TEMP/native-input-evidence/unchanged-production-channel.sha256"
       - name: Retain failures and exact candidate observations
@@ -279,6 +303,8 @@ jobs:
             ${{ runner.temp }}/native-input-compile/*.txt
             ${{ runner.temp }}/native-input-compile/*.json
             ${{ runner.temp }}/native-input-build.json
+            ${{ runner.temp }}/in-app-fixture-build.json
+            ${{ runner.temp }}/in-app-fixture/fixture-manifest.json
             ${{ runner.temp }}/cross-version-build.json
             ${{ runner.temp }}/cross-version-package/manifest.json
             ${{ runner.temp }}/native-input-package/manifest.json

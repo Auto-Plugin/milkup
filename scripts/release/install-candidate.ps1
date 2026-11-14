@@ -1,10 +1,10 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$SignedRecovery,[switch]$StartupComparison,[string]$NodeExecutable,[string]$CrossVersionDirectory)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$SignedRecovery,[switch]$StartupComparison,[string]$NodeExecutable,[string]$CrossVersionDirectory,[string]$InAppUpdateDirectory,[string]$InAppUpdateFixtureDirectory)
 $ErrorActionPreference='Stop'
 if ($CrossVersionDirectory -and (!$SignedRecovery -or !$RepairHealth -or $NativeIme -or $DocumentHealth -or $StartupComparison)) { throw 'Cross-version fixture requires signed ordinary-account recovery only' }
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
-if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
+if ($RepairHealth -and !$RepairSameVersion -and !$InAppUpdateDirectory) { throw 'Repair health requires same-version repair' }
 if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
 if ($SignedRecovery -and (!$RepairHealth -or $NativeIme -or $DocumentHealth -or $StartupComparison)) { throw 'Signed recovery requires isolated ordinary repair health only' }
 if ($NativeIme -and (!$RepairHealth -or $DocumentHealth -or $StartupComparison)) { throw 'Native IME requires isolated repair health only' }
@@ -23,11 +23,11 @@ function OwnedMaintenance([string]$File,[string[]]$Arguments) {
   Phase 'maintenance-exit' @{image=$File;exitCode=$p.ExitCode}
   if ($p.ExitCode -ne 0) { throw 'Native maintenance failed' }
 }
-function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey,[string]$ExplicitPhase='') {
+function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey,[string]$ExplicitPhase='',[Diagnostics.Process]$ExistingProcess=$null) {
   $startup=[Diagnostics.Stopwatch]::StartNew()
   $launch=@{FilePath=$binary;ArgumentList=@($document);PassThru=$true}
   if ($RepairHealth) { $launch.Environment=@{WEBVIEW2_USER_DATA_FOLDER=$healthProfile;WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=$debugPort --remote-debugging-address=127.0.0.1";TAURI_WEBVIEW_AUTOMATION='true'} }
-  $script:product=Start-Process @launch
+  $script:product=if ($null -ne $ExistingProcess) {$ExistingProcess} else {Start-Process @launch}
   $creation=$product.StartTime.ToUniversalTime().ToString('o')
   $creationTicks=$product.StartTime.ToUniversalTime().Ticks
   Phase ($Prefix + 'application-start') @{pid=$product.Id;creationUtc=$creation;image=$binary;debugPort=$debugPort;healthProfile=$healthProfile}
@@ -58,7 +58,7 @@ function VerifyOwnedStartupAndClose([string]$Prefix,[string]$WindowKey,[string]$
   $healthSession=$null
   if ($RepairHealth) {
     $healthPhase=if ($ExplicitPhase) {$ExplicitPhase} elseif ($Prefix) {'after'} else {'before'}
-    $previousPhase=if ($CrossVersionDirectory -and $healthPhase -ceq 'after') {'upgrade'} else {'before'}
+    $previousPhase=if ($InAppUpdateDirectory -and $healthPhase -ceq 'upgrade') {'update'} elseif ($CrossVersionDirectory -and $healthPhase -ceq 'after') {'upgrade'} else {'before'}
     $healthRun=[WindowsMermaidStandardUser]::RunNodeScript(
       $NodeExecutable,
       [string[]]@((Join-Path $PSScriptRoot 'repair-health.mjs'),$healthPhase,$driverPort,$debugPort,$document,$EvidenceDirectory,$DocumentHealth.ToString().ToLowerInvariant(),$product.Id,$creationTicks,$binary,$NativeIme.ToString().ToLowerInvariant(),$previousPhase),
@@ -212,6 +212,7 @@ try {
     [IO.File]::WriteAllText($document,$healthText,[Text.UTF8Encoding]::new($false))
   }
   $documentHash=(Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash
+  if ($InAppUpdateDirectory) { . (Join-Path $PSScriptRoot 'in-app-update-native.ps1'); InvokeInAppUpdate; return }
   VerifyOwnedStartupAndClose '' 'startupWindows'
   $expectedBrokenHash=$record.installedBinary.sha256
   $expectedRestoredHash=$record.installedBinary.sha256

@@ -6,8 +6,9 @@ param(
  [Parameter(Mandatory)][string]$Version,
  [Parameter(Mandatory)][string]$Document,
  [Parameter(Mandatory)][string]$EvidenceDirectory,
- [Parameter(Mandatory)][ValidateSet('before-upgrade','after-upgrade','before-recovery','after-recovery','after-uninstall')][string]$Label,
- [switch]$Backup,[switch]$Uninstalled
+ [Parameter(Mandatory)][ValidateSet('before-upgrade','after-upgrade','before-recovery','after-recovery','after-uninstall','after-in-app-health')][string]$Label,
+ [switch]$Backup,[switch]$Uninstalled,
+ [ValidateSet('after-recovery','after-in-app-health')][string]$PriorConfigurationLabel='after-recovery'
 )
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'cross-version-path.ps1')
@@ -70,7 +71,7 @@ try {
   if (!@($rows | Where-Object {$_.root -cin @('roaming','local')}).Count) { throw 'No application configuration captured' }
   $report.backup=@{status='copied-and-hash-verified';bytes=$bytes;files=$rows;restored=$false;scope='Owned test document, application config and custom WebView profile only; no arbitrary-user compatibility claim'}
  }
- if ($Label -cin @('after-recovery','after-uninstall')) {
+ if ($Label -cin @('after-recovery','after-uninstall','after-in-app-health')) {
   $config=@();[long]$configBytes=0
   foreach($entry in @(@{name='roaming';path=(Join-Path $env:APPDATA 'app.milkup.desktop')},@{name='local';path=(Join-Path $env:LOCALAPPDATA 'app.milkup.desktop')})) {
    if (!(Test-Path -LiteralPath $entry.path)) { continue }
@@ -86,7 +87,7 @@ try {
   if (!$config.Count) { throw 'Application configuration unexpectedly absent' }
   $report['configurationFiles']=@($config | Sort-Object { $_.root + '/' + $_.relative })
   if ($Uninstalled) {
-   $prior=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'cross-version-after-recovery.json') -Raw | ConvertFrom-Json
+   $prior=Get-Content -LiteralPath (Join-Path $EvidenceDirectory ('cross-version-'+$PriorConfigurationLabel+'.json')) -Raw | ConvertFrom-Json
    $expected=@($prior.configurationFiles | ForEach-Object { $_.root+'|'+$_.relative+'|'+$_.bytes+'|'+$_.sha256 })
    $actual=@($report.configurationFiles | ForEach-Object { $_.root+'|'+$_.relative+'|'+$_.bytes+'|'+$_.sha256 })
    if (($expected -join "`n") -cne ($actual -join "`n")) { throw 'Uninstall changed retained application configuration bytes' }

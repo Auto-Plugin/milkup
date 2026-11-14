@@ -311,7 +311,9 @@ async fn check_release(
         .configure_client(move |client| {
             let client = client.https_only(true);
             #[cfg(feature = "ci-update-fixture")]
-            let client = client.no_proxy().add_root_certificate(fixture_certificate.clone());
+            let client = client
+                .no_proxy()
+                .add_root_certificate(fixture_certificate.clone());
             client
         })
         // Same/older signed statements must pass freshness and replay policy
@@ -570,7 +572,11 @@ mod ci_fixture;
 
 fn release_channel() -> Result<ReleaseChannel, String> {
     #[cfg(feature = "ci-update-fixture")]
-    { Ok(ci_fixture::get()?.channel.clone()) }
+    {
+        Ok(ci_fixture::get()?.channel.clone())
+    }
     #[cfg(not(feature = "ci-update-fixture"))]
-    { serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取".into()) }
+    {
+        serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取".into())
+    }
 }

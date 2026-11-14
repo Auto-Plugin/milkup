@@ -26,7 +26,7 @@ const [
   previousPhase = 'before',
 ] = process.argv.slice(2)
 assert(['before', 'upgrade', 'after'].includes(phase))
-assert(['before', 'upgrade'].includes(previousPhase))
+assert(['before', 'upgrade', 'update'].includes(previousPhase))
 for (const port of [driverPort, debugPort]) assert(/^\d{4,5}$/.test(port) && +port < 65536)
 const record = {
   status: 'running',
@@ -205,9 +205,20 @@ try {
   const bytes = await readFile(document)
   if (phase !== 'before') {
     const before = JSON.parse(
-      await readFile(path.join(output, `repair-health-${previousPhase}.json`), 'utf8'),
+      await readFile(
+        path.join(
+          output,
+          previousPhase === 'update'
+            ? 'in-app-update-ui.json'
+            : `repair-health-${previousPhase}.json`,
+        ),
+        'utf8',
+      ),
     )
-    assert.equal(before.status, 'passed')
+    assert.equal(
+      before.status,
+      previousPhase === 'update' ? 'passed-ui-await-native-restart' : 'passed',
+    )
     assert.equal(sha(bytes), before.saved.sha256, 'Repair retained real edited document')
     record.retainedDocumentSha256 = sha(bytes)
   }
