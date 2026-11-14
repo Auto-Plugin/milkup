@@ -11,13 +11,15 @@ jobs:
   capability:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
-    timeout-minutes: 40
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
       - name: Obtain authenticated official source and measure build prerequisites
         run: python3 scripts/ci/probe-webkit-distro-build.py
+      - name: Build matched GTK3 runtime in private normal-user prefix
+        run: python3 scripts/ci/build-webkit-private.py
       - name: Preserve capability evidence without publishing a runtime
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
