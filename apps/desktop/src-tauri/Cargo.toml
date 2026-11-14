@@ -12,7 +12,12 @@ crate-type = ["rlib"]
 serde_json = "1"
 tauri-build = { version = "2.5.1", features = [] }
 
+# Explicit, non-distributable CI build only. Normal packages cannot read the fixture.
+[features]
+ci-update-fixture = ["dep:reqwest"]
+
 [dependencies]
+reqwest = { version = "0.13", default-features = false, optional = true }
 milkup-mermaid-engine = { path = "mermaid-engine" }
 tauri = { version = "2.9.5", features = [] }
 tauri-plugin-dialog = "2.7.1"

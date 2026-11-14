@@ -14,6 +14,7 @@ on:
             native-input-accept,
             signed-recovery-accept,
             cross-version-accept,
+            build-in-app-update-fixture,
           ]
 permissions:
   contents: read
@@ -127,6 +128,56 @@ jobs:
         with:
           name: ${{ inputs.task == 'build-cross-version-target' && 'milkup-cross-version-test-fixture' || 'milkup-b877-native-input-candidate' }}-${{ github.run_id }}
           path: ${{ runner.temp }}/milkup-candidate/deliverable/*
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
+
+  in-app-fixture:
+    if: inputs.task == 'build-in-app-update-fixture'
+    runs-on: windows-2025
+    timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Locked tools and unchanged source
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain)"
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          rustup toolchain install 1.99.0 --profile minimal
+          echo 'RUSTUP_TOOLCHAIN=1.99.0' >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_DIR=$RUNNER_TEMP/in-app-target" >> "$GITHUB_ENV"
+          pnpm install --frozen-lockfile --config.manage-package-manager-versions=false
+          npm install --prefix "$RUNNER_TEMP/milkup-math-input" --ignore-scripts --no-audit --no-fund katex@0.19.0
+          node --input-type=module -e "import fs from 'node:fs';import path from 'node:path';fs.mkdirSync('plugins/math/node_modules',{recursive:true});fs.symlinkSync(path.join(process.env.RUNNER_TEMP,'milkup-math-input/node_modules/katex'),'plugins/math/node_modules/katex','junction');"
+      - name: Test-only binary with real updater and unchanged unconfigured production channel
+        run: |
+          node scripts/check-versions.mjs
+          node scripts/release/update-readiness.mjs --candidate
+          node scripts/ci/prepare-bundled-plugins.mjs
+          pnpm --filter @milkup/desktop tauri build --ci --no-bundle --features ci-update-fixture -- --locked
+          test -z "$(git status --porcelain)"
+          node scripts/release/test-support/record-in-app-fixture.mjs "$CARGO_TARGET_DIR/release/milkup-desktop.exe" "$RUNNER_TEMP/in-app-fixture"
+      - name: Retain instrumented binary only for isolated updater acceptance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-in-app-update-fixture-${{ github.run_id }}
+          path: ${{ runner.temp }}/in-app-fixture/*
           retention-days: 7
           compression-level: 0
           if-no-files-found: error
