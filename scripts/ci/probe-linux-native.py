@@ -9,7 +9,7 @@ def run(args):
         return {'args': args, 'error': str(e)}
 tools = ['Xvfb','xvfb-run','dbus-run-session','xdotool','xwininfo','WebKitWebDriver','tauri-driver','cupsd','lpstat','lpadmin','ippeveprinter','ipptool','pdfinfo','pdftotext','python3','pkg-config']
 report = {'sourceSha': os.environ.get('GITHUB_SHA'), 'uid': os.getuid(), 'gid': os.getgid(), 'tools': {x: shutil.which(x) for x in tools}, 'os': pathlib.Path('/etc/os-release').read_text(), 'display': os.environ.get('DISPLAY'), 'wayland': os.environ.get('WAYLAND_DISPLAY'), 'runnerImage': os.environ.get('ImageVersion'), 'queries': []}
-for args in [['id'],['pkg-config','--modversion','webkit2gtk-4.1','gtk+-3.0'],['dpkg-query','-W','libwebkit2gtk-4.1-0','libgtk-3-0t64','cups','cups-ipp-utils','xvfb','webkit2gtk-driver'],['lpstat','-t'],['sysctl','kernel.unprivileged_userns_clone','kernel.apparmor_restrict_unprivileged_userns'],['unshare','-Ur','true']]:
+for args in [['id'],['pkg-config','--modversion','webkit2gtk-4.1','gtk+-3.0'],['dpkg-query','-W','libwebkit2gtk-4.1-0','libgtk-3-0t64','cups','cups-ipp-utils','xvfb','webkit2gtk-driver','webkitgtk-webdriver'],['lpstat','-t'],['sysctl','kernel.unprivileged_userns_clone','kernel.apparmor_restrict_unprivileged_userns'],['unshare','-Ur','true']]:
     report['queries'].append(run(args))
 (out/'capabilities.json').write_text(json.dumps(report, indent=2)+'\n')
 print(json.dumps(report, indent=2))

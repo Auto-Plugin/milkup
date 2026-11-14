@@ -38,7 +38,7 @@ jobs:
         run: |
           python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence"
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libssl-dev pkg-config patchelf webkit2gtk-driver xdotool x11-utils poppler-utils fonts-noto-cjk xvfb xauth
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libssl-dev pkg-config patchelf webkitgtk-webdriver xdotool x11-utils poppler-utils fonts-noto-cjk xvfb xauth
           python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence/after-gui-dependencies"
       - name: Default-policy sandbox gate on this same runner
         run: |
