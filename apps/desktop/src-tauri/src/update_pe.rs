@@ -123,6 +123,57 @@ fn children(mut bytes: &[u8], mut visit: impl FnMut(Block<'_>) -> Result<()>) ->
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod actual_nsis_tests {
+    use super::*;
+
+    fn resource() -> Vec<u8> {
+        include_str!("../../../../tests/fixtures/updates/nsis-3.11-version-resource.hex")
+            .lines()
+            .filter(|line| !line.starts_with('#'))
+            .flat_map(str::split_whitespace)
+            .map(|byte| u8::from_str_radix(byte, 16).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn actual_nsis_zero_and_canonical_structure_revision_keep_exact_version_checks() {
+        let original = resource();
+        assert_eq!(original.len(), 488);
+        assert_eq!(u32_at(&original, 44).unwrap(), 0);
+        for revision in [0u32, 0x10000] {
+            let mut bytes = original.clone();
+            bytes[44..48].copy_from_slice(&revision.to_le_bytes());
+            check_version_resource(&bytes, &"2.0.0-beta.11".parse().unwrap()).unwrap();
+            for wrong in ["2.0.0-beta.10", "2.0.0", "3.0.0-beta.11"] {
+                assert!(check_version_resource(&bytes, &wrong.parse().unwrap()).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn actual_nsis_unknown_revision_truncation_and_forged_numeric_version_are_rejected() {
+        let original = resource();
+        let version = "2.0.0-beta.11".parse().unwrap();
+        for revision in [1u32, 2, 0x10001, 0x20000, u32::MAX] {
+            let mut bytes = original.clone();
+            bytes[44..48].copy_from_slice(&revision.to_le_bytes());
+            assert!(check_version_resource(&bytes, &version).is_err());
+        }
+        for end in 0..original.len() {
+            assert!(check_version_resource(&original[..end], &version).is_err());
+        }
+        for offset in [48, 52, 56, 60] {
+            let mut bytes = original.clone();
+            bytes[offset..offset + 4].copy_from_slice(&u32::MAX.to_le_bytes());
+            assert!(check_version_resource(&bytes, &version).is_err());
+        }
+        let mut padded = original.clone();
+        padded.push(0);
+        assert!(check_version_resource(&padded, &version).is_err());
+    }
+}
 fn check_version_resource(bytes: &[u8], declared: &semver::Version) -> Result<()> {
     let root = block(bytes)?;
     if root.key != "VS_VERSION_INFO"
@@ -130,7 +181,11 @@ fn check_version_resource(bytes: &[u8], declared: &semver::Version) -> Result<()
         || root.length != bytes.len()
         || root.value.len() != 52
         || u32_at(root.value, 0)? != 0xfeef04bd
-        || u32_at(root.value, 4)? != 0x10000
+        // NSIS 3.11 leaves dwStrucVersion zero in its initialized 52-byte
+        // VS_FIXEDFILEINFO (Source/ResourceVersionInfo.cpp). Accept that known
+        // layout as well as 1.0, without relaxing any actual version/resource
+        // check or accepting unknown structure revisions.
+        || !matches!(u32_at(root.value, 4)?, 0 | 0x10000)
     {
         return Err(INVALID);
     }

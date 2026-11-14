@@ -172,6 +172,9 @@ jobs:
           node scripts/release/update-readiness.mjs --candidate
           node scripts/ci/prepare-bundled-plugins.mjs
           pnpm --filter @milkup/desktop tauri build --ci --no-bundle --features ci-update-fixture -- --locked
+          cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --release --features ci-update-fixture --lib actual_nsis_tests
+          cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --release --features ci-update-fixture --lib version_gate_pe
+          cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked --release --features ci-update-fixture --lib version_gate_accepts_pe32_plus
           test -z "$(git status --porcelain)"
           node scripts/release/test-support/record-in-app-fixture.mjs "$CARGO_TARGET_DIR/release/milkup-desktop.exe" "$RUNNER_TEMP/in-app-fixture"
       - name: Retain instrumented binary only for isolated updater acceptance
