@@ -91,11 +91,32 @@ performance review before production use.
 
 ## Build and distribution blocker
 
-There is no complete matching WebKit source/configured build tree or private patched
-runtime in this workspace. The agent environment has a 16 GiB memory limit, about
-7 GiB free workspace at inspection, and no installed WebKitGTK development package.
-The available upstream files are small verified source snapshots, not an engine
-checkout. No full build was attempted or falsely reported as a failed compile.
+The original local workspace has only about 6–7 GiB free and is not a suitable
+full-engine build host. This limit does **not** describe the isolated Ubuntu 26.04
+Actions runner. [Capability run 43561448307](https://github.com/Auto-Plugin/milkup/actions/runs/43561448307)
+obtained complete official Ubuntu source `2.52.6-0ubuntu0.26.04.1`, validated all
+archive SHA-256 values against authenticated APT metadata, extracted 418,378,881
+bytes / 34,435 files, and applied this patch cleanly. Its official build-dependency
+simulation resolves 217 installs with no removals or WebKit runtime replacement.
+The runner has 4 CPUs, 16,366,640 kB total RAM, 3 GiB swap and 90,928,648,192 bytes
+free after source extraction. These are measured prerequisites, not proof that a
+complete build fits.
+
+[Build run 43561713531](https://github.com/Auto-Plugin/milkup/actions/runs/43561713531)
+uses harness `de2b69c4`, normal-user compilation, the distro GTK3/Clang/hardening
+configuration, sandbox enabled and an isolated install prefix. It stops its own
+compile process group at 150 minutes, free disk below 4 GiB, or available memory
+below 512 MiB for about 60 seconds. It does not install modified system libraries.
+At the time this note was written the build was still running: no compiled engine
+or actual patched-engine PDF result is claimed. Resource/time recommendations must
+be refined from the retained build result rather than treating these limits as a
+proven minimum specification.
+
+The next workflow revision prepares the exact previously tested b877 application
+DEB and records actual main/output-helper `/proc/PID/maps`, process birth, private
+runtime inode/hash and unchanged system-library hashes before accepting PDF output.
+It retains original/radical pairs, fallback, wrapping, two paper settings and text
+search/extraction evidence. That preparation has only local harness checks so far.
 
 The patch adds an internal virtual method and owned display-list state. A complete,
 matching WebKit/WebProcess/GPU build is required; installing a single object or
