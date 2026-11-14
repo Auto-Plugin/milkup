@@ -5,10 +5,12 @@ from webkit_build_limits import compile_budget, stop_reason
 operation_started=float(os.environ["MILKUP_RESEARCH_START_EPOCH"])
 operation=os.environ['MILKUP_WEBKIT_OPERATION'];assert operation in ['preflight','resume']
 links=os.environ.get('MILKUP_WEBKIT_LINKS')=='true'
+geometry=os.environ.get('MILKUP_WEBKIT_GEOMETRY')=='true'
+assert not geometry or links
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';source=root/'source';build=root/'build';prefix=root/'prefix';conf=root/'apt.conf'
 probe=json.loads((evidence/'result.json').read_text());assert probe['status']=='probe-complete'
 assert os.getuid()!=0 and not probe['simulatedRemovals'] and not probe['wouldChangeWebKitPackages'] and probe['buildDependencySimulationSucceeded']
-version=probe['sourceVersionRequested'];report={'status':'running','uid':os.getuid(),'sourceVersion':version,'prefix':str(prefix),'harnessSha':os.environ['GITHUB_SHA'],'steps':[],'samples':[],'engineBuildAttempted':False,'fullEngineBuildAttempted':False,'linksResearch':links}
+version=probe['sourceVersionRequested'];report={'status':'running','uid':os.getuid(),'sourceVersion':version,'prefix':str(prefix),'harnessSha':os.environ['GITHUB_SHA'],'steps':[],'samples':[],'engineBuildAttempted':False,'fullEngineBuildAttempted':False,'linksResearch':links,'geometryResearch':geometry}
 def persist(): (evidence/'build-result.json').write_text(json.dumps(report,indent=2)+'\n')
 def run(name,args,timeout=900,env=None):
  report['stage']=name;persist();print('STAGE',name,flush=True);at=time.monotonic()
@@ -35,6 +37,14 @@ try:
   link_patch=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-links-20261114/0001-research-skia-uri-annotations.patch'
   report['linkPatchSha256']=hashlib.sha256(link_patch.read_bytes()).hexdigest()
   run('apply-links-research',['git','-C',str(source),'apply',str(link_patch)])
+  if geometry:
+   research=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-links-20261114'
+   run('geometry-contract-tests',['python3','-m','unittest','discover','-s',str(research),'-p','test*.py'],timeout=60)
+   generated=evidence/'print-layout-probe.patch'
+   run('prepare-print-layout-probe',['python3',str(research/'prepare_layout_probe.py'),str(source),str(generated)],timeout=30)
+   run('check-print-layout-probe',['git','-C',str(source),'apply','--check',str(generated)],timeout=30)
+   run('apply-print-layout-probe',['git','-C',str(source),'apply',str(generated)],timeout=30)
+   run('apply-fragment-uri-regions',['git','-C',str(source),'apply',str(research/'0002-research-fragment-uri-regions.patch')],timeout=30)
   if operation=='preflight':
    run('links-system-baseline',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/run-webkit-link-probe.py'),'baseline',str(evidence/'links-baseline')],timeout=180)
  run('header-forwarding-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-header-preflight.py'),'--source',str(source),'--output',str(evidence/'header-preflight')],timeout=300)
@@ -66,6 +76,7 @@ try:
  assert int(meminfo['MemTotal'].split()[0])*1024 >= 14*1024**3, 'At least 14 GiB RAM required'
  assert shutil.disk_usage(root).free >= 20*1024**3, 'At least 20 GiB initial disk reserve required'
  budget=compile_budget(time.time()-operation_started)
+ if geometry:budget=min(budget,20*60)  # One cached diagnostic build; stop instead of a full rebuild.
  started=time.monotonic();reason=None;last_progress=started;previous_completed=-1
  report['compileParallelism']=4;report['compileLinkBudgetSeconds']=budget
  report['acceptanceReserveSeconds']=35*60;report['capacityBaselineRun']=43574464936

@@ -1,0 +1,20 @@
+--- a/Source/WebCore/rendering/OutlinePainter.cpp
++++ b/Source/WebCore/rendering/OutlinePainter.cpp
+@@ -702,7 +702,17 @@
+             return;
+         }
+     }
++#if USE(SKIA)
++    // Research candidate: keep each clickable inline fragment separate. A union
++    // across wrapped lines can cover unrelated links in the last-line gap.
++    auto url = element->protectedDocument()->completeURL(href);
++    for (auto& rect : focusRingRects) {
++        if (!rect.isEmpty())
++            m_paintInfo.context().setURLForRect(url, rect);
++    }
++#else
+     m_paintInfo.context().setURLForRect(element->protectedDocument()->completeURL(href), urlRect);
++#endif
+ }
+ 
+ } // namespace WebCore

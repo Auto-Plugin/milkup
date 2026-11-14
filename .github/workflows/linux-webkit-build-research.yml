@@ -12,6 +12,10 @@ on:
         description: URI annotation research only; no application reinstall or full GUI rerun
         type: boolean
         default: false
+      geometry_research:
+        description: Independent print-layout capture and fragment/clip counterexamples; engine only
+        type: boolean
+        default: false
       preflight_run:
         description: Exact successful same-SHA preflight run required for resume
         type: string
@@ -26,9 +30,10 @@ jobs:
   capability:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
-    timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || 355 }}
+    timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || inputs.geometry_research && 55 || 355 }}
     env:
       CCACHE_COMPILERCHECK: content
+      MILKUP_WEBKIT_GEOMETRY: ${{ inputs.geometry_research }}
       MILKUP_WEBKIT_LINKS: ${{ inputs.links_research }}
       MILKUP_WEBKIT_OPERATION: ${{ inputs.operation }}
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
@@ -66,6 +71,7 @@ jobs:
           r=json.loads((p/'build-result.json').read_text())
           assert r['harnessSha']==os.environ['GITHUB_SHA'] and r['status']=='preflight-passed-not-engine-built'
           assert r.get('linksResearch',False)==(os.environ['MILKUP_WEBKIT_LINKS']=='true')
+          assert r.get('geometryResearch',False)==(os.environ['MILKUP_WEBKIT_GEOMETRY']=='true')
           assert r['fullEngineBuildAttempted'] is False and r['objectCacheProbeAttempted'] is True
           assert json.loads((p/'header-preflight/result.json').read_text())['status']=='passed'
           assert json.loads((p/'cache-preflight/result.json').read_text())['status']=='passed'
@@ -80,6 +86,7 @@ jobs:
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-${{ github.run_id }}
           restore-keys: |
             webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch', 'research/linux-pdf-links-20261114/*.patch') }}-
+            webkit-u2604-2526-c5b4b302f5be52b15bb31806a17fdc4582a5f54940772934cb71e6c95ba714a0-43624922086
             webkit-u2604-2526-f49aafb7686f22659a2e83f28dfab7be0058bcf1e750789dab9a24de2ecf8e13-43614932570
             webkit-u2604-2526-a7910481056bef2fbcf3ec8b2ab12691665d22560f7b11debcfb04d4fc749b33-43590136844
       - name: Obtain authenticated official source and measure build prerequisites
@@ -151,7 +158,9 @@ jobs:
         if: inputs.operation == 'resume' && inputs.links_research
         timeout-minutes: 5
         run: |
-          python3 scripts/ci/run-webkit-link-probe.py verify "$RUNNER_TEMP/milkup-webkit-research/evidence/links-patched" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/build-result.json"
+          geometry_args=()
+          if [[ "$MILKUP_WEBKIT_GEOMETRY" == true ]]; then geometry_args+=(--geometry); fi
+          python3 scripts/ci/run-webkit-link-probe.py verify "$RUNNER_TEMP/milkup-webkit-research/evidence/links-patched" --prefix "$RUNNER_TEMP/milkup-webkit-research/prefix" --manifest "$RUNNER_TEMP/milkup-webkit-research/evidence/build-result.json" "${geometry_args[@]}"
       - name: Remove only this run's package
         if: always()
         run: |
