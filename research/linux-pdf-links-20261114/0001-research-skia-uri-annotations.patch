@@ -21,15 +21,16 @@ diff --git a/Source/WebCore/platform/graphics/skia/GraphicsContextSkia.cpp b/Sou
  #include <skia/core/SkColorFilter.h>
  #include <skia/core/SkImage.h>
  #include <skia/core/SkPathBuilder.h>
-@@ -61,6 +63,7 @@
+@@ -61,6 +63,8 @@
  #include <skia/gpu/ganesh/SkSurfaceGanesh.h>
  WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
  #include <wtf/MathExtras.h>
 +#include <wtf/URL.h>
++#include <wtf/text/CString.h>
  
  #if USE(THEME_ADWAITA)
  #include "Adwaita.h"
-@@ -97,6 +100,15 @@
+@@ -97,6 +101,15 @@
  SkCanvas* GraphicsContextSkia::platformContext() const
  {
      return &m_canvas;
