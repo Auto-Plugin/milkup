@@ -6,7 +6,14 @@ on:
         description: Explicit capability probe or exact-source native input test package
         type: choice
         default: capabilities
-        options: [capabilities, build-native-input, native-input-accept, signed-recovery-accept]
+        options:
+          [
+            capabilities,
+            build-native-input,
+            build-cross-version-target,
+            native-input-accept,
+            signed-recovery-accept,
+          ]
 permissions:
   contents: read
   actions: read
@@ -56,11 +63,12 @@ jobs:
           retention-days: 7
           if-no-files-found: error
   package:
-    if: inputs.task == 'build-native-input'
+    if: inputs.task == 'build-native-input' || inputs.task == 'build-cross-version-target'
     runs-on: windows-2025
     timeout-minutes: 120
     env:
-      BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+      BASELINE_SHA: ${{ inputs.task == 'build-cross-version-target' && '5fd33f2b63de2755268af6d669b0f4b3b1f21b96' || 'b877746f5dfd236dfc13f718ed23d837b8e4f89d' }}
+      BUILD_SCOPE: ${{ inputs.task }}
       CARGO_BUILD_JOBS: '2'
       CARGO_INCREMENTAL: '0'
       CARGO_PROFILE_RELEASE_DEBUG: '0'
@@ -75,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+          ref: ${{ env.BASELINE_SHA }}
           path: application
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -107,16 +115,16 @@ jobs:
           $evidence=Join-Path $env:RUNNER_TEMP 'distribution-tools'
           New-Item -ItemType Directory $evidence|Out-Null
           ./scripts/ci/prepare-windows-nsis-tools.ps1 -EvidenceDirectory $evidence
-      - name: Build only the standard candidate needed for new native IME coverage
+      - name: Build exact standard package for the explicitly selected acceptance
         run: node scripts/release/build-candidate.mjs windows-standard "$RUNNER_TEMP/milkup-candidate" "$BASELINE_SHA"
       - name: Verify candidate identity and record original-byte comparison
         run: |
           node scripts/release/verify-candidate.mjs "$RUNNER_TEMP/milkup-candidate/deliverable" "$BASELINE_SHA" windows-standard
-          node --input-type=module -e "import fs from 'node:fs';import path from 'node:path';const p=path.join(process.env.RUNNER_TEMP,'milkup-candidate/deliverable'),m=JSON.parse(fs.readFileSync(path.join(p,'manifest.json')));const original='605a428bd3f985e82854ead0f6f24026780449df0402257793ba474f8a45a425';fs.writeFileSync(path.join(p,'native-input-provenance.json'),JSON.stringify({sourceSha:process.env.BASELINE_SHA,harnessSha:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,originalSha256:original,newManifest:m,scope:'New exact-source build for native input acceptance; no installed IME/DPI result yet; preserved original package not replaced'},null,2));"
+          node --input-type=module -e "import fs from 'node:fs';import path from 'node:path';const p=path.join(process.env.RUNNER_TEMP,'milkup-candidate/deliverable'),m=JSON.parse(fs.readFileSync(path.join(p,'manifest.json')));const original='605a428bd3f985e82854ead0f6f24026780449df0402257793ba474f8a45a425';fs.writeFileSync(path.join(p,'native-input-provenance.json'),JSON.stringify({sourceSha:process.env.BASELINE_SHA,harnessSha:process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,originalSha256:original,newManifest:m,scope:process.env.BUILD_SCOPE==='build-cross-version-target'?'VERSION-ONLY TEST FIXTURE; not a beta.11 release; cross-version installation and recovery not yet executed':'New exact-source build for native input acceptance; no installed IME/DPI result yet; preserved original package not replaced'},null,2));"
       - name: Retain new unsigned test bytes, never a Release
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: milkup-b877-native-input-candidate-${{ github.run_id }}
+          name: ${{ inputs.task == 'build-cross-version-target' && 'milkup-cross-version-test-fixture' || 'milkup-b877-native-input-candidate' }}-${{ github.run_id }}
           path: ${{ runner.temp }}/milkup-candidate/deliverable/*
           retention-days: 7
           compression-level: 0
