@@ -89,6 +89,10 @@ try:
             for file in expected:assert file in actual, 'Private print host library mapping missing'
             for line in actual.splitlines():
                 if 'libwebkit2gtk-4.1.so.' in line or 'libjavascriptcoregtk-4.1.so.' in line:assert any(line.endswith(file) for file in expected), 'Mixed runtime mapping'
+    if a.mode=='verify':
+        # Persist both controls and all source-token diagnostics before the
+        # fail-closed acceptance assertion; the diagnostic is never a pass gate.
+        subprocess.run(['python3',str(research/'audit_existing.py'),str(a.out),'--out',str(a.out/'independent-checks.json')],check=True,timeout=60)
     subprocess.run(['python3',str(research/'pdf_links.py'),a.mode,str(a.out)],check=True,timeout=60)
     report['status']='passed'
 except Exception as e:report['status']='failed';report['error']=str(e)

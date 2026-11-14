@@ -29,5 +29,7 @@ class Audit(unittest.TestCase):
             f.unlink();self.assertEqual(check(expected)['status'],'failed')
         final=next(n for n in tree.body if isinstance(n,ast.Try) and n.finalbody)
         self.assertIn('final_runtime_check(expected)',ast.unparse(ast.Module(body=final.finalbody,type_ignores=[])))
+        body=ast.unparse(ast.Module(body=final.body,type_ignores=[]))
+        self.assertLess(body.index('audit_existing.py'),body.index('pdf_links.py'))
 
 if __name__=='__main__':unittest.main()
