@@ -22,6 +22,9 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
       CARGO_TARGET_DIR: ${{ github.workspace }}/.tmp/print-target
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:

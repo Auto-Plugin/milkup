@@ -1,17 +1,12 @@
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-// Native installed WebView observations; all editor/plugin mutations use W3C input.
-// Single runner-account health evidence, not the dual-account isolation audit.
+// Production-asset native WebView; editor/plugin mutations use real W3C input.
+// Account identity and process lifetime are checked by the ordinary-user coordinator.
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
-import {
-  observe,
-  decodeScript,
-  startupPerformanceScript,
-} from '../../tests/windows/mermaid-product-e2e.mjs'
+import { observe } from '../../tests/windows/mermaid-product-e2e.mjs'
 const [driverPort, debugPort, document, output, productPid, productBirth, productImage, queue, marker] = process.argv.slice(2)
 for (const port of [driverPort, debugPort]) assert(/^\d{4,5}$/.test(port) && +port < 65536)
 assert(/^Milkup-Isolated-[a-f0-9]{32}$/.test(queue))
@@ -21,11 +16,10 @@ const record = {
   inputs: [],
   observations: [],
   boundary:
-    'Installed real input/edit/save and persistent plugin switch only; no isolation/IME audit',
+    'Real application print to dedicated paused non-file queue, exact job and system cancellation; not installed-package, physical-print or fidelity acceptance',
 }
 const file = path.join(output, 'print-ui.json')
 const persist = () => writeFile(file, JSON.stringify(record, null, 2))
-const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const deadline = Date.now() + 240000
 let session
 const request = async (method, route, body) => {
