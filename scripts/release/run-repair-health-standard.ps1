@@ -45,10 +45,35 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  $env:USERPROFILE=$profile;$env:APPDATA=$roaming;$env:LOCALAPPDATA=$local;$env:TEMP=$temp;$env:TMP=$temp;$env:RUNNER_TEMP=$temp
  Json (Join-Path $scratch 'child-identity.json') @{identity=$identity;desktop=$desktop;knownFolders=@{profile=$profile;roaming=$roaming;local=$local};sourceSha=$spec.sourceSha;harnessSha=$spec.harnessSha}
  Set-Location $repo
+ $originalLanguages=$null
+ $languageAudit=@{scope='Only this newly created ordinary CI account; no language pack install or system defaults';status='not-requested'}
+ function LanguageShape($list) { @($list | ForEach-Object { @{tag=$_.LanguageTag;tips=@($_.InputMethodTips);spellchecking=$_.Spellchecking;handwriting=$_.Handwriting} }) | ConvertTo-Json -Depth 5 -Compress }
  try {
+  if ($spec.nativeIme) {
+   $originalLanguages=Get-WinUserLanguageList
+   $languageAudit['before']=LanguageShape $originalLanguages
+   $temporaryLanguages=Get-WinUserLanguageList
+   if (!@($temporaryLanguages | Where-Object {$_.LanguageTag -ceq 'zh-CN'}).Count) { $temporaryLanguages.Add('zh-CN') }
+   Set-WinUserLanguageList -LanguageList $temporaryLanguages -Force
+   $observedLanguages=Get-WinUserLanguageList
+   $languageAudit['configured']=LanguageShape $observedLanguages
+   if (!@($observedLanguages | Where-Object {$_.LanguageTag -ceq 'zh-CN'}).Count) { throw 'Owned account Chinese input profile unavailable' }
+   $languageAudit.status='configured-await-restore'
+   Json (Join-Path $scratch 'native-ime-languages.json') $languageAudit
+  }
+
   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NativeIme:([bool]$spec.nativeIme) -SignedRecovery:([bool]$spec.signedRecovery) -NodeExecutable $spec.node.path
   exit 0
- } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 }
+ } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 } finally {
+  if ($null -ne $originalLanguages) {
+   try {
+    Set-WinUserLanguageList -LanguageList $originalLanguages -Force
+    $languageAudit['restored']=LanguageShape (Get-WinUserLanguageList)
+    if ($languageAudit.restored -cne $languageAudit.before) { throw 'Exact owned user language restoration unconfirmed' }
+    $languageAudit.status='restored'
+   } catch { $languageAudit.status='failed';$languageAudit['error']=$_ | Out-String;throw } finally { Json (Join-Path $scratch 'native-ime-languages.json') $languageAudit }
+  }
+ }
 }
 if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !($NativeIme -or $SignedRecovery)) { throw 'Native input branch requires its explicit scoped mode' }
 Plain $Directory
@@ -115,7 +140,7 @@ try {
   $profile=[Environment]::ExpandEnvironmentVariables((Get-ItemProperty -LiteralPath $key).ProfileImagePath);Plain $profile
   $scratch=Join-Path $profile ('.milkup-repair-'+$id)
   if ($jobEmpty -and (Test-Path -LiteralPath $scratch)) {
-   $evidenceNames=@('child-identity.json','child-error.json','evidence/installation.json','evidence/unchanged-document.md','evidence/repair-health-before.json','evidence/repair-health-after.json','evidence/repair-health-before.png','evidence/repair-health-after.png','evidence/repair-health-image.png','evidence/repair-health-initial-image.png','evidence/driver.stdout.log','evidence/driver.stderr.log','evidence/verified-receipt.json','evidence/receipt.stderr.log','evidence/health-before.stdout.log','evidence/health-before.stderr.log','evidence/health-after.stdout.log','evidence/health-after.stderr.log','evidence/installed-document-health.json','evidence/identity-bravo.md','evidence/alpha.html','evidence/alpha.pdf','evidence/bravo.html','evidence/bravo.pdf')
+   $evidenceNames=@('child-identity.json','child-error.json','native-ime-languages.json','evidence/installation.json','evidence/unchanged-document.md','evidence/repair-health-before.json','evidence/repair-health-after.json','evidence/repair-health-before.png','evidence/repair-health-after.png','evidence/repair-health-image.png','evidence/repair-health-initial-image.png','evidence/driver.stdout.log','evidence/driver.stderr.log','evidence/verified-receipt.json','evidence/receipt.stderr.log','evidence/health-before.stdout.log','evidence/health-before.stderr.log','evidence/health-after.stdout.log','evidence/health-after.stderr.log','evidence/installed-document-health.json','evidence/identity-bravo.md','evidence/alpha.html','evidence/alpha.pdf','evidence/bravo.html','evidence/bravo.pdf')
    foreach($i in 0..5){$evidenceNames+=@("evidence/native-dialog-$i.json","evidence/native-dialog-$i.json.log")}
    $evidenceNames+=@('evidence/document-alpha.png','evidence/document-bravo.png','evidence/document-unsaved-close.png')
    $evidenceNames+=@('evidence/startup-comparison.json','evidence/native-recovery-preparation.json','evidence/recovery-preparation.stdout.log','evidence/recovery-preparation.stderr.log','evidence/native-recovery-kit/recovery-receipt.json','evidence/native-recovery-kit/signed-envelope.json','evidence/native-recovery-kit/SHA256SUMS.txt','evidence/native-recovery-kit/RECOVERY.txt')
@@ -131,6 +156,10 @@ try {
  if (!$jobEmpty -or !$audit.supervisor.success -or $audit.supervisor.activeBeforeOuterCleanup -ne 0) {throw 'Owned non-elevated health coordinator failed; outer cleanup is not product proof'}
  $result=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'installation.json') -Raw | ConvertFrom-Json
  if ($result.status -cne 'passed' -or $result.accountSid -cne $user.SID.Value -or $result.sourceSha -cne $SourceSha -or $result.forcedCleanup -ne $false -or $result.recoveryHealth -cne 'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health') {throw 'Complete same-user installed health proof required'}
+ if ($NativeIme) {
+  $languages=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'native-ime-languages.json') -Raw | ConvertFrom-Json
+  if ($languages.status -cne 'restored' -or $languages.before -cne $languages.restored) { throw 'Exact temporary language settings restoration required' }
+ }
  if ($SignedRecovery -and $result.signedRecovery -cne 'ephemeral-test-authority-same-version-repair-and-health-passed; not production update or rollback') { throw 'Real signed recovery use and health proof required' }
  if ($StartupComparison) {
   $comparison=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'startup-comparison.json') -Raw | ConvertFrom-Json

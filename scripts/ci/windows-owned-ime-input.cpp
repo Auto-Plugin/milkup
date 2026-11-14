@@ -33,7 +33,7 @@ int wmain(int argc,wchar_t** argv){
   need(SUCCEEDED(profiles->GetCurrentLanguage(&originalLanguage)),"Original language unavailable");need(SUCCEEDED(profiles->IsEnabledLanguageProfile(clsid,0x804,profile,&originalEnabled)),"Original profile enablement unavailable");enableObserved=true;
   need(originalEnabled||SUCCEEDED(profiles->EnableLanguageProfile(clsid,0x804,profile,TRUE)),"Temporary owned-user profile enablement failed");
   need(SUCCEEDED(profiles->ChangeCurrentLanguage(0x804)),"Helper language activation failed");need(mgr->ActivateProfile(TF_PROFILETYPE_INPUTPROCESSOR,0x804,clsid,profile,nullptr,TF_IPPMF_FORPROCESS)==S_OK,"Helper Pinyin activation failed");pump(300);
-  HKL chinese=GetKeyboardLayout(0);need(LOWORD((ULONG_PTR)chinese)==0x804,"Chinese layout was not established");DWORD_PTR response=0;owned(owner);switched=true;
+  HKL layouts[64]={};int countLayouts=GetKeyboardLayoutList(64,layouts);need(countLayouts>0&&countLayouts<64,"Bounded loaded layout list required");HKL chinese=nullptr;for(int i=0;i<countLayouts;++i){printf("loadedLayout=%p\n",layouts[i]);if(LOWORD((ULONG_PTR)layouts[i])==0x804){need(chinese==nullptr,"Ambiguous Chinese layouts");chinese=layouts[i];}}need(chinese!=nullptr,"Owned user Chinese layout was not loaded");DWORD_PTR response=0;owned(owner);switched=true;
   need(SendMessageTimeoutW(owner.window,WM_INPUTLANGCHANGEREQUEST,0,(LPARAM)chinese,SMTO_ABORTIFHUNG,3000,&response)!=0,"Target language request failed");pump(500);
   printf("targetPid=%lu targetThread=%lu originalHkl=%p requestedHkl=%p observedHkl=%p\n",pid,targetThread,targetOld,chinese,GetKeyboardLayout(targetThread));
   need(LOWORD((ULONG_PTR)GetKeyboardLayout(targetThread))==0x804,"Owned target did not activate Chinese");
