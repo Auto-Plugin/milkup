@@ -18,7 +18,7 @@ function complete() {
         'real-check-download-verify-protected-save-install-automatic-restart-and-health-passed',
       inAppFixture: {
         feature: 'ci-update-fixture',
-        sourceSha: 'dea1f2a437e43303f185d47ad2014156038d8514',
+        sourceSha: '6eb10ba8aa21c42ed6291f8ebfc2cfdc68bbe784',
         sha256: h,
       },
       receipt: {

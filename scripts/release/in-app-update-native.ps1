@@ -4,7 +4,7 @@ function InvokeInAppUpdate {
  if (!$RepairHealth -or $RepairSameVersion -or $SignedRecovery -or $CrossVersionDirectory -or !$InAppUpdateFixtureDirectory) { throw 'Dedicated in-app acceptance only' }
  $fixture=Get-Content -LiteralPath (Join-Path $InAppUpdateFixtureDirectory 'fixture-manifest.json') -Raw | ConvertFrom-Json
  $fixtureBinary=Join-Path $InAppUpdateFixtureDirectory 'milkup-desktop.exe'
- if ($fixture.sourceSha -cne 'dea1f2a437e43303f185d47ad2014156038d8514' -or $fixture.feature -cne 'ci-update-fixture' -or $fixture.version -cne '2.0.0-beta.10' -or (Get-FileHash -LiteralPath $fixtureBinary -Algorithm SHA256).Hash.ToLowerInvariant() -cne $fixture.sha256) { throw 'Exact instrumented fixture required' }
+ if ($fixture.sourceSha -cne '6eb10ba8aa21c42ed6291f8ebfc2cfdc68bbe784' -or $fixture.feature -cne 'ci-update-fixture' -or $fixture.version -cne '2.0.0-beta.10' -or (Get-FileHash -LiteralPath $fixtureBinary -Algorithm SHA256).Hash.ToLowerInvariant() -cne $fixture.sha256) { throw 'Exact instrumented fixture required' }
  # The installed resources remain the exact b877 package. Only this temporary
  # installation receives the explicitly recorded feature binary, before launch.
  Copy-Item -LiteralPath $fixtureBinary -Destination $binary -Force

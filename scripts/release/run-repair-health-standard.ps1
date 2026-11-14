@@ -154,7 +154,7 @@ try {
   $fixtureInput=Join-Path $stage 'fixture-input';NewDir $fixtureInput
   foreach($leaf in @('fixture-manifest.json','milkup-desktop.exe')) { $source=Join-Path $InAppUpdateFixtureDirectory $leaf;Plain $source;Copy-Item -LiteralPath $source -Destination $fixtureInput }
   $f=Get-Content -LiteralPath (Join-Path $fixtureInput 'fixture-manifest.json') -Raw | ConvertFrom-Json
-  if ($f.sourceSha -cne 'dea1f2a437e43303f185d47ad2014156038d8514' -or $f.feature -cne 'ci-update-fixture' -or (Get-FileHash -LiteralPath (Join-Path $fixtureInput 'milkup-desktop.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $f.sha256) {throw 'Exact isolated feature binary required'}
+  if ($f.sourceSha -cne '6eb10ba8aa21c42ed6291f8ebfc2cfdc68bbe784' -or $f.feature -cne 'ci-update-fixture' -or (Get-FileHash -LiteralPath (Join-Path $fixtureInput 'milkup-desktop.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $f.sha256) {throw 'Exact isolated feature binary required'}
  }
  $specFile=Join-Path $code 'repair-spec.json'
  $node=(Get-Command node -CommandType Application | Select-Object -First 1).Source

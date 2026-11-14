@@ -231,9 +231,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api repos/Auto-Plugin/milkup/actions/runs/43607417256 > "$RUNNER_TEMP/in-app-fixture-build.json"
-          node --input-type=module -e "import fs from 'node:fs';const r=JSON.parse(fs.readFileSync(process.argv[1]));if(r.head_sha!=='dea1f2a437e43303f185d47ad2014156038d8514'||r.event!=='workflow_dispatch'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/release-gap-native-capabilities.yml')throw Error('Exact test binary build proof required')" "$RUNNER_TEMP/in-app-fixture-build.json"
-          gh run download 43607417256 --repo Auto-Plugin/milkup --name milkup-in-app-update-fixture-43607417256 --dir "$RUNNER_TEMP/in-app-fixture"
+          gh api repos/Auto-Plugin/milkup/actions/runs/43610366335 > "$RUNNER_TEMP/in-app-fixture-build.json"
+          node --input-type=module -e "import fs from 'node:fs';const r=JSON.parse(fs.readFileSync(process.argv[1]));if(r.head_sha!=='6eb10ba8aa21c42ed6291f8ebfc2cfdc68bbe784'||r.event!=='workflow_dispatch'||r.status!=='completed'||r.conclusion!=='success'||r.path!=='.github/workflows/release-gap-native-capabilities.yml')throw Error('Exact test binary build proof required')" "$RUNNER_TEMP/in-app-fixture-build.json"
+          gh run download 43610366335 --repo Auto-Plugin/milkup --name milkup-in-app-update-fixture-43610366335 --dir "$RUNNER_TEMP/in-app-fixture"
       - name: Exercise TLS fixture before launching the application
         if: inputs.task == 'in-app-update-accept'
         shell: pwsh
