@@ -1,0 +1,103 @@
+{
+  "scope": "Exact CMake forwarding/header compile only; no engine or runtime acceptance",
+  "source": "/tmp/milkup-webkit-header-preflight/source",
+  "inputSha256": {
+    "Source/WebCore/Headers.cmake": "23bffcf81a23701fdb2d5e813f40b1cb6ae12e334c30d3fd2552b6f481513372",
+    "Source/WebCore/platform/Skia.cmake": "24e8a85e3211a0e4732e392b6805bf6f6d06c0991161822857502efb11c8270f",
+    "Source/cmake/WebKitMacros.cmake": "b0dbc4df54d78b49ab87ce3057e8cd1b48c452058c87b474fe84b29dd69bd0c1",
+    "Source/WebCore/platform/graphics/Font.h": "a52ae91892d8413299df5bdc0521bb720e5a9230513ac521af1363d630db4af3",
+    "Source/WebCore/platform/graphics/FontCascade.h": "2bc177b8642eb32919431ffb449474df185ed307679e3b2390eba001abb222fd",
+    "Source/WebCore/platform/graphics/GraphicsContext.h": "e92d6cfcf6954564695e50578f24dd3c5968bd3d2d4f4177726b1cd98c7502f8",
+    "Source/WebCore/platform/graphics/ScalarGlyphText.h": "c5edf99dd74e48836671627ef045fdaa0dce30b6b29c684e5e14bc47809b95f3",
+    "Source/WebCore/platform/graphics/displaylists/DisplayListItems.h": "b4555b64af24bd8b202d652880c1b5144f0ee7e6bdaa9a47cd03afe6690843f4",
+    "Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h": "159d07fd4bef513cc713229e7f2e2a2af428ab7ba172c01353a98f38605d87d4",
+    "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h": "8aef1e7ba529b0a0cba6a312dbd5d6b11d8dc2484bde6b5ac05a2c3f43a471ec"
+  },
+  "cases": [
+    {
+      "case": "old-missing-registration",
+      "consumerExitCode": 1,
+      "headers": [
+        {
+          "header": "Source/WebCore/platform/graphics/Font.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/FontCascade.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/GraphicsContext.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/ScalarGlyphText.h",
+          "registered": false,
+          "forwarded": false
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/displaylists/DisplayListItems.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h",
+          "registered": true,
+          "forwarded": true
+        }
+      ],
+      "registeredCount": 3631
+    },
+    {
+      "case": "fixed",
+      "consumerExitCode": 0,
+      "headers": [
+        {
+          "header": "Source/WebCore/platform/graphics/Font.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/FontCascade.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/GraphicsContext.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/ScalarGlyphText.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/displaylists/DisplayListItems.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/displaylists/DisplayListRecorderImpl.h",
+          "registered": true,
+          "forwarded": true
+        },
+        {
+          "header": "Source/WebCore/platform/graphics/skia/GraphicsContextSkia.h",
+          "registered": true,
+          "forwarded": true
+        }
+      ],
+      "registeredCount": 3632
+    }
+  ],
+  "status": "passed"
+}

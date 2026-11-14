@@ -3,10 +3,11 @@
 import hashlib,json,os,pathlib,re,signal,subprocess,time,shutil
 from webkit_build_limits import compile_budget, stop_reason
 operation_started=float(os.environ["MILKUP_RESEARCH_START_EPOCH"])
+operation=os.environ['MILKUP_WEBKIT_OPERATION'];assert operation in ['preflight','resume']
 root=pathlib.Path(os.environ['RUNNER_TEMP'])/'milkup-webkit-research';evidence=root/'evidence';source=root/'source';build=root/'build';prefix=root/'prefix';conf=root/'apt.conf'
 probe=json.loads((evidence/'result.json').read_text());assert probe['status']=='probe-complete'
 assert os.getuid()!=0 and not probe['simulatedRemovals'] and not probe['wouldChangeWebKitPackages'] and probe['buildDependencySimulationSucceeded']
-version=probe['sourceVersionRequested'];report={'status':'running','uid':os.getuid(),'sourceVersion':version,'prefix':str(prefix),'harnessSha':os.environ['GITHUB_SHA'],'steps':[],'samples':[],'engineBuildAttempted':False}
+version=probe['sourceVersionRequested'];report={'status':'running','uid':os.getuid(),'sourceVersion':version,'prefix':str(prefix),'harnessSha':os.environ['GITHUB_SHA'],'steps':[],'samples':[],'engineBuildAttempted':False,'fullEngineBuildAttempted':False}
 def persist(): (evidence/'build-result.json').write_text(json.dumps(report,indent=2)+'\n')
 def run(name,args,timeout=900,env=None):
  report['stage']=name;persist();print('STAGE',name,flush=True);at=time.monotonic()
@@ -25,6 +26,10 @@ try:
  patch=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-unicode-20261114/0002-research-only-scalar-source-to-skia.patch'
  report['patchSha256']=hashlib.sha256(patch.read_bytes()).hexdigest()
  run('apply-research-patch',['git','-C',str(source),'apply',str(patch)])
+ registration=patch.with_name('0003-register-scalar-private-header.patch')
+ report['headerRegistrationPatchSha256']=hashlib.sha256(registration.read_bytes()).hexdigest()
+ run('apply-header-registration',['git','-C',str(source),'apply',str(registration)])
+ run('header-forwarding-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-header-preflight.py'),'--source',str(source),'--output',str(evidence/'header-preflight')],timeout=300)
  report['patchedSourceHashes']={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest()for p in source.glob('Source/WebCore/platform/graphics/**/*')if p.is_file()and p.name in ['ScalarGlyphText.h','FontCascade.cpp','FontSkia.cpp','GraphicsContextSkia.cpp','DisplayListRecorderImpl.cpp']};persist()
  # Match distro hardening and GTK3 choices; debug symbols are limited to -g1 as
  # in debian/rules. No JIT, sandbox or security policy is disabled.
@@ -38,7 +43,12 @@ try:
  shutil.copyfile(build/'CMakeCache.txt',evidence/'CMakeCache.txt')
  cache=(build/'CMakeCache.txt').read_text();assert re.search(r'^ENABLE_BUBBLEWRAP_SANDBOX:BOOL=ON$',cache,re.M)and re.search(r'^USE_GTK4:BOOL=OFF$',cache,re.M)
  report['compileCommands']=len(json.loads((build/'compile_commands.json').read_text()))
- report['engineBuildAttempted']=True;report['stage']='compile-engine';persist()
+ report['engineBuildAttempted']=True;report['objectCacheProbeAttempted']=True;persist()
+ run('cache-reuse-preflight',['python3',str(pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'scripts/ci/webkit-cache-preflight.py'),'--build',str(build),'--output',str(evidence/'cache-preflight')],timeout=450)
+ report['preflight']={'headers':'passed','restoredObjectCache':'passed'};persist()
+ if operation=='preflight':
+  report['status']='preflight-passed-not-engine-built';persist();raise SystemExit(0)
+ report['fullEngineBuildAttempted']=True;report['stage']='compile-engine';persist()
  # Three jobs completed 2582/3263 objects in 150 minutes, with 6.84 GiB
  # minimum MemAvailable. Last-half-hour throughput predicts ~122 more minutes
  # at that rate, before final linking. Four jobs use the measured four-core host;

@@ -1,6 +1,17 @@
 name: Isolated Ubuntu WebKit source and build capability research
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Cheap header/cache preflight or one explicitly approved continuation
+        type: choice
+        options: [preflight, resume]
+        default: preflight
+        required: true
+      preflight_run:
+        description: Exact successful same-SHA preflight run required for resume
+        type: string
+        default: ''
 permissions:
   contents: read
   actions: read
@@ -11,9 +22,10 @@ jobs:
   capability:
     if: github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-26.04
-    timeout-minutes: 355
+    timeout-minutes: ${{ inputs.operation == 'preflight' && 30 || 355 }}
     env:
       CCACHE_COMPILERCHECK: content
+      MILKUP_WEBKIT_OPERATION: ${{ inputs.operation }}
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
     defaults:
       run:
@@ -28,20 +40,48 @@ jobs:
           persist-credentials: false
       - name: Verify resource and acceptance-reserve policy
         run: python3 scripts/ci/webkit_build_limits_test.py
+      - name: Require exact successful preflight before expensive continuation
+        if: inputs.operation == 'resume'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFLIGHT_RUN: ${{ inputs.preflight_run }}
+        run: |
+          [[ "$PREFLIGHT_RUN" =~ ^[0-9]+$ ]]
+          gh api "repos/Auto-Plugin/milkup/actions/runs/$PREFLIGHT_RUN" > "$RUNNER_TEMP/prior-preflight-run.json"
+          python3 - <<'PY'
+          import json,os,pathlib
+          r=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'prior-preflight-run.json').read_text())
+          assert r['head_sha']==os.environ['GITHUB_SHA'] and r['event']=='workflow_dispatch' and r['conclusion']=='success' and r['status']=='completed'
+          assert r['path']=='.github/workflows/linux-webkit-build-research.yml'
+          PY
+          gh run download "$PREFLIGHT_RUN" --repo Auto-Plugin/milkup --name "milkup-webkit-build-capability-$PREFLIGHT_RUN" --dir "$RUNNER_TEMP/prior-preflight"
+          python3 - <<'PY'
+          import json,os,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'prior-preflight'
+          r=json.loads((p/'build-result.json').read_text())
+          assert r['harnessSha']==os.environ['GITHUB_SHA'] and r['status']=='preflight-passed-not-engine-built'
+          assert r['fullEngineBuildAttempted'] is False and r['objectCacheProbeAttempted'] is True
+          assert json.loads((p/'header-preflight/result.json').read_text())['status']=='passed'
+          assert json.loads((p/'cache-preflight/result.json').read_text())['status']=='passed'
+          PY
       - name: Restore matching bounded compiler-object cache only
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ runner.temp }}/milkup-webkit-ccache
           key: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-${{ github.run_id }}
-          restore-keys: webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-
+          restore-keys: |
+            webkit-u2604-2526-${{ hashFiles('scripts/ci/build-webkit-private.py', 'research/linux-pdf-unicode-20261114/*.patch') }}-
+            webkit-u2604-2526-a7910481056bef2fbcf3ec8b2ab12691665d22560f7b11debcfb04d4fc749b33-43590136844
       - name: Obtain authenticated official source and measure build prerequisites
         run: python3 scripts/ci/probe-webkit-distro-build.py
       - name: Build matched GTK3 runtime in private normal-user prefix
         run: python3 scripts/ci/build-webkit-private.py
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: inputs.operation == 'resume'
         with:
           node-version: 24.19.0
       - name: Reuse exact new candidate built in run 43558261633
+        if: inputs.operation == 'resume'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -70,6 +110,7 @@ jobs:
           (evidence/'original-comparison.json').write_text(json.dumps({'sourceSha':m['sourceSha'],'harnessSha':os.environ['GITHUB_SHA'],'buildRun':43558261633,'artifactId':14099980957,'originalDebSha256':'36c4873d840a06e85bf08398e119f9ddb494c813727eff6479aa4e434141f86e','newDebSha256':actual,'identicalBytes':False,'scope':'Same new candidate bytes from official b877 rebuild; not the preserved original deb'},indent=2)+'\n')
           PY
       - name: Install new package and verify exact installed binary
+        if: inputs.operation == 'resume'
         run: |
           if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing to replace an existing installation' >&2; exit 1; fi
           package=("$RUNNER_TEMP"/milkup-candidate/deliverable/*.deb)
@@ -83,6 +124,7 @@ jobs:
           rustup toolchain install 1.99.0 --profile minimal
           cargo +1.99.0 install tauri-driver --version 2.1.0 --locked
       - name: Verify private sandbox and installed-app PDF through matched runtime
+        if: inputs.operation == 'resume'
         timeout-minutes: 12
         run: |
           test "$(id -u)" != 0

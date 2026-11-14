@@ -84,6 +84,7 @@ try:
    target=evidence/'build-inputs'/f;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,target)
  patch=pathlib.Path(os.environ['GITHUB_WORKSPACE'])/'research/linux-pdf-unicode-20261114/0002-research-only-scalar-source-to-skia.patch'
  run('research-patch-apply-check',['git','apply','--check',str(patch)],cwd=root/'source')
+ run('header-registration-apply-check',['git','apply','--check',str(patch.with_name('0003-register-scalar-private-header.patch'))],cwd=root/'source')
  simulation=run('official-build-deps-simulation',['apt-get','-c',str(conf),'--simulate','--no-install-recommends','--no-remove','build-dep',f'webkit2gtk={version}'],allow_failure=True)
  report['buildDependencySimulationSucceeded']=report['steps'][-1]['exitCode']==0
  report['simulatedInstalls']=re.findall(r'^Inst (\S+).*$',simulation,re.M)
