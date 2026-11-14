@@ -38,7 +38,7 @@ The workflow now defaults to a bounded **preflight** operation. It restores the
 specific old content-checked object cache (or a newer same-input cache), configures
 the exact GTK3 graph, repeats the header negative/positive checks and tests two
 previously completed bmalloc object targets. It uses two exact, unique
-`compile_commands.json` entries with one `-c` input and one bounded `-o` output,
+Ninja graph commands bound to `compile_commands.json` entries, with one `-c` input and one bounded `-o` output,
 never a shell/link command, limits each target to 180 seconds, and requires a genuine hit
 on each first invocation. No warmed second invocation can satisfy the gate.
 This proves sampled reuse, not a promise that every WebCore object will hit.
@@ -49,6 +49,15 @@ but its conservative dry-run guard stopped before any object probe: Ninja's
 It did not expose the object plan. The corrected probe invokes the two exact
 configured compiler commands directly through ccache, preserving all flags and
 paths. No complete engine build was dispatched for the failed preflight.
+
+Preflight 43613875649 passed header forwarding/configure but its first object
+compiled in 1.17 seconds with zero hits and one miss, so continuation was blocked.
+Its recorded compile-database command omitted Ninja's actual `-MD/-MT/-MF`
+dependency switches. The next probe reads `ninja -t commands`, selects only the
+exact object invocation, and verifies that removing precisely those dependency
+switches reproduces the configured command. It records ccache's own diagnostic
+log and before/after counters. This is a correction of the probe; no cache reuse
+or complete build pass is inferred from the failed sample.
 
 An explicit **resume** requires a successful same-SHA preflight artifact and
 repeats the cache check before full compilation. The existing limits remain:
