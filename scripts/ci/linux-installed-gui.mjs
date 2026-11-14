@@ -24,8 +24,26 @@ let app,owned
 const ui=nativeFixture(()=>app)
 async function step(name,fn){record.currentStep=name;await persist();const at=Date.now();try{await fn();record.steps.push({name,status:'passed',durationMs:Date.now()-at})}catch(e){record.steps.push({name,status:'failed',error:String(e),durationMs:Date.now()-at});throw e}finally{await persist()}}
 const birth=async pid=>(await readFile(`/proc/${pid}/stat`,'utf8')).split(') ').at(-1).split(' ')[19]
-async function start(){app=await startProduction(fixture,out,{diagnostics:false});const window=ui.windowId(),pid=Number(x('getwindowpid',window));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid)};record.launches??=[];record.launches.push({...owned,window,at:new Date().toISOString()});await persist()}
-async function normalClose(){const row={...owned,method:'production-titlebar-close',forced:false,processGone:false};record.closes.push(row);await app.click('[data-window-control="close"]');await app.until(async()=>{try{return await birth(owned.pid)!==owned.birth}catch(e){if(e.code==='ENOENT')return true;throw e}},'owned product normal exit',20000);row.processGone=true;owned=null;await app.close();app=null;await persist()}
+async function start(){app=await startProduction(fixture,out,{diagnostics:false});app.click=pointerClick;const window=ui.windowId(),pid=Number(x('getwindowpid',window));assert.equal(await readlink(`/proc/${pid}/exe`),process.env.TAURI_APP_PATH);owned={pid,birth:await birth(pid)};record.launches??=[];record.launches.push({...owned,window,at:new Date().toISOString()});await persist()}
+// A real pointer is required: Linux hides the Windows-only titlebar controls.
+async function pointerClick(selector){
+ const sample=()=>app.execute('const e=document.querySelector(arguments[0]);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,width:r.width,height:r.height,w:innerWidth,h:innerHeight,hit:e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)),disabled:e.disabled===true}',selector)
+ let r=await sample();assert(r,'Pointer target exists '+selector)
+ if(!r.hit||r.x<0||r.y<0||r.x>=r.w||r.y>=r.h){await app.focus(selector);r=await sample()}
+ assert(r?.hit&&r.width>0&&r.height>0&&!r.disabled&&r.x>=0&&r.y>=0&&r.x<r.w&&r.y<r.h,'Visible enabled native pointer target '+selector)
+ const window=ui.windowId(),scale=Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry','--shell',window))[1])/r.w
+ record.inputs??=[];record.inputs.push({kind:'native-pointer',selector,window,...r});await persist()
+ x('windowfocus','--sync',window);x('mousemove','--window',window,String(Math.round(r.x*scale)),String(Math.round(r.y*scale)),'click','1')
+}
+async function normalClose(){
+ assert.equal(await birth(owned.pid),owned.birth,'Close exact owned process generation')
+ const window=ui.windowId();assert.equal(Number(x('getwindowpid',window)),owned.pid)
+ const row={...owned,window,method:'X11-WM_PROTOCOLS-WM_DELETE_WINDOW',forced:false,processGone:false,before:await app.probe()};record.closes.push(row);await persist()
+ assert.equal(row.before.dirty,false,'Do not discard unexpected unsaved changes during normal-close verification')
+ row.request=JSON.parse(execFileSync(process.env.MILKUP_NATIVE_CLOSE_HELPER,[window,String(owned.pid)],{encoding:'utf8'}));await persist()
+ await app.until(async()=>{try{return await birth(owned.pid)!==owned.birth}catch(e){if(e.code==='ENOENT')return true;throw e}},'owned product normal exit',20000)
+ row.processGone=true;owned=null;await app.close();app=null;await persist()
+}
 const panel='[data-plugin-ui="milkup.export-print:export-print-panel"]'
 async function enableOutput(){await ui.list();const sel='.plugin-summary-card[data-plugin-id="milkup.export-print"] [role="switch"]';await ui.ready(sel);if(await app.execute('return document.querySelector(arguments[0]).getAttribute("aria-checked")!=="true"',sel))await ui.click(sel);await app.until(()=>app.execute('const e=document.querySelector(arguments[0]);return e?.getAttribute("aria-checked")==="true"&&!e.disabled',sel),'output enabled');await ui.closeMenu();if(!await app.execute('return document.querySelector("[data-sidebar-toggle]")?.getAttribute("aria-pressed")==="true"'))await ui.click('[data-sidebar-toggle]');const toggle=panel+' .plugin-ui-panel-toggle';await ui.ready(toggle);if(await app.execute('return document.querySelector(arguments[0]).getAttribute("aria-expanded")==="false"',toggle))await ui.click(toggle)}
 async function field(key,value){const sel=panel+` [data-plugin-field-control="${key}"]`;await ui.ready(sel);await app.focus(sel);const options=await app.execute('return [...document.querySelector(arguments[0]).options].map(x=>x.value)',sel);const index=options.indexOf(value);assert(index>=0);await app.key('Home');for(let i=0;i<index;i++)await app.key('Down');await app.key('Tab');await app.until(()=>app.execute('return document.querySelector(arguments[0]).value===arguments[1]',sel,value),'field '+key)}
