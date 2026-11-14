@@ -133,7 +133,14 @@ try {
     $profile=[Environment]::ExpandEnvironmentVariables((Get-ItemProperty -LiteralPath $key).ProfileImagePath)
     for($i=0;$i -lt 5;$i++) {try {[WindowsMermaidStandardUser]::DeleteTemporaryProfile($user.SID.Value);break}catch {if($i -eq 4){throw};Start-Sleep -Milliseconds 250}}
    }
-   if ((Test-Path -LiteralPath $key) -or ($profile -and (Test-Path -LiteralPath $profile)) -or (Test-Path -LiteralPath ('Registry::HKEY_USERS\'+$user.SID.Value))) {throw 'Exact profile removal unconfirmed'}
+   $audit['profileRemovalObservations']=@()
+   for($attempt=0;$attempt -lt 40;$attempt++) {
+    $state=@{attempt=$attempt;profileListPresent=(Test-Path -LiteralPath $key);directoryPresent=($profile -and (Test-Path -LiteralPath $profile));hivePresent=(Test-Path -LiteralPath ('Registry::HKEY_USERS\'+$user.SID.Value))}
+    $audit.profileRemovalObservations+=$state
+    if(!$state.profileListPresent -and !$state.directoryPresent -and !$state.hivePresent){break}
+    Start-Sleep -Milliseconds 250
+   }
+   if($state.profileListPresent -or $state.directoryPresent -or $state.hivePresent){throw 'Exact profile removal unconfirmed after bounded observation; no forced registry/filesystem fallback'}
    $audit.profileDeleted=$true
    Remove-LocalGroupMember -SID ([Security.Principal.SecurityIdentifier]'S-1-5-32-545') -Member $user
    Remove-LocalUser -SID $user.SID

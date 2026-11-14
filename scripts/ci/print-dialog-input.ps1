@@ -18,7 +18,10 @@ try {
  $end=[datetime]::UtcNow.AddSeconds(25);$rows=@()
  do {
   Identity
-  $rows=@(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ProductId" | Where-Object {[StringComparer]::OrdinalIgnoreCase.Equals($_.ExecutablePath,$Image) -and $_.CommandLine -match '^"?[^"\r\n]+\.exe"?\s+--milkup-internal-output-helper\s*$'})
+  $children=@(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ProductId")
+  if($children.Count -gt 32){throw 'Direct child observation budget'}
+  $r.sameImageChildren=@($children | Where-Object {[StringComparer]::OrdinalIgnoreCase.Equals($_.ExecutablePath,$Image)} | Select-Object ProcessId,ParentProcessId,ExecutablePath,CommandLine,CreationDate)
+  $rows=@($children | Where-Object {[StringComparer]::OrdinalIgnoreCase.Equals($_.ExecutablePath,$Image) -and $_.CommandLine -match '^"?[^"\r\n]+\.exe"?\s+--milkup-internal-pdf-helper\s*$'})
   if($rows.Count -gt 1){throw 'Ambiguous direct output helper'}
   if($rows.Count -eq 1){break};Start-Sleep -Milliseconds 25
  }while([datetime]::UtcNow -lt $end)
