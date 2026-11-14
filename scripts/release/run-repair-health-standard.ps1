@@ -8,6 +8,7 @@ param(
  [Parameter(Mandatory,ParameterSetName='Parent')][string]$EvidenceDirectory,
  [Parameter(ParameterSetName='Parent')][switch]$DocumentHealth,
  [Parameter(ParameterSetName='Parent')][switch]$NativeIme,
+ [Parameter(ParameterSetName='Parent')][switch]$SignedRecovery,
  [Parameter(ParameterSetName='Parent')][switch]$StartupComparison,
  [Parameter(Mandatory,ParameterSetName='Child')][string]$ChildSpec
 )
@@ -27,7 +28,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  if ((Get-Item -LiteralPath $ChildSpec).Length -gt 16384) { throw 'Bounded immutable spec required' }
  $spec=Get-Content -LiteralPath $ChildSpec -Raw | ConvertFrom-Json
  if ($spec.harnessSha -cne $env:GITHUB_SHA -or $spec.id -cnotmatch '^[a-f0-9]{32}$') { throw 'Child spec candidate mismatch' }
- if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !$spec.nativeIme) { throw 'Native input branch requires its explicit scoped mode' }
+ if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !($spec.nativeIme -or $spec.signedRecovery)) { throw 'Native input branch requires its explicit scoped mode' }
  Plain $spec.node.path
  if (![IO.Path]::IsPathFullyQualified($spec.node.path) -or (Get-FileHash -LiteralPath $spec.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $spec.node.sha256) { throw 'Exact parent-verified Node image required' }
  $identity=[WindowsMermaidStandardUser]::ObserveProcesses([uint32[]]@($PID))[0]
@@ -45,11 +46,11 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Json (Join-Path $scratch 'child-identity.json') @{identity=$identity;desktop=$desktop;knownFolders=@{profile=$profile;roaming=$roaming;local=$local};sourceSha=$spec.sourceSha;harnessSha=$spec.harnessSha}
  Set-Location $repo
  try {
-  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NativeIme:([bool]$spec.nativeIme) -NodeExecutable $spec.node.path
+  & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NativeIme:([bool]$spec.nativeIme) -SignedRecovery:([bool]$spec.signedRecovery) -NodeExecutable $spec.node.path
   exit 0
  } catch { Json (Join-Path $scratch 'child-error.json') @{error=($_ | Out-String)};exit 1 }
 }
-if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !$NativeIme) { throw 'Native input branch requires its explicit scoped mode' }
+if ($env:GITHUB_REF -ceq 'refs/heads/dot/gap-native-capabilities-20261114' -and !($NativeIme -or $SignedRecovery)) { throw 'Native input branch requires its explicit scoped mode' }
 Plain $Directory
 if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Harness must be exact workflow checkout' }
 NewDir $EvidenceDirectory
@@ -82,6 +83,7 @@ try {
  $code=Join-Path $stage 'code';NewDir $code
  $files=@('scripts/release/run-repair-health-standard.ps1','scripts/release/install-candidate.ps1','scripts/release/WindowsInstallWindow.cs','scripts/release/repair-health.mjs','scripts/release/startup-comparison.ps1','scripts/release/InstalledStartupProcess.cs','scripts/release/startup-comparison-observe.mjs','scripts/release/startup-comparison-contract.mjs','scripts/release/startup-comparison-verify.mjs','scripts/release/installed-document-health.mjs','scripts/release/installed-dialog-input.ps1','scripts/release/InstalledDialogInput.cs','scripts/release/verify-candidate.mjs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
  if ($NativeIme) { $files+=@('scripts/ci/windows-owned-ime-input.exe','scripts/ci/native-ime-contract.mjs') }
+ if ($SignedRecovery) { $files+=@('scripts/release/test-support/prepare-native-recovery.mjs','scripts/release/test-support/signing-fixture.mjs','scripts/release/prepare-recovery-kit.mjs','scripts/release/inspect-recovery-installer.ps1','scripts/release/update-readiness.mjs') }
  $audit['stagedCode']=@()
  foreach($leaf in $files) {
   $source=Join-Path $repo $leaf;Plain $source
@@ -101,7 +103,7 @@ try {
  Plain $node
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
- Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;nativeIme=[bool]$NativeIme;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
+ Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;nativeIme=[bool]$NativeIme;signedRecovery=[bool]$SignedRecovery;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
  $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'
@@ -116,7 +118,7 @@ try {
    $evidenceNames=@('child-identity.json','child-error.json','evidence/installation.json','evidence/unchanged-document.md','evidence/repair-health-before.json','evidence/repair-health-after.json','evidence/repair-health-before.png','evidence/repair-health-after.png','evidence/repair-health-image.png','evidence/repair-health-initial-image.png','evidence/driver.stdout.log','evidence/driver.stderr.log','evidence/verified-receipt.json','evidence/receipt.stderr.log','evidence/health-before.stdout.log','evidence/health-before.stderr.log','evidence/health-after.stdout.log','evidence/health-after.stderr.log','evidence/installed-document-health.json','evidence/identity-bravo.md','evidence/alpha.html','evidence/alpha.pdf','evidence/bravo.html','evidence/bravo.pdf')
    foreach($i in 0..5){$evidenceNames+=@("evidence/native-dialog-$i.json","evidence/native-dialog-$i.json.log")}
    $evidenceNames+=@('evidence/document-alpha.png','evidence/document-bravo.png','evidence/document-unsaved-close.png')
-   $evidenceNames+='evidence/startup-comparison.json'
+   $evidenceNames+=@('evidence/startup-comparison.json','evidence/native-recovery-preparation.json','evidence/recovery-preparation.stdout.log','evidence/recovery-preparation.stderr.log','evidence/native-recovery-kit/recovery-receipt.json','evidence/native-recovery-kit/signed-envelope.json','evidence/native-recovery-kit/SHA256SUMS.txt','evidence/native-recovery-kit/RECOVERY.txt')
    foreach($i in 0..5) {foreach($suffix in @('spec.json','observation.json','product.stdout.log','product.stderr.log','node.stdout.log','node.stderr.log','verify.json','verify.stderr.log','catalog-before.json','catalog-after.json')) {$evidenceNames+="evidence/startup-$i.$suffix"}}
    foreach($leaf in $evidenceNames) {
     $file=Join-Path $scratch $leaf
@@ -129,6 +131,7 @@ try {
  if (!$jobEmpty -or !$audit.supervisor.success -or $audit.supervisor.activeBeforeOuterCleanup -ne 0) {throw 'Owned non-elevated health coordinator failed; outer cleanup is not product proof'}
  $result=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'installation.json') -Raw | ConvertFrom-Json
  if ($result.status -cne 'passed' -or $result.accountSid -cne $user.SID.Value -or $result.sourceSha -cne $SourceSha -or $result.forcedCleanup -ne $false -or $result.recoveryHealth -cne 'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health') {throw 'Complete same-user installed health proof required'}
+ if ($SignedRecovery -and $result.signedRecovery -cne 'ephemeral-test-authority-same-version-repair-and-health-passed; not production update or rollback') { throw 'Real signed recovery use and health proof required' }
  if ($StartupComparison) {
   $comparison=Get-Content -LiteralPath (Join-Path $EvidenceDirectory 'startup-comparison.json') -Raw | ConvertFrom-Json
   if ($comparison.status -cne 'passed' -or $comparison.trials.Count -ne 6 -or @($comparison.trials | Where-Object {$_.status -cne 'passed' -or $_.forcedCleanup}).Count -ne 0) {throw 'Complete six-launch comparison required'}

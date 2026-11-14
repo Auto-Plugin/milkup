@@ -2,7 +2,7 @@ import { createHash, generateKeyPairSync, sign } from 'node:crypto'
 
 // Ephemeral in-memory test material only. Never written to disk, exported as a
 // usable key, or used by the product/release configuration.
-export function signedFixture() {
+export function signedFixture({ artifact = Buffer.from('not an executable') } = {}) {
   const { privateKey, publicKey } = generateKeyPairSync('ed25519')
   const keyId = Buffer.alloc(8, 7)
   const encodedKey = Buffer.concat([
@@ -24,7 +24,6 @@ export function signedFixture() {
       `untrusted comment: unit test\n${Buffer.concat([Buffer.from('ED'), keyId, sig]).toString('base64')}\ntrusted comment: ${comment}\n${sign(null, Buffer.concat([sig, Buffer.from(comment)]), privateKey).toString('base64')}`,
     ).toString('base64')
   }
-  const artifact = Buffer.from('not an executable')
   const statement = {
     schema: 1,
     product: 'milkup-desktop',

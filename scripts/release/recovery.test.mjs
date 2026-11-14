@@ -128,3 +128,12 @@ for (const failure of [
     await access(path.join(output, 'INCOMPLETE.txt'))
   })
 }
+
+test('native fixture signs exactly the supplied package without exporting private keys', () => {
+  const artifact = Buffer.from('separate native acceptance bytes')
+  const f = signedFixture({ artifact })
+  const receipt = check(f)
+  assert.equal(receipt.artifactSha256, createHash('sha256').update(artifact).digest('hex'))
+  assert.equal(Object.hasOwn(f, 'privateKey'), false)
+  assert.throws(() => check({ ...f, artifact: Buffer.from('not an executable') }), /signature/)
+})

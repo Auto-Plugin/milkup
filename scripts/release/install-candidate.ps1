@@ -1,10 +1,11 @@
 # Run only on an ephemeral hosted Windows runner. This is a single runner-account
 # install/window/close/uninstall smoke test, not dual-account or missing-Runtime acceptance.
-param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$StartupComparison,[string]$NodeExecutable)
+param([Parameter(Mandatory=$true)][string]$Directory,[Parameter(Mandatory=$true)][string]$SourceSha,[Parameter(Mandatory=$true)][string]$Variant,[Parameter(Mandatory=$true)][string]$EvidenceDirectory,[switch]$RepairSameVersion,[switch]$RepairHealth,[switch]$DocumentHealth,[switch]$NativeIme,[switch]$SignedRecovery,[switch]$StartupComparison,[string]$NodeExecutable)
 $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw 'Requires ephemeral Windows Actions runner' }
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
 if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
+if ($SignedRecovery -and (!$RepairHealth -or $NativeIme -or $DocumentHealth -or $StartupComparison)) { throw 'Signed recovery requires isolated ordinary repair health only' }
 if ($NativeIme -and (!$RepairHealth -or $DocumentHealth -or $StartupComparison)) { throw 'Native IME requires isolated repair health only' }
 if ($DocumentHealth -and !$RepairHealth) { throw 'Document health requires isolated repair health' }
 if ($RepairHealth -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
@@ -225,13 +226,29 @@ try {
     Remove-Item -LiteralPath $binary
     if (Test-Path -LiteralPath $binary) { throw 'Missing-file fault was not established' }
     Phase 'repair-missing-application-established' @{missingPath=$binary;backupSha256=$record.installedBinary.sha256;installerSha256=$receipt.installer.sha256;documentSha256=$documentHash.ToLowerInvariant()}
-    OwnedMaintenance $receipt.installer.path @('/S',"/D=$install")
+    $repairInstaller=$receipt.installer.path
+    if ($SignedRecovery) {
+      $kit=Join-Path $EvidenceDirectory 'native-recovery-kit'
+      $preparation=Join-Path $EvidenceDirectory 'native-recovery-preparation.json'
+      $prepRun=[WindowsMermaidStandardUser]::RunNodeScript($NodeExecutable,[string[]]@((Join-Path $PSScriptRoot 'test-support/prepare-native-recovery.mjs'),$receipt.installer.path,$receipt.version,$kit,$preparation),$PSScriptRoot,(Join-Path $EvidenceDirectory 'recovery-preparation.stdout.log'),(Join-Path $EvidenceDirectory 'recovery-preparation.stderr.log'),60000)
+      Phase 'signed-recovery-preparation-process' $prepRun
+      if ($prepRun.status -cne 'passed') { throw 'Actual PE/signature recovery preparation failed' }
+      $proof=Get-Content -LiteralPath $preparation -Raw | ConvertFrom-Json
+      if ($proof.status -cne 'prepared-awaiting-real-install-and-health' -or $proof.negativeCases.Count -ne 3 -or $proof.prepared.executed -ne $false -or $proof.prepared.purpose -cne 'same-version-repair' -or $proof.prepared.version -cne $receipt.version -or $proof.prepared.artifactSha256 -cne $receipt.installer.sha256) { throw 'Exact recovery preparation and negative proof required' }
+      if ($proof.prepared.installer -cne ('milkup-'+$receipt.version+'-recovery-setup.exe')) { throw 'Exact prepared recovery filename required' }
+      $repairInstaller=Join-Path $kit $proof.prepared.installer
+      if ((Get-Item -LiteralPath $repairInstaller).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Recovery reparse rejected' }
+      if ((Get-FileHash -LiteralPath $repairInstaller -Algorithm SHA256).Hash.ToLowerInvariant() -cne $receipt.installer.sha256 -or [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() -ge $proof.prepared.expiresAt) { throw 'Prepared recovery bytes/freshness changed before execution' }
+      Phase 'verified-test-recovery-used-for-repair' @{installer=$repairInstaller;sha256=$proof.prepared.artifactSha256;expiresAt=$proof.prepared.expiresAt;ephemeralTestAuthority=$true;productionChannelChanged=$false}
+    }
+    OwnedMaintenance $repairInstaller @('/S',"/D=$install")
     if (!(Test-Path -LiteralPath $binary -PathType Leaf)) { throw 'Same-version repair did not restore application' }
     $repairedHash=(Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($repairedHash -cne $record.installedBinary.sha256) { throw 'Repair did not restore exact original executable' }
     if ((Get-FileHash -LiteralPath $document -Algorithm SHA256).Hash -cne $documentHash) { throw 'Repair changed fixture document' }
     Phase 'repair-exact-application-restored' @{sha256=$repairedHash;documentUnchanged=$true}
     VerifyOwnedStartupAndClose 'repair-' 'repairStartupWindows'
+    if ($SignedRecovery) { $record.signedRecovery='ephemeral-test-authority-same-version-repair-and-health-passed; not production update or rollback' }
     $record.sameVersionRepair='exact-binary-and-window-close-passed'
     $record.recoveryHealth=if ($RepairHealth) {'real-edit-save-and-persisted-diagrams-switch-passed; not all configuration or migration health'} else {'native-window-only; document-open-edit-save and plugin/config restoration not verified'}
     # Retain hash/receipt evidence, not an extra runnable application artifact.
