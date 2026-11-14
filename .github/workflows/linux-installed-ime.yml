@@ -1,0 +1,118 @@
+name: Installed Linux native Pinyin and GTK scale research (no release)
+on:
+  push:
+    branches: [dot/linux-ime-installed-20261114]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: linux-native-ime-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native:
+    if: github.repository == 'Auto-Plugin/milkup'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Exact application source in independent checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: b877746f5dfd236dfc13f718ed23d837b8e4f89d
+          path: application
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Existing capabilities and official GUI dependencies
+        run: |
+          python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev libx11-dev librsvg2-dev libssl-dev pkg-config patchelf webkitgtk-webdriver xdotool x11-utils poppler-utils fonts-noto-cjk fonts-noto-color-emoji fonts-dejavu-core xvfb xauth ibus ibus-gtk3 ibus-libpinyin python3-gi gir1.2-ibus-1.0 dbus-x11
+          python3 scripts/ci/probe-linux-native.py "$RUNNER_TEMP/linux-native-evidence/after-gui-dependencies"
+      - name: Default-policy sandbox gate on this same runner
+        run: |
+          test "$(id -u)" != 0
+          test -z "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}"
+          cc scripts/ci/linux-webkit-preflight.c -o "$RUNNER_TEMP/milkup-webkit-preflight" $(pkg-config --cflags --libs webkit2gtk-4.1 gtk+-3.0)
+          timeout --signal=TERM --kill-after=5s 40s xvfb-run -a dbus-run-session -- "$RUNNER_TEMP/milkup-webkit-preflight" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/webkit-preflight.txt"
+          cc -Wall -Wextra -Werror scripts/ci/linux-window-close.c -o "$RUNNER_TEMP/milkup-window-close" -lX11
+          node --check scripts/ci/linux-ime-installed.mjs
+          bash -n scripts/ci/run-linux-ime-installed.sh
+      - name: Reuse exact new candidate built in run 43558261633
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git -C application rev-parse HEAD)" = "$BASELINE_SHA"
+          gh api repos/Auto-Plugin/milkup/actions/artifacts/14099980957/zip > "$RUNNER_TEMP/new-candidate.zip"
+          python3 - <<'PY'
+          import os,json,pathlib,hashlib,zipfile
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])
+          archive=root/'new-candidate.zip'
+          assert archive.stat().st_size==9811122
+          assert hashlib.sha256(archive.read_bytes()).hexdigest()=='6ea16526fdda7904bf54279bc2b03dfa9d546d7411abde02bcb53b9beeef3db1'
+          dest=root/'milkup-candidate/deliverable';dest.mkdir(parents=True)
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+              for i in z.infolist():
+                  assert not pathlib.PurePosixPath(i.filename).is_absolute() and '..' not in pathlib.PurePosixPath(i.filename).parts
+                  assert i.file_size<=20000000
+              z.extractall(dest)
+          m=json.loads((dest/'manifest.json').read_text())
+          assert m['sourceSha']==os.environ['BASELINE_SHA']
+          p=dest/m['installer']['name'];actual=hashlib.sha256(p.read_bytes()).hexdigest()
+          assert actual==m['installer']['sha256']=='4941f3a1ab85b7c7ed1d96edf4807c388a7c883240a2aa32ee13c062661fc813'
+          assert p.stat().st_size==m['installer']['bytes']==9853762
+          evidence=root/'linux-native-evidence'
+          (evidence/'new-build-manifest.json').write_text(json.dumps(m,indent=2)+'\n')
+          (evidence/'original-comparison.json').write_text(json.dumps({'sourceSha':m['sourceSha'],'harnessSha':os.environ['GITHUB_SHA'],'buildRun':43558261633,'artifactId':14099980957,'originalDebSha256':'36c4873d840a06e85bf08398e119f9ddb494c813727eff6479aa4e434141f86e','newDebSha256':actual,'identicalBytes':False,'scope':'Same new candidate bytes from official b877 rebuild; not the preserved original deb'},indent=2)+'\n')
+          PY
+      - name: Install new package and verify exact installed binary
+        run: |
+          if dpkg-query --status milkup >/dev/null 2>&1; then echo 'Refusing to replace an existing installation' >&2; exit 1; fi
+          package=("$RUNNER_TEMP"/milkup-candidate/deliverable/*.deb)
+          test "${#package[@]}" = 1
+          dpkg-deb --extract "${package[0]}" "$RUNNER_TEMP/milkup-package-extracted"
+          sudo dpkg --install "${package[0]}" 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/install.txt"
+          touch "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"
+          cmp "$RUNNER_TEMP/milkup-package-extracted/usr/bin/milkup-desktop" /usr/bin/milkup-desktop
+          sha256sum /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-binary.sha256"
+          ldd /usr/bin/milkup-desktop > "$RUNNER_TEMP/linux-native-evidence/installed-ldd.txt"
+          rustup toolchain install 1.99.0 --profile minimal
+          cargo +1.99.0 install tauri-driver --version 2.1.0 --locked
+      - name: Actual installed Pinyin composition, punctuation, save/reopen and GTK scale
+        timeout-minutes: 15
+        run: |
+          dpkg-query -W libwebkit2gtk-4.1-0 ibus ibus-libpinyin ibus-gtk3 fonts-noto-cjk > "$RUNNER_TEMP/linux-native-evidence/runtime-input-versions.txt"
+          failed=0
+          for scale in 1 2; do
+            pixels="$((1400*scale))x$((1000*scale))x24"
+            if ! GDK_SCALE="$scale" timeout --signal=TERM --kill-after=10s 400s xvfb-run -a -s "-screen 0 $pixels -dpi $((96*scale))" dbus-run-session -- bash scripts/ci/run-linux-ime-installed.sh 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/ime-scale-$scale-harness.txt"; then failed=1; fi
+          done
+          exit "$failed"
+      - name: Remove only this run's package
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/linux-native-evidence/installed-by-this-run"; then
+            sudo dpkg --remove milkup 2>&1 | tee "$RUNNER_TEMP/linux-native-evidence/uninstall.txt"
+            test ! -e /usr/bin/milkup-desktop
+          fi
+      - name: Retain evidence including exact failure fixtures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-linux-native-ime-${{ github.run_id }}
+          path: ${{ runner.temp }}/linux-native-evidence/
+          retention-days: 7
+          if-no-files-found: error
