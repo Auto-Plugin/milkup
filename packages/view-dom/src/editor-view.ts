@@ -178,7 +178,13 @@ export class EditorView {
   private layoutMetrics: ViewMetrics | undefined
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
-  private readonly handleInputEvent = (): void => {
+  private readonly handleInputEvent = (event: Event): void => {
+    // WebKitGTK external preedit can omit compositionstart/update and send a
+    // composing input before compositionend. The end event owns this commit.
+    if ((event as InputEvent).isComposing && this.editable) {
+      if (!this.composing) this.handleCompositionStartEvent()
+      return
+    }
     this.readInputProxy()
   }
   private readonly handleScrollEvent = (): void => {

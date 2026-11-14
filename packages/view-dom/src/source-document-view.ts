@@ -363,7 +363,13 @@ export class SourceDocumentView {
       }
     })
   }
-  private readonly handleInputEvent = (): void => {
+  private readonly handleInputEvent = (event: Event): void => {
+    // Establish document ownership even when external preedit has no DOM start
+    // event. Do not queue a second edit for the input preceding compositionend.
+    if ((event as InputEvent).isComposing && this.editable) {
+      if (!this.composing) this.handleCompositionStartEvent()
+      return
+    }
     void this.trackVisibleEditTask(() => this.readInputProxy())
   }
   private readonly handleCompositionStartEvent = (): void => {

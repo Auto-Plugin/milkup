@@ -241,3 +241,63 @@ for (const kind of ['ordinary', 'windowed'] as const)
       expect(s.current().undo().doc.text).toBe(text)
     })
   }
+
+// Real WebKitGTK 2.52.6 / IBus trace: external preedit emits no DOM start/update;
+// input(insertFromComposition, isComposing=true) precedes compositionend by 17ms.
+for (const kind of ['ordinary', 'windowed'] as const)
+  for (const mode of ['source', 'live'] as const)
+    for (const outcome of ['commit', 'cancel'] as const)
+      it(`${kind} ${mode} external preedit ${outcome} waits for the final event exactly once`, async () => {
+        const original = '原😀文\r\nnext'
+        const s = await setup(kind, mode, original, Selection.range(4, 0))
+        const input = s.view.inputDOM
+        input.focus()
+        input.value = '中文'
+        input.dispatchEvent(
+          new InputEvent('input', {
+            data: '中文',
+            inputType: 'insertFromComposition',
+            isComposing: true,
+            bubbles: true,
+          }),
+        )
+        await s.flush()
+        expect(s.current().doc.text).toBe(original)
+        expect(s.view.isComposing).toBe(true)
+        input.dispatchEvent(
+          new CompositionEvent('compositionend', {
+            data: outcome === 'commit' ? '中文' : '',
+            bubbles: true,
+          }),
+        )
+        await s.flush()
+        const first = outcome === 'commit' ? '中文\r\nnext' : original
+        expect(s.current().doc.text).toBe(first)
+        expect(s.current().undo().doc.text).toBe(original)
+        if (kind === 'windowed') expect(s.edits).toHaveLength(outcome === 'commit' ? 1 : 0)
+        expect(s.view.isComposing).toBe(false)
+        expect(input.value).toBe('')
+        // Equal consecutive commits are distinct input, never time/text deduped.
+        input.value = '中文'
+        input.dispatchEvent(
+          new InputEvent('input', {
+            data: '中文',
+            inputType: 'insertFromComposition',
+            isComposing: true,
+            bubbles: true,
+          }),
+        )
+        input.dispatchEvent(new CompositionEvent('compositionend', { data: '中文', bubbles: true }))
+        await s.flush()
+        const second = outcome === 'commit' ? '中文中文\r\nnext' : '中文\r\nnext'
+        expect(s.current().doc.text).toBe(second)
+        expect(s.current().undo().doc.text).toBe(first)
+        expect(s.current().undo().redo().doc.text).toBe(second)
+        // Ordinary non-composing input still commits immediately.
+        input.value = '!'
+        input.dispatchEvent(
+          new InputEvent('input', { data: '!', inputType: 'insertText', bubbles: true }),
+        )
+        await s.flush()
+        expect(s.current().doc.text).toBe(second.replace('\r\n', '!\r\n'))
+      })
