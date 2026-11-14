@@ -24,12 +24,19 @@ trap 'for child in ${driver_pid:-} ${ibus_pid:-}; do kill "$child" 2>/dev/null |
 ibus-daemon --xim > "$MILKUP_NATIVE_EVIDENCE_DIR/ibus.log" 2>&1 &
 ibus_pid=$!
 for attempt in $(seq 1 100); do
-  if ibus list-engine > "$MILKUP_NATIVE_EVIDENCE_DIR/engines.txt" 2>/dev/null; then break; fi
+  kill -0 "$ibus_pid"
+  if /usr/bin/python3 -c "import gi,sys;gi.require_version('IBus','1.0');from gi.repository import IBus;IBus.init();sys.exit(0 if IBus.Bus.new().is_connected() else 1)"; then break; fi
   sleep 0.1
 done
+ibus list-engine > "$MILKUP_NATIVE_EVIDENCE_DIR/engines.txt"
 gsettings set org.freedesktop.ibus.general preload-engines "['libpinyin','xkb:us::eng']"
 gsettings set org.freedesktop.ibus.general use-global-engine true
-ibus engine libpinyin
+selected=0
+for attempt in $(seq 1 50); do
+  if ibus engine libpinyin; then selected=1; break; fi
+  sleep 0.1
+done
+test "$selected" = 1
 ibus engine > "$MILKUP_NATIVE_EVIDENCE_DIR/initial-engine.txt"
 gsettings list-recursively org.freedesktop.ibus.general > "$MILKUP_NATIVE_EVIDENCE_DIR/ibus-settings.txt"
 xdpyinfo > "$MILKUP_NATIVE_EVIDENCE_DIR/x-display.txt"
