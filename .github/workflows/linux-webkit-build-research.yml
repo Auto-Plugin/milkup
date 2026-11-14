@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 355
     env:
-      CCACHE_DIR: ${{ runner.temp }}/milkup-webkit-ccache
       CCACHE_COMPILERCHECK: content
       BASELINE_SHA: b877746f5dfd236dfc13f718ed23d837b8e4f89d
     defaults:
@@ -21,7 +20,9 @@ jobs:
         shell: bash
     steps:
       - name: Start bounded operation clock
-        run: echo "MILKUP_RESEARCH_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+        run: |
+          echo "MILKUP_RESEARCH_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+          echo "CCACHE_DIR=$RUNNER_TEMP/milkup-webkit-ccache" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
