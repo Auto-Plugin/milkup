@@ -47,17 +47,18 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Set-Location $repo
  $originalLanguages=$null
  $languageAudit=@{scope='Only this newly created ordinary CI account; no language pack install or system defaults';status='not-requested'}
- function LanguageShape($list) { @($list | ForEach-Object { @{tag=$_.LanguageTag;tips=@($_.InputMethodTips);spellchecking=$_.Spellchecking;handwriting=$_.Handwriting} }) | ConvertTo-Json -Depth 5 -Compress }
+ function LanguageShape($list) { @($list | ForEach-Object { [ordered]@{tag=$_.LanguageTag;tips=@($_.InputMethodTips);spellchecking=$_.Spellchecking;handwriting=$_.Handwriting} }) | ConvertTo-Json -Depth 5 -Compress }
  try {
   if ($spec.nativeIme) {
+   $pinyinTip='0804:{81D4E9C9-1D3B-41BC-9E6C-4B40BF79E35E}{FA550B04-5AD7-411F-A5AC-CA038EC515D7}'
    $originalLanguages=Get-WinUserLanguageList
    $languageAudit['before']=LanguageShape $originalLanguages
    $temporaryLanguages=Get-WinUserLanguageList
-   if (!@($temporaryLanguages | Where-Object {$_.LanguageTag -ceq 'zh-CN'}).Count) { $temporaryLanguages.Add('zh-CN') }
+   if (!@($temporaryLanguages | Where-Object {$_.InputMethodTips -ccontains $pinyinTip}).Count) { $temporaryLanguages.Add('zh-CN') }
    Set-WinUserLanguageList -LanguageList $temporaryLanguages -Force
    $observedLanguages=Get-WinUserLanguageList
    $languageAudit['configured']=LanguageShape $observedLanguages
-   if (!@($observedLanguages | Where-Object {$_.LanguageTag -ceq 'zh-CN'}).Count) { throw 'Owned account Chinese input profile unavailable' }
+   if (!@($observedLanguages | Where-Object {$_.InputMethodTips -ccontains $pinyinTip}).Count) { throw 'Owned account Chinese input profile unavailable' }
    $languageAudit.status='configured-await-restore'
    Json (Join-Path $scratch 'native-ime-languages.json') $languageAudit
   }
@@ -129,7 +130,7 @@ try {
  $nodeProof=@{path=$node;sha256=(Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()}
  $audit['node']=$nodeProof
  Json $specFile @{id=$id;sid=$user.SID.Value;session=$desktop.sessionId;sourceSha=$SourceSha;harnessSha=$env:GITHUB_SHA;input=$inputRoot;variant=$Variant;node=$nodeProof;nativeIme=[bool]$NativeIme;signedRecovery=[bool]$SignedRecovery;documentHealth=[bool]$DocumentHealth;startupComparison=[bool]$StartupComparison}
- $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
+ $environment=@("SystemRoot=$env:SystemRoot","WINDIR=$env:SystemRoot","SystemDrive=$env:SystemDrive","PATH=$env:SystemRoot\System32;$env:SystemRoot\System32\WindowsPowerShell\v1.0;$(Split-Path -Parent $pwsh);$(Split-Path -Parent $node)",'GITHUB_ACTIONS=true','RUNNER_OS=Windows','RUNNER_ENVIRONMENT=github-hosted','GITHUB_REPOSITORY=Auto-Plugin/milkup',"GITHUB_REF=$env:GITHUB_REF","GITHUB_SHA=$env:GITHUB_SHA")
  if ($env:ProgramFiles) {$environment+="ProgramFiles=$env:ProgramFiles"};if (${env:ProgramFiles(x86)}) {$environment+="ProgramFiles(x86)=${env:ProgramFiles(x86)}"}
  $arguments='-NoLogo -NoProfile -File "'+(Join-Path $code 'scripts/release/run-repair-health-standard.ps1')+'" -ChildSpec "'+$specFile+'"'
  $jobEmpty=$false;Persist
