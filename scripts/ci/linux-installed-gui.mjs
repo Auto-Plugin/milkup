@@ -13,11 +13,21 @@ await mkdir(out,{recursive:true})
 const sha=b=>createHash('sha256').update(b).digest('hex')
 const fixture=path.join(out,'source.md'), marker='MILKUP_LINUX_SAVED_'+Date.now()
 const chinese='中文复制验收：春风又绿江南岸，明月何时照我还。'
+const pairs='文⽂/风⻛/又⼜/月⽉'
+const unicodeCases=[
+ {id:'SAME-FONT',text:pairs+' '+pairs},
+ {id:'BOLD-FONT',text:pairs,markdownBold:true},
+ {id:'FALLBACK',text:'文⽂🙂风⻛🙂又⼜🙂月⽉'},
+ {id:'WRAP',text:Array.from({length:45},()=>pairs).join(' ')},
+ {id:'LATE-PAGE',text:pairs+' '+pairs},
+ {id:'LINK',text:'文⽂风⻛又⼜月⽉',url:'https://example.invalid/milkup-unicode-proof'},
+]
+const caseMarkdown=c=>{const text=c.id+'-START '+c.text+' '+c.id+'-END';return (c.url?'['+text+']('+c.url+')':c.markdownBold?'**'+text+'**':text)+'\n\n'}
 const paragraphs=Array.from({length:100},(_,i)=>`BODY-${String(i+1).padStart(3,'0')} This generated paragraph checks complete pagination and readable text.\n\n`)
-const original=`# MILKUP-LINUX-PDF-START\n\n${chinese}\n\n`+paragraphs.join('')+'MILKUP-LINUX-PDF-END\n'
+const original=`# MILKUP-LINUX-PDF-START\n\n${chinese}\n\n`+unicodeCases.slice(0,4).map(caseMarkdown).join('')+paragraphs.slice(0,70).join('')+unicodeCases.slice(4).map(caseMarkdown).join('')+paragraphs.slice(70).join('')+'MILKUP-LINUX-PDF-END\n'
 await writeFile(fixture,original,{flag:'wx'})
 const expected=original+'\n'+marker
-await writeFile(path.join(out,'expectations.json'),JSON.stringify({fixtureSha256:sha(Buffer.from(original)),expectedSavedSha256:sha(Buffer.from(expected)),chinese,markers:['MILKUP-LINUX-PDF-START',...paragraphs.map((_,i)=>`BODY-${String(i+1).padStart(3,'0')}`),'MILKUP-LINUX-PDF-END',marker],minimumPages:2,papers:[{name:'a4-portrait',pageSize:'a4',orientation:'portrait',width:595.276,height:841.89},{name:'letter-landscape',pageSize:'letter',orientation:'landscape',width:792,height:612}]},null,2))
+await writeFile(path.join(out,'expectations.json'),JSON.stringify({fixtureSha256:sha(Buffer.from(original)),expectedSavedSha256:sha(Buffer.from(expected)),chinese,unicodeCases,markers:['MILKUP-LINUX-PDF-START',...paragraphs.map((_,i)=>`BODY-${String(i+1).padStart(3,'0')}`),'MILKUP-LINUX-PDF-END',marker],minimumPages:2,papers:[{name:'a4-portrait',pageSize:'a4',orientation:'portrait',width:595.276,height:841.89},{name:'letter-landscape',pageSize:'letter',orientation:'landscape',width:792,height:612}]},null,2))
 const record={status:'running',sourceSha:'b877746f5dfd236dfc13f718ed23d837b8e4f89d',harnessSha:process.env.GITHUB_SHA,uid:process.getuid(),steps:[],pdf:[],closes:[],errors:[],physicalPrintTested:false}
 const persist=()=>writeFile(path.join(out,'gui-result.json'),JSON.stringify(record,null,2))
 let app,owned
@@ -64,7 +74,7 @@ try{
    const destination=path.join(out,paper.name+'.pdf');await savePicker(destination)
    await app.until(async()=>{const state=await app.execute('const p=document.querySelector(arguments[0]);return {text:p?.textContent,error:p?.querySelector("[role=alert]")?.textContent}',panel);if(state.error)throw Error(state.error);return state.text?.includes('已保存')},'PDF committed',90000)
    const bytes=await readFile(destination);const info=execFileSync('pdfinfo',[destination],{encoding:'utf8'}),raw=execFileSync('pdftotext',['-raw',destination,'-'],{encoding:'utf8'}),layout=execFileSync('pdftotext',['-layout',destination,'-'],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-pdfinfo.txt'),info);await writeFile(path.join(out,paper.name+'-text.txt'),raw);await writeFile(path.join(out,paper.name+'-layout.txt'),layout)
-   const pages=Number(/^Pages:\s+(\d+)/m.exec(info)?.[1]);const size=/^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info);const markers=expectations.markers.map(marker=>({marker,count:raw.split(marker).length-1}));const row={name:paper.name,sha256:sha(bytes),bytes:bytes.length,pages,width:Number(size?.[1]),height:Number(size?.[2]),markers,chineseExpected:chinese,chineseExact:raw.includes(chinese),copyCheck:'Poppler text extraction, not a manual PDF-viewer clipboard check'};record.pdf.push(row);await persist();execFileSync('pdftoppm',['-f','1','-singlefile','-scale-to','1400','-png',destination,path.join(out,paper.name+'-page1')]);await app.shot(paper.name+'-product-done');assert(pages>=2,'At least two real PDF pages');assert(markers.every(m=>m.count===1),'Every source marker exactly once in PDF text');assert(row.chineseExact,'Exact original Chinese copy text without normalization');assert(Math.abs(row.width-paper.width)<2&&Math.abs(row.height-paper.height)<2,'Exact paper/orientation');assert.equal(await readFile(fixture,'utf8'),expected)
+   const pages=Number(/^Pages:\s+(\d+)/m.exec(info)?.[1]);const size=/^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info);const markers=expectations.markers.map(marker=>({marker,count:raw.split(marker).length-1}));const unicodeResults=expectations.unicodeCases.map(c=>{const start=raw.indexOf(c.id+'-START'),end=raw.indexOf(c.id+'-END',start);const actual=start>=0&&end>start?raw.slice(start+(c.id+'-START').length,end).replace(/[ \t\r\n\f]/g,''):null;const expected=c.text.replace(/[ \t\r\n\f]/g,'');return {id:c.id,expected,actual,exact:actual===expected}});const fonts=execFileSync('pdffonts',[destination],{encoding:'utf8'});await writeFile(path.join(out,paper.name+'-fonts.txt'),fonts);const row={name:paper.name,unicodeResults,sha256:sha(bytes),bytes:bytes.length,pages,width:Number(size?.[1]),height:Number(size?.[2]),markers,chineseExpected:chinese,chineseExact:raw.includes(chinese),copyCheck:'Poppler text extraction, not a manual PDF-viewer clipboard check'};record.pdf.push(row);await persist();execFileSync('pdftoppm',['-f','1','-singlefile','-scale-to','1400','-png',destination,path.join(out,paper.name+'-page1')]);await app.shot(paper.name+'-product-done');assert(pages>=2,'At least two real PDF pages');assert(markers.every(m=>m.count===1),'Every source marker exactly once in PDF text');assert(row.chineseExact&&unicodeResults.every(c=>c.exact),'Exact original Unicode including intentional radicals and fallback, without normalization');assert(Math.abs(row.width-paper.width)<2&&Math.abs(row.height-paper.height)<2,'Exact paper/orientation');assert.equal(await readFile(fixture,'utf8'),expected)
   }).catch(e=>{record.errors.push(String(e))})
  }
 } catch(e){record.errors.push(String(e));if(app){record.failureDom=await app.execute('return document.body.innerText.slice(0,10000)').catch(()=>null);await app.shot('failure').catch(()=>{})}}
