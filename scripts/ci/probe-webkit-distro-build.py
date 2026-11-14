@@ -33,7 +33,22 @@ try:
   fields={k:v.strip()for k,v in re.findall(r'^([A-Za-z-]+):\s*(.*)$',stanza,re.M)}
   if not fields:continue
   uris=fields.get('URIs','').split()
-  assert uris and all(re.fullmatch(r'https?://(?:[a-z0-9-]+\.)?(?:archive|security)\.ubuntu\.com/ubuntu/?',u)for u in uris),uris
+  official=lambda u:bool(re.fullmatch(r'https?://(?:[a-z0-9-]+\.)?(?:archive|security)\.ubuntu\.com/ubuntu/?',u))
+  resolved=[]
+  for uri in uris:
+   if uri.startswith('mirror+file:'):
+    mirror_path=pathlib.Path(uri.removeprefix('mirror+file:'))
+    assert str(mirror_path)in ['/etc/apt/apt-mirrors.txt','/etc/apt/apt-security-mirrors.txt']
+    mirrors=mirror_path.read_text();(evidence/mirror_path.name).write_text(mirrors)
+    candidates=[line.split()[0]for line in mirrors.splitlines()if line.strip()and not line.lstrip().startswith('#')]
+    candidates=[u for u in candidates if official(u)]
+    assert candidates, 'No approved official Ubuntu URL in '+str(mirror_path)
+    resolved.append(candidates[0])
+   else:
+    assert official(uri),uri
+    resolved.append(uri)
+  assert resolved
+  stanza=re.sub(r'^URIs:.*$','URIs: '+' '.join(resolved),stanza,flags=re.M)
   assert fields.get('Signed-By')=='/usr/share/keyrings/ubuntu-archive-keyring.gpg'
   assert all(x in ['resolute','resolute-updates','resolute-security','resolute-backports']for x in fields.get('Suites','').split())
   records.append(re.sub(r'^Types:.*$','Types: deb deb-src',stanza,flags=re.M))
@@ -78,5 +93,5 @@ try:
  report['status']='probe-complete';report['next']='Review exact distro build flags, dependency plan and measured limits before isolated engine compilation.'
 except Exception as e:
  report['status']='blocked';report['error']=str(e);(evidence/'exception.txt').write_text(traceback.format_exc())
-finally:persist();print(json.dumps(report,indent=2))
+finally:persist();print(json.dumps({k:report.get(k)for k in ['status','stage','error','sourceVersionRequested','availableSourceVersions','sourceExtractedBytes','sourceFileCount','buildDependencySimulationSucceeded','wouldChangeWebKitPackages']},indent=2))
 if report['status']!='probe-complete':raise SystemExit(1)
