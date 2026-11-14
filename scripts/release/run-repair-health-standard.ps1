@@ -46,7 +46,7 @@ if ($PSCmdlet.ParameterSetName -ceq 'Child') {
  Set-Location $repo
  try {
   if ([bool]$spec.installOnly) {
-   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence')
+   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -NodeExecutable $spec.node.path
   } else {
   & (Join-Path $repo 'scripts/release/install-candidate.ps1') -Directory $spec.input -SourceSha $spec.sourceSha -Variant $spec.variant -EvidenceDirectory (Join-Path $scratch 'evidence') -RepairSameVersion -RepairHealth -DocumentHealth:([bool]$spec.documentHealth) -StartupComparison:([bool]$spec.startupComparison) -NodeExecutable $spec.node.path
   }

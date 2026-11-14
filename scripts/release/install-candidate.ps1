@@ -6,7 +6,7 @@ if ($env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_OS -cne 'Windows') { throw '
 if ($RepairHealth -and !$RepairSameVersion) { throw 'Repair health requires same-version repair' }
 if ($StartupComparison -and (!$RepairHealth -or $DocumentHealth -or $Variant -cne 'windows-standard')) { throw 'Startup comparison requires standard isolated repair health without document mutations' }
 if ($DocumentHealth -and !$RepairHealth) { throw 'Document health requires isolated repair health' }
-if ($RepairHealth -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
+if (($RepairHealth -or $NodeExecutable) -and (![IO.Path]::IsPathFullyQualified($NodeExecutable) -or !(Test-Path -LiteralPath $NodeExecutable -PathType Leaf))) { throw 'Repair health requires the exact coordinator-verified Node executable' }
 Add-Type -Path (Join-Path $PSScriptRoot 'WindowsInstallWindow.cs')
 if (Test-Path -LiteralPath $EvidenceDirectory) { throw 'Evidence directory must be new' }
 New-Item -ItemType Directory $EvidenceDirectory | Out-Null
@@ -178,7 +178,8 @@ try {
     $driverBirth=$healthDriver.StartTime.ToUniversalTime().Ticks
     Phase 'health-driver-start' @{pid=$healthDriver.Id;creationTicks=$driverBirth;image=$driverExe;sha256=(Get-FileHash -LiteralPath $driverExe -Algorithm SHA256).Hash.ToLowerInvariant();version=$version;runtime=$runtime.Name;source=$driverUrl;signature='Valid Microsoft';profile=$healthProfile}
   }
-  if ($RepairHealth) {
+  if ($NodeExecutable) {
+    if (-not ('WindowsMermaidStandardUser' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot '../ci/WindowsMermaidStandardUser.cs') }
     $receiptFile=Join-Path $EvidenceDirectory 'verified-receipt.json'
     $receiptRun=[WindowsMermaidStandardUser]::RunNodeScript(
       $NodeExecutable,
