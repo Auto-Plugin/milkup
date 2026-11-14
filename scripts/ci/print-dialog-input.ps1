@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 if(!$IsWindows -or $env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -cne 'refs/heads/dot/print-queue-acceptance-20261114'){throw 'Exact print CI required'}
 if(Test-Path -LiteralPath $Receipt){throw 'Fresh receipt required'}
 Add-Type -Path (Join-Path $PSScriptRoot 'IsolatedPrintDialog.cs')
+Add-Type -Path (Join-Path $PSScriptRoot 'OwnedPrintJob.cs')
 $product=[Diagnostics.Process]::GetProcessById($ProductId);$held=$product.Handle
 function Identity {$product.Refresh();if($product.HasExited -or $product.StartTime.ToUniversalTime().Ticks -ne $CreationTicks -or ![StringComparer]::OrdinalIgnoreCase.Equals($product.MainModule.FileName,$Image)){throw 'Exact parent product changed'}}
 function QueueIdentity {
@@ -17,8 +18,8 @@ function CancelObservedJob([string]$Purpose) {
   $latest=Get-PrintJob -PrinterName $Queue -ID $job.ID
   if($latest.DocumentName -cne $job.DocumentName -or $latest.UserName -cne $job.UserName -or $latest.SubmittedTime -ne $job.SubmittedTime){throw 'Spool job identity changed before cancel'}
   $r.cancelPurpose=$Purpose
-  Remove-PrintJob -PrinterName $Queue -ID $job.ID
-  $r.systemCancel=$true;$r.cancelMechanism='ordinary-user PrintManagement Remove-PrintJob exact queue and ID; not application cancellation'
+  try{[OwnedPrintJob]::Cancel($Queue,[uint32]$job.ID,$job.DocumentName,$job.UserName,$r.jobOwnerSid,$job.SubmittedTime)}finally{$r.nativeCancel=[OwnedPrintJob]::Last}
+  $r.systemCancel=$true;$r.cancelMechanism='ordinary-user WinSpool SetJobW JOB_CONTROL_DELETE with PRINTER_ACCESS_USE, exact queue/job generation; not application cancellation'
   $end=[datetime]::UtcNow.AddSeconds(15)
   do{QueueIdentity;$left=@(Get-PrintJob -PrinterName $Queue);if(!$left.Count){break};Start-Sleep -Milliseconds 100}while([datetime]::UtcNow -lt $end)
   $r.jobsAfter=@($left | Select-Object ID,DocumentName,UserName,SubmittedTime,JobStatus,Size)

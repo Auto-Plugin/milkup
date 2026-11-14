@@ -47,6 +47,12 @@ jobs:
             if($errors.Count){$errors|Format-List;throw 'Print harness PowerShell parse failed'}
           }
           Add-Type -Path scripts/ci/IsolatedPrintDialog.cs
+          Add-Type -Path scripts/ci/OwnedPrintJob.cs
+          foreach($case in @(@{queue='Microsoft Print to PDF';id=1;document='MILKUP_SPOOL_'+('a'*32)},@{queue='Milkup-Isolated-'+('a'*32);id=0;document='MILKUP_SPOOL_'+('a'*32)},@{queue='Milkup-Isolated-'+('a'*32);id=1;document='foreign-document'})) {
+            $rejected=$false
+            try{[OwnedPrintJob]::Cancel($case.queue,$case.id,$case.document,'untrusted','S-1-5-18',[datetime]::UtcNow)}catch{$rejected=$true}
+            if(!$rejected -or [OwnedPrintJob]::Last.ContainsKey('openWin32') -or [OwnedPrintJob]::Last.setJobCalled){throw 'Unsafe queue/job inputs must be rejected before opening or modifying any printer'}
+          }
           node --check scripts/ci/print-queue-ui.mjs
           if($LASTEXITCODE -ne 0){throw 'Print UI parse failed'}
       - name: Build exact application with production frontend assets

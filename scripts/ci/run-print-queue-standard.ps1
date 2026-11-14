@@ -75,7 +75,7 @@ try {
  $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($user.SID,'ReadAndExecute','ContainerInherit,ObjectInherit','None','Allow'))
  Set-Acl -LiteralPath $stage -AclObject $acl
  $code=Join-Path $stage 'code';NewDir $code
- $files=@('scripts/ci/run-print-queue-standard.ps1','scripts/ci/run-print-queue-child.ps1','scripts/ci/print-queue-ui.mjs','scripts/ci/print-dialog-input.ps1','scripts/ci/IsolatedPrintDialog.cs','scripts/release/WindowsInstallWindow.cs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
+ $files=@('scripts/ci/run-print-queue-standard.ps1','scripts/ci/run-print-queue-child.ps1','scripts/ci/print-queue-ui.mjs','scripts/ci/print-dialog-input.ps1','scripts/ci/IsolatedPrintDialog.cs','scripts/ci/OwnedPrintJob.cs','scripts/release/WindowsInstallWindow.cs','scripts/ci/WindowsMermaidStandardUser.cs','tests/windows/mermaid-product-e2e.mjs','tests/windows/mermaid-frontend-contract.mjs')
  $audit['stagedCode']=@()
  foreach($leaf in $files) {
   $source=Join-Path $repo $leaf;Plain $source
