@@ -37,9 +37,18 @@ controlled source-header graph passed. This does not compile the complete engine
 The workflow now defaults to a bounded **preflight** operation. It restores the
 specific old content-checked object cache (or a newer same-input cache), configures
 the exact GTK3 graph, repeats the header negative/positive checks and tests two
-previously completed object targets. It rejects a plan with linking or more than
-eight compilations, limits each target to 180 seconds, and requires a genuine hit
+previously completed bmalloc object targets. It uses two exact, unique
+`compile_commands.json` entries with one `-c` input and one bounded `-o` output,
+never a shell/link command, limits each target to 180 seconds, and requires a genuine hit
 on each first invocation. No warmed second invocation can satisfy the gate.
+This proves sampled reuse, not a promise that every WebCore object will hit.
+
+The first CI preflight 43613434123 passed header forwarding and full configure,
+but its conservative dry-run guard stopped before any object probe: Ninja's
+`CONFIGURE_DEPENDS` dry-run showed only glob verification and CMake regeneration.
+It did not expose the object plan. The corrected probe invokes the two exact
+configured compiler commands directly through ccache, preserving all flags and
+paths. No complete engine build was dispatched for the failed preflight.
 
 An explicit **resume** requires a successful same-SHA preflight artifact and
 repeats the cache check before full compilation. The existing limits remain:
