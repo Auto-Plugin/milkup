@@ -1,0 +1,25 @@
+name: Isolated blank guest capability for offline install research
+on:
+  push:
+    branches: [dot/clean-guest-probe-20261114]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: windows-2025
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/ci/probe-owned-clean-guest.ps1
+      - shell: pwsh
+        run: ./scripts/ci/probe-owned-clean-guest.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/clean-guest-evidence"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: clean-guest-capability-${{ github.run_id }}
+          path: ${{ runner.temp }}/clean-guest-evidence/
+          retention-days: 7
+          if-no-files-found: error
